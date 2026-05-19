@@ -1,0 +1,51 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Виртуальные окружения
+.venv/
+venv/
+env/
+ENV/
+
+# === Зависимости ===
+node_modules/
+
+# === БД и пользовательские данные ===
+*.db
+*.sqlite
+*.sqlite3
+
+# Загруженные пользователями файлы — НЕ в git
+backend/storage/
+
+# === Секреты ===
+.env
+.env.local
+.env.*.local
+*.secret
+secrets/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Логи ===
+*.log
+logs/
+
+# === Алембик локальный кэш ===
+alembic.ini.bak
+
+# === Временные файлы ===
+*.tmp
+*.bak
