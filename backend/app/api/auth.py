@@ -5,6 +5,9 @@ from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import Request
+from app.core.rate_limit import login_limiter
+
 from app.api.deps import get_current_user
 from app.core.security import (
     create_access_token,
@@ -58,15 +61,31 @@ async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)) ->
 
 
 @router.post("/login", response_model=TokenPair)
-async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> TokenPair:
+async def login(
+    payload: UserLogin,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> TokenPair:
     """Authenticate by username + password and return JWT pair."""
+    ip = request.client.host if request.client else "unknown"
+
+    # Проверка rate limit
+    allowed, remaining = login_limiter.check_allowed(ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed login attempts. Try again in {remaining} seconds.",
+        )
+
     user = await db.scalar(select(User).where(User.username == payload.username))
     if not user or not verify_password(payload.password, user.password_hash):
+        login_limiter.record_failure(ip)
         # одинаковое сообщение, чтобы не раскрывать существование пользователя
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
 
+    login_limiter.record_success(ip)
     return TokenPair(
         access_token=create_access_token(user.id, user.role.value),
         refresh_token=create_refresh_token(user.id),
@@ -101,21 +120,28 @@ async def me(current: User = Depends(get_current_user)) -> UserPublic:
 
 @router.post("/token", response_model=TokenPair)
 async def login_form(
+    request: Request,
     form: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ) -> TokenPair:
-    """OAuth2-совместимый логин для Swagger UI и других OAuth2-клиентов.
+    """OAuth2-совместимый логин для Swagger UI и других OAuth2-клиентов."""
+    ip = request.client.host if request.client else "unknown"
 
-    Принимает application/x-www-form-urlencoded с полями username и password.
-    Возвращает тот же TokenPair, что /login. Используй /login для JSON-клиентов
-    (фронт), /token — для Swagger и любых OAuth2-инструментов.
-    """
+    allowed, remaining = login_limiter.check_allowed(ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed login attempts. Try again in {remaining} seconds.",
+        )
+
     user = await db.scalar(select(User).where(User.username == form.username))
     if not user or not verify_password(form.password, user.password_hash):
+        login_limiter.record_failure(ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
 
+    login_limiter.record_success(ip)
     return TokenPair(
         access_token=create_access_token(user.id, user.role.value),
         refresh_token=create_refresh_token(user.id),

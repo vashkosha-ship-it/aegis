@@ -95,7 +95,7 @@ function bookCategoriesText(book) {
   if (!book.categories || book.categories.length === 0) {
     return 'Без категории';
   }
-  return book.categories.join(', ');
+  return book.categories.map(c => eh(c)).join(', ');
 }
 
 // ========== SKELETON LOADING ==========
@@ -2071,7 +2071,11 @@ function populateCatalog() {
   const allCats = new Set();
   state.books.forEach(b => (b.categories || []).forEach(c => allCats.add(c)));
   const cats = [...allCats];
-  document.getElementById('catalogChips').innerHTML = cats.map(c => `<span class="catalog-chip${state.filters.categories.includes(c) ? ' active' : ''}" onclick="toggleCategoryFilter('${c}')">${c}</span>`).join('');
+  document.getElementById('catalogChips').innerHTML = cats.map((c, idx) => {
+  const isActive = state.filters.categories.includes(c);
+  return `<span class="catalog-chip${isActive ? ' active' : ''}" data-cat-idx="${idx}" onclick="toggleCategoryFilter(window._catCache[${idx}])">${eh(c)}</span>`;
+}).join('');
+window._catCache = cats;
   document.getElementById('filterSort').value = state.filters.sort;
 }
 function toggleCategoryFilter(c) { const idx = state.filters.categories.indexOf(c); if (idx === -1) state.filters.categories.push(c); else state.filters.categories.splice(idx, 1); populateCatalog(); applyFilters(); }
@@ -3677,7 +3681,7 @@ async function populateNewCategoriesSelect() {
   } catch (e) {
     categories = [];
   }
-  sel.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.innerHTML = categories.map(c => `<option value="${eh(c)}">${eh(c)}</option>`).join('');
   sel.value = []; // снимаем все выделения
 }
 
@@ -3959,7 +3963,7 @@ async function populateAdminCategoriesSelect(currentCategories) {
     categories = currentCategories || [];
   }
   
-  sel.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.innerHTML = categories.map(c => `<option value="${eh(c)}">${eh(c)}</option>`).join('');
   
   // Выделяем текущие категории книги
   if (currentCategories && Array.isArray(currentCategories)) {
