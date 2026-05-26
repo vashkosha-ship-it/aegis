@@ -60,6 +60,24 @@
           <label>Email</label>
           <input type="email" id="authEmail" placeholder="your@email.com">
         </div>
+        <div id="registerDepartmentField" class="form-group hidden">
+          <label>Подразделение</label>
+          <select id="authDepartment">
+            <option value="">— Выбери —</option>
+            <option value="ЦКЗ">ЦКЗ</option>
+            <option value="ДПМ">ДПМ</option>
+            <option value="УБД">УБД</option>
+            <option value="УКИИ">УКИИ</option>
+            <option value="УКАИ">УКАИ</option>
+            <option value="УМК">УМК</option>
+            <option value="УЭК">УЭК</option>
+            <option value="ЦКГ">ЦКГ</option>
+            <option value="ЦУПКБ">ЦУПКБ</option>
+            <option value="ЦВВ">ЦВВ</option>
+            <option value="__other__">Другое</option>
+          </select>
+          <input type="text" id="authDepartmentOther" placeholder="Введите название подразделения" maxlength="64" class="hidden" style="margin-top:8px;">
+        </div>
         <div class="form-group">
           <label>Пароль</label>
           <input type="password" id="authPass" placeholder="Введите пароль">
@@ -144,15 +162,6 @@
             <option value="title">По названию</option>
             <option value="dateAdded">По дате добавления</option>
             <option value="datePublished">По дате публикации</option>
-          </select>
-        </div>
-        <div class="catalog-filter-group">
-          <label>Статус</label>
-          <select id="filterStatus">
-            <option value="all">Все</option>
-            <option value="reading">Читаю</option>
-            <option value="completed">Прочитано</option>
-            <option value="dropped">Брошено</option>
           </select>
         </div>
       </div>
@@ -441,8 +450,9 @@
         <span class="book-name" id="readerBookName">Книга</span>
         <span class="book-format-badge" id="readerFormatBadge">PDF</span>
         <span class="page-indicator-top" id="pageIndicatorTop">1 / 1</span>
-        <button class="btn-nav-page" onclick="togglePomodoro()" title="Pomodoro таймер">⏱️</button>
-        <button class="btn-nav-page" id="btnExportNotes" onclick="exportNotes()" title="Экспорт заметок">📤</button>
+        <button class="btn-nav-page" id="btnPomodoro" onclick="togglePomodoro()" title="Pomodoro таймер" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;"></button>
+        <button class="btn-nav-page" id="btnExportNotes" onclick="exportNotes()" title="Экспорт заметок" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;"></button>
+        <button class="btn-nav-page" id="btnReaderTheme" onclick="toggleReaderTheme()" title="Сменить тему" style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;"></button>
         <button class="header-icon-btn btn-ai-icon" style="width:30px;height:30px;font-size:12px;" onclick="toggleAIPanel()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5A2 2 0 0 1 10 3H14A2 2 0 0 1 16 5V7"/><line x1="12" y1="11" x2="12" y2="15"/><circle cx="9" cy="17" r="1"/><circle cx="15" cy="17" r="1"/></svg>
         </button>
@@ -458,8 +468,8 @@
         <div class="annotation-layer" id="annotationLayer"></div>
           <div class="text-layer" id="pdfTextLayer" style="position:absolute;top:0;left:0;pointer-events:auto;"></div>
         <div id="selectionToolbar" class="selection-toolbar" style="display:none;position:absolute;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:4px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.4);gap:4px;">
-          <button onclick="highlightSelection()" style="background:transparent;border:none;color:#fbbf24;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">🖍️ Маркер</button>
-          <button onclick="addNoteToSelection()" style="background:transparent;border:none;color:var(--accent);padding:6px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">📝 Заметка</button>
+          <button id="btnPdfHighlight" onclick="highlightSelection()" style="background:transparent;border:none;color:#fbbf24;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:5px;">Маркер</button>
+          <button id="btnPdfNote" onclick="addNoteToSelection()" style="background:transparent;border:none;color:var(--accent);padding:6px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:5px;">Заметка</button>
         </div>
       </div>
         <!-- EPUB viewport -->

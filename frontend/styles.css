@@ -1650,3 +1650,57 @@ select[multiple] option:hover {
 .text-layer span:hover {
   background-color: rgba(0, 212, 255, 0.1);
 }
+/* Text layer для PDF — невидимый текст для выделения */
+#pdfTextLayer {
+  color: transparent;
+  user-select: text;
+  cursor: text;
+  line-height: 1.0;
+  z-index: 5;
+}
+#pdfTextLayer span,
+#pdfTextLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+}
+/* При выделении показываем подсветку */
+#pdfTextLayer ::selection {
+  background: rgba(0, 212, 255, 0.3);
+}
+#pdfTextLayer ::-moz-selection {
+  background: rgba(0, 212, 255, 0.3);
+}
+/* pdfViewport должен быть relative, чтобы absolute-text layer лёг в него */
+#pdfViewport {
+  position: relative;
+}
+#pdfCanvas {
+  position: relative;
+  z-index: 1;
+}
+
+/* === Тёмная тема читалки === */
+
+/* PDF — инверсия canvas */
+#readerScreen.reader-theme-dark #pdfCanvas:not(.no-invert) {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* EPUB iframe — в нём своя страница, ему ниже даём CSS через epubjs.themes */
+/* (применяется через JS — см. ниже) */
+
+/* Сам контейнер читалки в тёмной теме */
+#readerScreen.reader-theme-dark .pdf-viewport,
+#readerScreen.reader-theme-dark .epub-viewport,
+#readerScreen.reader-theme-dark #epubContainer {
+  background: #1a1a1a;
+}
+
+/* В тёмной теме маркер выделения чуть ярче, чтобы был виден */
+#readerScreen.reader-theme-dark #pdfTextLayer ::selection {
+  background: rgba(0, 212, 255, 0.5);
+}

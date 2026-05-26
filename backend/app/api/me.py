@@ -59,10 +59,9 @@ async def update_me(
     Username и email не меняются через этот эндпоинт — они требуют
     дополнительных проверок (уникальность, верификация почты).
     """
-    if payload.full_name is not None:
-        # Пустую строку трактуем как «убрать имя»
-        full_name = payload.full_name.strip()
-        current.full_name = full_name if full_name else None
+    if payload.department is not None:
+        dep = payload.department.strip()
+        current.department = dep if dep else None
 
     await db.commit()
     await db.refresh(current)

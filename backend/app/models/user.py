@@ -29,6 +29,8 @@ class User(Base):
     # Профиль (бывший userProfiles)
     full_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Подразделение (выбирается при регистрации)
+    department: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # Геймификация (бывшие userXp / userStreaks)
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

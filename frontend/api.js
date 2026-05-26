@@ -4,7 +4,7 @@
 // Токены хранятся в localStorage. При 401 пытаемся обновить refresh-токеном.
 // ============================================================================
 (function () {
-  const BASE = 'http://localhost:8000/api';
+  const BASE = 'https://taylor-could-launch-bryant.trycloudflare.com/api';
 
   // --- хранение токенов ----------------------------------------------------
   const TOKEN_KEY = 'neon_access_token';
@@ -104,12 +104,12 @@
       return data;
     },
 
-    async register(username, password, email = null, full_name = null) {
-      const data = await request('/auth/register', {
-        method: 'POST',
-        body: { username, password, email, full_name },
-        auth: false,
-      });
+    async register(username, password, email = null, full_name = null, department = null) {
+    const data = await request('/auth/register', {
+      method: 'POST',
+      body: { username, password, email, full_name, department },
+      auth: false,
+    });
       tokens.set(data.access_token, data.refresh_token);
       return data;
     },

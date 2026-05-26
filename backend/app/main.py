@@ -25,7 +25,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://recommends-facts-heel-profiles.trycloudflare.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

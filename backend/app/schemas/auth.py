@@ -10,6 +10,7 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     email: EmailStr | None = None
     full_name: str | None = Field(default=None, max_length=128)
+    department: str | None = Field(default=None, max_length=64)
 
 
 class UserLogin(BaseModel):
@@ -40,6 +41,7 @@ class UserPublic(BaseModel):
     cyber_level: str | None = None
     topic_scores: dict | None = None
     level_assessed_at: datetime | None = None
+    department: str | None = None
 
     @classmethod
     def model_validate(cls, obj, *, strict=None, from_attributes=None, context=None):
@@ -61,3 +63,4 @@ class UserUpdate(BaseModel):
     Username и email менять не разрешаем — это отдельные большие истории
     (уникальность, верификация email и т.д.). Только display name."""
     full_name: str | None = Field(default=None, max_length=128)
+    department: str | None = Field(default=None, max_length=64)

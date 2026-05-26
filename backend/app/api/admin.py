@@ -35,8 +35,18 @@ class AdminUserView(BaseModel):
     username: str
     email: str | None
     role: UserRole
+    full_name: str | None = None
+    department: str | None = None
     xp: int
+    streak_count: int = 0
+    cyber_level: str | None = None
     is_active: bool
+    created_at: str | None = None
+    # Статистика
+    completed_books: int = 0
+    quiz_attempts: int = 0
+    perfect_quizzes: int = 0
+    total_pages_read: int = 0
 
 
 # ============================================================================
@@ -125,9 +135,59 @@ async def list_all_users(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ) -> list[AdminUserView]:
-    """List all users (admin only)."""
+    """List all users with computed stats (admin only)."""
     users = (await db.scalars(select(User).order_by(User.created_at.desc()))).all()
-    return [AdminUserView.model_validate(u, from_attributes=True) for u in users]
+
+    # Группа MyList completed
+    completed_rows = (await db.execute(
+        select(MyListEntry.user_id, func.count(MyListEntry.id))
+        .where(MyListEntry.status == MyListStatus.COMPLETED)
+        .group_by(MyListEntry.user_id)
+    )).all()
+    completed_map = {row[0]: row[1] for row in completed_rows}
+
+    # Тесты — всего и идеальных (100%)
+    attempts_rows = (await db.execute(
+        select(QuizAttempt.user_id, func.count(QuizAttempt.id))
+        .group_by(QuizAttempt.user_id)
+    )).all()
+    attempts_map = {row[0]: row[1] for row in attempts_rows}
+
+    perfect_rows = (await db.execute(
+        select(QuizAttempt.user_id, func.count(QuizAttempt.id))
+        .where(QuizAttempt.percentage >= 100)
+        .group_by(QuizAttempt.user_id)
+    )).all()
+    perfect_map = {row[0]: row[1] for row in perfect_rows}
+
+    # Сумма страниц прочитанных (по reading_progress)
+    pages_rows = (await db.execute(
+        select(ReadingProgress.user_id, func.sum(ReadingProgress.current_page))
+        .where(ReadingProgress.started.is_(True))
+        .group_by(ReadingProgress.user_id)
+    )).all()
+    pages_map = {row[0]: int(row[1] or 0) for row in pages_rows}
+
+    result = []
+    for u in users:
+        result.append(AdminUserView(
+            id=u.id,
+            username=u.username,
+            email=u.email,
+            role=u.role,
+            full_name=u.full_name,
+            department=u.department,
+            xp=u.xp,
+            streak_count=u.streak_count or 0,
+            cyber_level=u.cyber_level,
+            is_active=u.is_active,
+            created_at=u.created_at.isoformat() if u.created_at else None,
+            completed_books=completed_map.get(u.id, 0),
+            quiz_attempts=attempts_map.get(u.id, 0),
+            perfect_quizzes=perfect_map.get(u.id, 0),
+            total_pages_read=pages_map.get(u.id, 0),
+        ))
+    return result
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -60,6 +60,11 @@ const ICONS = {
   achReview: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   iconSword: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/></svg>',
   iconShield: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  theme: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  marker: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>',
+  note: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+  timer: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/><path d="M12 2v3"/></svg>',
+  export: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
   iconBook: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
 };
 
@@ -1845,6 +1850,7 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   state.currentTab = this.dataset.tab;
   const isRegister = state.currentTab === 'register';
   document.getElementById('registerEmailField').classList.toggle('hidden', !isRegister);
+  document.getElementById('registerDepartmentField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerFirstNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerLastNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('authPass').required = !isRegister;
@@ -1858,6 +1864,17 @@ function socialAuth(provider) {
     showToast(`Вход через ${provider} ещё не реализован`);
   }
 }
+
+document.getElementById('authDepartment').addEventListener('change', function() {
+  const other = document.getElementById('authDepartmentOther');
+  if (this.value === '__other__') {
+    other.classList.remove('hidden');
+    other.focus();
+  } else {
+    other.classList.add('hidden');
+    other.value = '';
+  }
+});
 
 function adaptBookFromApi(b) {
   // Определяем наличие файла по всем возможным полям
@@ -1959,7 +1976,15 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       const firstName = document.getElementById('authFirstName').value.trim();
       const lastName = document.getElementById('authLastName').value.trim();
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || null;
-      await api.register(n, p, email || null, fullName);
+      // Собираем подразделение
+      const depSelect = document.getElementById('authDepartment').value;
+      let department = null;
+      if (depSelect === '__other__') {
+        department = document.getElementById('authDepartmentOther').value.trim() || null;
+      } else if (depSelect) {
+        department = depSelect;
+      }
+      await api.register(n, p, email || null, fullName, department);
     } else {
       await api.login(n, p);
     }
@@ -2048,11 +2073,11 @@ function populateCatalog() {
   const cats = [...allCats];
   document.getElementById('catalogChips').innerHTML = cats.map(c => `<span class="catalog-chip${state.filters.categories.includes(c) ? ' active' : ''}" onclick="toggleCategoryFilter('${c}')">${c}</span>`).join('');
   document.getElementById('filterSort').value = state.filters.sort;
-  document.getElementById('filterStatus').value = state.filters.status;
 }
 function toggleCategoryFilter(c) { const idx = state.filters.categories.indexOf(c); if (idx === -1) state.filters.categories.push(c); else state.filters.categories.splice(idx, 1); populateCatalog(); applyFilters(); }
+function applyFilters() { state.filters.sort = document.getElementById('filterSort').value; renderHome(); showToast('Применено'); }
 function applyFilters() { state.filters.sort = document.getElementById('filterSort').value; state.filters.status = document.getElementById('filterStatus').value; renderHome(); showToast('Применено'); }
-function resetFilters() { state.filters = { categories: [], sort: 'default', status: 'all' }; populateCatalog(); renderHome(); showToast('Сброшено'); }
+function resetFilters() { state.filters = { categories: [], sort: 'default' }; populateCatalog(); renderHome(); showToast('Сброшено'); }
 function getFilteredBooks() {
   let books = [...state.books]; const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   if (q) books = books.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
@@ -2062,9 +2087,6 @@ function getFilteredBooks() {
       return state.filters.categories.some(filterCat => bCats.includes(filterCat));
     });
   }
-  if (state.filters.status === 'reading') books = books.filter(b => state.mylist[b.id] === 'reading');
-  if (state.filters.status === 'completed') books = books.filter(b => state.mylist[b.id] === 'completed');
-  if (state.filters.status === 'dropped') books = books.filter(b => state.mylist[b.id] === 'dropped');
   switch (state.filters.sort) {
     case 'rating': books.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating)); break;
     case 'title': books.sort((a, b) => a.title.localeCompare(b.title)); break;
@@ -2285,6 +2307,20 @@ function renderProfile() {
     header.parentNode.insertBefore(usernameLine, header.nextSibling);
   }
   usernameLine.textContent = '@' + u.name;
+
+  // Подразделение под username
+  let depLine = document.getElementById('profileDepartmentLine');
+  if (u.department) {
+    if (!depLine) {
+      depLine = document.createElement('div');
+      depLine.id = 'profileDepartmentLine';
+      depLine.style.cssText = 'font-size:11px;color:var(--accent);margin-bottom:4px;font-weight:600;';
+      usernameLine.parentNode.insertBefore(depLine, usernameLine.nextSibling);
+    }
+    depLine.textContent = u.department;
+  } else if (depLine) {
+    depLine.remove();
+  }
 
   // Тег роли + бейдж уровня кибербезопасности (если пройден тест)
   const roleTag = document.getElementById('profileRoleTag');
@@ -2920,6 +2956,22 @@ function openReader(id) {
   api.library.updateProgress(id, state.readingProgress[id].currentPage, state.readingProgress[id].totalPages).catch(e => console.error('progress on open failed:', e));
   setTimeout(() => { if (navigator.onLine) refreshGamificationFromApi(); }, 500);
   navigateTo('reader');
+  // Заполняем SVG-иконки в кнопках шапки читалки
+  const btnPom = document.getElementById('btnPomodoro');
+  const btnExp = document.getElementById('btnExportNotes');
+  if (btnPom && !btnPom.innerHTML.trim()) btnPom.innerHTML = ICONS.timer;
+  if (btnExp && !btnExp.innerHTML.trim()) btnExp.innerHTML = ICONS.export;
+  // Также заполняем SVG в toolbar выделения текста PDF
+  const btnHighlight = document.getElementById('btnPdfHighlight');
+  const btnNote = document.getElementById('btnPdfNote');
+  if (btnHighlight && !btnHighlight.querySelector('svg')) {
+    btnHighlight.innerHTML = ICONS.marker + '<span>Маркер</span>';
+  }
+  if (btnNote && !btnNote.querySelector('svg')) {
+    btnNote.innerHTML = ICONS.note + '<span>Заметка</span>';
+  }
+  // Применяем сохранённую тему чтения
+  applyReaderTheme(getReaderTheme());
   document.getElementById('readerBookName').textContent = b.title;
 
   const format = b.file_format || 'pdf';
@@ -2981,11 +3033,11 @@ function showEpubSelectionPopup(selectedText, cfiRange, x, y, contents) {
   `;
 
   popup.innerHTML = `
-    <button id="epubBtnHighlight" style="background:transparent;border:none;color:#fbbf24;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:6px;display:flex;align-items:center;gap:4px;">
-      🖍️ Маркер
+    <button id="epubBtnHighlight" style="background:transparent;border:none;color:#fbbf24;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;">
+      ${ICONS.marker}<span>Маркер</span>
     </button>
-    <button id="epubBtnNote" style="background:transparent;border:none;color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:6px;display:flex;align-items:center;gap:4px;">
-      📝 Заметка
+    <button id="epubBtnNote" style="background:transparent;border:none;color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;">
+      ${ICONS.note}<span>Заметка</span>
     </button>
   `;
 
@@ -3251,6 +3303,8 @@ async function loadEpub(b) {
       height: '100%',
       flow: 'paginated',
     });
+    // Применяем тему после создания rendition
+  setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
 
     const location = await epubBook.locations.generate(1000);
     epubRendition.display();
@@ -3405,6 +3459,9 @@ async function renderPdfPage(pn) {
   canvas.style.height = 'auto';
   canvas.style.display = 'block';
   canvas.style.margin = '0 auto';
+  // Первая страница (обложка) не инвертируется в тёмной теме
+  if (pn === 1) canvas.classList.add('no-invert');
+  else canvas.classList.remove('no-invert');
 
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -3418,25 +3475,26 @@ async function renderPdfPage(pn) {
   const textLayerDiv = document.getElementById('pdfTextLayer');
   if (textLayerDiv) {
     textLayerDiv.innerHTML = '';
+    // Точно совпадает с CSS-размерами canvas
+    const cssHeight = viewport.height;  // в CSS-пикселях, без DPR
     textLayerDiv.style.position = 'absolute';
-    textLayerDiv.style.top = canvas.offsetTop + 'px';
-    textLayerDiv.style.left = canvas.offsetLeft + 'px';
+    textLayerDiv.style.left = '50%';
+    textLayerDiv.style.top = '0';
+    textLayerDiv.style.transform = 'translateX(-50%)';
     textLayerDiv.style.width = targetWidth + 'px';
-    textLayerDiv.style.height = viewport.height + 'px';
+    textLayerDiv.style.height = cssHeight + 'px';
     textLayerDiv.style.pointerEvents = 'auto';
-    
+
     try {
       const textContent = await page.getTextContent();
-      // Используем правильный API
       pdfjsLib.renderTextLayer({
-        textContent: textContent,
+        textContentSource: textContent,
         container: textLayerDiv,
         viewport: viewport,
         textDivs: [],
       });
     } catch (e) {
       console.warn('Text layer error:', e);
-      // Не показываем ошибку пользователю - PDF всё равно работает
     }
   }
 
@@ -3444,6 +3502,65 @@ async function renderPdfPage(pn) {
   if (typeof renderAnnotations === 'function') {
     await renderAnnotations();
   }
+}
+
+// ========== ЧИТАЛКА: ТЁМНАЯ ТЕМА ==========
+
+const READER_THEME_KEY = 'aegis_reader_theme';
+
+function getReaderTheme() {
+  return localStorage.getItem(READER_THEME_KEY) || 'light';
+}
+
+function applyReaderTheme(theme) {
+  const screen = document.getElementById('readerScreen');
+  if (theme === 'dark') {
+    screen.classList.add('reader-theme-dark');
+  } else {
+    screen.classList.remove('reader-theme-dark');
+  }
+
+  // Обновляем иконку на кнопке
+  const btn = document.getElementById('btnReaderTheme');
+  if (btn) {
+    btn.innerHTML = ICONS.theme;
+    btn.title = theme === 'dark' ? 'Светлая тема' : 'Тёмная тема';
+  }
+
+  // Для EPUB — применяем тему через epubjs
+  if (typeof epubRendition !== 'undefined' && epubRendition) {
+    try {
+      epubRendition.themes.register('aegis-dark', {
+        'body': {
+          'background': '#1a1a1a !important',
+          'color': '#e0e0e0 !important',
+        },
+        'p, div, span, h1, h2, h3, h4, h5, h6, li, td, th, blockquote': {
+          'color': '#e0e0e0 !important',
+        },
+        'a': {
+          'color': '#00d4ff !important',
+        },
+      });
+      epubRendition.themes.register('aegis-light', {
+        'body': {
+          'background': '#fff !important',
+          'color': '#000 !important',
+        },
+      });
+      epubRendition.themes.select(theme === 'dark' ? 'aegis-dark' : 'aegis-light');
+    } catch (e) {
+      console.warn('Не удалось применить тему EPUB:', e);
+    }
+  }
+}
+
+function toggleReaderTheme() {
+  const current = getReaderTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(READER_THEME_KEY, next);
+  applyReaderTheme(next);
+  showToast(next === 'dark' ? 'Тёмная тема' : 'Светлая тема');
 }
 
 function closeReader() {
@@ -4456,29 +4573,152 @@ async function loadAndRenderAdminUsers() {
   container.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">Загрузка...</div>';
   try {
     const users = await api.library.adminUsers();
-    container.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;">
-      <div style="font-size:12px;color:var(--text-secondary);">Всего пользователей:</div>
-      <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${users.length}</div>
-    </div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>ID</th><th>Логин</th><th>Email</th><th>Роль</th><th>XP</th><th>Активен</th><th>Действия</th></tr></thead>
-      <tbody>
-        ${users.map(u => `<tr>
-          <td>${u.id}</td>
-          <td>${eh(u.username)}</td>
-          <td>${eh(u.email || '—')}</td>
-          <td>${u.role}</td>
-          <td>${u.xp}</td>
-          <td>${u.is_active ? ICONS.check : ICONS.x}</td>
-          <td>${u.role !== 'admin'
-            ? `<button class="btn-sm danger" onclick="deleteAdminUser(${u.id}, '${eh(u.username)}')">${ICONS.trash} Удалить</button>`
-            : '—'}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table></div>`;
+
+    // Сохраняем в state, чтобы фильтр работал без повторного запроса
+    state._adminUsers = users;
+
+    renderAdminUsersWithFilter();
   } catch (err) {
     container.innerHTML = '<div style="padding:20px;color:#ef4444;">Не удалось загрузить пользователей</div>';
   }
+}
+
+function renderAdminUsersWithFilter() {
+  const container = document.getElementById('adUsers');
+  const users = state._adminUsers || [];
+  if (!users.length) {
+    container.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Нет пользователей</div>';
+    return;
+  }
+
+  const filter = state._adminUsersFilter || 'all';
+  const limit = state._adminUsersLimit || 10;
+
+  let sorted = [...users];
+  let title = '';
+  if (filter === 'top_books') {
+    sorted.sort((a, b) => (b.completed_books || 0) - (a.completed_books || 0));
+    title = `ТОП-${limit} по прочитанным книгам`;
+  } else if (filter === 'top_xp') {
+    sorted.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+    title = `ТОП-${limit} по XP (активности)`;
+  } else if (filter === 'top_perfect') {
+    sorted.sort((a, b) => (b.perfect_quizzes || 0) - (a.perfect_quizzes || 0));
+    title = `ТОП-${limit} по тестам на 100%`;
+  }
+
+  const displayed = filter === 'all' ? sorted : sorted.slice(0, limit);
+
+  // Сводная статистика — по всем юзерам
+  const totalUsers = users.length;
+  const activeUsers = users.filter(u => u.is_active).length;
+  const totalCompleted = users.reduce((s, u) => s + (u.completed_books || 0), 0);
+  const totalAttempts = users.reduce((s, u) => s + (u.quiz_attempts || 0), 0);
+
+  const miniDash = `
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:18px;font-weight:700;color:var(--accent);">${totalUsers}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Всего пользователей</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:18px;font-weight:700;color:#22c55e;">${activeUsers}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Активных</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:18px;font-weight:700;color:#fbbf24;">${totalCompleted}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Книг прочитано (всеми)</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:18px;font-weight:700;color:#a855f7;">${totalAttempts}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Попыток тестов</div>
+      </div>
+    </div>
+  `;
+
+  const filterPanel = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:11px;color:var(--text-muted);">Показать:</label>
+      <select id="adminUsersFilter" onchange="onAdminUsersFilterChange()" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;">
+        <option value="all"${filter==='all'?' selected':''}>Все</option>
+        <option value="top_books"${filter==='top_books'?' selected':''}>ТОП по прочитанным книгам</option>
+        <option value="top_xp"${filter==='top_xp'?' selected':''}>ТОП по XP (активности)</option>
+        <option value="top_perfect"${filter==='top_perfect'?' selected':''}>ТОП по тестам на 100%</option>
+      </select>
+      ${filter !== 'all' ? `
+        <label style="font-size:11px;color:var(--text-muted);margin-left:8px;">Размер ТОП:</label>
+        <select id="adminUsersLimit" onchange="onAdminUsersLimitChange()" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;">
+          <option value="5"${limit===5?' selected':''}>5</option>
+          <option value="10"${limit===10?' selected':''}>10</option>
+          <option value="25"${limit===25?' selected':''}>25</option>
+          <option value="50"${limit===50?' selected':''}>50</option>
+        </select>
+      ` : ''}
+    </div>
+    ${title ? `<div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:10px;">${title}</div>` : ''}
+  `;
+
+  const tableHtml = `
+    <div class="table-wrap"><table>
+      <thead><tr>
+        ${filter !== 'all' ? '<th>#</th>' : ''}
+        <th>ID</th>
+        <th>Логин</th>
+        <th>ФИО</th>
+        <th>Подразделение</th>
+        <th>Email</th>
+        <th>Роль</th>
+        <th>Уровень</th>
+        <th>XP</th>
+        <th>Стрик</th>
+        <th>Книг прочит.</th>
+        <th>Тестов</th>
+        <th>На 100%</th>
+        <th>Страниц</th>
+        <th>Активен</th>
+        <th>Действия</th>
+      </tr></thead>
+      <tbody>
+        ${displayed.map((u, idx) => {
+          const levelInfo = u.cyber_level ? getCyberLevelInfo(u.cyber_level) : null;
+          return `<tr>
+            ${filter !== 'all' ? `<td style="font-weight:700;color:var(--accent);">${idx + 1}</td>` : ''}
+            <td>${u.id}</td>
+            <td>${eh(u.username)}</td>
+            <td>${eh(u.full_name || '—')}</td>
+            <td>${eh(u.department || '—')}</td>
+            <td>${eh(u.email || '—')}</td>
+            <td>${u.role}</td>
+            <td>${levelInfo ? eh(levelInfo.name) : '—'}</td>
+            <td>${u.xp}</td>
+            <td>${u.streak_count}</td>
+            <td>${u.completed_books}</td>
+            <td>${u.quiz_attempts}</td>
+            <td>${u.perfect_quizzes}</td>
+            <td>${u.total_pages_read}</td>
+            <td>${u.is_active ? ICONS.check : ICONS.x}</td>
+            <td>${u.role !== 'admin'
+              ? `<button class="btn-sm danger" onclick="deleteAdminUser(${u.id}, '${eh(u.username).replace(/'/g, "\\'")}')">${ICONS.trash}</button>`
+              : '—'}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>
+  `;
+
+  container.innerHTML = miniDash + filterPanel + tableHtml;
+}
+
+function onAdminUsersFilterChange() {
+  const sel = document.getElementById('adminUsersFilter');
+  state._adminUsersFilter = sel.value;
+  renderAdminUsersWithFilter();
+}
+
+function onAdminUsersLimitChange() {
+  const sel = document.getElementById('adminUsersLimit');
+  state._adminUsersLimit = parseInt(sel.value, 10) || 10;
+  renderAdminUsersWithFilter();
 }
 
 async function deleteAdminUser(userId, username) {
