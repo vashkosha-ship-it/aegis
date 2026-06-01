@@ -89,6 +89,88 @@ const ICONS = {
 // ========== ТЕМА ВСЕГО ПРИЛОЖЕНИЯ ==========
 const APP_THEME_KEY = 'aegis_app_theme';
 
+const GRID_SIZE_KEY = 'aegis_grid_size';
+
+function getGridSize() {
+  const v = parseInt(localStorage.getItem(GRID_SIZE_KEY), 10);
+  return [2, 3, 4].includes(v) ? v : 2;
+}
+
+function applyGridSize(size) {
+  if (![2, 3, 4].includes(size)) size = 2;
+  document.documentElement.style.setProperty('--books-grid-columns', String(size));
+  localStorage.setItem(GRID_SIZE_KEY, String(size));
+}
+
+// ========== ДАННЫЕ И ПАМЯТЬ ==========
+const WIFI_ONLY_KEY = 'aegis_wifi_only';
+
+function isWifiOnlyEnabled() {
+  return localStorage.getItem(WIFI_ONLY_KEY) === '1';
+}
+function setWifiOnly(enabled) {
+  localStorage.setItem(WIFI_ONLY_KEY, enabled ? '1' : '0');
+}
+function isOnWifi() {
+  // Поддерживается не везде. Если API нет — считаем что мы на Wi-Fi (не блокируем).
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!conn || !conn.type) return true;
+  return conn.type === 'wifi' || conn.type === 'ethernet';
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes < 0) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+}
+
+async function getStorageStats() {
+  let used = 0, quota = 0;
+  if (navigator.storage && navigator.storage.estimate) {
+    try {
+      const est = await navigator.storage.estimate();
+      used = est.usage || 0;
+      quota = est.quota || 0;
+    } catch (_) {}
+  }
+
+  // Размер кэша книг (Cache Storage)
+  let cacheSize = 0;
+  let cacheCount = 0;
+  if ('caches' in window) {
+    try {
+      const names = await caches.keys();
+      for (const name of names) {
+        const cache = await caches.open(name);
+        const reqs = await cache.keys();
+        cacheCount += reqs.length;
+        for (const req of reqs) {
+          const resp = await cache.match(req);
+          if (resp) {
+            const blob = await resp.clone().blob();
+            cacheSize += blob.size;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  return { used, quota, cacheSize, cacheCount };
+}
+
+async function clearAllAppCache() {
+  if (!('caches' in window)) return;
+  const names = await caches.keys();
+  for (const name of names) {
+    await caches.delete(name);
+  }
+}
+
+// Применяем сетку сразу при загрузке
+applyGridSize(getGridSize());
+
 function getAppTheme() {
   return localStorage.getItem(APP_THEME_KEY) || 'dark';
 }
@@ -2287,6 +2369,7 @@ async function tryAutoLogin() {
       cyber_level: user.cyber_level,
       topic_scores: user.topic_scores,
       level_assessed_at: user.level_assessed_at,
+      profile_visibility: user.profile_visibility || 'public',
     };
 
     await loadBooksFromApi();
@@ -2795,14 +2878,113 @@ function openSettingsTab(tabId) {
   renderSettingsTabContent();
 }
 
+async function renderSettingsStorageTab(c) {
+  c.innerHTML = `
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Данные и память</h3>
+    <div id="storageStatsContent" style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">
+      ${ICONS.iconDatabase}
+      <div style="margin-top:8px;">Подсчёт...</div>
+    </div>
+  `;
+
+  const stats = await getStorageStats();
+  const cont = document.getElementById('storageStatsContent');
+  if (!cont) return;
+
+  const usedPct = stats.quota > 0 ? Math.round((stats.used / stats.quota) * 100) : 0;
+  const wifiOnly = isWifiOnlyEnabled();
+
+  cont.style.textAlign = 'left';
+  cont.style.padding = '0';
+  cont.innerHTML = `
+    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);">ИСПОЛЬЗОВАНО</div>
+        <div style="font-size:14px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${formatBytes(stats.used)}</div>
+      </div>
+      <div style="height:8px;background:var(--bg-card);border-radius:4px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${usedPct}%;background:var(--accent-gradient);transition:width 0.3s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
+        <span>${usedPct}% от доступного</span>
+        <span>из ${formatBytes(stats.quota)}</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${formatBytes(stats.cacheSize)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Кэш приложения</div>
+      </div>
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:16px;font-weight:700;color:#a855f7;font-family:'JetBrains Mono',monospace;">${stats.cacheCount}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Файлов в кэше</div>
+      </div>
+    </div>
+
+    <!-- Тумблер «только Wi-Fi» -->
+    <div class="set-row" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Скачивать только по Wi-Fi</div>
+          <div style="font-size:10px;color:var(--text-muted);">Экономия мобильного трафика</div>
+        </div>
+        <label class="toggle-switch" style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;">
+          <input type="checkbox" id="wifiOnlyToggle" ${wifiOnly ? 'checked' : ''} onchange="setWifiOnly(this.checked);showToast(this.checked ? 'Только Wi-Fi' : 'Любая сеть')" style="opacity:0;width:0;height:0;">
+          <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${wifiOnly ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;">
+            <span style="position:absolute;height:18px;width:18px;left:${wifiOnly ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <button class="set-save-btn" onclick="confirmClearCache()" style="background:#ef444425;color:#ef4444;border:1px solid #ef444466;margin-top:14px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      <span>Очистить кэш</span>
+    </button>
+
+    <div style="margin-top:10px;font-size:10px;color:var(--text-muted);line-height:1.5;">
+      После очистки книги придётся скачать заново при следующем чтении. Прогресс чтения, заметки и достижения сохранятся.
+    </div>
+  `;
+}
+
+function confirmClearCache() {
+  showConfirmModal({
+    title: 'Очистить кэш приложения?',
+    message: 'Все скачанные книги будут удалены из кэша. Прогресс, заметки и достижения сохранятся.',
+    confirmText: 'Очистить',
+    cancelText: 'Отмена',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        await clearAllAppCache();
+        showToast('Кэш очищен');
+        // Перерисуем вкладку
+        renderSettingsStorageTab(document.getElementById('settingsContent'));
+      } catch (e) {
+        showToast('Не удалось очистить кэш');
+        console.error(e);
+      }
+    },
+  });
+}
+
 function renderSettingsTabContent() {
   const c = document.getElementById('settingsContent');
   if (!c || !state.currentUser) return;
 
   if (settingsCurrentTab === 'info') {
     renderSettingsInfoTab(c);
-  } else {
-    // Заглушки для других вкладок (сделаем в следующих сессиях)
+  } else if (settingsCurrentTab === 'security') {
+    renderSettingsSecurityTab(c);
+  } else if (settingsCurrentTab === 'personalization') {
+    renderSettingsPersonalizationTab(c); 
+  } else if (settingsCurrentTab === 'privacy') {
+    renderSettingsPrivacyTab(c);
+  } else if (settingsCurrentTab === 'storage') {
+    renderSettingsStorageTab(c);
+  }else {
     const tab = SETTINGS_TABS.find(t => t.id === settingsCurrentTab);
     c.innerHTML = `
       <div style="text-align:center;padding:32px 12px;color:var(--text-muted);">
@@ -2810,6 +2992,183 @@ function renderSettingsTabContent() {
         <div style="font-size:12px;">Раздел будет доступен в ближайшее время</div>
       </div>
     `;
+  }
+}
+
+function renderSettingsPrivacyTab(c) {
+  const u = state.currentUser;
+  const current = u.profile_visibility || 'public';
+
+  const options = [
+    { value: 'public',     label: 'Публичный',         desc: 'Профиль доступен всем авторизованным пользователям' },
+    { value: 'colleagues', label: 'Только для коллег', desc: 'Видят только пользователи твоего подразделения' },
+    { value: 'private',    label: 'Приватный',         desc: 'Профиль скрыт от всех, кроме тебя' },
+  ];
+
+  c.innerHTML = `
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Приватность</h3>
+
+    <div style="background:#fbbf2415;border:1px solid #fbbf2455;border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">
+        Публичные профили будут доступны в будущем обновлении. Сейчас твой выбор сохранится и сработает, когда мы добавим эту функцию.
+      </div>
+    </div>
+
+    <div class="set-row">
+      <label>Отображение профиля</label>
+      <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:6px;">
+        ${options.map(opt => `
+          <button onclick="setPrivacyVisibility('${opt.value}')" style="text-align:left;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${current === opt.value ? 'var(--accent-gradient)' : 'transparent'};border:none;border-radius:8px;cursor:pointer;font-family:inherit;color:${current === opt.value ? '#fff' : 'var(--text-primary)'};">
+            <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${current === opt.value ? '#fff' : 'var(--border-light)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+              ${current === opt.value ? '<div style="width:8px;height:8px;border-radius:50%;background:#fff;"></div>' : ''}
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${opt.label}</div>
+              <div style="font-size:11px;opacity:0.8;line-height:1.4;">${opt.desc}</div>
+            </div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function setPrivacyVisibility(value) {
+  try {
+    const updated = await api.updateMe({ profile_visibility: value });
+    state.currentUser.profile_visibility = updated.profile_visibility;
+    renderSettingsPrivacyTab(document.getElementById('settingsContent'));
+    showToast('Настройка сохранена');
+  } catch (e) {
+    console.error(e);
+    showToast('Не удалось сохранить');
+  }
+}
+
+function renderSettingsPersonalizationTab(c) {
+  const currentTheme = getAppTheme();
+  const currentGrid = getGridSize();
+
+  c.innerHTML = `
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Персонализация</h3>
+
+    <!-- Тема -->
+    <div class="set-row">
+      <label>Тема приложения</label>
+      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+        <button onclick="setAppTheme('dark');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'dark' ? 'active' : ''}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'dark' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'dark' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">
+          ${ICONS.themeMoon}<span>Тёмная</span>
+        </button>
+        <button onclick="setAppTheme('light');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'light' ? 'active' : ''}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'light' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'light' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">
+          ${ICONS.themeSun}<span>Светлая</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Карточек в ряд -->
+    <div class="set-row">
+      <label>Карточек книг в ряд</label>
+      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+        ${[2, 3, 4].map(n => `
+          <button onclick="setGridSize(${n})" style="flex:1;padding:10px;background:${currentGrid === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentGrid === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">
+            ${n}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Предпросмотр -->
+    <div class="set-row">
+      <label>Предпросмотр</label>
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;">
+        <div id="gridPreview" style="display:grid;grid-template-columns:repeat(${currentGrid},1fr);gap:6px;">
+          ${Array.from({length: currentGrid * 2}, () => `
+            <div style="aspect-ratio:2/3;background:var(--accent-gradient);opacity:0.6;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Изменения применяются ко всему каталогу</div>
+    </div>
+  `;
+}
+
+function setGridSize(n) {
+  applyGridSize(n);
+  // Перерисуем экран настроек чтобы обновить активную кнопку и предпросмотр
+  renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
+  // Если открыта главная — перерисуем каталог
+  if (state.currentScreen === 'home') renderHome();
+  showToast(`Карточек в ряд: ${n}`);
+}
+
+function renderSettingsSecurityTab(c) {
+  c.innerHTML = `
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Смена пароля</h3>
+
+    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+      Для смены пароля введи текущий пароль и новый пароль. Новый пароль должен быть не короче 8 символов и отличаться от текущего.
+    </div>
+
+    <div class="set-row">
+      <label>Текущий пароль</label>
+      <input type="password" id="setCurrentPassword" autocomplete="current-password" placeholder="Введите текущий пароль" maxlength="128">
+    </div>
+
+    <div class="set-row">
+      <label>Новый пароль</label>
+      <input type="password" id="setNewPassword" autocomplete="new-password" placeholder="Минимум 8 символов" maxlength="128">
+    </div>
+
+    <div class="set-row">
+      <label>Повторите новый пароль</label>
+      <input type="password" id="setNewPasswordConfirm" autocomplete="new-password" placeholder="Ещё раз новый пароль" maxlength="128">
+    </div>
+
+    <div id="setPasswordError" style="font-size:11px;color:#ef4444;margin-bottom:10px;min-height:14px;"></div>
+
+    <button class="set-save-btn" onclick="saveSettingsPassword()">
+      ${ICONS.iconSave}<span>Изменить пароль</span>
+    </button>
+
+    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
+        <strong style="color:var(--text-secondary);">Смена email</strong> будет доступна позже — она требует подтверждения по почте, и эта функция в разработке.
+      </div>
+    </div>
+  `;
+}
+
+async function saveSettingsPassword() {
+  const current = (document.getElementById('setCurrentPassword').value || '');
+  const newp = (document.getElementById('setNewPassword').value || '');
+  const confirm = (document.getElementById('setNewPasswordConfirm').value || '');
+  const errEl = document.getElementById('setPasswordError');
+  errEl.textContent = '';
+
+  if (!current) { errEl.textContent = 'Введите текущий пароль'; return; }
+  if (newp.length < 8) { errEl.textContent = 'Новый пароль должен быть не короче 8 символов'; return; }
+  if (newp !== confirm) { errEl.textContent = 'Новые пароли не совпадают'; return; }
+  if (newp === current) { errEl.textContent = 'Новый пароль должен отличаться от текущего'; return; }
+
+  try {
+    await api.changePassword(current, newp);
+    showToast('Пароль изменён');
+    // Чистим поля для безопасности
+    document.getElementById('setCurrentPassword').value = '';
+    document.getElementById('setNewPassword').value = '';
+    document.getElementById('setNewPasswordConfirm').value = '';
+  } catch (e) {
+    if (e.status === 401) {
+      errEl.textContent = 'Текущий пароль неверный';
+    } else if (e.status === 400) {
+      errEl.textContent = e.detail || 'Ошибка при смене пароля';
+    } else {
+      errEl.textContent = 'Не удалось изменить пароль. Попробуйте позже.';
+      console.error(e);
+    }
   }
 }
 

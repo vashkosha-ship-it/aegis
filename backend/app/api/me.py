@@ -3,6 +3,9 @@ import logging
 from collections.abc import AsyncIterator
 from typing import Optional
 
+from pydantic import BaseModel, Field
+from app.core.security import hash_password, verify_password
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,11 +57,15 @@ async def update_me(
     current: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UserPublic:
-    """Изменить отображаемое имя у себя в профиле.
+    """Изменить отображаемое имя и подразделение в профиле.
 
     Username и email не меняются через этот эндпоинт — они требуют
     дополнительных проверок (уникальность, верификация почты).
     """
+    if payload.full_name is not None:
+        fn = payload.full_name.strip()
+        current.full_name = fn if fn else None
+
     if payload.department is not None:
         dep = payload.department.strip()
         current.department = dep if dep else None
@@ -66,6 +73,45 @@ async def update_me(
     await db.commit()
     await db.refresh(current)
     return UserPublic.model_validate(current)
+
+# ============================================================================
+# POST /api/me/password — смена пароля
+# ============================================================================
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_my_password(
+    payload: PasswordChangeRequest,
+    current: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Поменять свой пароль.
+
+    Требуется текущий пароль (защита от ситуации «забыл выйти на чужом компе»).
+    Новый пароль — минимум 8 символов, максимум 128.
+    """
+    # Проверяем текущий пароль
+    if not verify_password(payload.current_password, current.password_hash):
+        # Не раскрываем точную причину (даём общую ошибку)
+        raise HTTPException(status_code=401, detail="Текущий пароль неверный")
+
+    # Запрет ставить тот же пароль
+    if verify_password(payload.new_password, current.password_hash):
+        raise HTTPException(status_code=400, detail="Новый пароль не должен совпадать с текущим")
+
+    # Дополнительные проверки сложности
+    if len(payload.new_password.strip()) < 8:
+        raise HTTPException(status_code=400, detail="Пароль должен быть не короче 8 символов")
+
+    current.password_hash = hash_password(payload.new_password)
+    await db.commit()
+
+    logger.info("User %s changed own password", current.id)
 
 
 # ============================================================================

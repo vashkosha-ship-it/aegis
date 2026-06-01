@@ -127,6 +127,13 @@
       return request('/me', { method: 'PATCH', body: payload });
     },
 
+    changePassword(currentPassword, newPassword) {
+      return request('/me/password', {
+        method: 'POST',
+        body: { current_password: currentPassword, new_password: newPassword },
+      });
+    },
+
     uploadAvatar(file) {
       const fd = new FormData();
       fd.append('file', file);

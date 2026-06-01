@@ -9,6 +9,8 @@ from sqlalchemy.sql import func
 
 from app.db.session import Base
 
+from sqlalchemy import String
+
 
 class UserRole(str, Enum):
     READER = "reader"
@@ -31,6 +33,9 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     # Подразделение (выбирается при регистрации)
     department: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    profile_visibility: Mapped[str] = mapped_column(
+        String(32), default="public", nullable=False, server_default="public"
+    )
 
     # Геймификация (бывшие userXp / userStreaks)
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

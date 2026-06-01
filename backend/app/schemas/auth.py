@@ -42,6 +42,7 @@ class UserPublic(BaseModel):
     topic_scores: dict | None = None
     level_assessed_at: datetime | None = None
     department: str | None = None
+    profile_visibility: str = "public"
 
     @classmethod
     def model_validate(cls, obj, *, strict=None, from_attributes=None, context=None):
@@ -64,3 +65,4 @@ class UserUpdate(BaseModel):
     (уникальность, верификация email и т.д.). Только display name."""
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
+    profile_visibility: str | None = None
