@@ -3,6 +3,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
+  /* === Цвета (могут быть переопределены через [data-theme="light"]) === */
   --bg-primary: #0a0e17;
   --bg-secondary: #0f1419;
   --bg-card: #151a23;
@@ -23,6 +24,9 @@
   --shadow-card: 0 8px 32px rgba(0,0,0,0.3);
   --shadow-glow: 0 0 30px rgba(0,212,255,0.15);
   --shadow-glow-strong: 0 0 40px rgba(0,212,255,0.25);
+  /* Overlay для модалок (меняется в светлой теме) */
+  --overlay: rgba(0,0,0,0.7);
+  --overlay-strong: rgba(0,0,0,0.85);
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 16px;
@@ -32,6 +36,33 @@
   --bottom-nav-h: 72px;
   --ai-panel-width: 420px;
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* === Светлая тема === */
+[data-theme="light"] {
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-elevated: #ffffff;
+  --accent: #0284c7;
+  --accent-light: #0ea5e9;
+  --accent-gradient: linear-gradient(135deg, #0284c7, #7c3aed);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --border-light: #cbd5e1;
+  --shadow-card: 0 4px 16px rgba(15,23,42,0.08);
+  --shadow-glow: 0 0 24px rgba(2,132,199,0.15);
+  --shadow-glow-strong: 0 0 32px rgba(2,132,199,0.25);
+  --overlay: rgba(15,23,42,0.45);
+  --overlay-strong: rgba(15,23,42,0.6);
+}
+
+/* Плавный переход при смене темы */
+body, .screen, .auth-container, .book-card-compact, input, select, textarea, button {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
 body {
@@ -218,6 +249,30 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .book-card-compact .info-area { padding: 10px; }
 .book-card-compact .book-title-text { font-size: 11px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-primary); }
 .book-card-compact .book-author-text { font-size: 9px; color: var(--text-muted); margin-top: 3px; }
+.book-card-meta {
+  padding: 6px 4px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.book-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+.book-card-year {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
 
 /* ========== MYLIST ========== */
 .mylist-drag-hint { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 12px; background: rgba(0,212,255,0.05); border: 1px dashed var(--border); border-radius: var(--radius-sm); font-size: 11px; color: var(--text-muted); }
@@ -857,7 +912,29 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* ========== ТЕПЛОВАЯ КАРТА ========== */
 .heatmap-container { display: flex; flex-wrap: wrap; gap: 3px; padding: 8px 0; }
-.heatmap-cell { width: 12px; height: 12px; border-radius: 2px; background: var(--bg-primary); transition: background 0.3s; cursor: pointer; }
+.heatmap-cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.heatmap-cell:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 2px var(--accent);
+  z-index: 10;
+  position: relative;
+}
+
+/* Контейнер тоже подправим — больше gap для дыхания */
+#heatmapContainer {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+  overflow-x: auto;
+  padding: 4px 2px 8px 2px;
+}
 @media(min-width: 480px) { .heatmap-cell { width: 14px; height: 14px; } }
 .heatmap-cell:hover { transform: scale(1.3); }
 .heatmap-cell.level-0 { background: var(--bg-primary); }
@@ -1703,4 +1780,105 @@ select[multiple] option:hover {
 /* В тёмной теме маркер выделения чуть ярче, чтобы был виден */
 #readerScreen.reader-theme-dark #pdfTextLayer ::selection {
   background: rgba(0, 212, 255, 0.5);
+}
+/* Подсветка совпадения поиска в PDF */
+#pdfTextLayer .search-match-highlight {
+  background: rgba(251, 191, 36, 0.5) !important;
+  color: rgba(0, 0, 0, 0.01) !important;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.7);
+}
+
+/* Если темная тема — другой цвет подсветки */
+#readerScreen.reader-theme-dark #pdfTextLayer .search-match-highlight {
+  background: rgba(0, 212, 255, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.7);
+}
+
+.app-theme-btn.active {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+/* В светлой теме модалки используют более мягкий overlay */
+[data-theme="light"] .modal-overlay {
+  background: var(--overlay) !important;
+}
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  text-align: left;
+  transition: var(--transition);
+}
+.settings-tab:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.settings-tab.active {
+  background: var(--accent-gradient);
+  color: #fff;
+}
+.settings-tab svg {
+  flex-shrink: 0;
+}
+
+/* Десктоп — двухколоночная раскладка */
+@media (min-width: 768px) {
+  .settings-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .settings-layout .btn-logout {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Form-row для секций настроек */
+.set-row {
+  margin-bottom: 14px;
+}
+.set-row label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.set-row input, .set-row select {
+  width: 100%;
+}
+.set-save-btn {
+  background: var(--accent-gradient);
+  border: none;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.top-header {
+  justify-content: space-between;
+}
+#btnOpenSettings:hover {
+  background: var(--bg-card-hover);
+  color: var(--accent);
 }

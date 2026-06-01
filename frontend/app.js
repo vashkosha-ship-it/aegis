@@ -66,7 +66,59 @@ const ICONS = {
   timer: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/><path d="M12 2v3"/></svg>',
   export: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
   iconBook: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  chevronUp: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>',
+  chevronDown: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  closeX: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  themeSun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+  themeMoon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  settingsGear: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+  iconStar: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  iconFlame: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  iconUser: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  iconLock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  iconEye: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  iconDatabase: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  iconPalette: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+  iconSave: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+  iconLogout: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  sun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  moon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
 };
+
+// ========== ТЕМА ВСЕГО ПРИЛОЖЕНИЯ ==========
+const APP_THEME_KEY = 'aegis_app_theme';
+
+function getAppTheme() {
+  return localStorage.getItem(APP_THEME_KEY) || 'dark';
+}
+
+function applyAppTheme(theme) {
+  if (theme !== 'light') theme = 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(APP_THEME_KEY, theme);
+
+  // Обновляем кнопки переключателя если они есть на странице
+  const btnDark = document.getElementById('appThemeBtnDark');
+  const btnLight = document.getElementById('appThemeBtnLight');
+  if (btnDark && btnLight) {
+    if (theme === 'dark') {
+      btnDark.classList.add('active');
+      btnLight.classList.remove('active');
+    } else {
+      btnLight.classList.add('active');
+      btnDark.classList.remove('active');
+    }
+  }
+}
+
+function setAppTheme(theme) {
+  applyAppTheme(theme);
+  showToast(theme === 'light' ? 'Светлая тема' : 'Тёмная тема');
+}
+
+// Применяем тему сразу при загрузке скрипта (до рендера)
+applyAppTheme(getAppTheme());
 
 function icon(name) {
   return ICONS[name] || '';
@@ -208,6 +260,8 @@ async function startARCamera() {
 }
 function closeAR() {
   console.log('closeAR вызвана');
+  const toggle = document.getElementById('arViewModeToggle');
+  if (toggle) toggle.style.display = 'none';
   
   // Останавливаем камеру
   if (arStream) {
@@ -295,6 +349,9 @@ const AR_KILL_CHAIN = {
         'Мониторинг threat intelligence-фидов',
       ],
       relatedCategory: 'Технический оффенсив',
+      metaphor: 'Глаз / бинокль, сканирующий цифровые тени цели',
+      defenseMethod: { code: 'Detect', nameRu: 'Обнаружение', color: '#3b82f6' },
+      defenseTools: ['Анализ логов веб-сервера', 'WHOIS-маскировка', 'Threat Intelligence фиды', 'Обучение OPSEC'],
     },
     {
       id: 2,
@@ -313,6 +370,9 @@ const AR_KILL_CHAIN = {
         'Threat intelligence помогает узнавать о свежих инструментах',
       ],
       relatedCategory: 'Реверс-инжиниринг и анализ вредоносного ПО',
+      metaphor: 'Рука, прикрепляющая взрыватель к боеголовке',
+      defenseMethod: { code: 'Deny', nameRu: 'Уничтожение', color: '#8b5cf6' },
+      defenseTools: ['Прямая защита невозможна — этап на стороне атакующего', 'Threat Intelligence о свежих инструментах'],
     },
     {
       id: 3,
@@ -333,6 +393,9 @@ const AR_KILL_CHAIN = {
         'Регулярный патчинг публичных сервисов',
       ],
       relatedCategory: 'Социальная инженерия и человеческий фактор',
+      metaphor: 'Летящее копьё / фишинговая стрела',
+      defenseMethod: { code: 'Disrupt', nameRu: 'Блокировка', color: '#ef4444' },
+      defenseTools: ['Прокси-серверы', 'Спам-фильтры', 'Песочницы для вложений', 'Запрет USB-носителей'],
     },
     {
       id: 4,
@@ -353,6 +416,9 @@ const AR_KILL_CHAIN = {
         'ASLR, DEP, application whitelisting',
       ],
       relatedCategory: 'Разработка безопасного ПО (AppSec)',
+      metaphor: 'Трескающаяся броня / проникновение вируса в код',
+      defenseMethod: { code: 'Degrade', nameRu: 'Предотвращение', color: '#f59e0b' },
+      defenseTools: ['Патч-менеджмент', 'Антивирус / HIPS', 'EMET', 'ASLR, DEP, whitelisting'],
     },
     {
       id: 5,
@@ -373,6 +439,9 @@ const AR_KILL_CHAIN = {
         'Ограничение прав пользователей',
       ],
       relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)',
+      metaphor: 'Червь / имплант, пускающий корни в системе',
+      defenseMethod: { code: 'Deceive', nameRu: 'Изоляция', color: '#06b6d4' },
+      defenseTools: ['Минимальные привилегии', 'Контроль UAC', 'Проверка целостности файлов', 'Honeypot-ловушки'],
     },
     {
       id: 6,
@@ -393,6 +462,9 @@ const AR_KILL_CHAIN = {
         'Ограничение исходящего трафика',
       ],
       relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)',
+      metaphor: 'Кукловод с нитями / антенна, шлющая маячки наружу',
+      defenseMethod: { code: 'Disrupt', nameRu: 'Обрыв связи', color: '#ef4444' },
+      defenseTools: ['Блокировка IP/DNS на фаерволах', 'Deep Packet Inspection', 'NDR-анализ трафика', 'Threat hunting'],
     },
     {
       id: 7,
@@ -414,12 +486,16 @@ const AR_KILL_CHAIN = {
         'Privileged Access Management',
       ],
       relatedCategory: 'Практический менеджмент и GRC (Управление, риск, соответствие)',
+      metaphor: 'Раскрытый сейф / перетекающие данные / красная кнопка тревоги',
+      defenseMethod: { code: 'Contain', nameRu: 'Сдерживание', color: '#dc2626' },
+      defenseTools: ['DLP-системы', 'Сегментация сети', 'Мониторинг аномалий трафика', 'Резервные копии + PAM'],
     },
   ],
 };
 
 let arSelectedStage = null;  // id текущей раскрытой стадии (или null)
 // Рендер схемы — пока заглушка, будет переписан в Итерации 2
+let arViewMode = 'attack'; // 'attack' | 'defense'
 function renderARScheme(schemeCode) {
   console.log('renderARScheme вызван с кодом:', schemeCode);
   
@@ -467,6 +543,14 @@ function isKillChainStageStudied(stage) {
 
 function renderKillChainScheme() {
   console.log('renderKillChainScheme вызван');
+  // Показываем переключатель режима (он скрыт по умолчанию для других схем)
+  const toggle = document.getElementById('arViewModeToggle');
+  if (toggle) toggle.style.display = 'flex';
+  // Восстанавливаем сохранённый режим
+  const savedMode = localStorage.getItem('aegis_killchain_mode') || 'attack';
+  arViewMode = savedMode;
+  // Применим режим после рендера узлов (через тик)
+  setTimeout(() => setKillChainViewMode(savedMode), 50);
   const container = document.getElementById('arSchemeContainer');
   if (!container) {
     console.error('arSchemeContainer не найден');
@@ -698,44 +782,30 @@ function applyARSchemeZoom() {
     }
   });
 }
-
-function resetARSchemeZoom() {
-  currentARSchemeZoom = 1;
-  applyARSchemeZoom();
-  const scrollContainer = document.getElementById('killChainScrollContainer');
-  if (scrollContainer) {
-    scrollContainer.scrollTop = 0;
-    scrollContainer.scrollLeft = 0;
-  }
-  showZoomIndicator(100);
-}
-
 function resetARSchemeZoom() {
   currentARSchemeZoom = 1;
   const nodesContainer = document.getElementById('killChainNodes');
   const scrollContainer = document.getElementById('killChainScrollContainer');
-  
   if (nodesContainer) {
     nodesContainer.style.transform = 'scale(1)';
+    nodesContainer.style.transition = 'transform 0.2s ease';
   }
   if (scrollContainer) {
     scrollContainer.scrollTop = 0;
+    scrollContainer.scrollLeft = 0;
   }
-  
+  if (typeof applyARSchemeZoom === 'function') applyARSchemeZoom();
   showZoomIndicator(100);
 }
 
-// Функция для показа индикатора зума с SVG вместо эмодзи
 function showZoomIndicator(percent) {
-  // Удаляем старый индикатор
-  const oldIndicator = document.getElementById('zoomIndicator');
-  if (oldIndicator) oldIndicator.remove();
-  
-  // Создаём новый индикатор с SVG иконкой
+  const old = document.getElementById('zoomIndicator');
+  if (old) old.remove();
+
   const indicator = document.createElement('div');
   indicator.id = 'zoomIndicator';
   indicator.innerHTML = `
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; vertical-align:middle; margin-right:8px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;">
       <circle cx="11" cy="11" r="8"/>
       <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       <line x1="11" y1="8" x2="11" y2="14"/>
@@ -744,72 +814,22 @@ function showZoomIndicator(percent) {
     <span>${percent}%</span>
   `;
   indicator.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
+    position: fixed; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     background: rgba(0,0,0,0.85);
     backdrop-filter: blur(12px);
     color: #00d4ff;
-    font-size: 18px;
-    font-weight: bold;
-    padding: 12px 24px;
+    font-size: 16px; font-weight: 700;
+    padding: 10px 20px;
     border-radius: 48px;
-    z-index: 100;
-    pointer-events: none;
-    animation: zoomFadeOut 0.8s forwards;
+    z-index: 100; pointer-events: none;
     font-family: 'JetBrains Mono', monospace;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    display: inline-flex; align-items: center;
     border: 1px solid rgba(0,212,255,0.3);
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  `;
-  document.body.appendChild(indicator);
-  
-  setTimeout(() => indicator.remove(), 800);
-}
-
-
-function resetARSchemeZoom() {
-  currentARSchemeZoom = 1;
-  const nodesContainer = document.getElementById('killChainNodes');
-  if (nodesContainer) {
-    nodesContainer.style.transform = 'scale(1)';
-    nodesContainer.style.transition = 'transform 0.2s ease';
-  }
-  showZoomIndicator(100);
-}
-
-function showZoomIndicator(percent) {
-  // Удаляем старый индикатор
-  const oldIndicator = document.getElementById('zoomIndicator');
-  if (oldIndicator) oldIndicator.remove();
-  
-  // Создаём новый
-  const indicator = document.createElement('div');
-  indicator.id = 'zoomIndicator';
-  indicator.textContent = `${percent}%`;
-  indicator.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(10px);
-    color: #00d4ff;
-    font-size: 20px;
-    font-weight: bold;
-    padding: 12px 24px;
-    border-radius: 40px;
-    z-index: 100;
-    pointer-events: none;
     animation: zoomFadeOut 0.8s forwards;
-    font-family: 'JetBrains Mono', monospace;
   `;
   document.body.appendChild(indicator);
-  
   setTimeout(() => indicator.remove(), 800);
 }
 
@@ -860,19 +880,6 @@ function selectKillChainStage(stageId) {
     }
   });
 
-  // На мобильных скроллим к элементу
-  const isMobile = window.innerWidth < 768;
-  if (isMobile) {
-    const selectedNode = document.getElementById('arNode' + stageId);
-    const scrollContainer = document.getElementById('killChainScrollContainer');
-    if (selectedNode && scrollContainer) {
-      const nodeRect = selectedNode.getBoundingClientRect();
-      const containerRect = scrollContainer.getBoundingClientRect();
-      const scrollOffset = nodeRect.top - containerRect.top + scrollContainer.scrollTop - 100;
-      scrollContainer.scrollTo({ top: scrollOffset, behavior: 'smooth' });
-    }
-  }
-
   // Скрыть подсказку
   const stageHint = document.getElementById('arStageHint');
   if (stageHint) stageHint.style.display = 'none';
@@ -885,27 +892,64 @@ function selectKillChainStage(stageId) {
   if (titleEl) {
     titleEl.innerHTML = `ЭТАП ${stage.id} — ${stage.nameRu.toUpperCase()}`;
   }
-  
+
   // Обновляем содержимое панели
   const contentEl = document.getElementById('arStageDetailContent');
   if (contentEl) {
     contentEl.innerHTML = `
-      <div style="margin-bottom:16px;">
-        <div style="font-size:13px;line-height:1.5;opacity:0.9;margin-bottom:14px;">${eh(stage.description)}</div>
+      <div style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(168,85,247,0.08));border:1px solid rgba(0,212,255,0.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+        <div style="font-size:9px;font-weight:700;color:rgba(0,212,255,0.9);letter-spacing:0.8px;margin-bottom:4px;">МЕТАФОРА</div>
+        <div style="font-size:12px;line-height:1.4;font-style:italic;opacity:0.9;">${eh(stage.metaphor || '—')}</div>
       </div>
 
-      <div style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#ef4444;letter-spacing:0.5px;margin-bottom:8px;">${ICONS.iconSword} ЧТО ДЕЛАЕТ АТАКУЮЩИЙ</div>
-        <ul style="margin:0;padding-left:20px;font-size:11px;line-height:1.6;opacity:0.85;">
-          ${stage.attacker.map(a => `<li style="margin-bottom:4px;">${eh(a)}</li>`).join('')}
+      <div style="display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">
+          ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;opacity:0.7;">МЕТОД ЗАЩИТЫ (6D)</div>
+          <div style="font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};">
+            ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:13px;line-height:1.5;opacity:0.9;margin-bottom:14px;">${eh(stage.description)}</div>
+
+      <div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.04);padding:3px;border-radius:8px;">
+        <button onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" style="flex:1;padding:7px;background:rgba(239,68,68,0.25);border:none;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+          ${ICONS.iconSword} АТАКА
+        </button>
+        <button onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+          ${ICONS.iconShield} ЗАЩИТА
+        </button>
+        <button onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+          ИНСТРУМЕНТЫ
+        </button>
+      </div>
+
+      <div id="killChainTabContent-attack" class="killchain-tab-content" style="display:block;margin-bottom:16px;">
+        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
+          ${stage.attacker.map(a => `<li style="margin-bottom:6px;">${eh(a)}</li>`).join('')}
         </ul>
       </div>
 
-      <div style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#10b981;letter-spacing:0.5px;margin-bottom:8px;">${ICONS.iconShield} КАК ЗАЩИТИТЬСЯ</div>
-        <ul style="margin:0;padding-left:20px;font-size:11px;line-height:1.6;opacity:0.85;">
-          ${stage.defender.map(d => `<li style="margin-bottom:4px;">${eh(d)}</li>`).join('')}
+      <div id="killChainTabContent-defense" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
+        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
+          ${stage.defender.map(d => `<li style="margin-bottom:6px;">${eh(d)}</li>`).join('')}
         </ul>
+      </div>
+
+      <div id="killChainTabContent-tools" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
+        ${(stage.defenseTools && stage.defenseTools.length) ? `
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${stage.defenseTools.map(t => `
+              <div style="background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;">
+                ${eh(t)}
+              </div>
+            `).join('')}
+          </div>
+        ` : `<div style="font-size:11px;opacity:0.5;text-align:center;padding:12px;">Список инструментов не задан</div>`}
       </div>
 
       ${relatedBooks.length > 0 ? `
@@ -928,10 +972,194 @@ function selectKillChainStage(stageId) {
 
       <div style="display:flex;gap:10px;margin-top:8px;">
         <button onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
-        <button onclick="${stageId === 7 ? 'closeAR()' : 'nextKillChainStage()'}" style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;box-shadow:0 2px 8px rgba(0,212,255,0.3);">${stageId === 7 ? 'Закрыть схему ✓' : 'Далее →'}</button>
+        <button onclick="nextKillChainStage()" ${stageId === 7 ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === 7 ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
       </div>
     `;
   }
+
+  // Показываем панель
+  const panel = document.getElementById('arStageDetails');
+  if (panel) {
+    panel.style.display = 'block';
+  }
+}
+function switchKillChainTab(tab) {
+  // Переключаем кнопки
+  ['attack', 'defense', 'tools'].forEach(t => {
+    const btn = document.getElementById('killChainTabBtn-' + t);
+    const content = document.getElementById('killChainTabContent-' + t);
+    if (!btn || !content) return;
+    const isActive = t === tab;
+    content.style.display = isActive ? 'block' : 'none';
+    if (isActive) {
+      // Цвет активной вкладки зависит от типа
+      if (t === 'attack') btn.style.background = 'rgba(239,68,68,0.25)';
+      else if (t === 'defense') btn.style.background = 'rgba(16,185,129,0.25)';
+      else btn.style.background = 'rgba(168,85,247,0.25)';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = 'rgba(255,255,255,0.6)';
+    }
+  });
+}
+function setKillChainViewMode(mode) {
+  if (mode !== 'attack' && mode !== 'defense') mode = 'attack';
+  arViewMode = mode;
+  localStorage.setItem('aegis_killchain_mode', mode);
+
+  // Перекрашиваем кнопки тумблера
+  const btnAtt = document.getElementById('arViewBtnAttack');
+  const btnDef = document.getElementById('arViewBtnDefense');
+  if (btnAtt && btnDef) {
+    if (mode === 'attack') {
+      btnAtt.style.background = 'rgba(239,68,68,0.4)';
+      btnAtt.style.color = '#fff';
+      btnDef.style.background = 'transparent';
+      btnDef.style.color = 'rgba(255,255,255,0.6)';
+    } else {
+      btnDef.style.background = 'rgba(16,185,129,0.4)';
+      btnDef.style.color = '#fff';
+      btnAtt.style.background = 'transparent';
+      btnAtt.style.color = 'rgba(255,255,255,0.6)';
+    }
+  }
+
+  // Перерисовываем узлы с новым стилем
+  applyKillChainViewMode();
+
+  // Если открыта детальная карточка этапа — переключаем активную вкладку
+  if (arSelectedStage !== null) {
+    switchKillChainTab(mode === 'defense' ? 'defense' : 'attack');
+  }
+}
+
+function applyKillChainViewMode() {
+  AR_KILL_CHAIN.stages.forEach(s => {
+    const node = document.getElementById('arNode' + s.id);
+    if (!node) return;
+
+    const isSelected = s.id === arSelectedStage;
+    const isStudied = isKillChainStageStudied(s);
+
+    // Содержимое узла: номер (атака) или буква метода (защита)
+    let label;
+    if (arViewMode === 'defense' && s.defenseMethod) {
+      label = s.defenseMethod.code.charAt(0);
+    } else {
+      label = String(s.id);
+    }
+    // Обновляем только текстовый блок (первый <div> внутри button), не ломая остальное
+    const labelDiv = node.querySelector('.killchain-node-label');
+    if (labelDiv) labelDiv.textContent = label;
+    else {
+      // Если внутри сложная структура — найдём первый <div> с цифрой
+      const first = node.querySelector('div');
+      if (first) first.textContent = label;
+    }
+
+    // Цвет рамки
+    if (isSelected) {
+      // selectKillChainStage сам красит выбранный — не трогаем
+      return;
+    }
+    let borderColor;
+    if (arViewMode === 'defense') {
+      borderColor = s.defenseMethod ? s.defenseMethod.color : 'rgba(255,255,255,0.2)';
+    } else {
+      borderColor = isStudied ? '#10b981' : 'rgba(255,255,255,0.2)';
+    }
+    node.style.borderColor = borderColor;
+  });
+}
+  
+  // Обновляем содержимое панели
+  const contentEl = document.getElementById('arStageDetailContent');
+  if (contentEl) {
+    contentEl.innerHTML = `
+      <!-- Метафора визуализации -->
+      <div style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(168,85,247,0.08));border:1px solid rgba(0,212,255,0.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+        <div style="font-size:9px;font-weight:700;color:rgba(0,212,255,0.9);letter-spacing:0.8px;margin-bottom:4px;">МЕТАФОРА</div>
+        <div style="font-size:12px;line-height:1.4;font-style:italic;opacity:0.9;">${eh(stage.metaphor || '—')}</div>
+      </div>
+
+      <!-- Бейдж метода защиты -->
+      <div style="display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">
+          ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;opacity:0.7;">МЕТОД ЗАЩИТЫ (6D)</div>
+          <div style="font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};">
+            ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Описание -->
+      <div style="font-size:13px;line-height:1.5;opacity:0.9;margin-bottom:14px;">${eh(stage.description)}</div>
+
+      <!-- Вкладки Атака / Защита / Инструменты -->
+      <div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.04);padding:3px;border-radius:8px;">
+        <button onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" style="flex:1;padding:7px;background:rgba(239,68,68,0.25);border:none;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+          ${ICONS.iconSword} АТАКА
+        </button>
+        <button onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+          ${ICONS.iconShield} ЗАЩИТА
+        </button>
+        <button onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+          ⚙ ИНСТРУМЕНТЫ
+        </button>
+      </div>
+
+      <!-- Содержимое вкладок -->
+      <div id="killChainTabContent-attack" class="killchain-tab-content" style="display:block;margin-bottom:16px;">
+        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
+          ${stage.attacker.map(a => `<li style="margin-bottom:6px;">${eh(a)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div id="killChainTabContent-defense" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
+        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
+          ${stage.defender.map(d => `<li style="margin-bottom:6px;">${eh(d)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div id="killChainTabContent-tools" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
+        ${(stage.defenseTools && stage.defenseTools.length) ? `
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${stage.defenseTools.map(t => `
+              <div style="background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;">
+                ${eh(t)}
+              </div>
+            `).join('')}
+          </div>
+        ` : `<div style="font-size:11px;opacity:0.5;text-align:center;padding:12px;">Список инструментов не задан</div>`}
+      </div>
+
+      ${relatedBooks.length > 0 ? `
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:rgba(0,212,255,0.9);letter-spacing:0.5px;margin-bottom:8px;">${ICONS.iconBook} КНИГИ ПО ТЕМЕ</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${relatedBooks.slice(0, 3).map(b => `
+              <button onclick="openBookFromAR(${b.id})" style="text-align:left;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;color:#fff;cursor:pointer;font-family:inherit;font-size:11px;transition:all 0.2s;">
+                <div style="font-weight:600;margin-bottom:4px;">${eh(b.title)}</div>
+                <div style="font-size:10px;opacity:0.6;">${eh(b.author)}</div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      ` : `
+        <div style="font-size:11px;opacity:0.5;text-align:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:16px;">
+          Книг по теме «${eh(stage.relatedCategory)}» пока нет
+        </div>
+      `}
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+       <button onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
+        <button onclick="nextKillChainStage()" ${stageId === 7 ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === 7 ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
+      </div>
+    `;
 
   // Показываем панель с анимацией
   const panel = document.getElementById('arStageDetails');
@@ -1813,6 +2041,7 @@ const screens = {
   reader: document.getElementById('readerScreen'),
   mylist: document.getElementById('mylistScreen'),
   profile: document.getElementById('profileScreen'),
+  settings: document.getElementById('settingsScreen'),
   admin: document.getElementById('adminScreen'),
   training: document.getElementById('trainingScreen'),
   onboarding: document.getElementById('onboardingScreen'),
@@ -1835,6 +2064,7 @@ function navigateTo(s) {
   if (s === 'mylist') { renderMyList(); initDragAndDrop(); }
   if (s === 'training') renderTrainingScreen();
   if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); }
+  if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'admin') renderAdminPanel();
   updateFabVisibility();
 }
@@ -2027,9 +2257,20 @@ document.getElementById('authForm').addEventListener('submit', async e => {
 });
 
 function logout() {
-  api.logout();
-  state.currentUser = null;
-  navigateTo('auth');
+  // Используем кастомный confirm вместо нативного — выглядит в стиле приложения
+  showConfirmModal({
+    title: 'Выход из аккаунта',
+    message: 'Вы уверены, что хотите выйти?',
+    confirmText: 'Выйти',
+    cancelText: 'Отмена',
+    danger: true,
+    onConfirm: () => {
+      api.logout();
+      state.currentUser = null;
+      navigateTo('auth');
+      showToast('Вы вышли из аккаунта');
+    },
+  });
 }
 
 async function tryAutoLogin() {
@@ -2080,7 +2321,6 @@ window._catCache = cats;
 }
 function toggleCategoryFilter(c) { const idx = state.filters.categories.indexOf(c); if (idx === -1) state.filters.categories.push(c); else state.filters.categories.splice(idx, 1); populateCatalog(); applyFilters(); }
 function applyFilters() { state.filters.sort = document.getElementById('filterSort').value; renderHome(); showToast('Применено'); }
-function applyFilters() { state.filters.sort = document.getElementById('filterSort').value; state.filters.status = document.getElementById('filterStatus').value; renderHome(); showToast('Применено'); }
 function resetFilters() { state.filters = { categories: [], sort: 'default' }; populateCatalog(); renderHome(); showToast('Сброшено'); }
 function getFilteredBooks() {
   let books = [...state.books]; const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
@@ -2151,6 +2391,13 @@ function renderBookScroll(id, books, query) {
   document.getElementById(id).innerHTML = books.map(b => cardHTML(b, query)).join('');
 }
 
+function extractBookYear(datePublished) {
+  if (!datePublished) return null;
+  const s = String(datePublished);
+  const match = s.match(/\d{4}/);
+  return match ? match[0] : null;
+}
+
 function cardHTML(b, query) {
   const p = state.readingProgress[b.id];
   const pct = p?.started ? Math.min(Math.round(p.currentPage / p.totalPages * 100), 100) : 0;
@@ -2161,12 +2408,18 @@ function cardHTML(b, query) {
             onerror="this.outerHTML='<div class=&quot;cover-bg&quot;>${ICONS.bookCover.replace(/"/g, '&quot;')}</div>'">`
     : `<div class="cover-bg">${ICONS.bookCover}</div>`;
 
+  const year = extractBookYear(b.datePublished);
+
   return `<div class="book-card-compact" onclick="openBookDetail(${b.id})" data-book-id="${b.id}" draggable="true">
     <div class="cover-area">
       ${coverInner}
       <div class="rating-badge">${ICONS.star}${b.rating}</div>
       ${offlineBookIds.has(b.id) ? `<div class="offline-badge" title="Доступна оффлайн">${ICONS.cloudCheck}</div>` : ''}
       ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" style="width:${pct}%"></div>` : ''}
+    </div>
+    <div class="book-card-meta">
+      <div class="book-card-title" title="${eh(b.title)}">${eh(b.title)}</div>
+      ${year ? `<div class="book-card-year">${eh(year)}</div>` : ''}
     </div>
   </div>`;
 }
@@ -2300,7 +2553,7 @@ function renderProfile() {
 
   // Заголовок: имя + кнопка-карандаш
   const header = document.getElementById('profileDisplayName');
-  header.innerHTML = `${eh(displayName)} <button onclick="openEditProfileModal()" title="Редактировать имя" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;margin-left:6px;vertical-align:middle;">${ICONS.settings}</button>`;
+  header.textContent = displayName;
 
   // Под заголовком — username (он не меняется)
   let usernameLine = document.getElementById('profileUsernameLine');
@@ -2402,7 +2655,26 @@ function renderProfile() {
   renderAchievementsInProfile();
   renderHeatmap();
   renderOfflineBooks();
+  // Кнопки переключения темы приложения
+  const btnDark = document.getElementById('appThemeBtnDark');
+  const btnLight = document.getElementById('appThemeBtnLight');
+  if (btnDark && !btnDark.innerHTML.trim()) {
+    btnDark.innerHTML = ICONS.themeMoon + '<span>Тёмная</span>';
+  }
+  if (btnLight && !btnLight.innerHTML.trim()) {
+    btnLight.innerHTML = ICONS.themeSun + '<span>Светлая</span>';
+  }
+  // Применяем актуальное состояние
+  applyAppTheme(getAppTheme());
+// SVG в шапке: шестерёнка + звезда + пламя
+  const gearBtn = document.getElementById('btnOpenSettings');
+  if (gearBtn && !gearBtn.innerHTML.trim()) gearBtn.innerHTML = ICONS.settingsGear;
+  const starIc = document.getElementById('profileStarIcon');
+  if (starIc && !starIc.innerHTML.trim()) starIc.innerHTML = ICONS.iconStar;
+  const flameIc = document.getElementById('statStreakFlame');
+  if (flameIc && !flameIc.innerHTML.trim()) flameIc.innerHTML = ICONS.iconFlame;
 }
+
 // ========== OFFLINE BOOKS SECTION (PROFILE) ==========
 function formatBytes(bytes) {
   if (!bytes) return '0 Б';
@@ -2483,6 +2755,183 @@ async function renderOfflineBooks() {
 
   container.innerHTML = quotaHtml + rowsHtml;
 }
+
+// ========== ЭКРАН НАСТРОЕК ==========
+
+const SETTINGS_TABS = [
+  { id: 'info',            label: 'Информация',     icon: 'iconUser' },
+  { id: 'security',        label: 'Безопасность',   icon: 'iconLock' },
+  { id: 'privacy',         label: 'Приватность',    icon: 'iconEye' },
+  { id: 'storage',         label: 'Данные и память', icon: 'iconDatabase' },
+  { id: 'personalization', label: 'Персонализация', icon: 'iconPalette' },
+];
+
+let settingsCurrentTab = 'info';
+
+function renderSettingsScreen() {
+  // Заполнить навигацию (один раз)
+  document.querySelectorAll('.settings-tab').forEach(btn => {
+    const tabId = btn.dataset.stab;
+    const tab = SETTINGS_TABS.find(t => t.id === tabId);
+    if (!tab) return;
+    if (!btn.innerHTML.trim()) {
+      btn.innerHTML = `${ICONS[tab.icon]}<span>${tab.label}</span>`;
+    }
+    btn.classList.toggle('active', tabId === settingsCurrentTab);
+  });
+
+  // Иконка для кнопки выхода
+  const logoutIc = document.getElementById('logoutIcon');
+  if (logoutIc && !logoutIc.innerHTML.trim()) logoutIc.innerHTML = ICONS.iconLogout;
+
+  renderSettingsTabContent();
+}
+
+function openSettingsTab(tabId) {
+  settingsCurrentTab = tabId;
+  document.querySelectorAll('.settings-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.stab === tabId);
+  });
+  renderSettingsTabContent();
+}
+
+function renderSettingsTabContent() {
+  const c = document.getElementById('settingsContent');
+  if (!c || !state.currentUser) return;
+
+  if (settingsCurrentTab === 'info') {
+    renderSettingsInfoTab(c);
+  } else {
+    // Заглушки для других вкладок (сделаем в следующих сессиях)
+    const tab = SETTINGS_TABS.find(t => t.id === settingsCurrentTab);
+    c.innerHTML = `
+      <div style="text-align:center;padding:32px 12px;color:var(--text-muted);">
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px;">${tab ? tab.label : ''}</div>
+        <div style="font-size:12px;">Раздел будет доступен в ближайшее время</div>
+      </div>
+    `;
+  }
+}
+
+function renderSettingsInfoTab(c) {
+  const u = state.currentUser;
+  c.innerHTML = `
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Информация о профиле</h3>
+
+    <!-- Аватар -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;">
+      <div class="profile-avatar-lg" style="width:64px;height:64px;font-size:22px;cursor:pointer;flex-shrink:0;" onclick="document.getElementById('settingsAvatarUpload').click()">
+        <span id="settingsAvatarText">U</span>
+        <img id="settingsAvatarImg" style="display:none;">
+      </div>
+      <input type="file" id="settingsAvatarUpload" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
+      <div style="flex:1;font-size:11px;color:var(--text-muted);">
+        Кликни на аватар чтобы загрузить новое фото<br>
+        (JPEG/PNG/WEBP, до 2 МБ)
+      </div>
+    </div>
+
+    <!-- Никнейм (только просмотр пока) -->
+    <div class="set-row">
+      <label>Никнейм (логин)</label>
+      <input type="text" id="setUsername" value="${eh(u.name || '')}" disabled style="opacity:0.6;cursor:not-allowed;">
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Изменение никнейма пока не поддерживается</div>
+    </div>
+
+    <!-- ФИО -->
+    <div class="set-row">
+      <label>ФИО</label>
+      <input type="text" id="setFullName" value="${eh(u.full_name || '')}" placeholder="Иванов Иван Иванович" maxlength="128">
+    </div>
+
+    <!-- Подразделение -->
+    <div class="set-row">
+      <label>Подразделение</label>
+      <select id="setDepartment">
+        <option value="">— Не указано —</option>
+        <option value="ЦКЗ">ЦКЗ</option>
+        <option value="ДПМ">ДПМ</option>
+        <option value="УБД">УБД</option>
+        <option value="УКИИ">УКИИ</option>
+        <option value="УКАИ">УКАИ</option>
+        <option value="УМК">УМК</option>
+        <option value="УЭК">УЭК</option>
+        <option value="ЦКГ">ЦКГ</option>
+        <option value="ЦУПКБ">ЦУПКБ</option>
+        <option value="ЦВВ">ЦВВ</option>
+        <option value="__other__">Другое...</option>
+      </select>
+      <input type="text" id="setDepartmentOther" placeholder="Введите название" maxlength="64" style="margin-top:8px;display:none;">
+    </div>
+
+    <button class="set-save-btn" onclick="saveSettingsInfo()">
+      ${ICONS.iconSave}<span>Сохранить изменения</span>
+    </button>
+  `;
+
+  // Применяем аватар
+  updateAvatar('settingsAvatarImg');
+  const avatarText = document.getElementById('settingsAvatarText');
+  if (avatarText) {
+    avatarText.textContent = (u.name || 'U').charAt(0).toUpperCase();
+    const img = document.getElementById('settingsAvatarImg');
+    if (img && img.src && !img.src.endsWith('undefined') && img.style.display !== 'none') {
+      avatarText.style.display = 'none';
+    }
+  }
+
+  // Подставляем текущее подразделение
+  const depSelect = document.getElementById('setDepartment');
+  const depOther = document.getElementById('setDepartmentOther');
+  const KNOWN_DEPS = ['ЦКЗ','ДПМ','УБД','УКИИ','УКАИ','УМК','УЭК','ЦКГ','ЦУПКБ','ЦВВ'];
+  if (u.department) {
+    if (KNOWN_DEPS.includes(u.department)) {
+      depSelect.value = u.department;
+      depOther.style.display = 'none';
+    } else {
+      depSelect.value = '__other__';
+      depOther.value = u.department;
+      depOther.style.display = 'block';
+    }
+  }
+
+  depSelect.addEventListener('change', () => {
+    if (depSelect.value === '__other__') {
+      depOther.style.display = 'block';
+      depOther.focus();
+    } else {
+      depOther.style.display = 'none';
+      depOther.value = '';
+    }
+  });
+}
+
+async function saveSettingsInfo() {
+  const fullName = (document.getElementById('setFullName').value || '').trim();
+  const depSelect = document.getElementById('setDepartment').value;
+  let department = null;
+  if (depSelect === '__other__') {
+    department = (document.getElementById('setDepartmentOther').value || '').trim();
+  } else if (depSelect) {
+    department = depSelect;
+  }
+
+  try {
+    const updated = await api.updateMe({
+      full_name: fullName || null,
+      department: department || null,
+    });
+    // Обновим state
+    state.currentUser.full_name = updated.full_name;
+    state.currentUser.department = updated.department;
+    showToast('Изменения сохранены');
+    renderProfile();
+  } catch (e) {
+    console.error(e);
+    showToast('Ошибка: ' + (e.detail || e.message));
+  }
+}
+
 // ========== EDIT PROFILE MODAL ==========
 function openEditProfileModal() {
   if (!state.currentUser) return;
@@ -2651,8 +3100,103 @@ async function renderHeatmap() {
     if (p >= 10) level = 2;
     if (p >= 30) level = 3;
     if (p >= 50) level = 4;
-    return `<div class="heatmap-cell level-${level}" title="${d.date}: ${p} стр."></div>`;
+    return `<div class="heatmap-cell level-${level}" data-date="${d.date}" data-pages="${p}" onclick="showHeatmapDayDetails('${d.date}')" title="${d.date}: ${p} стр."></div>`;
   }).join('');
+}
+
+async function showHeatmapDayDetails(date) {
+  // Открываем модалку с показом «Загрузка»
+  const ex = document.getElementById('heatmapDayModal');
+  if (ex) ex.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'heatmapDayModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = `
+    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="font-size:15px;font-weight:700;color:var(--accent);">${formatHeatmapDate(date)}</h3>
+        <button id="heatmapDayCloseBtn" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;width:28px;height:28px;border-radius:50%;">✕</button>
+      </div>
+      <div id="heatmapDayContent" style="font-size:12px;color:var(--text-secondary);text-align:center;padding:20px;">Загрузка...</div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('heatmapDayCloseBtn').onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  try {
+    const data = await api.library.dayStats(date);
+    document.getElementById('heatmapDayContent').innerHTML = renderHeatmapDayContent(data);
+  } catch (e) {
+    document.getElementById('heatmapDayContent').innerHTML = `<div style="color:#ef4444;">Не удалось загрузить статистику</div>`;
+  }
+}
+
+function formatHeatmapDate(iso) {
+  try {
+    const d = new Date(iso + 'T00:00:00');
+    const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    const weekdays = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+    return `${weekdays[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (_) { return iso; }
+}
+
+function renderHeatmapDayContent(data) {
+  const hasActivity = data.pages_read > 0 || data.quiz_attempts > 0 || data.annotations_count > 0;
+
+  if (!hasActivity) {
+    return `
+      <div style="padding:32px 12px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:6px;opacity:0.4;">💤</div>
+        <div style="color:var(--text-muted);font-size:12px;">В этот день активности не было</div>
+      </div>
+    `;
+  }
+
+  const statBox = (label, value, color = 'var(--accent)') => `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;">${value}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${label}</div>
+    </div>
+  `;
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:14px;text-align:left;">
+      ${statBox('Страниц', data.pages_read)}
+      ${statBox('Тестов', data.quiz_attempts, '#a855f7')}
+      ${statBox('Маркеров', data.highlights_count, '#fbbf24')}
+      ${statBox('Заметок', data.notes_count, '#22c55e')}
+    </div>
+
+    ${data.books.length > 0 ? `
+      <div style="text-align:left;margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px;">КНИГИ В РАБОТЕ</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${data.books.map(b => `
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${eh(b.title)}</div>
+              <div style="color:var(--text-muted);font-size:10px;flex-shrink:0;">стр.${b.pages_at_end}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${data.quizzes.length > 0 ? `
+      <div style="text-align:left;">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px;">ТЕСТЫ</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${data.quizzes.map(q => `
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${eh(q.book_title)}</div>
+              <div style="color:${q.passed ? '#22c55e' : '#ef4444'};font-weight:700;font-size:11px;flex-shrink:0;">${q.percentage}%</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `;
 }
 
 // ========== DETAIL ==========
@@ -2959,7 +3503,11 @@ function openReader(id) {
   saveState();
   api.library.updateProgress(id, state.readingProgress[id].currentPage, state.readingProgress[id].totalPages).catch(e => console.error('progress on open failed:', e));
   setTimeout(() => { if (navigator.onLine) refreshGamificationFromApi(); }, 500);
+  // Запоминаем откуда пришли (для умного возврата)
+  state._readerReturnTo = state.currentScreen === 'reader' ? 'home' : state.currentScreen;
   navigateTo('reader');
+  const btnSearch = document.getElementById('btnReaderSearch');
+  if (btnSearch && !btnSearch.innerHTML.trim()) btnSearch.innerHTML = ICONS.search;
   // Заполняем SVG-иконки в кнопках шапки читалки
   const btnPom = document.getElementById('btnPomodoro');
   const btnExp = document.getElementById('btnExportNotes');
@@ -3440,6 +3988,8 @@ function generateDemoPdf(b) {
 
 async function renderPdfPage(pn) {
   if (!pdfDoc) return;
+  // При перерисовке страницы — снимаем подсветку поиска
+  clearReaderSearchHighlights();
 
   const page = await pdfDoc.getPage(pn);
   const viewport1 = page.getViewport({ scale: 1 });
@@ -3488,6 +4038,8 @@ async function renderPdfPage(pn) {
     textLayerDiv.style.width = targetWidth + 'px';
     textLayerDiv.style.height = cssHeight + 'px';
     textLayerDiv.style.pointerEvents = 'auto';
+    // pdf.js требует --scale-factor для корректного позиционирования спанов
+    textLayerDiv.style.setProperty('--scale-factor', String(viewport.scale));
 
     try {
       const textContent = await page.getTextContent();
@@ -3505,6 +4057,13 @@ async function renderPdfPage(pn) {
   // Восстанавливаем аннотации
   if (typeof renderAnnotations === 'function') {
     await renderAnnotations();
+  }
+  // Если активен поиск — подсвечиваем совпадения на этой странице
+  if (readerSearchActive && readerSearchResults.length > 0) {
+    const currentResult = readerSearchResults[readerSearchIndex];
+    if (currentResult && currentResult.page === pdfCurrentPage) {
+      setTimeout(() => highlightPdfMatchOnPage(currentResult), 100);
+    }
   }
 }
 
@@ -3567,8 +4126,344 @@ function toggleReaderTheme() {
   showToast(next === 'dark' ? 'Тёмная тема' : 'Светлая тема');
 }
 
+// ========== ПОИСК ПО КНИГЕ ==========
+
+let readerSearchResults = [];   // массив совпадений
+let readerSearchIndex = -1;     // текущий индекс
+let readerSearchActive = false;
+let readerSearchDebounce = null;
+
+function toggleReaderSearch() {
+  const panel = document.getElementById('readerSearchPanel');
+  if (!panel) return;
+  const willOpen = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = willOpen ? 'flex' : 'none';
+  if (willOpen) {
+    // Заполняем SVG-иконки на кнопках (один раз)
+    const prev = document.getElementById('readerSearchPrev');
+    const next = document.getElementById('readerSearchNext');
+    const close = document.getElementById('readerSearchClose');
+    if (prev && !prev.innerHTML.trim()) prev.innerHTML = ICONS.chevronUp;
+    if (next && !next.innerHTML.trim()) next.innerHTML = ICONS.chevronDown;
+    if (close && !close.innerHTML.trim()) close.innerHTML = ICONS.closeX;
+
+    readerSearchActive = true;
+    const input = document.getElementById('readerSearchInput');
+    input.value = '';
+    setReaderSearchStatus('—');
+    setTimeout(() => input.focus(), 50);
+  } else {
+    closeReaderSearch();
+  }
+}
+
+function closeReaderSearch() {
+  const panel = document.getElementById('readerSearchPanel');
+  if (panel) panel.style.display = 'none';
+  readerSearchActive = false;
+  readerSearchResults = [];
+  readerSearchIndex = -1;
+  clearReaderSearchHighlights();
+}
+
+function setReaderSearchStatus(text) {
+  const el = document.getElementById('readerSearchStatus');
+  if (el) el.textContent = text;
+}
+
+async function runReaderSearch(query) {
+  query = (query || '').trim();
+  if (!query || query.length < 2) {
+    readerSearchResults = [];
+    readerSearchIndex = -1;
+    setReaderSearchStatus('—');
+    clearReaderSearchHighlights();
+    return;
+  }
+  setReaderSearchStatus('Идёт поиск…');
+  try {
+    if (isEpubMode) {
+      readerSearchResults = await searchInEpub(query);
+    } else {
+      readerSearchResults = await searchInPdf(query);
+    }
+    if (readerSearchResults.length === 0) {
+      readerSearchIndex = -1;
+      setReaderSearchStatus('0 / 0');
+      return;
+    }
+    readerSearchIndex = 0;
+    setReaderSearchStatus(`1 / ${readerSearchResults.length}`);
+    await jumpToSearchResult(0);
+  } catch (e) {
+    console.error('Search error:', e);
+    setReaderSearchStatus('Ошибка');
+  }
+}
+
+async function readerSearchNext() {
+  if (readerSearchResults.length === 0) return;
+  readerSearchIndex = (readerSearchIndex + 1) % readerSearchResults.length;
+  setReaderSearchStatus(`${readerSearchIndex + 1} / ${readerSearchResults.length}`);
+  await jumpToSearchResult(readerSearchIndex);
+}
+
+async function readerSearchPrev() {
+  if (readerSearchResults.length === 0) return;
+  readerSearchIndex = (readerSearchIndex - 1 + readerSearchResults.length) % readerSearchResults.length;
+  setReaderSearchStatus(`${readerSearchIndex + 1} / ${readerSearchResults.length}`);
+  await jumpToSearchResult(readerSearchIndex);
+}
+
+async function jumpToSearchResult(idx) {
+  const r = readerSearchResults[idx];
+  if (!r) return;
+  if (isEpubMode) {
+    if (epubRendition && r.cfi) {
+      try {
+        // Снимаем предыдущую подсветку поиска
+        if (window._lastEpubSearchCfi) {
+          try { epubRendition.annotations.remove(window._lastEpubSearchCfi, 'highlight'); } catch (_) {}
+        }
+        await epubRendition.display(r.cfi);
+        // Подсвечиваем найденное место
+        try {
+          epubRendition.annotations.highlight(
+            r.cfi,
+            {},
+            () => {},
+            'epub-search-match',
+            { fill: 'rgba(251, 191, 36, 0.5)', 'fill-opacity': 1 }
+          );
+          window._lastEpubSearchCfi = r.cfi;
+        } catch (_) {}
+      } catch (e) { console.warn(e); }
+    }
+  }else {
+    if (r.page && r.page !== pdfCurrentPage) {
+      pdfCurrentPage = r.page;
+      await renderPdfPage(pdfCurrentPage);
+      updateReaderUI();
+    }
+    // подсветка совпадения (после рендера text layer)
+    setTimeout(() => highlightPdfMatchOnPage(r), 200);
+  }
+}
+
+function clearReaderSearchHighlights() {
+  document.querySelectorAll('.search-match-highlight').forEach(el => el.classList.remove('search-match-highlight'));
+}
+
+// Будут реализованы в следующих итерациях
+async function searchInPdf(query) {
+  if (!pdfDoc) return [];
+  const lowerQuery = query.toLowerCase();
+  const results = [];
+
+  // Кэш текста страниц — чтобы при повторном поиске не парсить заново
+  if (!window._pdfTextCache) window._pdfTextCache = {};
+
+  for (let pageNum = 1; pageNum <= pdfTotalPages; pageNum++) {
+    let pageText = window._pdfTextCache[`${currentBookId}_${pageNum}`];
+    if (!pageText) {
+      try {
+        const page = await pdfDoc.getPage(pageNum);
+        const content = await page.getTextContent();
+        pageText = content.items.map(it => it.str).join(' ');
+        window._pdfTextCache[`${currentBookId}_${pageNum}`] = pageText;
+      } catch (e) {
+        continue; // пропустить битую страницу
+      }
+    }
+
+    const lowerText = pageText.toLowerCase();
+    let pos = 0;
+    while ((pos = lowerText.indexOf(lowerQuery, pos)) !== -1) {
+      // Контекст ±40 символов вокруг совпадения
+      const start = Math.max(0, pos - 40);
+      const end = Math.min(pageText.length, pos + lowerQuery.length + 40);
+      const snippet = (start > 0 ? '…' : '') + pageText.substring(start, end) + (end < pageText.length ? '…' : '');
+      results.push({
+        page: pageNum,
+        snippet,
+        matchStart: pos,
+        matchEnd: pos + lowerQuery.length,
+        query: query,
+      });
+      pos += lowerQuery.length;
+      // Защита от слишком большого количества совпадений
+      if (results.length > 500) return results;
+    }
+
+    // Прогресс в статусе каждые 20 страниц (для больших PDF)
+    if (pageNum % 20 === 0) {
+      setReaderSearchStatus(`Идёт поиск… ${pageNum}/${pdfTotalPages}`);
+    }
+  }
+  return results;
+}
+
+async function searchInEpub(query) {
+  if (!epubBook) return [];
+  const lowerQuery = query.toLowerCase();
+  const results = [];
+
+  // epub.js: book.spine.spineItems — массив всех глав/разделов
+  const spineItems = epubBook.spine.spineItems || [];
+  const total = spineItems.length;
+
+  for (let i = 0; i < total; i++) {
+    const item = spineItems[i];
+    try {
+      // Загружаем главу
+      await item.load(epubBook.load.bind(epubBook));
+      const doc = item.document;
+      if (!doc) {
+        item.unload();
+        continue;
+      }
+
+      // Достаём весь текст главы
+      const text = doc.body ? (doc.body.innerText || doc.body.textContent || '') : '';
+      const lowerText = text.toLowerCase();
+
+      let pos = 0;
+      while ((pos = lowerText.indexOf(lowerQuery, pos)) !== -1) {
+        // Контекст ±40 символов
+        const start = Math.max(0, pos - 40);
+        const end = Math.min(text.length, pos + lowerQuery.length + 40);
+        const snippet = (start > 0 ? '…' : '') + text.substring(start, end) + (end < text.length ? '…' : '');
+
+        // Получаем CFI для этого места
+        // Используем cfiFromRange на временном Range
+        let cfi = null;
+        try {
+          cfi = makeEpubCfiForOffset(doc, item, pos, pos + lowerQuery.length);
+        } catch (e) {
+          // Если не получилось — fallback: CFI на начало главы
+          cfi = item.cfiBase ? item.cfiBase : null;
+        }
+
+        results.push({
+          cfi: cfi,
+          snippet: snippet,
+          chapterIndex: i,
+          query: query,
+        });
+
+        pos += lowerQuery.length;
+        if (results.length > 500) {
+          item.unload();
+          return results;
+        }
+      }
+
+      // Освобождаем главу
+      item.unload();
+    } catch (e) {
+      console.warn('Search chapter error:', e);
+      try { item.unload(); } catch (_) {}
+    }
+
+    // Прогресс в статусе
+    if ((i + 1) % 5 === 0) {
+      setReaderSearchStatus(`Идёт поиск… ${i + 1}/${total}`);
+    }
+  }
+  return results;
+}
+
+// Вспомогательная: построить CFI для смещения в тексте главы
+function makeEpubCfiForOffset(doc, spineItem, startOffset, endOffset) {
+  if (!doc || !doc.body) return null;
+
+  // Обходим текстовые ноды и считаем символы, пока не дойдём до startOffset
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null);
+  let accumulated = 0;
+  let startNode = null, startNodeOffset = 0;
+  let endNode = null, endNodeOffset = 0;
+
+  let node;
+  while ((node = walker.nextNode())) {
+    const len = node.textContent.length;
+    if (!startNode && accumulated + len > startOffset) {
+      startNode = node;
+      startNodeOffset = startOffset - accumulated;
+    }
+    if (!endNode && accumulated + len >= endOffset) {
+      endNode = node;
+      endNodeOffset = endOffset - accumulated;
+      break;
+    }
+    accumulated += len;
+  }
+  if (!startNode || !endNode) return null;
+
+  const range = doc.createRange();
+  range.setStart(startNode, startNodeOffset);
+  range.setEnd(endNode, endNodeOffset);
+
+  // epub.js: spineItem.cfiFromRange(range)
+  if (typeof spineItem.cfiFromRange === 'function') {
+    return spineItem.cfiFromRange(range);
+  }
+  return null;
+}
+
+function highlightPdfMatchOnPage(result) {
+  clearReaderSearchHighlights();
+  const textLayer = document.getElementById('pdfTextLayer');
+  if (!textLayer || !result || !result.query) return;
+
+  const query = result.query.toLowerCase();
+  // Обходим все спаны text layer'а и подсвечиваем те, что содержат query
+  const spans = textLayer.querySelectorAll('span');
+  let firstMatch = null;
+  spans.forEach(span => {
+    const text = (span.textContent || '').toLowerCase();
+    if (text.includes(query)) {
+      span.classList.add('search-match-highlight');
+      if (!firstMatch) firstMatch = span;
+    }
+  });
+  // Скроллим к первому совпадению на странице
+  if (firstMatch) {
+    firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// Привязываем обработчики ввода и горячих клавиш
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('readerSearchInput');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    clearTimeout(readerSearchDebounce);
+    readerSearchDebounce = setTimeout(() => runReaderSearch(input.value), 350);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.shiftKey) readerSearchPrev();
+      else readerSearchNext();
+    } else if (e.key === 'Escape') {
+      closeReaderSearch();
+    }
+  });
+});
+
+// Ctrl+F / Cmd+F в читалке открывает панель
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f' && state.currentScreen === 'reader') {
+    e.preventDefault();
+    if (!readerSearchActive) toggleReaderSearch();
+    else document.getElementById('readerSearchInput').focus();
+  }
+});
+
 function closeReader() {
   hideEpubSelectionPopup();
+  closeReaderSearch();
+  if (window._pdfTextCache) window._pdfTextCache = {};
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   document.getElementById('selectionToolbar').style.display = 'none';
   if (state.currentBook) state.readingProgress[currentBookId].currentPage = isEpubMode ? epubCurrentPage : pdfCurrentPage;
@@ -3584,7 +4479,18 @@ function closeReader() {
     zone.removeEventListener('touchmove', handleTouchMove);
   }
 
-  navigateTo('home');
+  const returnTo = state._readerReturnTo || 'home';
+  state._readerReturnTo = null;
+  navigateTo(returnTo);
+
+  // Если возвращаемся на детальную — она уже отрендерена (currentBookId сохранён)
+  // Иначе на home — он сам перерисуется
+
+  // Снимаем подсветку поиска EPUB
+  if (isEpubMode && epubRendition && window._lastEpubSearchCfi) {
+    try { epubRendition.annotations.remove(window._lastEpubSearchCfi, 'highlight'); } catch (_) {}
+  }
+  window._lastEpubSearchCfi = null;
 }
 
 // ========== TEXT SELECTION ==========
@@ -4121,6 +5027,46 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
   }
 });
 
+// ========== УНИВЕРСАЛЬНОЕ МОДАЛЬНОЕ ПОДТВЕРЖДЕНИЕ ==========
+function showConfirmModal({ title, message, confirmText = 'OK', cancelText = 'Отмена', danger = false, onConfirm }) {
+  // Удаляем предыдущую модалку, если есть
+  const ex = document.getElementById('confirmModal');
+  if (ex) ex.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'confirmModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn 0.15s ease;';
+
+  const confirmBtnColor = danger ? '#ef4444' : 'var(--accent)';
+  const confirmBtnText = danger ? '#fff' : '#000';
+
+  modal.innerHTML = `
+    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:8px;color:var(--text-primary);">${eh(title)}</h3>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:18px;line-height:1.5;">${eh(message)}</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="confirmCancelBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(cancelText)}</button>
+        <button id="confirmOkBtn" style="background:${confirmBtnColor};border:none;color:${confirmBtnText};padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(confirmText)}</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  document.getElementById('confirmCancelBtn').onclick = close;
+  document.getElementById('confirmOkBtn').onclick = () => {
+    close();
+    if (typeof onConfirm === 'function') onConfirm();
+  };
+  // Клик по затемнённому фону тоже закрывает
+  modal.onclick = (e) => { if (e.target === modal) close(); };
+  // Escape — отмена
+  const escHandler = (e) => {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
+  };
+  document.addEventListener('keydown', escHandler);
+}
+
 document.getElementById('adminDeleteFileBtn').addEventListener('click', async () => {
   if (!adminBookModalCurrentId) return;
   if (!confirm('Удалить файл книги? Файл будет удалён с сервера.')) return;
@@ -4464,9 +5410,15 @@ async function renderDashboard() {
 
 function renderAdminBooks() {
   document.getElementById('adBooks').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;">
-      <div style="font-size:12px;color:var(--text-secondary);">Всего книг:</div>
-      <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${state.books.length}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;gap:10px;">
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <div style="font-size:12px;color:var(--text-secondary);">Всего книг:</div>
+        <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${state.books.length}</div>
+      </div>
+      <button onclick="openBulkUploadModal()" style="background:var(--accent-gradient);border:none;color:#000;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/><path d="M12 5v8"/><path d="M8 9l4-4 4 4"/></svg>
+        Массовая загрузка
+      </button>
     </div>
     <div class="table-wrap">
       <table>
@@ -4499,7 +5451,190 @@ function renderAdminBooks() {
       </table>
     </div>`;
 }
+// ========== МАССОВАЯ ЗАГРУЗКА КНИГ ==========
 
+let bulkUploadQueue = []; // [{file, status: 'pending'|'uploading'|'done'|'error', message}]
+let bulkUploadInProgress = false;
+
+function openBulkUploadModal() {
+  document.getElementById('bulkUploadModal').classList.remove('hidden');
+  bulkUploadQueue = [];
+  renderBulkUploadList();
+
+  // Привязываем обработчики (один раз)
+  const zone = document.getElementById('bulkUploadDropZone');
+  const input = document.getElementById('bulkUploadInput');
+
+  if (!zone._handlersAttached) {
+    zone.addEventListener('click', () => input.click());
+
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      zone.style.borderColor = 'var(--accent)';
+      zone.style.background = 'rgba(0,212,255,0.08)';
+    });
+    zone.addEventListener('dragleave', () => {
+      zone.style.borderColor = 'var(--border)';
+      zone.style.background = 'var(--bg-primary)';
+    });
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.style.borderColor = 'var(--border)';
+      zone.style.background = 'var(--bg-primary)';
+      addFilesToBulkQueue(e.dataTransfer.files);
+    });
+
+    input.addEventListener('change', (e) => {
+      addFilesToBulkQueue(e.target.files);
+      input.value = ''; // чтобы можно было выбрать те же файлы снова
+    });
+
+    zone._handlersAttached = true;
+  }
+}
+
+function closeBulkUploadModal() {
+  if (bulkUploadInProgress) {
+    if (!confirm('Загрузка ещё идёт. Точно закрыть? Незавершённые книги останутся в БД.')) return;
+  }
+  document.getElementById('bulkUploadModal').classList.add('hidden');
+  bulkUploadQueue = [];
+  bulkUploadInProgress = false;
+}
+
+function addFilesToBulkQueue(fileList) {
+  const allowed = ['pdf', 'epub'];
+  const MAX_SIZE = 150 * 1024 * 1024;
+  let skipped = 0;
+  for (const file of fileList) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!allowed.includes(ext)) { skipped++; continue; }
+    if (file.size > MAX_SIZE) { skipped++; continue; }
+    bulkUploadQueue.push({ file, status: 'pending', message: 'В очереди' });
+  }
+  if (skipped > 0) showToast(`Пропущено файлов: ${skipped} (неверный формат или > 150 МБ)`);
+  renderBulkUploadList();
+}
+
+function renderBulkUploadList() {
+  const listEl = document.getElementById('bulkUploadList');
+  const actionsEl = document.getElementById('bulkUploadActions');
+  const catPanel = document.getElementById('bulkUploadCategoryPanel');
+  if (!listEl) return;
+
+  if (bulkUploadQueue.length === 0) {
+    listEl.innerHTML = '';
+    actionsEl.style.display = 'none';
+    catPanel.style.display = 'none';
+    return;
+  }
+
+  catPanel.style.display = 'block';
+  actionsEl.style.display = 'flex';
+
+  const statusIcon = {
+    pending: '⏸',
+    uploading: '⏳',
+    done: '✓',
+    error: '✕',
+  };
+  const statusColor = {
+    pending: 'var(--text-muted)',
+    uploading: 'var(--accent)',
+    done: '#22c55e',
+    error: '#ef4444',
+  };
+
+  listEl.innerHTML = bulkUploadQueue.map((item, idx) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;font-size:11px;">
+      <div style="width:20px;text-align:center;color:${statusColor[item.status]};font-weight:700;flex-shrink:0;">${statusIcon[item.status]}</div>
+      <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${eh(item.file.name)}">${eh(item.file.name)}</div>
+      <div style="color:${statusColor[item.status]};font-size:10px;flex-shrink:0;">${eh(item.message)}</div>
+    </div>
+  `).join('');
+
+  // Прогресс
+  const done = bulkUploadQueue.filter(i => i.status === 'done').length;
+  const errors = bulkUploadQueue.filter(i => i.status === 'error').length;
+  const progressEl = document.getElementById('bulkUploadProgress');
+  if (progressEl) {
+    progressEl.textContent = `${done} / ${bulkUploadQueue.length}` + (errors ? ` (ошибок: ${errors})` : '');
+  }
+}
+
+function clearBulkUploadList() {
+  if (bulkUploadInProgress) { showToast('Идёт загрузка, нельзя очистить'); return; }
+  bulkUploadQueue = [];
+  renderBulkUploadList();
+}
+
+async function startBulkUpload() {
+  if (bulkUploadInProgress) return;
+  const pending = bulkUploadQueue.filter(i => i.status === 'pending');
+  if (pending.length === 0) { showToast('Нет файлов для загрузки'); return; }
+
+  bulkUploadInProgress = true;
+  document.getElementById('bulkUploadStartBtn').disabled = true;
+  document.getElementById('bulkUploadStartBtn').textContent = 'Загрузка...';
+
+  const defaultCategory = (document.getElementById('bulkUploadCategory').value || '').trim();
+  const categories = defaultCategory ? [defaultCategory] : ['Без категории'];
+
+  for (let i = 0; i < bulkUploadQueue.length; i++) {
+    const item = bulkUploadQueue[i];
+    if (item.status !== 'pending') continue;
+
+    item.status = 'uploading';
+    item.message = 'Создаётся...';
+    renderBulkUploadList();
+
+    try {
+      const ext = item.file.name.split('.').pop().toLowerCase();
+      const format = (ext === 'epub') ? 'epub' : 'pdf';
+      const title = item.file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_-]/g, ' ').trim() || 'Без названия';
+
+      // 1. Создаём книгу
+      const created = await api.books.create({
+        title: title,
+        author: '—',
+        categories: categories,
+        description: '',
+        icon: ICONS.bookCover,
+        file_format: format,
+      });
+
+      // 2. Загружаем файл
+      item.message = 'Загрузка файла...';
+      renderBulkUploadList();
+
+      if (format === 'epub' && typeof api.books.uploadEpub === 'function') {
+        await api.books.uploadEpub(created.id, item.file);
+      } else {
+        await api.books.uploadPdf(created.id, item.file);
+      }
+
+      item.status = 'done';
+      item.message = 'Создана';
+    } catch (e) {
+      item.status = 'error';
+      item.message = 'Ошибка: ' + ((e.detail || e.message || '').substring(0, 40));
+      console.error('Bulk upload error:', e);
+    }
+    renderBulkUploadList();
+  }
+
+  bulkUploadInProgress = false;
+  document.getElementById('bulkUploadStartBtn').disabled = false;
+  document.getElementById('bulkUploadStartBtn').textContent = 'Загрузить';
+
+  const done = bulkUploadQueue.filter(i => i.status === 'done').length;
+  const errors = bulkUploadQueue.filter(i => i.status === 'error').length;
+  showToast(`Создано книг: ${done}` + (errors ? ` · Ошибок: ${errors}` : ''));
+
+  // Обновляем каталог
+  await loadBooksFromApi();
+  if (state.currentScreen === 'admin') renderAdminPanel();
+}
 async function loadAndRenderAdminReviews() {
   const container = document.getElementById('adReviews');
   if (!container) return;

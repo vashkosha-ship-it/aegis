@@ -4,7 +4,7 @@
 // Токены хранятся в localStorage. При 401 пытаемся обновить refresh-токеном.
 // ============================================================================
 (function () {
-  const BASE = 'https://taylor-could-launch-bryant.trycloudflare.com/api';
+  const BASE = 'http://localhost:8000/api';
 
   // --- хранение токенов ----------------------------------------------------
   const TOKEN_KEY = 'neon_access_token';
@@ -254,6 +254,9 @@
       // Heatmap (reading activity)
       heatmap(days = 90) { return request('/me/heatmap?days=' + days); },
             // Admin: users
+      dayStats(date) {
+        return request('/me/day-stats?date=' + encodeURIComponent(date));
+      },
       adminUsers() { return request('/admin/users'); },
       adminDeleteUser(userId) {
       return request('/admin/users/' + userId, { method: 'DELETE' });

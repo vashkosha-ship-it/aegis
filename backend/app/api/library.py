@@ -2,6 +2,9 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
+from app.models.library import MyListStatus
+from app.models.quiz import QuizAttempt
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -369,3 +372,120 @@ async def get_heatmap(
         d = today - timedelta(days=offset)
         entries.append(HeatmapEntry(date=d.isoformat(), pages=by_date.get(d.isoformat(), 0)))
     return HeatmapResponse(days=entries)
+
+# ---------- Day stats (детали активности за конкретный день) ----------
+
+from pydantic import BaseModel
+
+
+class DayBookActivity(BaseModel):
+    book_id: int
+    title: str
+    pages_at_end: int
+
+
+class DayQuizActivity(BaseModel):
+    book_title: str
+    percentage: int
+    passed: bool
+
+
+class DayStatsResponse(BaseModel):
+    date: str
+    pages_read: int
+    quiz_attempts: int
+    quiz_avg_percentage: int
+    annotations_count: int
+    highlights_count: int
+    notes_count: int
+    books: list[DayBookActivity]
+    quizzes: list[DayQuizActivity]
+
+
+@router.get("/me/day-stats", response_model=DayStatsResponse)
+async def get_day_stats(
+    date: str,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> DayStatsResponse:
+    """Подробная статистика за конкретный день (YYYY-MM-DD)."""
+    try:
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format, expected YYYY-MM-DD") from None
+
+    # 1. Страницы прочитано
+    daily = await db.scalar(
+        select(DailyPagesRead).where(
+            DailyPagesRead.user_id == current.id,
+            DailyPagesRead.date == target_date,
+        )
+    )
+    pages_read = daily.pages if daily else 0
+
+    # 2. Книги — для которых обновлялся progress в этот день
+    day_start = datetime(target_date.year, target_date.month, target_date.day, tzinfo=timezone.utc)
+    day_end = day_start + timedelta(days=1)
+
+    progress_rows = await db.execute(
+        select(ReadingProgress, Book)
+        .join(Book, Book.id == ReadingProgress.book_id)
+        .where(
+            ReadingProgress.user_id == current.id,
+            ReadingProgress.last_read_at >= day_start,
+            ReadingProgress.last_read_at < day_end,
+        )
+    )
+    books = [
+        DayBookActivity(
+            book_id=b.id,
+            title=b.title,
+            pages_at_end=p.current_page,
+        )
+        for p, b in progress_rows.all()
+    ]
+
+    # 3. Тесты — попытки за этот день
+    quiz_rows = await db.execute(
+        select(QuizAttempt, Book)
+        .join(Book, Book.id == QuizAttempt.book_id)
+        .where(
+            QuizAttempt.user_id == current.id,
+            QuizAttempt.created_at >= day_start,
+            QuizAttempt.created_at < day_end,
+        )
+    )
+    quizzes_data = quiz_rows.all()
+    quizzes = [
+        DayQuizActivity(
+            book_title=b.title,
+            percentage=q.percentage or 0,
+            passed=(q.percentage or 0) >= 60,
+        )
+        for q, b in quizzes_data
+    ]
+    quiz_attempts_count = len(quizzes)
+    quiz_avg = round(sum(q.percentage for q in quizzes) / quiz_attempts_count) if quiz_attempts_count > 0 else 0
+
+    # 4. Аннотации — маркеры/заметки за этот день
+    ann_rows = (await db.scalars(
+        select(Annotation).where(
+            Annotation.user_id == current.id,
+            Annotation.created_at >= day_start,
+            Annotation.created_at < day_end,
+        )
+    )).all()
+    highlights_count = sum(1 for a in ann_rows if a.type.value == "highlight")
+    notes_count = sum(1 for a in ann_rows if a.type.value == "note")
+
+    return DayStatsResponse(
+        date=date,
+        pages_read=pages_read,
+        quiz_attempts=quiz_attempts_count,
+        quiz_avg_percentage=quiz_avg,
+        annotations_count=len(ann_rows),
+        highlights_count=highlights_count,
+        notes_count=notes_count,
+        books=books,
+        quizzes=quizzes,
+    )
