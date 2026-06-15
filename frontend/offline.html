@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aegis — нет связи</title>
+  <meta name="theme-color" content="#0a0e17">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0e17;
+      color: #e8eaed;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .offline-card {
+      max-width: 420px;
+      width: 100%;
+      background: #151a23;
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #00d4ff, #7c3aed);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 40px rgba(0,212,255,0.25);
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #00d4ff, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    p {
+      color: #9ca3af;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    button {
+      background: linear-gradient(135deg, #00d4ff, #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,212,255,0.3);
+      transition: transform 0.2s;
+    }
+    button:hover { transform: translateY(-2px); }
+    button:active { transform: translateY(0); }
+    .hint {
+      margin-top: 18px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="icon">
+      <svg width="44" height="50" viewBox="0 0 24 28" fill="none" stroke="white" stroke-width="2">
+        <path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z"/>
+        <path d="M13 6L8 15H11L10 21L16 11H12.5L13 6Z" fill="white" stroke="none"/>
+      </svg>
+    </div>
+    <h1>Нет связи</h1>
+    <p>Не получилось подключиться к серверу. Проверьте интернет и попробуйте снова.</p>
+    <button onclick="location.reload()">Попробовать снова</button>
+    <div class="hint">Часть приложения может работать без интернета — закэшированные страницы и иконки. Полный функционал требует подключения.</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Aegis — центр знаний кибербезопасности</title>
+  <meta name="description" content="Aegis — библиотека кибербезопасности. Читай, обучайся, проходи тесты и защищай цифровые рубежи.">
+  <meta name="theme-color" content="#0a0e17">
+  <meta property="og:title" content="Aegis — библиотека кибербезопасности">
+  <meta property="og:description" content="Центр знаний по защите информации. Книги, тесты, AI-ассистент и AR-режим.">
+  <meta property="og:type" content="website">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="desktop.css">
+  <link rel="stylesheet" href="vendor/pdf_viewer.min.css">
+</head>
+<body>
+
+<!-- ========== Фоновые эффекты ========== -->
+<div class="cyber-bg">
+  <div class="grid"></div>
+  <div class="scan-line"></div>
+  <div class="particles" id="particlesContainer"></div>
+</div>
+
+<!-- ========== ОСНОВНОЕ ПРИЛОЖЕНИЕ ========== -->
+<div id="app">
+
+  
+  <!-- ======================== БОКОВАЯ НАВИГАЦИЯ (desktop) ======================== -->
+  <nav class="sidebar-nav hidden-on-auth" id="sidebarNav">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg width="20" height="24" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z" stroke="white" stroke-width="2" fill="none"/>
+          <path d="M13 6L8 15H11L10 21L16 11H12.5L13 6Z" fill="white"/>
+        </svg>
+      </div>
+      <span class="sidebar-logo-text">AEGIS</span>
+    </div>
+    <div class="sidebar-items">
+      <div class="sidebar-item" data-screen="home" onclick="navigateTo('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9L12 2L21 9V20A2 2 0 0 1 19 22H5A2 2 0 0 1 3 20V9Z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="item-label">Главная</span>
+      </div>
+      <div class="sidebar-item" data-screen="mylist" onclick="navigateTo('mylist')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
+        <span class="item-label">Закладки</span>
+      </div>
+      <div class="sidebar-item" data-screen="training" onclick="navigateTo('training')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10L12 3L2 10L12 17L22 10Z"/><path d="M6 12V17C6 18.5 8.7 20 12 20C15.3 20 18 18.5 18 17V12"/></svg>
+        <span class="item-label">Обучение</span>
+      </div>
+      <div class="sidebar-item" data-screen="reader" onclick="navigateTo('reader')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20V22H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+        <span class="item-label">Читаю</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-item" data-screen="assistant" onclick="navigateTo('assistant')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+        <span class="item-label">AI Ассистент</span>
+      </div>
+      <div class="sidebar-item" data-screen="profile" onclick="navigateTo('profile')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="item-label">Профиль</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ======================== АВТОРИЗАЦИЯ ======================== -->
+  <div id="authScreen" class="screen active auth-screen">
+    <div class="auth-container">
+      <div class="auth-logo">
+        <div class="logo-icon">
+          <svg width="36" height="42" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z" stroke="white" stroke-width="2" fill="none"/>
+            <path d="M13 6L8 15H11L10 21L16 11H12.5L13 6Z" fill="white"/>
+          </svg>
+        </div>
+        <h1><span class="gradient-text">AEGIS</span></h1>
+        <p>Центр знаний кибербезопасности</p>
+      </div>
+
+      <div class="auth-tabs">
+        <div class="auth-tab active" data-tab="login">Вход</div>
+        <div class="auth-tab" data-tab="register">Регистрация</div>
+      </div>
+
+      <form id="authForm" autocomplete="off">
+        <div class="form-group">
+          <label>Логин</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="authName" placeholder="Введите логин" required>
+          </div>
+        </div>
+        <div id="registerFirstNameField" class="form-group hidden">
+          <label>Имя</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="authFirstName" placeholder="Иван">
+          </div>
+        </div>
+        <div id="registerLastNameField" class="form-group hidden">
+          <label>Фамилия</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="authLastName" placeholder="Иванов">
+          </div>
+        </div>
+        <div id="registerEmailField" class="form-group hidden">
+          <label>Email</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" id="authEmail" placeholder="your@email.com">
+          </div>
+        </div>
+        <div id="registerDepartmentField" class="form-group hidden">
+          <label>Подразделение</label>
+          <select id="authDepartment">
+            <option value="">— Выбери —</option>
+            <option value="ЦКЗ">ЦКЗ</option>
+            <option value="ДПМ">ДПМ</option>
+            <option value="УБД">УБД</option>
+            <option value="УКИИ">УКИИ</option>
+            <option value="УКАИ">УКАИ</option>
+            <option value="УМК">УМК</option>
+            <option value="УЭК">УЭК</option>
+            <option value="ЦКГ">ЦКГ</option>
+            <option value="ЦУПКБ">ЦУПКБ</option>
+            <option value="ЦВВ">ЦВВ</option>
+            <option value="__other__">Другое</option>
+          </select>
+          <input type="text" id="authDepartmentOther" placeholder="Введите название подразделения" maxlength="64" class="hidden" style="margin-top:8px;">
+        </div>
+        <div class="form-group">
+          <label>Пароль</label>
+          <div class="input-icon-wrap">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7A5 5 0 0 1 17 7V11"/></svg>
+            <input type="password" id="authPass" placeholder="Введите пароль">
+            <button type="button" class="input-eye-btn" id="togglePassBtn" onclick="togglePasswordVisibility()">
+              <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="authSubmitBtn">
+          <span id="authSubmitText">Войти</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================== ГЛАВНЫЙ ЭКРАН ======================== -->
+  <div id="homeScreen" class="screen">
+    <!-- Хедер -->
+    <div class="top-header">
+      <div class="header-left">
+        <div class="logo-sm">
+          <!-- Мини-логотип: щит с молнией -->
+          <svg width="18" height="22" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z" stroke="white" stroke-width="2" fill="none"/>
+            <path d="M13 6L8 15H11L10 21L16 11H12.5L13 6Z" fill="white"/>
+          </svg>
+        </div>
+        <div class="logo-name">
+          AEGIS<span class="hide-mobile" style="font-weight:400;color:var(--text-secondary);"> STACK</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="hidden" id="badgeHome" style="font-size:11px;font-weight:600;padding:7px 13px;border-radius:9px;background:rgba(0,212,255,0.12);color:var(--accent);border:1px solid rgba(0,212,255,0.2);">ADMIN</span>
+        <div class="header-buttons-group">
+          <button class="header-icon-btn" id="btnOpenAssistant" onclick="navigateTo('assistant')" title="AI-ассистент" style="color:var(--accent);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+          </button>
+          <button class="header-icon-btn btn-shortcuts-icon" onclick="openShortcutsModal()" title="Горячие клавиши">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7H17A2 2 0 0 1 19 9V17A2 2 0 0 1 17 19H7A2 2 0 0 1 5 17V9A2 2 0 0 1 7 7H9"/><rect x="10" y="2" width="4" height="6" rx="2"/><line x1="12" y1="13" x2="12" y2="16"/></svg>
+          </button>
+          <button class="header-icon-btn btn-admin-icon hidden" id="btnAdminGo" onclick="navigateTo('admin')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
+          </button>
+          <button class="header-icon-btn btn-ar-icon" onclick="openARSchemeMenu()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2A14 14 0 0 0 12 22"/><path d="M2 12H22"/></svg>
+          </button>
+        </div>
+        <div class="header-avatar" id="avatarHome" onclick="navigateTo('profile')">U</div>
+      </div>
+    </div>
+
+    <!-- Поиск и каталог -->
+    <div class="search-catalog-row">
+      <div class="search-bar">
+        <span class="search-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input type="text" id="searchInput" placeholder="Поиск книг... (Enter — по тексту)" oninput="renderHome()" onkeydown="if(event.key==='Enter')runFullTextSearch()">
+        <button onclick="runFullTextSearch()" title="Искать по содержимому книг" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--accent-gradient);border:none;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+      <button class="btn-catalog-toggle" id="btnCatalogToggle" onclick="toggleCatalogPanel()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19A2 2 0 0 1 20 21H4A2 2 0 0 1 2 19V5A2 2 0 0 1 4 3H9L11 6H20A2 2 0 0 1 22 8Z"/></svg>
+        <span class="hide-mobile">Каталог</span>
+      </button>
+    </div>
+
+    <!-- Панель фильтров -->
+    <div class="catalog-panel" id="catalogPanel">
+      <div class="catalog-panel-header">
+        <h3>Фильтры и сортировка</h3>
+        <button class="catalog-close-btn" onclick="closeCatalogPanel()">✕</button>
+      </div>
+      <div class="catalog-filters">
+        <div class="catalog-filter-group">
+          <label>Тема (множ. выбор)</label>
+          <div class="catalog-chips" id="catalogChips" style="margin-bottom:0;"></div>
+        </div>
+        <div class="catalog-filter-group">
+          <label>Сортировка</label>
+          <select id="filterSort">
+            <option value="default">По умолчанию</option>
+            <option value="rating">По рейтингу</option>
+            <option value="title">По названию</option>
+            <option value="dateAdded">По дате добавления</option>
+            <option value="datePublished">По дате публикации</option>
+          </select>
+        </div>
+      </div>
+      <div class="catalog-actions">
+        <button class="btn-catalog-action" onclick="resetFilters()">Сбросить</button>
+        <button class="btn-catalog-action btn-catalog-apply" onclick="applyFilters()">Применить</button>
+      </div>
+    </div>
+
+    <!-- Секции книг -->
+    <div class="home-section" id="sectionRecommendations" style="display:none;">
+      <div class="section-title">Рекомендации</div>
+      <div id="recommendationsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <div class="home-section" id="sectionResume" style="display:none;">
+      <div class="section-title">Возобновить чтение</div>
+      <div id="resumeReadingCards" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+    <div class="home-section" id="sectionBooksGoal" style="display:none;">
+      <div id="booksGoalWidget"></div>
+    </div>
+    <div class="home-section" id="sectionFavCategories" style="display:none;">
+      <div class="section-title">Избранные темы</div>
+      <div id="favCategoriesChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="home-section" id="sectionContinue">
+      <div class="section-title">Продолжить</div>
+      <div class="books-scroll" id="scrollContinue"></div>
+    </div>
+    <div class="home-section" id="sectionBooks">
+      <div class="books-tabs">
+        <button class="books-tab active" data-btab="popular" onclick="setHomeBooksTab('popular')">Популярное</button>
+        <button class="books-tab" data-btab="all" onclick="setHomeBooksTab('all')">Все книги</button>
+      </div>
+      <div class="books-grid" id="scrollPopular"></div>
+      <div class="books-grid hidden" id="scrollAll"></div>
+    </div>
+  </div>
+
+  <!-- FAB для админа -->
+  <div class="fab-super-container" id="fabSuperContainer">
+    <button class="fab-super-btn" onclick="openAddModal()">+</button>
+  </div>
+  <!-- ======================== МЕНЮ ВЫБОРА СХЕМЫ ======================== -->
+  <div class="modal-overlay hidden" id="arSchemeMenuModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:24px;max-width:520px;width:95%;max-height:90vh;overflow-y:auto;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <h3 style="font-size:18px;font-weight:700;">Интерактивные схемы атак</h3>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Изучай этапы атак в дополненной реальности</div>
+        </div>
+        <button class="btn-back" onclick="closeARSchemeMenu()" style="width:28px;height:28px;font-size:14px;">✕</button>
+      </div>
+
+      <!-- Cyber Kill Chain -->
+      <button onclick="openARWithScheme('killchain')" class="ar-menu-btn">
+        <div class="ar-menu-icon" style="background:var(--accent-gradient);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 12h3"/><path d="M14 12h3"/></svg>
+        </div>
+        <div class="ar-menu-text">
+          <div class="ar-menu-title">Cyber Kill Chain</div>
+          <div class="ar-menu-sub">7 этапов кибератаки по модели Lockheed Martin</div>
+        </div>
+        <div class="ar-menu-arrow">→</div>
+      </button>
+
+      <!-- OWASP Top 10 -->
+      <button onclick="openARWithScheme('owasp')" class="ar-menu-btn">
+        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#ef4444,#f59e0b);font-weight:800;font-size:13px;">10</div>
+        <div class="ar-menu-text">
+          <div class="ar-menu-title">OWASP Top 10</div>
+          <div class="ar-menu-sub">Топ-10 рисков веб-приложений (2021)</div>
+        </div>
+        <div class="ar-menu-arrow">→</div>
+      </button>
+
+      <!-- Модель OSI -->
+      <button onclick="openARWithScheme('osi')" class="ar-menu-btn">
+        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#3b82f6,#10b981);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="3" rx="1"/><rect x="3" y="10.5" width="18" height="3" rx="1"/><rect x="3" y="17" width="18" height="3" rx="1"/></svg>
+        </div>
+        <div class="ar-menu-text">
+          <div class="ar-menu-title">Модель OSI</div>
+          <div class="ar-menu-sub">7 уровней сетевого взаимодействия</div>
+        </div>
+        <div class="ar-menu-arrow">→</div>
+      </button>
+
+      <!-- MITRE ATT&CK -->
+      <button onclick="openARWithScheme('mitre')" class="ar-menu-btn">
+        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#a855f7,#ef4444);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <div class="ar-menu-text">
+          <div class="ar-menu-title">MITRE ATT&CK</div>
+          <div class="ar-menu-sub">14 тактик жизненного цикла атаки</div>
+        </div>
+        <div class="ar-menu-arrow">→</div>
+      </button>
+
+      <div style="margin-top:14px;padding:12px;background:var(--bg-primary);border-radius:var(--radius);font-size:11px;color:var(--text-muted);line-height:1.5;text-align:center;">
+        Откроется камера устройства. Схема накладывается поверх видео.
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== AR МОДАЛЬНОЕ ОКНО ======================== -->
+  <div class="ar-modal-overlay" id="arModal">
+    <div class="ar-container">
+      <video class="ar-video" id="arVideo" autoplay playsinline muted></video>
+      
+      <!-- Контейнер для интерактивной схемы (заполняется JS) -->
+      <div id="arSchemeContainer" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></div>
+      <div style="position:absolute;top:0;left:0;right:0;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:100;">
+      <!-- Шапка с названием схемы и кнопкой закрытия -->
+      
+        <div id="arSchemeTitle" style="color:#fff;font-size:14px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,0.8);"></div>
+        <button onclick="closeAR()" style="pointer-events:auto;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+      </div>
+
+      <!-- Переключатель режима АТАКА / ЗАЩИТА -->
+      <div id="arViewModeToggle" style="position:absolute;top:60px;left:50%;transform:translateX(-50%);pointer-events:auto;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:3px;display:none;gap:2px;z-index:100;">
+        <button onclick="setKillChainViewMode('attack')" id="arViewBtnAttack" style="padding:6px 14px;background:rgba(239,68,68,0.4);border:none;border-radius:20px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/></svg>
+          АТАКА
+        </button>
+        <button onclick="setKillChainViewMode('defense')" id="arViewBtnDefense" style="padding:6px 14px;background:transparent;border:none;border-radius:20px;color:rgba(255,255,255,0.6);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          ЗАЩИТА
+        </button>
+      </div>
+
+      <!-- Низ: кнопка смены камеры -->
+      <div style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);pointer-events:auto;z-index:100;">
+        <button onclick="switchARCamera()" style="padding:10px 16px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);border-radius:24px;color:#fff;font-family:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4 23 10 17 10"/><path d="M1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span>Сменить камеру</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== МОЙ СПИСОК ======================== -->
+  <div id="mylistScreen" class="screen">
+    <div class="top-header">
+      <div class="header-left">
+        <div class="logo-sm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
+        </div>
+        <div class="logo-name">Мой список</div>
+      </div>
+      <div class="header-actions">
+        <div class="header-avatar" id="avatarMylist" onclick="navigateTo('profile')">U</div>
+      </div>
+    </div>
+    <div class="mylist-drag-hint" id="mylistDragHint">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="6" r="1"/><circle cx="16" cy="6" r="1"/><circle cx="8" cy="12" r="1"/><circle cx="16" cy="12" r="1"/><circle cx="8" cy="18" r="1"/><circle cx="16" cy="18" r="1"/></svg>
+      Перетаскивайте книги между вкладками для смены статуса
+    </div>
+    <div class="mylist-tabs" id="mylistTabs">
+      <span class="mylist-tab active" data-mylist="reading" draggable="false">Читаю <span class="count"></span></span>
+      <span class="mylist-tab" data-mylist="planned" draggable="false">В планах <span class="count"></span></span>
+      <span class="mylist-tab" data-mylist="dropped" draggable="false">Брошено <span class="count"></span></span>
+      <span class="mylist-tab" data-mylist="completed" draggable="false">Прочитано <span class="count"></span></span>
+      <span class="mylist-tab" data-mylist="liked" draggable="false">Избранное <span class="count"></span></span>
+    </div>
+    <div id="mylistGrid" class="mylist-grid"></div>
+  </div>
+
+  <!-- ======================== ОБУЧЕНИЕ ======================== -->
+  <div id="trainingScreen" class="screen">
+    <div class="top-header">
+      <div class="header-left">
+        <div class="logo-sm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 10L12 3L2 10L12 17L22 10Z"/><path d="M6 12V17C6 18.5 8.7 20 12 20C15.3 20 18 18.5 18 17V12"/></svg>
+        </div>
+        <div class="logo-name">Обучение</div>
+      </div>
+      <div class="header-actions">
+        <div class="header-avatar" id="avatarTraining" onclick="navigateTo('profile')">U</div>
+      </div>
+    </div>
+    <div class="training-tabs" id="trainingTabs">
+      <span class="training-tab active" data-ttab="all">Все тесты</span>
+      <span class="training-tab" data-ttab="completed">Пройдено</span>
+      <span class="training-tab" data-ttab="pending">Не пройдено</span>
+    </div>
+    <div id="trainingList" class="training-list"></div>
+  </div>
+
+  <!-- ======================== ПРОФИЛЬ ======================== -->
+  <div id="profileScreen" class="screen">
+    <div class="top-header">
+      <div class="header-left">
+        <button class="btn-back" onclick="navigateTo('home')">←</button>
+        <div class="logo-name">Профиль</div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button id="btnReviewMode" onclick="openReviewMode()" title="Повторение карточек" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        </button>
+        <button id="btnOpenStats" onclick="showMyStatsModal()" title="Моя статистика" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </button>
+        <button id="btnOpenSettings" onclick="navigateTo('settings')" title="Настройки" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;"></button>
+      </div>
+    </div>
+    <div class="profile-header-card">
+      <div class="profile-identity">
+        <div class="profile-avatar-lg" onclick="document.getElementById('avatarUpload').click()">
+          <span id="profileAvatarText">U</span>
+          <img id="profileAvatarImg" style="display:none;">
+        </div>
+        <input type="file" id="avatarUpload" accept="image/*" style="display:none;" onchange="uploadAvatar(event)">
+        <div class="profile-identity-names">
+          <h2 id="profileDisplayName">Пользователь</h2>
+        </div>
+      </div>
+      <div class="profile-info-block">
+        <div class="role-tag" id="profileRoleTag">Читатель</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--accent);display:inline-flex;align-items:center;gap:5px;">
+          <span id="profileStarIcon" style="display:inline-flex;align-items:center;"></span>
+          <span>Уровень <span id="profileLevel">1</span> • XP: <span id="profileXp">0</span>/<span id="profileXpNext">100</span></span>
+        </div>
+        <div class="xp-bar-container">
+          <div class="xp-bar-fill" id="xpBarFill" style="width:0%;"></div>
+        </div>
+        <div class="profile-stats-row">
+          <div class="profile-stat"><div class="val" id="statBooks">0</div><div class="lbl">Книг</div></div>
+          <div class="profile-stat"><div class="val" id="statBookmarks">0</div><div class="lbl">Закладок</div></div>
+          <div class="profile-stat"><div class="val" id="statAchievements">0</div><div class="lbl">Достижений</div></div>
+          <div class="profile-stat"><div class="val" id="statStreak">0</div><div class="lbl">Дней <span id="statStreakFlame" style="display:inline-flex;vertical-align:middle;"></span></div></div>
+        </div>
+      </div>
+      <div id="profileTestSlot"></div>
+    </div>
+    <div class="settings-section">
+      <h3>Тепловая карта чтения</h3>
+      <div class="settings-card">
+        <div style="padding:16px;">
+          <div class="heatmap-container" id="heatmapContainer"></div>
+          <div class="heatmap-legend">
+            <span>Меньше</span>
+            <span class="heatmap-cell level-0"></span>
+            <span class="heatmap-cell level-1"></span>
+            <span class="heatmap-cell level-2"></span>
+            <span class="heatmap-cell level-3"></span>
+            <span class="heatmap-cell level-4"></span>
+            <span>Больше</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Достижения</h3>
+      <div id="achievementsList" style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;"></div>
+    </div>
+  </div>
+<!-- ======================== НАСТРОЙКИ ======================== -->
+  <div id="settingsScreen" class="screen">
+    <div class="top-header">
+      <div class="header-left">
+        <button class="btn-back" onclick="navigateTo('profile')">←</button>
+        <div class="logo-name">Настройки</div>
+      </div>
+    </div>
+
+    <!-- Боковая навигация (vertical tabs) -->
+    <div class="settings-layout" style="padding:8px 16px 24px;">
+
+      <div class="settings-nav" style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px;">
+
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;padding:6px 8px 4px;">ПРОФИЛЬ</div>
+        <button onclick="openSettingsTab('info')" class="settings-tab" data-stab="info"></button>
+        <button onclick="openSettingsTab('security')" class="settings-tab" data-stab="security"></button>
+        <button onclick="openSettingsTab('privacy')" class="settings-tab" data-stab="privacy"></button>
+
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;padding:10px 8px 4px;">ПРИЛОЖЕНИЕ</div>
+        <button onclick="openSettingsTab('storage')" class="settings-tab" data-stab="storage"></button>
+        <button onclick="openSettingsTab('personalization')" class="settings-tab" data-stab="personalization"></button>
+      </div>
+
+      <div class="settings-content" id="settingsContent" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;min-height:300px;">
+        <!-- Заполняется из JS -->
+      </div>
+
+      <button class="btn-logout" onclick="logout()" style="margin-top:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+        <span id="logoutIcon" style="display:inline-flex;"></span>
+        <span>Выйти из аккаунта</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ======================== АДМИН-ПАНЕЛЬ ======================== -->
+  <div id="adminScreen" class="screen">
+    <div class="admin-header">
+      <button class="btn-back" onclick="navigateTo('home')">←</button>
+      <span style="font-weight:700;font-size:16px;">Админ-панель</span>
+    </div>
+    <div class="admin-tabs-nav">
+      <div class="admin-tab-btn active" data-atab="dashboard">Дашборд</div>
+      <div class="admin-tab-btn" data-atab="books">Книги</div>
+      <div class="admin-tab-btn" data-atab="users">Пользователи</div>
+      <div class="admin-tab-btn" data-atab="reviews">Отзывы</div>
+      <div class="admin-tab-btn" data-atab="analytics">Аналитика</div>
+      <div class="admin-tab-btn" data-atab="leaderboard">Лидеры</div>
+    </div>
+    <div id="adDashboard" class="admin-panel-section show"></div>
+    <div id="adBooks" class="admin-panel-section"></div>
+    <div id="adUsers" class="admin-panel-section"></div>
+    <div id="adReviews" class="admin-panel-section"></div>
+    <div id="adAnalytics" class="admin-panel-section">
+      <div class="analytics-charts">
+        <div class="analytics-card">
+          <h4>Активность чтения (7 дней)</h4>
+          <canvas id="chartReadingActivity" width="400" height="200"></canvas>
+        </div>
+        <div class="analytics-card">
+          <h4>Топ книг по чтениям</h4>
+          <canvas id="chartTopBooks" width="400" height="200"></canvas>
+        </div>
+        <div class="analytics-card">
+          <h4>Воронка конверсии</h4>
+          <canvas id="chartFunnel" width="400" height="200"></canvas>
+        </div>
+        <div class="analytics-card">
+          <h4>Удержание пользователей</h4>
+          <canvas id="chartRetention" width="400" height="200"></canvas>
+        </div>
+      </div>
+      <div style="margin-top:24px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);">
+        <h4 style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;">Аналитика по конкретной книге</h4>
+        <select id="analyticsBookSelector" onchange="onAnalyticsBookSelected()" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-family:inherit;font-size:13px;">
+          <option value="">— выбрать книгу —</option>
+        </select>
+      </div>
+    </div>
+    <div id="adLeaderboard" class="admin-panel-section"></div>
+  </div>
+
+  <!-- ======================== ДЕТАЛЬНАЯ КНИГА ======================== -->
+  <div id="detailScreen" class="screen">
+    <div class="detail-header">
+      <button class="btn-back" onclick="navigateTo('home')">←</button>
+      <span style="font-weight:600;">О книге</span>
+    </div>
+    <div class="detail-tabs" id="detailTabs">
+      <div class="detail-tab active" data-dtab="info">Описание</div>
+      <div class="detail-tab" data-dtab="reviews">Отзывы</div>
+      <div class="detail-tab" data-dtab="discussion">Обсуждение</div>
+      <div class="detail-tab" data-dtab="training">Обучение</div>
+      <div class="detail-tab" data-dtab="notes" id="detailTabNotesBtn">Заметки</div>
+    </div>
+    <div id="detailTabInfo" class="detail-tab-content"></div>
+    <div id="detailTabReviews" class="detail-tab-content hidden"></div>
+    <div id="detailTabDiscussion" class="detail-tab-content hidden"></div>
+    <div id="detailTabTraining" class="detail-tab-content hidden"></div>
+    <div id="detailTabNotes" class="detail-tab-content hidden"></div>
+  </div>
+
+  <!-- ======================== ЧИТАЛКА (PDF + EPUB) ======================== -->
+  <div id="readerScreen" class="screen">
+    <div class="reader-container">
+      <div class="reader-toolbar">
+        <div class="reader-toolbar-row">
+          <button class="btn-back" onclick="closeReader()">←</button>
+          <span class="book-format-badge" id="readerFormatBadge">PDF</span>
+          <span class="page-indicator-top" id="pageIndicatorTop">1 / 1</span>
+          <div class="reader-toolbar-actions">
+            <button class="btn-nav-page" id="btnPomodoro" onclick="togglePomodoro()" title="Pomodoro таймер" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;"></button>
+            <button class="btn-nav-page" id="btnPageBookmark" onclick="togglePageBookmark()" title="Закладка на странице" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+              <svg id="bookmarkIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
+            <button class="btn-nav-page" id="btnBookmarksList" onclick="openBookmarksList()" title="Мои закладки" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
+            <button class="btn-nav-page" id="btnTOC" onclick="openTOC()" title="Оглавление" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+            </button>
+            <button class="btn-nav-page" id="btnExportNotes" onclick="exportNotes()" title="Экспорт заметок" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;"></button>
+            <button class="btn-nav-page" id="btnChapterSummary" onclick="summarizeCurrentChapter()" title="Краткое содержание (ИИ)" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+            </button>
+            <button class="btn-nav-page" id="btnReaderSearch" onclick="toggleReaderSearch()" title="Поиск по книге" style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;"></button>
+            <button class="btn-nav-page" id="btnReaderTheme" onclick="toggleReaderTheme()" title="Сменить тему" style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;"></button>
+            <button class="header-icon-btn btn-ai-icon" style="width:30px;height:30px;color:var(--accent);" onclick="toggleAIPanel()" title="AI-ассистент">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="book-name" id="readerBookName">Книга</div>
+      </div>
+      <!-- Панель поиска по книге -->
+      <div id="readerSearchPanel" style="display:none;background:var(--bg-elevated);border-bottom:1px solid var(--border);padding:8px 12px;align-items:center;gap:8px;flex-wrap:wrap;">
+        <input type="text" id="readerSearchInput" placeholder="Поиск в книге…" style="flex:1;min-width:120px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;outline:none;">
+        <span id="readerSearchStatus" style="font-size:11px;color:var(--text-muted);min-width:60px;text-align:center;">—</span>
+        <button id="readerSearchPrev" onclick="readerSearchPrev()" title="Предыдущее (Shift+Enter)" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;"></button>
+        <button id="readerSearchNext" onclick="readerSearchNext()" title="Следующее (Enter)" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;"></button>
+        <button id="readerSearchClose" onclick="closeReaderSearch()" title="Закрыть" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;"></button>
+      </div>
+      <!-- Жестовые зоны и viewport -->
+      <div class="reader-gesture-zone" id="readerGestureZone">
+        <!-- Зона тапа: левая часть → предыдущая страница -->
+        <div class="tap-zone tap-zone-left" id="tapZoneLeft"></div>
+        <!-- PDF viewport -->
+        <div class="pdf-viewport" id="pdfViewport">
+        <div id="pdfPlaceholder">Загрузка...</div>
+        <canvas id="pdfCanvas" class="hidden"></canvas>
+        <div class="annotation-layer" id="annotationLayer"></div>
+          <div class="text-layer" id="pdfTextLayer" style="position:absolute;top:0;left:0;pointer-events:auto;"></div>
+        <div id="selectionToolbar" class="selection-toolbar" style="display:none;position:absolute;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:5px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.4);gap:4px;align-items:center;flex-wrap:wrap;max-width:300px;">
+          <button title="Жёлтый маркер" onclick="highlightSelection('#fbbf24')" style="width:24px;height:24px;border-radius:50%;background:#fbbf24;border:2px solid transparent;cursor:pointer;"></button>
+          <button title="Зелёный маркер" onclick="highlightSelection('#10b981')" style="width:24px;height:24px;border-radius:50%;background:#10b981;border:2px solid transparent;cursor:pointer;"></button>
+          <button title="Розовый маркер" onclick="highlightSelection('#ec4899')" style="width:24px;height:24px;border-radius:50%;background:#ec4899;border:2px solid transparent;cursor:pointer;"></button>
+          <div style="width:1px;height:20px;background:var(--border);"></div>
+          <button id="btnPdfNote" onclick="addNoteToSelection()" style="background:transparent;border:none;color:var(--accent);padding:5px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">Заметка</button>
+          <button onclick="lookupSelectionWord()" style="background:transparent;border:none;color:#60a5fa;padding:5px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">Словарь</button>
+          <button onclick="explainSelectionTerm()" style="background:transparent;border:none;color:#a855f7;padding:5px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">Объяснить</button>
+        </div>
+      </div>
+        <!-- EPUB viewport -->
+        <div class="epub-viewport hidden" id="epubViewport">
+          <div id="epubContainer"></div>
+        </div>
+        <!-- Зона тапа: правая часть → следующая страница -->
+        <div class="tap-zone tap-zone-right" id="tapZoneRight"></div>
+        <!-- Индикатор страниц -->
+        <div class="page-indicator-overlay" id="pageIndicatorOverlay">
+          <span id="pageCurrent">1</span>
+          <span class="page-separator">/</span>
+          <span id="pageTotal">1</span>
+        </div>
+        <!-- Стрелки навигации (ПК) -->
+        <button class="reader-arrow reader-arrow-left" id="readerArrowLeft" title="Предыдущая страница (←)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="reader-arrow reader-arrow-right" id="readerArrowRight" title="Следующая страница (→)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== ПОМОДОРО ТАЙМЕР ======================== -->
+  <div class="pomodoro-container" id="pomodoroContainer">
+    <div class="pomodoro-timer" id="pomodoroTimer">25:00</div>
+    <button class="pomodoro-btn" id="pomodoroStart" onclick="startPomodoro()" title="Старт"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>
+    <button class="pomodoro-btn" id="pomodoroPause" onclick="pausePomodoro()" style="display:none;" title="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    <button class="pomodoro-btn" id="pomodoroReset" onclick="resetPomodoro()" title="Сброс"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+    <span style="font-size:10px;color:var(--text-muted);" id="pomodoroStatus">Готов к работе</span>
+  </div>
+
+  <!-- ======================== AI ПАНЕЛЬ ======================== -->
+  <div class="overlay" id="aiOverlay" onclick="closeAIPanel()"></div>
+  <div class="ai-panel" id="aiPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>AI-ассистент</h3>
+      <button class="btn-back" onclick="closeAIPanel()" style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="ai-chat" id="aiChat"></div>
+    <div class="ai-input-row">
+      <input type="text" id="aiInput" placeholder="Спроси что-нибудь..." onkeydown="if(event.key==='Enter')sendAIMessage()">
+      <button onclick="sendAIMessage()" aria-label="Отправить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></button>
+    </div>
+    <div class="ai-quick-chips">
+      <span class="ai-quick-chip" onclick="aiQuick('summary')">Саммари</span>
+      <span class="ai-quick-chip" onclick="aiQuick('quiz')">Тест</span>
+      <span class="ai-quick-chip" onclick="aiQuick('recommend')">Рекомендации</span>
+      <span class="ai-quick-chip" onclick="aiQuick('vacation')">В отпуск</span>
+      <span class="ai-quick-chip" onclick="aiQuick('exam')">К экзамену</span>
+    </div>
+  </div>
+
+  <!-- ======================== ГОРЯЧИЕ КЛАВИШИ (МОДАЛКА) ======================== -->
+  <div class="overlay" id="shortcutsOverlay" onclick="closeShortcutsModal()"></div>
+  <div class="shortcuts-modal" id="shortcutsModal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="font-size:16px;color:var(--accent);">⌨️ Горячие клавиши</h3>
+      <button class="btn-back" onclick="closeShortcutsModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+    </div>
+    <div class="shortcut-row"><span>Поиск / Командная палитра</span><span class="shortcut-key">Ctrl+K</span></div>
+    <div class="shortcut-row"><span>Следующая страница</span><span class="shortcut-key">→ / Space</span></div>
+    <div class="shortcut-row"><span>Предыдущая страница</span><span class="shortcut-key">← / Shift+Space</span></div>
+    <div class="shortcut-row"><span>Pomodoro таймер</span><span class="shortcut-key">P</span></div>
+    <div class="shortcut-row"><span>Экспорт заметок</span><span class="shortcut-key">Ctrl+E</span></div>
+    <div class="shortcut-row"><span>Закрыть панели / Отмена</span><span class="shortcut-key">Escape</span></div>
+    <div class="shortcut-row"><span>Главная</span><span class="shortcut-key">Alt+H</span></div>
+    <div class="shortcut-row"><span>Мой список</span><span class="shortcut-key">Alt+M</span></div>
+    <div class="shortcut-row"><span>Обучение</span><span class="shortcut-key">Alt+T</span></div>
+    <div class="shortcut-row"><span>Профиль</span><span class="shortcut-key">Alt+P</span></div>
+    <div class="shortcut-row"><span>AI Ассистент</span><span class="shortcut-key">Alt+A</span></div>
+  </div>
+
+  <!-- ======================== НИЖНЯЯ НАВИГАЦИЯ ======================== -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="nav-item active" data-screen="home" onclick="navigateTo('home')">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9L12 2L21 9V20A2 2 0 0 1 19 22H5A2 2 0 0 1 3 20V9Z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </span>
+      <span class="nav-label">Главная</span>
+    </div>
+    <div class="nav-item" data-screen="mylist" onclick="navigateTo('mylist')">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
+      </span>
+      <span class="nav-label">Закладки</span>
+    </div>
+    <div class="nav-item" data-screen="training" onclick="navigateTo('training')">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10L12 3L2 10L12 17L22 10Z"/><path d="M6 12V17C6 18.5 8.7 20 12 20C15.3 20 18 18.5 18 17V12"/></svg>
+      </span>
+      <span class="nav-label">Обучение</span>
+    </div>
+    <div class="nav-item" data-screen="reader" onclick="navigateTo('reader')">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20V22H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+      </span>
+      <span class="nav-label">Читаю</span>
+    </div>
+    <div class="nav-item" data-screen="profile" onclick="navigateTo('profile')">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+      <span class="nav-label">Профиль</span>
+    </div>
+  </nav>
+
+  <!-- ======================== МОДАЛЬНЫЕ ОКНА ======================== -->
+  
+  <!-- Добавление книги -->
+  <div class="modal-overlay hidden" id="addModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:500px;width:95%;border:1px solid var(--border);">
+      <h3 style="margin-bottom:16px;">Новая книга</h3>
+      
+      <div class="form-group">
+        <label>Название</label>
+        <input type="text" id="newTitle">
+      </div>
+      
+      <div class="form-group">
+        <label>Автор</label>
+        <input type="text" id="newAuthor">
+      </div>
+      
+      <div class="form-group">
+        <label>Категории</label>
+        <div id="newCategoriesContainer" class="cat-tags-container"></div>
+        <div style="font-size:10px; color:var(--text-muted); margin-top:6px;">
+          Начни печатать — появятся подсказки. Enter — добавить как тэг.
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Описание</label>
+        <textarea id="newDescription" rows="4" placeholder="Краткое описание книги" style="width:100%; padding:10px 12px; background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-family:inherit; font-size:13px; resize:vertical;"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Обложка</label>
+        <input type="file" id="newCover" accept="image/*">
+      </div>
+      
+      <div class="form-group">
+        <label>Файл книги (PDF или EPUB)</label>
+        <input type="file" id="newBookFile" accept=".pdf,.epub">
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button onclick="closeAddModal()" style="flex:1; padding:12px; border-radius:10px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-secondary); cursor:pointer;">Отмена</button>
+        <button id="saveBookBtn" style="flex:1; padding:12px; border-radius:10px; background:var(--accent-gradient); border:none; color:#fff; cursor:pointer;">Добавить</button>
+      </div>
+    </div>
+  </div>
+<!-- Редактирование профиля -->
+  <div class="modal-overlay hidden" id="editProfileModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:420px;width:95%;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="font-size:16px;">Редактировать профиль</h3>
+        <button class="btn-back" onclick="closeEditProfileModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Отображаемое имя</label>
+        <input type="text" id="editFullName" placeholder="Введите имя" maxlength="128">
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:14px;">
+        Логин (username) изменить нельзя.
+      </div>
+      <div id="editAvatarSection" style="margin-bottom:14px;">
+        <button onclick="deleteCurrentAvatar()" id="deleteAvatarBtn" style="width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid #ef4444;color:#ef4444;font-family:inherit;font-size:12px;cursor:pointer;">Удалить аватар</button>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="closeEditProfileModal()" style="flex:1;padding:12px;border-radius:10px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;">Отмена</button>
+        <button onclick="saveProfileEdits()" id="saveProfileBtn" style="flex:1;padding:12px;border-radius:10px;background:var(--accent-gradient);border:none;color:#fff;cursor:pointer;">Сохранить</button>
+      </div>
+    </div>
+  </div>
+  <!-- ======================== АНАЛИТИКА КНИГИ ======================== -->
+  <div class="modal-overlay hidden" id="bookAnalyticsModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:720px;width:95%;max-height:90vh;overflow-y:auto;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="font-size:16px;">Аналитика книги</h3>
+        <button class="btn-back" onclick="closeBookAnalyticsModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+      </div>
+      <div id="bookAnalyticsContent" style="font-size:13px;">Загрузка...</div>
+    </div>
+  </div>
+  <!-- Управление книгой (админ) -->
+<div class="modal-overlay hidden" id="adminBookModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
+  <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:560px;width:95%;border:1px solid var(--border);max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:16px;">Управление книгой</h3>
+      <button class="btn-back" onclick="closeAdminBookModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+    </div>
+    
+    <div class="settings-section" style="margin-bottom:16px;">
+      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent);">Поля карточки</h3>
+      
+      <div class="form-group">
+        <label>Название</label>
+        <input type="text" id="adminEditTitle">
+      </div>
+      
+      <div class="form-group">
+        <label>Автор</label>
+        <input type="text" id="adminEditAuthor">
+      </div>
+      
+      <div class="form-group">
+        <label>Категории</label>
+        <div id="adminCategoriesContainer" class="cat-tags-container"></div>
+        <div style="font-size:10px; color:var(--text-muted); margin-top:6px;">
+          Начни печатать — появятся подсказки. Enter — добавить как тэг.
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Описание</label>
+        <textarea id="adminEditDescription" rows="3" style="resize:vertical;"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Иконка (эмодзи, fallback вместо обложки)</label>
+        <input type="text" id="adminEditIcon" maxlength="4" style="width:80px;text-align:center;font-size:18px;">
+      </div>
+      
+      <button class="btn btn-primary" id="adminSaveFieldsBtn" style="margin-top:6px;">Сохранить поля</button>
+    </div>
+    
+    <div class="settings-section" style="margin-bottom:16px;">
+      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent);">Файл книги (PDF/EPUB)</h3>
+      <div id="adminFileStatus" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input type="file" id="adminBookFileInput" accept=".pdf,.epub" style="flex:1;min-width:200px;">
+        <button class="btn-sm" id="adminUploadFileBtn">Загрузить</button>
+        <button class="btn-sm danger" id="adminDeleteFileBtn">Удалить</button>
+      </div>
+    </div>
+    
+    <div class="settings-section" style="margin-bottom:16px;">
+      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent);">Обложка</h3>
+      <div id="adminCoverStatus" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input type="file" id="adminCoverFile" accept="image/jpeg,image/png,image/webp" style="flex:1;min-width:200px;">
+        <button class="btn-sm" id="adminUploadCoverBtn">Загрузить</button>
+        <button class="btn-sm danger" id="adminDeleteCoverBtn">Удалить</button>
+      </div>
+    </div>
+    
+    <div class="settings-section" style="margin-bottom:8px;">
+      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:#ef4444;">Опасная зона</h3>
+      <button class="btn-logout" id="adminDeleteBookBtn">Удалить книгу полностью</button>
+    </div>
+  </div>
+</div>
+<!-- ======================== ОНБОРДИНГ-ТЕСТ ======================== -->
+  <div id="onboardingScreen" class="screen">
+    <!-- Шаг 1: приветствие -->
+    <div id="onboardingWelcome">
+        <div style="text-align:center;margin-bottom:20px;">
+          <h2 style="font-size:22px;font-weight:800;margin-bottom:8px;">Какой у тебя уровень?</h2>
+          <p style="font-size:13px;color:var(--text-muted);max-width:480px;margin:0 auto;line-height:1.5;">
+            Выбери уровень, который описывает тебя лучше всего. Если сомневаешься — пройди тест из 20 вопросов.
+          </p>
+        </div>
+        <div id="levelChoiceList" style="display:flex;flex-direction:column;gap:10px;max-width:540px;margin:0 auto 16px auto;"></div>
+        <div style="text-align:center;">
+          <button onclick="skipOnboarding()" style="background:transparent;border:none;color:var(--text-muted);font-family:inherit;font-size:12px;cursor:pointer;text-decoration:underline;">Пропустить</button>
+        </div>
+      </div>
+
+    <!-- Шаг 2: тест -->
+    <div id="onboardingQuiz" class="onboarding-step hidden">
+      <div class="onboarding-quiz-container">
+        <div class="onboarding-progress">
+          <div class="onboarding-progress-text">
+            Вопрос <span id="onboardingCurrent">1</span> из <span id="onboardingTotal">20</span>
+          </div>
+          <div class="onboarding-progress-bar">
+            <div class="onboarding-progress-fill" id="onboardingProgressFill"></div>
+          </div>
+          <div class="onboarding-topic-badge" id="onboardingTopicBadge"></div>
+        </div>
+        <div class="onboarding-question" id="onboardingQuestion"></div>
+        <div class="onboarding-options" id="onboardingOptions"></div>
+        <div class="onboarding-nav">
+          <button class="btn-onboarding-prev" onclick="prevOnboardingQuestion()" id="btnOnboardingPrev">← Назад</button>
+          <button class="btn-onboarding-next" onclick="nextOnboardingQuestion()" id="btnOnboardingNext">Далее →</button>
+          <button class="btn-onboarding-finish hidden" onclick="finishOnboarding()" id="btnOnboardingFinish">Завершить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Шаг 3: результат -->
+    <div id="onboardingResult" class="onboarding-step hidden">
+      <div class="onboarding-result-container" id="onboardingResultContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== СКРИПТЫ ========== -->
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/pdf.worker.min.js"></script>
+<script src="vendor/epub.min.js"></script>
+<script src="vendor/chart.umd.min.js"></script>
+<script src="offline-storage.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+
+<!-- ========== REGISTER SERVICE WORKER ========== -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('Service Worker зарегистрирован:', reg.scope);
+    }).catch(err => {
+      console.error('Service Worker не зарегистрирован:', err);
+    });
+  }
+</script>
+
+<!-- ======================== МАССОВАЯ ЗАГРУЗКА КНИГ ======================== -->
+  <div class="modal-overlay hidden" id="bulkUploadModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:var(--bg-elevated);border-radius:14px;padding:20px;max-width:520px;width:95%;border:1px solid var(--border);max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="font-size:16px;font-weight:700;">Массовая загрузка книг</h3>
+        <button class="btn-back" onclick="closeBulkUploadModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+      </div>
+
+      <div id="bulkUploadDropZone" style="border:2px dashed var(--border);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-primary);">
+        <div style="font-size:36px;margin-bottom:8px;">📁</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Перетащи файлы сюда</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">или нажми для выбора</div>
+        <div style="font-size:10px;color:var(--text-muted);">PDF, EPUB · до 150 МБ каждый</div>
+        <input type="file" id="bulkUploadInput" multiple accept=".pdf,.epub" style="display:none;">
+      </div>
+
+      <div id="bulkUploadCategoryPanel" style="display:none;margin-top:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;">Применить категорию ко всем (опционально):</label>
+        <input type="text" id="bulkUploadCategory" placeholder="Например: Технический оффенсив" maxlength="64" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;outline:none;">
+      </div>
+
+      <div id="bulkUploadList" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;"></div>
+
+      <div id="bulkUploadActions" style="display:none;margin-top:14px;gap:8px;justify-content:space-between;align-items:center;">
+        <div id="bulkUploadProgress" style="font-size:12px;color:var(--text-secondary);"></div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="clearBulkUploadList()" id="bulkUploadClearBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;">Очистить</button>
+          <button onclick="startBulkUpload()" id="bulkUploadStartBtn" style="background:var(--accent-gradient);border:none;color:#000;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">Загрузить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== AI АССИСТЕНТ ======================== -->
+  <div id="assistantScreen" class="screen">
+    <div class="top-header">
+      <div class="header-left">
+        <button class="btn-back" onclick="navigateTo('home')">←</button>
+        <div class="logo-name">AI-ассистент</div>
+      </div>
+      <div style="display:flex;gap:2px;align-items:center;">
+        <button id="btnNewChat" onclick="startNewChat()" title="Новый диалог" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        </button>
+        <button id="btnChatHistory" onclick="openChatHistory()" title="История диалогов" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        </button>
+        <button id="btnClearAssistant" onclick="clearAssistantChat()" title="Очистить" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="assistant-body" style="padding:0 12px 12px;">
+      <div id="assistantMessages" style="flex:1;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;gap:10px;min-height:0;"></div>
+
+      <div class="assistant-quick-chips">
+        <span class="ai-quick-chip" onclick="assistantQuick('summary')">Саммари</span>
+        <span class="ai-quick-chip" onclick="assistantQuick('quiz')">Тест</span>
+        <span class="ai-quick-chip" onclick="assistantQuick('recommend')">Рекомендации</span>
+        <span class="ai-quick-chip" onclick="assistantQuick('vacation')">В отпуск</span>
+        <span class="ai-quick-chip" onclick="assistantQuick('exam')">К экзамену</span>
+      </div>
+
+      <div id="assistantInputBar" style="display:flex;gap:8px;align-items:flex-end;padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;">
+        <textarea id="assistantInput" placeholder="Спроси что-нибудь..." maxlength="4000" rows="1" style="flex:1;background:transparent;border:none;color:var(--text-primary);font-family:inherit;font-size:13px;outline:none;resize:none;max-height:120px;padding:6px;"></textarea>
+        <button id="assistantSendBtn" onclick="sendAssistantMessage()" style="background:var(--accent-gradient);border:none;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"></button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

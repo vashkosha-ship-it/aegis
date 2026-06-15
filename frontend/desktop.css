@@ -1,0 +1,1877 @@
+/* DESKTOP-CSS-VERSION-106 */
+/* =====================================================================
+   AEGIS — DESKTOP / TABLET LANDSCAPE RESPONSIVE LAYER
+   Подключается после styles.css. Брейкпоинты:
+     ≥768px   — таблет (уже есть частично в styles.css)
+     ≥1024px  — боковая навигация (sidebar), ширина контента меняется
+     ≥1280px  — двухколоночные секции, grid карточек
+     ≥1600px  — широкие экраны
+   ===================================================================== */
+
+/* ─── CSS-переменные для desktop-режима ─────────────────────────────── */
+:root {
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 72px;
+}
+
+/* =====================================================================
+   SIDEBAR NAVIGATION (≥1024px)
+   Нижняя навигация скрывается, появляется левый sidebar.
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Скрываем мобильную bottom-nav */
+  .bottom-nav {
+    display: none !important;
+  }
+
+  /* Убираем нижний padding у body (был для bottom-nav) */
+  body {
+    padding-bottom: 0;
+  }
+
+  /* Sidebar — фиксированная левая панель */
+  .sidebar-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 900;
+    padding: 13px 8px 16px;
+    overflow: hidden;
+    transition: width var(--transition);
+    backdrop-filter: blur(13px);
+  }
+
+  /* Лого в sidebar */
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 5px 13px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 11px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-logo-icon {
+    width: 31px;
+    height: 31px;
+    background: var(--accent-gradient);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-glow);
+  }
+
+  .sidebar-logo-icon svg {
+    width: 17px;
+    height: 20px;
+    display: block;
+  }
+
+  .sidebar-logo-text {
+    font-size: 15px;
+    font-weight: 800;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+
+  /* Пункты меню sidebar */
+  .sidebar-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: var(--transition);
+    user-select: none;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    text-decoration: none;
+  }
+
+  .sidebar-item svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    display: block;
+  }
+
+  .sidebar-item:hover {
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+    border-color: var(--border);
+  }
+
+  .sidebar-item.active {
+    color: var(--accent);
+    background: rgba(0, 212, 255, 0.08);
+    border-color: rgba(0, 212, 255, 0.2);
+  }
+
+  .sidebar-item .item-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Нижняя часть sidebar: AI + профиль */
+  .sidebar-footer {
+    flex-shrink: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  /* Смещение #app вправо на ширину sidebar.
+     Контент занимает всю оставшуюся ширину (не центрируем, не ограничиваем),
+     иначе на широких мониторах справа остаётся огромная пустота. */
+  #app {
+    margin-left: var(--sidebar-w);
+    margin-right: 0;
+    max-width: none;
+    width: auto;
+    padding-left: 27px;
+    padding-right: 27px;
+  }
+
+  body.reader-active #app {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Скрываем top-header лого на десктопе (оно теперь в sidebar) */
+  .top-header .logo-sm,
+  .top-header .logo-name {
+    display: none;
+  }
+
+  .header-left {
+    gap: 0;
+  }
+
+  /* Убираем дубль заголовка — оставляем только действия */
+  .top-header {
+    padding: 13px 0 11px;
+    gap: 8px;
+  }
+
+  /* Заголовок экрана (breadcrumb) */
+  .top-header::before {
+    content: attr(data-title);
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-primary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-left {
+    display: contents; /* убираем flex-контейнер, лого скрыто */
+  }
+
+  /* Хедер-иконки чуть крупнее на десктопе */
+  .header-icon-btn {
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+  }
+
+  .header-icon-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .header-avatar {
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+}
+
+/* =====================================================================
+   ДВУХКОЛОНОЧНЫЙ LAYOUT ДЛЯ ПРОФИЛЯ И НАСТРОЕК (≥1280px)
+   ===================================================================== */
+
+@media (min-width: 1280px) {
+
+  /* Профиль: шапка + сетка настроек рядом */
+  #profileScreen .profile-desktop-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 19px;
+    align-items: start;
+  }
+
+  /* Карточки настроек — две колонки */
+  #profileScreen .settings-section {
+    break-inside: avoid;
+  }
+
+  #profileScreen .settings-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+/* =====================================================================
+   GRID КАРТОЧЕК КНИГ ВМЕСТО ГОРИЗОНТАЛЬНОГО СКРОЛЛА (≥1024px)
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Все секции книг — сетка на всю ширину */
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll,
+  #sectionContinue .books-scroll {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+    overflow-x: visible;
+    padding-bottom: 0;
+    scroll-snap-type: none;
+  }
+
+  /* Карточки в grid тянутся по колонке */
+  #sectionAll .books-scroll .book-card-compact,
+  #sectionPopular .books-scroll .book-card-compact,
+  #sectionContinue .books-scroll .book-card-compact {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    flex-shrink: unset;
+    scroll-snap-align: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll,
+  #sectionContinue .books-scroll {
+    grid-template-columns: repeat(auto-fill, minmax(173px, 1fr));
+    gap: 19px;
+  }
+}
+
+@media (min-width: 1600px) {
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll,
+  #sectionContinue .books-scroll {
+    grid-template-columns: repeat(auto-fill, minmax(187px, 1fr));
+    gap: 21px;
+  }
+}
+
+@media (min-width: 2000px) {
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll,
+  #sectionContinue .books-scroll {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+  }
+}
+
+/* =====================================================================
+   MY LIST — БОЛЕЕ ПЛОТНАЯ СЕТКА
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(173px, 1fr));
+    gap: 19px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(187px, 1fr));
+    gap: 21px;
+  }
+}
+
+@media (min-width: 2000px) {
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+  }
+}
+
+/* =====================================================================
+   СТРАНИЦА ДЕТАЛЕЙ КНИГИ (≥1024px)
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Заголовок «О книге» крупнее */
+  #detailScreen .detail-header {
+    padding: 16px 0 13px;
+  }
+
+  #detailScreen .detail-header .btn-back {
+    width: 31px !important;
+    height: 31px !important;
+    font-size: 15px !important;
+  }
+
+  #detailScreen .detail-header > div,
+  #detailScreen .detail-header span {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+  }
+
+  /* Табы деталей — крупные */
+  .detail-tabs {
+    margin-bottom: 19px;
+    padding: 4px;
+  }
+
+  .detail-tab {
+    font-size: 12px !important;
+    padding: 11px 13px !important;
+  }
+
+  /* Контент: обложка слева (фикс. ширина), инфо справа */
+  .detail-content {
+    display: flex !important;
+    gap: 32px !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start;
+  }
+
+  .detail-cover {
+    width: 227px !important;
+    height: 313px !important;
+    flex-shrink: 0 !important;
+    position: sticky;
+    top: 16px;
+  }
+
+  .detail-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .detail-cover svg {
+    width: 80px !important;
+    height: 93px !important;
+  }
+
+  .detail-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Крупная типографика инфо-блока */
+  .detail-title {
+    font-size: 25px !important;
+    line-height: 1.2;
+    margin-bottom: 7px !important;
+  }
+
+  .detail-author {
+    font-size: 15px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .detail-rating {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .detail-rating svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .detail-category {
+    font-size: 11px !important;
+    padding: 4px 11px !important;
+    margin-bottom: 11px !important;
+  }
+
+  .detail-desc {
+    font-size: 12px !important;
+    line-height: 1.7 !important;
+    margin: 12px 0 !important;
+  }
+
+  /* Селект статуса крупнее */
+  .mylist-status-select {
+    font-size: 11px !important;
+    padding: 11px 13px !important;
+    margin: 12px 0 !important;
+    max-width: 267px;
+  }
+
+  /* Кнопки действий — крупные */
+  .detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 13px;
+  }
+
+  .btn-detail {
+    font-size: 11px !important;
+    padding: 11px 17px !important;
+    border-radius: 9px !important;
+  }
+
+  .btn-detail svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  .detail-cover { width: 267px !important; height: 367px !important; }
+  .detail-title { font-size: 29px !important; }
+  .detail-author { font-size: 16px !important; }
+  .detail-desc { font-size: 13px !important; }
+  .detail-tab { font-size: 13px !important; }
+  .btn-detail { font-size: 13px !important; padding: 12px 20px !important; }
+}
+
+/* =====================================================================
+   ADMIN PANEL — ШИРОКИЙ LAYOUT
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Табы переключения + контент рядом */
+  .admin-tabs-nav {
+    font-size: 9px;
+  }
+
+  .admin-tab-btn {
+    font-size: 9px;
+    padding: 7px 11px;
+  }
+
+  /* Аналитика — 3 колонки */
+  .analytics-charts {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+
+  /* Больше карточек статистики */
+  .stat-cards {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 13px;
+  }
+
+  .stat-card .stat-value {
+    font-size: 19px;
+  }
+
+  /* Аналитика — 2+2 */
+  .analytics-charts {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .analytics-card canvas {
+    max-height: 213px;
+  }
+}
+
+/* =====================================================================
+   ОБУЧЕНИЕ / ТРЕНИРОВКИ — ДВУХКОЛОНОЧНЫЙ LAYOUT
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Тренировки: список тестов и текущий тест рядом */
+  #trainingScreen .training-layout {
+    display: grid;
+    grid-template-columns: 213px 1fr;
+    gap: 19px;
+    align-items: start;
+  }
+
+  #trainingScreen .training-sidebar-col {
+    position: sticky;
+    top: 53px;
+  }
+
+  /* Квиз крупнее */
+  .quiz-container {
+    padding: 24px 27px;
+  }
+
+  .quiz-question {
+    font-size: 12px;
+  }
+}
+
+/* =====================================================================
+   AI PANEL — ШИРЕ НА ДЕСКТОПЕ
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  :root {
+    --ai-panel-width: 320px;
+  }
+
+  .ai-panel {
+    border-left: 1px solid var(--border);
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --ai-panel-width: 347px;
+  }
+}
+
+/* =====================================================================
+   ОБЩИЕ УЛУЧШЕНИЯ ДЛЯ ШИРОКИХ ЭКРАНОВ
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* ── Заголовки секций ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 13px;
+  }
+
+  .section-title {
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 13px;
+  }
+
+  .home-section {
+    margin-bottom: 27px;
+  }
+
+  /* ── Поиск и каталог ── */
+  .search-catalog-row {
+    gap: 9px;
+    margin-bottom: 19px;
+  }
+
+  .search-bar input {
+    padding: 11px 12px 11px 33px;
+    font-size: 11px;
+    border-radius: 9px;
+  }
+
+  .search-bar .search-icon {
+    left: 12px;
+  }
+
+  .search-bar .search-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .btn-catalog-toggle {
+    padding: 11px 15px;
+    font-size: 10px;
+    border-radius: 9px;
+  }
+
+  .btn-catalog-toggle svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* ── Хедер ── */
+  .header-icon-btn {
+    width: 31px;
+    height: 31px;
+    border-radius: 9px;
+  }
+
+  .header-icon-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .header-avatar {
+    width: 31px;
+    height: 31px;
+    border-radius: 9px;
+    font-size: 11px;
+  }
+
+  /* ── Рекомендации — 2 колонки, крупный текст ── */
+  #recommendationsList {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 11px !important;
+  }
+
+  .recommendation-card {
+    padding: 15px;
+    gap: 13px;
+  }
+
+  /* Обложка-миниатюра в рекомендации крупнее */
+  .recommendation-card > div:first-child {
+    width: 48px !important;
+    height: 64px !important;
+    font-size: 27px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Текст в карточке рекомендации (инлайновые стили перебиваем) */
+  .recommendation-card > div:last-child > div:first-child {
+    font-size: 12px !important;
+    line-height: 1.4;
+  }
+
+  .recommendation-card > div:last-child > div:last-child {
+    font-size: 10px !important;
+    margin-top: 3px;
+  }
+
+  /* ── Карточки книг — крупнее текст и отступы ── */
+  .book-card-compact .book-title-text {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .book-card-compact .book-author-text {
+    font-size: 9px;
+    margin-top: 3px;
+  }
+
+  .book-card-compact .info-area {
+    padding: 11px;
+  }
+
+  .book-card-compact .rating-badge,
+  .book-card-compact .progress-badge {
+    font-size: 8px;
+    padding: 3px 7px;
+  }
+
+  .book-card-compact .rating-badge svg {
+    width: 9px;
+    height: 9px;
+  }
+
+  /* ── Вкладки Популярное/Все книги ── */
+  #homeBooksTabs .home-books-tab,
+  .home-books-tab {
+    font-size: 10px;
+    padding: 7px 15px;
+  }
+
+  /* ── MyList вкладки ── */
+  .mylist-tab {
+    font-size: 10px;
+    padding: 7px 15px;
+  }
+
+  .mylist-tab .count {
+    font-size: 9px;
+  }
+
+  /* ── Модальные окна — крупнее ── */
+  #addModal > div {
+    padding: 24px;
+    max-width: 427px;
+  }
+
+  #addModal h3 {
+    font-size: 16px;
+  }
+
+  /* ── Chips фильтров ── */
+  .catalog-chip {
+    font-size: 9px;
+    padding: 5px 12px;
+  }
+
+  /* ── Общая типографика форм ── */
+  .form-group label {
+    font-size: 9px;
+  }
+
+  /* Скрываем hint перетаскивания на десктопе (оно для сенсорных) */
+  .mylist-drag-hint {
+    display: none;
+  }
+}
+
+/* =====================================================================
+   CATALOG PANEL — SIDEBAR НА ДЕСКТОПЕ
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Фильтры не выезжают снизу, а показываются inline */
+  .catalog-panel {
+    border-radius: var(--radius-lg);
+    margin-bottom: 13px;
+  }
+
+  .catalog-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 11px;
+  }
+
+  .catalog-filter-group {
+    margin-bottom: 0;
+  }
+}
+
+/* =====================================================================
+   PROFILE — ГОРИЗОНТАЛЬНЫЙ LAYOUT ШАПКИ
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Шапка профиля — горизонтально */
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 19px;
+    padding: 19px;
+    margin-bottom: 16px;
+  }
+
+  .profile-avatar-wrap {
+    flex-shrink: 0;
+  }
+
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 24px;
+  }
+
+  .profile-info {
+    flex: 1;
+  }
+
+  .profile-name {
+    font-size: 16px;
+  }
+
+  /* Статистика в ряд */
+  .profile-stats {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .profile-stat {
+    flex: 1;
+    padding: 9px 11px;
+    min-width: 53px;
+  }
+
+  .profile-stat .val {
+    font-size: 15px;
+  }
+
+  .profile-stat .lbl {
+    font-size: 7px;
+  }
+
+  /* Настройки — две колонки */
+  .profile-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+/* =====================================================================
+   СКРОЛЛБАР — КРАСИВЕЕ НА ДЕСКТОПЕ
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}
+
+/* =====================================================================
+   HOVER-ЭФФЕКТЫ (только на устройствах с мышью)
+   ===================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+
+  .book-card-compact:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 27px rgba(0, 0, 0, 0.4), var(--shadow-glow);
+  }
+
+  .settings-row:hover {
+    background: var(--bg-card-hover);
+    padding-left: 13px;
+  }
+
+  .sidebar-item:hover svg {
+    stroke: var(--accent);
+    transform: scale(1.1);
+    transition: var(--transition);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 19px rgba(0, 212, 255, 0.4);
+  }
+}
+
+/* =====================================================================
+   УБИРАЕМ touch-action manipulation НА ДЕСКТОПЕ (мешает выделению)
+   ===================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  body {
+    touch-action: auto;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* =====================================================================
+   ШИРОКИЕ ЭКРАНЫ: ОГРАНИЧИВАЕМ ШИРИНУ КОНТЕНТА В КОЛОННАХ
+   ===================================================================== */
+
+@media (min-width: 1600px) {
+  #app {
+    padding-left: 37px;
+    padding-right: 37px;
+  }
+
+  .home-section {
+    margin-bottom: 35px;
+  }
+
+  .section-title {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .book-card-compact .book-title-text {
+    font-size: 11px;
+  }
+
+  .book-card-compact .book-author-text {
+    font-size: 9px;
+  }
+
+  .book-card-compact .info-area {
+    padding: 12px;
+  }
+
+  /* Поиск ещё крупнее */
+  .search-bar input {
+    padding: 13px 13px 13px 37px;
+    font-size: 12px;
+  }
+
+  .search-bar .search-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .btn-catalog-toggle {
+    padding: 13px 17px;
+    font-size: 11px;
+  }
+
+  /* Рекомендации крупнее */
+  .recommendation-card > div:last-child > div:first-child {
+    font-size: 13px !important;
+  }
+
+  .recommendation-card > div:last-child > div:last-child {
+    font-size: 11px !important;
+  }
+
+  /* Sidebar шире и крупнее */
+  .sidebar-item {
+    font-size: 11px;
+  }
+
+  /* Вкладки */
+  .mylist-tab,
+  .home-books-tab {
+    font-size: 11px;
+    padding: 9px 17px;
+  }
+}
+
+@media (min-width: 2000px) {
+  .section-title {
+    font-size: 23px;
+  }
+
+  .book-card-compact .book-title-text {
+    font-size: 12px;
+  }
+
+  .book-card-compact .book-author-text {
+    font-size: 10px;
+  }
+
+  .search-bar input {
+    font-size: 13px;
+    padding: 15px 16px 15px 40px;
+  }
+
+  .recommendation-card > div:last-child > div:first-child {
+    font-size: 15px !important;
+  }
+
+  .recommendation-card > div:last-child > div:last-child {
+    font-size: 11px !important;
+  }
+
+  .sidebar-item {
+    font-size: 12px;
+  }
+}
+
+/* =====================================================================
+   ГОРИЗОНТАЛЬНЫЕ ПЛАНШЕТЫ (768px–1023px)
+   Не sidebar, но улучшенная сетка и убранные артефакты
+   ===================================================================== */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+
+  /* Навигация: pill чуть крупнее и с отступом снизу */
+  .bottom-nav {
+    max-width: 373px;
+    height: 41px;
+    bottom: 5px;
+  }
+
+  .nav-item {
+    padding: 7px 12px;
+    min-width: 48px;
+    flex: initial;
+  }
+
+  .nav-item .nav-label {
+    font-size: 7px;
+  }
+
+  /* Все книги — 4 колонки */
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 9px;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding-bottom: 0;
+  }
+
+  #sectionAll .books-scroll .book-card-compact,
+  #sectionPopular .books-scroll .book-card-compact {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+    scroll-snap-align: none;
+  }
+
+  /* MyList — 4 колонки */
+  .mylist-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 9px;
+  }
+
+  /* Детали книги */
+  .detail-cover {
+    width: 107px;
+    height: 149px;
+  }
+
+  /* Фильтры в ряд */
+  .catalog-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+/* =====================================================================
+   ЧИТАЛКА НА ШИРОКИХ ЭКРАНАХ — крупные кнопки, корректный рендер PDF
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  body.reader-active #app {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Тулбар крупнее */
+  body.reader-active .reader-toolbar {
+    padding-left: 19px;
+    padding-right: 19px;
+    height: auto;
+    min-height: 45px;
+  }
+
+  .reader-toolbar .btn-back {
+    width: 31px !important;
+    height: 31px !important;
+    font-size: 15px !important;
+    border-radius: 8px !important;
+  }
+
+  .reader-toolbar .book-format-badge {
+    font-size: 9px !important;
+    padding: 4px 8px !important;
+  }
+
+  .reader-toolbar .page-indicator-top {
+    font-size: 11px !important;
+  }
+
+  /* Кнопки действий в тулбаре — крупные */
+  .reader-toolbar-actions .btn-nav-page,
+  .reader-toolbar-actions .header-icon-btn {
+    width: 31px !important;
+    height: 31px !important;
+    border-radius: 8px !important;
+  }
+
+  .reader-toolbar-actions .btn-nav-page svg,
+  .reader-toolbar-actions .header-icon-btn svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .reader-toolbar .book-name {
+    font-size: 12px !important;
+  }
+
+  /* PDF: НЕ ограничиваем ширину через CSS — это делает JS inline.
+     Только центрируем. */
+  .pdf-viewport {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 16px 0;
+  }
+
+  .pdf-viewport canvas {
+    margin: 0 auto;
+    display: block;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    border-radius: 3px;
+  }
+
+  /* Стрелки перелистывания крупнее */
+  .reader-nav-arrow,
+  #readerGestureZone .tap-zone {
+    /* tap-zones невидимы, не трогаем */
+  }
+
+  /* Кнопки навигации страниц (стрелки по бокам) */
+  button[onclick*="goToPage"],
+  .pdf-nav-prev, .pdf-nav-next {
+    width: 37px !important;
+    height: 37px !important;
+    font-size: 16px !important;
+  }
+
+  /* Индикатор страницы крупнее */
+  .page-indicator-overlay {
+    font-size: 11px !important;
+    padding: 7px 12px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  .reader-toolbar .btn-back,
+  .reader-toolbar-actions .btn-nav-page,
+  .reader-toolbar-actions .header-icon-btn {
+    width: 35px !important;
+    height: 35px !important;
+  }
+  .reader-toolbar-actions .btn-nav-page svg,
+  .reader-toolbar-actions .header-icon-btn svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+  .reader-toolbar .book-name { font-size: 13px !important; }
+}
+
+/* =====================================================================
+   FAB КНОПКА — ПЕРЕМЕЩАЕМ В ПРАВЫЙ НИЖНИЙ УГОЛ НА ДЕСКТОПЕ
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  .fab-super-container {
+    position: fixed;
+    bottom: 21px;
+    right: 21px;
+    left: auto;
+    transform: none;
+    z-index: 800;
+  }
+}
+
+/* =====================================================================
+   SIDEBAR — видимость
+   ===================================================================== */
+
+.sidebar-nav {
+  display: none; /* скрыт по умолчанию (мобильные) */
+}
+
+@media (min-width: 1024px) {
+  .sidebar-nav {
+    display: flex;
+  }
+
+  /* На авторизации и онбординге sidebar скрыт */
+  .sidebar-nav.hidden-on-auth {
+    display: none !important;
+  }
+
+  /* В читалке sidebar скрыт */
+  body.reader-active .sidebar-nav {
+    display: none;
+  }
+}
+
+/* =====================================================================
+   TOP-HEADER: на десктопе лого в sidebar, в шапке его прячем
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  .top-header .header-left .logo-sm,
+  .top-header .header-left .logo-name {
+    display: none !important;
+  }
+
+  .top-header .header-left {
+    min-width: 0;
+  }
+}
+
+/* =====================================================================
+   AUTH / ONBOARDING — sidebar скрыт, #app не смещается
+   Размеры карточки авторизации задаются в styles.css (единый источник).
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  body:has(#authScreen.active) #app,
+  body:has(#onboardingScreen.active) #app {
+    margin-left: 0;
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* =====================================================================
+   КРУПНАЯ ТИПОГРАФИКА ДЛЯ ПК — финальное усиление
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* Базовый размер текста крупнее */
+  body { font-size: 11px; }
+
+  /* Заголовки секций — крупно и заметно */
+  .section-title { font-size: 19px !important; margin-bottom: 15px !important; }
+
+  /* Карточки книг — крупный текст */
+  .book-card-compact .book-title-text { font-size: 11px !important; line-height: 1.4; }
+  .book-card-compact .book-author-text { font-size: 9px !important; }
+  .book-card-compact .info-area { padding: 12px !important; }
+  .book-card-compact .rating-badge,
+  .book-card-compact .progress-badge { font-size: 9px !important; padding: 3px 7px !important; }
+
+  /* Рекомендации */
+  .recommendation-card { padding: 16px !important; gap: 15px !important; }
+  .recommendation-card > div:first-child { width: 53px !important; height: 72px !important; }
+  .recommendation-card > div:last-child > div:first-child { font-size: 13px !important; }
+  .recommendation-card > div:last-child > div:last-child { font-size: 11px !important; }
+
+  /* Поиск */
+  .search-bar input { font-size: 12px !important; padding: 12px 13px 12px 36px !important; }
+
+  /* Вкладки Популярное / Все книги */
+  .home-books-tab,
+  #homeBooksTabs > * { font-size: 11px !important; padding: 8px 16px !important; }
+
+  /* Сайдбар */
+  .sidebar-item { font-size: 11px !important; padding: 10px 12px !important; }
+  .sidebar-item svg { width: 17px !important; height: 17px !important; }
+  .sidebar-logo-text { font-size: 16px !important; }
+
+  /* Хедер-иконки */
+  .header-icon-btn { width: 32px !important; height: 32px !important; }
+  .header-icon-btn svg { width: 16px !important; height: 16px !important; }
+  .header-avatar { width: 32px !important; height: 32px !important; font-size: 12px !important; }
+}
+
+@media (min-width: 1600px) {
+  body { font-size: 11px; }
+  .section-title { font-size: 21px !important; }
+  .book-card-compact .book-title-text { font-size: 11px !important; }
+  .book-card-compact .book-author-text { font-size: 10px !important; }
+  .recommendation-card > div:last-child > div:first-child { font-size: 15px !important; }
+  .search-bar input { font-size: 13px !important; }
+}
+
+/* =====================================================================
+   AR-МЕНЮ «ИНТЕРАКТИВНЫЕ СХЕМЫ АТАК» — НОВОЕ ОФОРМЛЕНИЕ
+   Эффектные градиентные карточки со свечением и анимацией.
+   ===================================================================== */
+
+/* Затемнённый фон с лёгким блюром */
+#arSchemeMenuModal {
+  background: radial-gradient(ellipse at top, rgba(124,58,237,0.18), rgba(0,0,0,0.92)) !important;
+  backdrop-filter: blur(8px);
+}
+
+/* Контейнер меню */
+#arSchemeMenuModal > div {
+  background: linear-gradient(160deg, #161b28, #0f1320) !important;
+  border: 1px solid rgba(124,58,237,0.25) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(0,212,255,0.08) !important;
+  max-width: 560px !important;
+}
+
+/* Кнопки-карточки схем */
+.ar-menu-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 16px !important;
+  padding: 18px 20px !important;
+  margin-bottom: 14px !important;
+  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), border-color 0.25s, box-shadow 0.25s !important;
+}
+
+/* Светящаяся полоса слева (акцент категории) */
+.ar-menu-btn::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--accent-gradient);
+  opacity: 0.8;
+  transition: width 0.25s;
+}
+
+/* Радиальное свечение при наведении */
+.ar-menu-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at left center, rgba(0,212,255,0.12), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.ar-menu-btn:hover {
+  border-color: rgba(0,212,255,0.4) !important;
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 24px rgba(0,212,255,0.12) !important;
+}
+
+.ar-menu-btn:hover::before { width: 6px; }
+.ar-menu-btn:hover::after { opacity: 1; }
+.ar-menu-btn:active { transform: translateY(-1px) scale(0.99); }
+
+/* Иконка схемы — крупнее, со свечением и пульсацией */
+.ar-menu-icon {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.ar-menu-btn:hover .ar-menu-icon {
+  animation: arIconPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes arIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.ar-menu-icon svg { width: 28px !important; height: 28px !important; }
+
+/* Текст */
+.ar-menu-text { position: relative; z-index: 1; }
+.ar-menu-title { font-size: 17px !important; letter-spacing: 0.2px; }
+.ar-menu-sub { font-size: 12.5px !important; margin-top: 3px !important; line-height: 1.45; }
+
+/* Стрелка */
+.ar-menu-arrow {
+  font-size: 22px !important;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.25s;
+  opacity: 0.6;
+}
+.ar-menu-btn:hover .ar-menu-arrow {
+  transform: translateX(5px);
+  opacity: 1;
+}
+
+/* Заголовок модалки */
+#arSchemeMenuModal h3 {
+  font-size: 22px !important;
+  background: linear-gradient(135deg, #fff, #9ca3af);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Подсказка снизу */
+#arSchemeMenuModal > div > div:last-child {
+  background: linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.06)) !important;
+  border: 1px solid rgba(124,58,237,0.15);
+  border-radius: 14px !important;
+  font-size: 12.5px !important;
+}
+
+/* На десктопе AR-меню крупнее */
+@media (min-width: 1024px) {
+  #arSchemeMenuModal > div { max-width: 427px !important; padding: 21px !important; }
+  .ar-menu-icon { width: 43px !important; height: 43px !important; }
+  .ar-menu-icon svg { width: 21px !important; height: 21px !important; }
+  .ar-menu-title { font-size: 13px !important; }
+  .ar-menu-sub { font-size: 9px !important; }
+  #arSchemeMenuModal h3 { font-size: 17px !important; }
+}
+
+/* =====================================================================
+   ПК — РАДИКАЛЬНОЕ УВЕЛИЧЕНИЕ (финальный слой, перебивает всё выше)
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  body { font-size: 12px; }
+
+  /* Заголовки секций — очень крупно */
+  .section-title { font-size: 24px !important; margin-bottom: 19px !important; font-weight: 800 !important; }
+
+  /* Книги: ещё крупнее карточки */
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll,
+  #sectionContinue .books-scroll,
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(187px, 1fr)) !important;
+    gap: 21px !important;
+  }
+
+  .book-card-compact .book-title-text { font-size: 13px !important; line-height: 1.4; }
+  .book-card-compact .book-author-text { font-size: 11px !important; margin-top: 4px; }
+  .book-card-compact .info-area { padding: 15px !important; }
+  .book-card-compact .rating-badge,
+  .book-card-compact .progress-badge { font-size: 10px !important; padding: 4px 9px !important; }
+  .book-card-compact .rating-badge svg { width: 11px !important; height: 11px !important; }
+
+  /* Рекомендации — крупные карточки */
+  .recommendation-card { padding: 19px !important; gap: 17px !important; border-radius: 12px !important; }
+  .recommendation-card > div:first-child { width: 64px !important; height: 85px !important; }
+  .recommendation-card > div:last-child > div:first-child { font-size: 15px !important; line-height: 1.35; }
+  .recommendation-card > div:last-child > div:last-child { font-size: 12px !important; margin-top: 4px; }
+
+  /* Поиск — крупный */
+  .search-bar input { font-size: 14px !important; padding: 15px 16px 15px 41px !important; border-radius: 11px !important; }
+  .search-bar .search-icon { left: 15px !important; }
+  .search-bar .search-icon svg { width: 17px !important; height: 17px !important; }
+  .btn-catalog-toggle { font-size: 13px !important; padding: 15px 20px !important; border-radius: 11px !important; }
+  .btn-catalog-toggle svg { width: 17px !important; height: 17px !important; }
+
+  /* Вкладки */
+  .home-books-tab,
+  #homeBooksTabs > *,
+  .mylist-tab { font-size: 12px !important; padding: 9px 20px !important; }
+
+  /* Сайдбар */
+  .sidebar-nav { width: 187px !important; padding: 19px 11px !important; }
+  .sidebar-item { font-size: 13px !important; padding: 11px 13px !important; gap: 11px !important; }
+  .sidebar-item svg { width: 19px !important; height: 19px !important; }
+  .sidebar-logo-icon { width: 35px !important; height: 35px !important; }
+  .sidebar-logo-icon svg { width: 20px !important; height: 23px !important; }
+  .sidebar-logo-text { font-size: 17px !important; }
+
+  /* Сдвигаем контент под более широкий сайдбар */
+  #app { margin-left: 187px !important; padding-left: 32px !important; padding-right: 32px !important; }
+  body:has(#authScreen.active) #app,
+  body:has(#onboardingScreen.active) #app { margin-left: 0 !important; }
+
+  /* Хедер */
+  .header-icon-btn { width: 35px !important; height: 35px !important; border-radius: 9px !important; }
+  .header-icon-btn svg { width: 17px !important; height: 17px !important; }
+  .header-avatar { width: 35px !important; height: 35px !important; font-size: 13px !important; }
+  #badgeHome { font-size: 9px !important; padding: 4px 8px !important; }
+}
+
+@media (min-width: 1600px) {
+  body { font-size: 13px; }
+  .section-title { font-size: 28px !important; }
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll,
+  #sectionContinue .books-scroll,
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(213px, 1fr)) !important;
+    gap: 24px !important;
+  }
+  .book-card-compact .book-title-text { font-size: 14px !important; }
+  .book-card-compact .book-author-text { font-size: 11px !important; }
+  .recommendation-card > div:last-child > div:first-child { font-size: 17px !important; }
+  .recommendation-card > div:last-child > div:last-child { font-size: 13px !important; }
+  .search-bar input { font-size: 15px !important; }
+  .sidebar-item { font-size: 14px !important; }
+}
+
+@media (min-width: 2000px) {
+  body { font-size: 13px; }
+  .section-title { font-size: 32px !important; }
+  #sectionAll .books-scroll,
+  #sectionPopular .books-scroll,
+  #sectionContinue .books-scroll,
+  .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+    gap: 27px !important;
+  }
+  .book-card-compact .book-title-text { font-size: 15px !important; }
+}
+
+/* =====================================================================
+   AR-СХЕМЫ — ИНТЕРАКТИВНОЕ, ЖИВОЕ ОФОРМЛЕНИЕ
+   Применяется ко всем схемам (Kill Chain, OWASP, OSI, MITRE).
+   ===================================================================== */
+
+/* Фон контейнера схемы — глубокий, с виньеткой и сеткой */
+#arSchemeRoot {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.10), transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(124,58,237,0.12), transparent 55%),
+    rgba(5,8,15,0.55) !important;
+}
+
+/* Анимированная сетка-подложка поверх камеры */
+#arSchemeRoot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+  z-index: 0;
+  animation: arGridDrift 24s linear infinite;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+}
+@keyframes arGridDrift {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 44px 44px, 44px 44px; }
+}
+
+/* ── Ноды Kill Chain (круглые) — стеклянные, со свечением ── */
+.ar-killchain-node {
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12), transparent 60%),
+    rgba(10,16,28,0.78) !important;
+  box-shadow:
+    0 8px 28px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 0 0 1px rgba(0,212,255,0.1),
+    0 0 24px rgba(0,212,255,0.18) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.ar-killchain-node::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, rgba(0,212,255,0.6), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  animation: arRingSpin 3s linear infinite;
+  z-index: -1;
+}
+
+@keyframes arRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+.ar-killchain-node:hover {
+  transform: scale(1.12) !important;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 0 40px rgba(0,212,255,0.5) !important;
+  border-color: var(--accent) !important;
+  z-index: 10 !important;
+}
+
+.ar-killchain-node:hover::after { opacity: 1; }
+
+.ar-killchain-node:active { transform: scale(1.04) !important; }
+
+/* Цифра в ноде — градиентная */
+.ar-killchain-node > div:first-child {
+  background: linear-gradient(135deg, #5ce0ff, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(0,212,255,0.4);
+}
+
+/* ── Соединительные линии — анимированный «поток энергии» ── */
+.ar-flow-line {
+  position: relative;
+  overflow: visible;
+  background: linear-gradient(90deg, rgba(0,212,255,0.25), rgba(124,58,237,0.25)) !important;
+}
+
+.ar-flow-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+  background-size: 200% 100%;
+  animation: arFlowPulse 1.8s linear infinite;
+}
+@keyframes arFlowPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Вертикальный вариант потока */
+.ar-flow-line.vertical::after {
+  background: linear-gradient(180deg, transparent, #00d4ff, transparent);
+  background-size: 100% 200%;
+  animation: arFlowPulseV 1.8s linear infinite;
+}
+@keyframes arFlowPulseV {
+  0% { background-position: 0 200%; }
+  100% { background-position: 0 -200%; }
+}
+
+/* ── Карточки-плашки (OWASP, OSI, MITRE) — стекло + ховер-лифт ── */
+#arSchemeRoot button[id^="arNode"] {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  transition: transform 0.25s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.25s, border-color 0.25s !important;
+}
+
+/* Блик, пробегающий по карточке при наведении */
+#arSchemeRoot button[id^="arNode"]::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
+  transition: left 0.5s;
+  pointer-events: none;
+}
+
+#arSchemeRoot button[id^="arNode"]:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.55), 0 0 30px rgba(0,212,255,0.2) !important;
+  z-index: 5 !important;
+}
+
+#arSchemeRoot button[id^="arNode"]:hover::before { left: 130%; }
+
+/* Контролы зума — стильнее */
+#arSchemeRoot button[onclick^="zoomARScheme"],
+#arSchemeRoot button[onclick^="resetARSchemeZoom"] {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 20px rgba(0,212,255,0.15) !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
+}
+#arSchemeRoot button[onclick^="zoomARScheme"]:hover,
+#arSchemeRoot button[onclick^="resetARSchemeZoom"]:hover {
+  transform: scale(1.12) !important;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 0 30px rgba(0,212,255,0.35) !important;
+}
+
+/* На ПК все AR-элементы крупнее */
+@media (min-width: 1024px) {
+  /* Круглые ноды Kill Chain — большие */
+  .ar-killchain-node {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  .ar-killchain-node > div:first-child { font-size: 29px !important; }
+  .ar-killchain-node > div:nth-child(2) { font-size: 10px !important; margin-top: 7px !important; padding: 0 8px !important; }
+  .ar-flow-line { width: 40px !important; }
+
+  /* Плашки OWASP/OSI/MITRE — крупный текст */
+  #arSchemeRoot button[id^="arNode"] {
+    padding: 12px 15px !important;
+    min-height: 53px !important;
+    border-radius: 9px !important;
+  }
+  #arSchemeRoot button[id^="arNode"] > div:first-child {
+    font-size: 11px !important;
+  }
+  /* Иконка-номер слева в плашке OWASP */
+  #arSchemeRoot button[id^="arNode"] > div[style*="border-radius:5px"] {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 12px !important;
+  }
+  /* Названия в плашках */
+  #arSchemeRoot button[id^="arNode"] div[style*="font-size:8px"],
+  #arSchemeRoot button[id^="arNode"] div[style*="font-size:7px"] {
+    font-size: 11px !important;
+  }
+  #arSchemeRoot button[id^="arNode"] div[style*="font-size:7px"],
+  #arSchemeRoot button[id^="arNode"] div[style*="font-size:6px"] {
+    font-size: 9px !important;
+  }
+
+  /* Кнопки зума — большие */
+  #arSchemeRoot button[onclick^="zoomARScheme"],
+  #arSchemeRoot button[onclick^="resetARSchemeZoom"] {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 20px !important;
+  }
+  #arSchemeRoot button[onclick^="resetARSchemeZoom"] {
+    font-size: 13px !important;
+  }
+
+  /* Панель деталей этапа — крупнее */
+  #arStageDetails {
+    max-width: 480px;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) translateY(calc(100% - 48px)) !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+  #arStageDetailTitle { font-size: 10px !important; }
+  #arStageDetailContent { padding: 16px 21px 24px !important; font-size: 11px !important; line-height: 1.7; }
+  #arStageDetailContent h1,
+  #arStageDetailContent h2,
+  #arStageDetailContent h3 { font-size: 16px !important; }
+
+  /* Подсказка снизу */
+  #arStageHint { font-size: 11px !important; padding: 15px !important; }
+
+  /* Заголовок AR-окна сверху */
+  #arSchemeTitle { font-size: 13px !important; }
+
+  /* Кнопка закрытия AR */
+  #arModal button[onclick="closeAR()"] {
+    width: 35px !important;
+    height: 35px !important;
+    font-size: 15px !important;
+  }
+
+  /* Легенда фаз (MITRE) крупнее */
+  #killChainScrollContainer > div[style*="flex-wrap:wrap"] > div {
+    font-size: 9px !important;
+  }
+  #killChainScrollContainer > div[style*="flex-wrap:wrap"] > div > div {
+    width: 9px !important;
+    height: 9px !important;
+  }
+
+  /* Контейнеры схем шире */
+  #killChainNodes { max-width: 467px !important; }
+}
+
+@media (min-width: 1600px) {
+  .ar-killchain-node {
+    width: 120px !important;
+    height: 120px !important;
+  }
+  .ar-killchain-node > div:first-child { font-size: 35px !important; }
+  .ar-killchain-node > div:nth-child(2) { font-size: 11px !important; }
+  .ar-flow-line { width: 48px !important; }
+  #arStageDetailContent { font-size: 13px !important; }
+  #arStageHint { font-size: 12px !important; }
+}
+
+/* =====================================================================
+   ЗАКЛАДКИ (MyList) + ОБЩИЕ УПУЩЕННЫЕ МЕСТА — крупнее на ПК
+   ===================================================================== */
+
+@media (min-width: 1024px) {
+  /* Вкладки закладок — крупные пилюли */
+  .mylist-tabs {
+    gap: 8px !important;
+    margin-bottom: 19px !important;
+  }
+  .mylist-tab {
+    font-size: 12px !important;
+    padding: 9px 19px !important;
+    border-radius: 17px !important;
+  }
+  .mylist-tab .count {
+    font-size: 9px !important;
+    padding: 2px 7px !important;
+  }
+
+  /* Пустое состояние */
+  .mylist-empty {
+    padding: 67px 13px !important;
+    font-size: 13px !important;
+  }
+  .mylist-empty .icon svg {
+    width: 53px !important;
+    height: 53px !important;
+  }
+
+  /* ── Обучение / Тренировки ── */
+  .quiz-container {
+    padding: 29px 35px !important;
+    border-radius: 13px !important;
+  }
+  .quiz-question {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    margin-bottom: 19px !important;
+  }
+  .quiz-option,
+  .quiz-options button,
+  .quiz-options label {
+    font-size: 13px !important;
+    padding: 13px 16px !important;
+  }
+  .quiz-nav button,
+  .btn-quiz {
+    font-size: 12px !important;
+    padding: 11px 21px !important;
+  }
+
+  /* ── Профиль ── */
+  .profile-name { font-size: 19px !important; }
+  .profile-stat .val { font-size: 19px !important; }
+  .profile-stat .lbl { font-size: 9px !important; }
+  .settings-section h3 { font-size: 13px !important; }
+  .settings-row { padding: 12px 15px !important; font-size: 12px !important; }
+  .btn-logout { font-size: 12px !important; padding: 12px !important; }
+
+  /* ── Каталог / фильтры ── */
+  .catalog-panel-header h3 { font-size: 15px !important; }
+  .catalog-filter-group label { font-size: 10px !important; }
+  .btn-catalog-action { font-size: 11px !important; padding: 9px 16px !important; }
+
+  /* ── Поля ввода в формах вообще ── */
+  input, select, textarea { font-size: 11px; }
+
+  /* ── Модалки добавления книги ── */
+  #addModal h3 { font-size: 17px !important; }
+  #addModal label { font-size: 11px !important; }
+  #addModal .btn { font-size: 12px !important; padding: 11px !important; }
+
+  /* FAB крупнее */
+  .fab-super-btn {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 24px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  .mylist-tab { font-size: 13px !important; }
+  .quiz-question { font-size: 18px !important; }
+  .quiz-option, .quiz-options button, .quiz-options label { font-size: 14px !important; }
+  .profile-name { font-size: 21px !important; }
+  .settings-row { font-size: 13px !important; }
+}
+
+/* ===== Фикс раскладки AI-ассистента на десктопе (v105) ===== */
+@media (min-width: 1024px) {
+  /* Полноэкранный экран ассистента: занимает всю высоту, ввод закреплён снизу */
+  #assistantScreen.active {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  #assistantScreen .top-header { flex-shrink: 0 !important; }
+  #assistantScreen .assistant-body {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  #assistantScreen #assistantMessages {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+  #assistantScreen .assistant-quick-chips { flex-shrink: 0 !important; }
+  #assistantScreen #assistantInputBar { flex-shrink: 0 !important; }
+}

@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: neon_postgres
+    environment:
+      POSTGRES_USER: neon
+      POSTGRES_PASSWORD: neon_password
+      POSTGRES_DB: neon_stack
+    ports:
+      - "5432:5432"
+    volumes:
+      - neon_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neon -d neon_stack"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MinIO — S3-совместимое локальное хранилище. Нужно для Этапа 2 (PDF).
+  # На Этапе 1 контейнер просто крутится — никто к нему не обращается.
+  minio:
+    image: minio/minio:latest
+    container_name: neon_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web-консоль
+    volumes:
+      - neon_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  neon_pg_data:
+  neon_minio_data:
