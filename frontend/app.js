@@ -1,5 +1,11 @@
 // ========== НАСТРОЙКА PDF.JS ==========
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// Защита: если CDN с pdf.js не загрузился (ERR_TIMED_OUT/блокировка),
+// не роняем весь app.js — приложение работает, недоступна только PDF-читалка.
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+} else {
+  console.warn('[Aegis] pdf.js не загрузился (CDN недоступен). PDF-читалка будет недоступна, остальное приложение работает.');
+}
 
 // ========== EPUB RENDITION ==========
 let epubRendition = null;
@@ -82,6 +88,8 @@ const ICONS = {
   iconPalette: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
   iconSave: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
   iconLogout: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  sparkles: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  sendArrow: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>',
   sun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
   moon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
 };
@@ -116,6 +124,27 @@ function isOnWifi() {
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
   if (!conn || !conn.type) return true;
   return conn.type === 'wifi' || conn.type === 'ethernet';
+}
+
+// ===== D: Автопредзагрузка книг офлайн по Wi-Fi =====
+const AUTO_PRELOAD_KEY = 'aegis_auto_preload';
+function isAutoPreloadEnabled() { return localStorage.getItem(AUTO_PRELOAD_KEY) === '1'; }
+function setAutoPreload(enabled) {
+  localStorage.setItem(AUTO_PRELOAD_KEY, enabled ? '1' : '0');
+  if (enabled) maybeAutoPreload();
+}
+async function maybeAutoPreload() {
+  if (!isAutoPreloadEnabled()) return;
+  if (!isOnWifi()) return;
+  // Берём начатые книги, которых ещё нет офлайн (макс 3 за раз, чтобы не грузить много)
+  const candidates = (state.books || [])
+    .filter(b => b.has_file && state.readingProgress[b.id]?.started && !offlineBookIds.has(b.id))
+    .slice(0, 3);
+  for (const b of candidates) {
+    try {
+      await saveBookOffline(b.id, true);  // тихий режим
+    } catch (_) {}
+  }
 }
 
 function formatBytes(bytes) {
@@ -279,11 +308,13 @@ function closeARSchemeMenu() {
 async function openARWithScheme(schemeCode, initialStageId = null) {
   closeARSchemeMenu();
   arCurrentScheme = schemeCode;
+  arActiveSchemeCode = AR_SCHEMES[schemeCode] ? schemeCode : 'killchain';
 
   const titles = {
     killchain: 'Cyber Kill Chain',
     owasp: 'OWASP Top 10',
     osi: 'Модель OSI',
+    mitre: 'MITRE ATT&CK',
   };
   document.getElementById('arSchemeTitle').textContent = titles[schemeCode] || 'Схема';
 
@@ -575,37 +606,558 @@ const AR_KILL_CHAIN = {
   ],
 };
 
+// ===================== ДОПОЛНИТЕЛЬНЫЕ AR-СХЕМЫ =====================
+// Структура этапа идентична AR_KILL_CHAIN.stages, поэтому общий рендер
+// работает для всех схем без изменений.
+
+const AR_OWASP = {
+  title: 'OWASP Top 10',
+  subtitle: 'Топ-10 рисков веб-приложений (2021)',
+  stages: [
+    { id: 1, code: 'a01', name: 'Broken Access Control', nameRu: 'Контроль доступа',
+      description: 'Нарушение разграничения доступа: пользователь получает права или данные, которые ему не положены (IDOR, обход проверок, повышение привилегий).',
+      attacker: ['Подмена идентификаторов (IDOR)', 'Обход проверок на клиенте', 'Force browsing к скрытым URL', 'Повышение привилегий через параметры'],
+      defender: ['Запрет по умолчанию (deny by default)', 'Проверки доступа на сервере', 'RBAC/ABAC', 'Логирование отказов доступа'],
+      metaphor: 'Дверь без замка: любой толкнул — и вошёл в чужую комнату',
+      defenseMethod: { code: 'Deny', nameRu: 'Запрет по умолчанию', color: '#ef4444' },
+      defenseTools: ['RBAC/ABAC', 'Серверные проверки', 'OWASP ASVS', 'Аудит доступа'],
+      relatedCategory: 'Веб-безопасность' },
+    { id: 2, code: 'a02', name: 'Cryptographic Failures', nameRu: 'Сбои криптографии',
+      description: 'Слабая или отсутствующая криптография: данные передаются/хранятся открыто, используются устаревшие алгоритмы или хардкод-ключи.',
+      attacker: ['Перехват трафика без TLS', 'Брутфорс слабых хешей', 'Кража ключей из кода', 'Downgrade-атаки на TLS'],
+      defender: ['TLS 1.2+ везде', 'Сильные алгоритмы (AES-GCM, Argon2)', 'Хранение секретов в KMS/Vault', 'Шифрование данных «на покое»'],
+      metaphor: 'Сейф с прозрачными стенками — содержимое видно всем',
+      defenseMethod: { code: 'Encrypt', nameRu: 'Шифрование', color: '#3b82f6' },
+      defenseTools: ['TLS/HSTS', 'Argon2/bcrypt', 'KMS/Vault', 'mozilla-observatory'],
+      relatedCategory: 'Криптография' },
+    { id: 3, code: 'a03', name: 'Injection', nameRu: 'Инъекции',
+      description: 'Недоверенные данные попадают в интерпретатор как часть команды: SQL, NoSQL, OS-command, LDAP. Включает XSS.',
+      attacker: ['SQL/NoSQL-инъекции', 'OS command injection', 'XSS через незаэкранированный вывод', 'LDAP/XPath-инъекции'],
+      defender: ['Параметризованные запросы', 'Экранирование вывода', 'Валидация по белому списку', 'ORM и подготовленные выражения'],
+      metaphor: 'Записка с приказом, подсунутая в стопку доверенных команд',
+      defenseMethod: { code: 'Validate', nameRu: 'Валидация ввода', color: '#10b981' },
+      defenseTools: ['Prepared statements', 'CSP', 'WAF', 'Линтеры безопасности'],
+      relatedCategory: 'Веб-безопасность' },
+    { id: 4, code: 'a04', name: 'Insecure Design', nameRu: 'Небезопасный дизайн',
+      description: 'Изъяны заложены в архитектуре: отсутствие моделирования угроз, небезопасные паттерны, нет лимитов и контролей бизнес-логики.',
+      attacker: ['Эксплуатация логики бизнес-процессов', 'Обход недостающих лимитов', 'Злоупотребление сценариями восстановления'],
+      defender: ['Threat modeling на этапе дизайна', 'Secure design patterns', 'Лимиты и rate-limit', 'Разбор злоупотреблений (abuse cases)'],
+      metaphor: 'Кривой фундамент: стены ровные, но дом всё равно падает',
+      defenseMethod: { code: 'Design', nameRu: 'Безопасный дизайн', color: '#a855f7' },
+      defenseTools: ['STRIDE', 'OWASP ASVS', 'Abuse cases', 'Security requirements'],
+      relatedCategory: 'Разработка безопасного ПО (AppSec)' },
+    { id: 5, code: 'a05', name: 'Security Misconfiguration', nameRu: 'Ошибки конфигурации',
+      description: 'Дефолтные настройки, лишние сервисы, подробные ошибки, открытые облачные хранилища, отсутствие заголовков безопасности.',
+      attacker: ['Дефолтные учётки', 'Открытые S3-бакеты', 'Подробные стек-трейсы', 'Лишние включённые сервисы'],
+      defender: ['Hardening и baseline', 'Минимизация поверхности', 'Заголовки безопасности', 'Автопроверка конфигураций'],
+      metaphor: 'Новоселье с дверью на дефолтном пароле «admin/admin»',
+      defenseMethod: { code: 'Harden', nameRu: 'Усиление', color: '#f59e0b' },
+      defenseTools: ['CIS Benchmarks', 'IaC-сканеры', 'Security headers', 'Config management'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 6, code: 'a06', name: 'Vulnerable Components', nameRu: 'Уязвимые компоненты',
+      description: 'Использование библиотек/фреймворков с известными уязвимостями, без отслеживания версий и патчей.',
+      attacker: ['Эксплойты известных CVE', 'Атаки на цепочку поставок', 'Устаревшие зависимости'],
+      defender: ['SCA/SBOM', 'Регулярные обновления', 'Мониторинг CVE', 'Минимизация зависимостей'],
+      metaphor: 'Цепь из ржавых звеньев — рвётся на самом слабом',
+      defenseMethod: { code: 'Patch', nameRu: 'Обновления', color: '#3b82f6' },
+      defenseTools: ['Dependabot', 'OWASP Dependency-Check', 'SBOM', 'Snyk'],
+      relatedCategory: 'Разработка безопасного ПО (AppSec)' },
+    { id: 7, code: 'a07', name: 'Identification & Auth Failures', nameRu: 'Сбои аутентификации',
+      description: 'Слабая аутентификация: предсказуемые сессии, отсутствие MFA, перебор паролей, небезопасное восстановление доступа.',
+      attacker: ['Credential stuffing', 'Брутфорс паролей', 'Перехват/фиксация сессии', 'Обход восстановления пароля'],
+      defender: ['MFA', 'Защита от перебора', 'Безопасные сессии', 'Политики паролей и блокировок'],
+      metaphor: 'Охранник, верящий любому, кто назвал чужое имя',
+      defenseMethod: { code: 'Authn', nameRu: 'Аутентификация', color: '#10b981' },
+      defenseTools: ['MFA/FIDO2', 'Rate limiting', 'Secure cookies', 'Password managers'],
+      relatedCategory: 'Криптография' },
+    { id: 8, code: 'a08', name: 'Software & Data Integrity', nameRu: 'Целостность данных',
+      description: 'Доверие коду/данным без проверки целостности: небезопасные обновления, десериализация, скомпрометированный CI/CD.',
+      attacker: ['Подмена обновлений', 'Insecure deserialization', 'Атака на CI/CD-пайплайн'],
+      defender: ['Цифровые подписи артефактов', 'Проверка целостности', 'Защита пайплайна', 'Безопасная десериализация'],
+      metaphor: 'Посылка без пломбы: неизвестно, кто её вскрывал',
+      defenseMethod: { code: 'Verify', nameRu: 'Проверка целостности', color: '#a855f7' },
+      defenseTools: ['Sigstore/подписи', 'SLSA', 'Subresource Integrity', 'Защита CI/CD'],
+      relatedCategory: 'Разработка безопасного ПО (AppSec)' },
+    { id: 9, code: 'a09', name: 'Logging & Monitoring Failures', nameRu: 'Сбои логирования',
+      description: 'Недостаточное логирование и мониторинг: атаки остаются незамеченными, нет алертов и реагирования.',
+      attacker: ['Действия без следов в логах', 'Удаление/подмена логов', 'Медленные атаки под радаром'],
+      defender: ['Централизованные логи (SIEM)', 'Алерты на аномалии', 'Защита целостности логов', 'План реагирования'],
+      metaphor: 'Камеры есть, но никто не смотрит на мониторы',
+      defenseMethod: { code: 'Detect', nameRu: 'Обнаружение', color: '#3b82f6' },
+      defenseTools: ['SIEM', 'Аудит-логи', 'Алертинг', 'IR-плейбуки'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 10, code: 'a10', name: 'SSRF', nameRu: 'SSRF',
+      description: 'Server-Side Request Forgery: сервер по запросу злоумышленника обращается к внутренним ресурсам или облачным метаданным.',
+      attacker: ['Доступ к internal-сервисам', 'Чтение облачных метаданных (169.254.169.254)', 'Сканирование внутренней сети'],
+      defender: ['Белый список адресов', 'Запрет приватных диапазонов', 'Сегментация', 'Защита метаданных (IMDSv2)'],
+      metaphor: 'Курьер, которого обманом отправили во внутренний сейф компании',
+      defenseMethod: { code: 'Isolate', nameRu: 'Изоляция', color: '#f59e0b' },
+      defenseTools: ['Allowlist URL', 'Egress firewall', 'IMDSv2', 'Сегментация сети'],
+      relatedCategory: 'Веб-безопасность' },
+  ],
+};
+
+const AR_OSI = {
+  title: 'Модель OSI',
+  subtitle: '7 уровней сетевого взаимодействия',
+  stages: [
+    { id: 1, code: 'l1', name: 'Physical', nameRu: 'Физический',
+      description: 'Передача битов по физической среде: кабели, радио, оптика, разъёмы, напряжения.',
+      attacker: ['Прослушка кабеля (tapping)', 'Глушение радиосигнала', 'Физический доступ к портам'],
+      defender: ['Контроль доступа в помещения', 'Экранирование и опломбирование', 'Отключение неиспользуемых портов'],
+      metaphor: 'Дорога и провода, по которым едут сигналы',
+      defenseMethod: { code: 'Phys', nameRu: 'Физическая защита', color: '#64748b' },
+      defenseTools: ['Port security', 'СКУД', 'Опломбирование', 'TEMPEST-экранирование'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 2, code: 'l2', name: 'Data Link', nameRu: 'Канальный',
+      description: 'Кадры между узлами в пределах сегмента: MAC-адреса, коммутация, обнаружение ошибок.',
+      attacker: ['ARP-spoofing', 'MAC-flooding', 'VLAN hopping'],
+      defender: ['Dynamic ARP Inspection', 'Port security', 'Разделение VLAN', '802.1X'],
+      metaphor: 'Почтальон, разносящий письма соседям по дому',
+      defenseMethod: { code: 'L2', nameRu: 'Защита канала', color: '#3b82f6' },
+      defenseTools: ['DAI', '802.1X', 'Port security', 'BPDU Guard'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 3, code: 'l3', name: 'Network', nameRu: 'Сетевой',
+      description: 'Маршрутизация пакетов между сетями: IP-адресация, выбор пути.',
+      attacker: ['IP-spoofing', 'Атаки на маршрутизацию', 'ICMP-туннели'],
+      defender: ['Фильтрация (ACL)', 'Anti-spoofing (uRPF)', 'Сегментация подсетей'],
+      metaphor: 'Навигатор, прокладывающий маршрут между городами',
+      defenseMethod: { code: 'L3', nameRu: 'Маршрутизация', color: '#10b981' },
+      defenseTools: ['Firewall/ACL', 'uRPF', 'IPsec', 'Сегментация'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 4, code: 'l4', name: 'Transport', nameRu: 'Транспортный',
+      description: 'Надёжная доставка между процессами: TCP/UDP, порты, контроль потока.',
+      attacker: ['SYN-flood', 'Сканирование портов', 'Перехват сессии (TCP hijacking)'],
+      defender: ['SYN cookies', 'Rate limiting', 'TLS поверх TCP', 'Мониторинг соединений'],
+      metaphor: 'Служба доставки с трек-номером и подтверждением получения',
+      defenseMethod: { code: 'L4', nameRu: 'Транспорт', color: '#a855f7' },
+      defenseTools: ['SYN cookies', 'Anti-DDoS', 'TLS', 'Stateful firewall'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 5, code: 'l5', name: 'Session', nameRu: 'Сеансовый',
+      description: 'Установка, поддержание и завершение сеансов между приложениями.',
+      attacker: ['Session hijacking', 'Session fixation', 'Replay-атаки'],
+      defender: ['Безопасные токены сессии', 'Тайм-ауты', 'Привязка к контексту', 'Anti-replay'],
+      metaphor: 'Телефонный разговор: дозвон, беседа, корректное завершение',
+      defenseMethod: { code: 'L5', nameRu: 'Сеансы', color: '#3b82f6' },
+      defenseTools: ['Secure cookies', 'Session timeout', 'Nonce/anti-replay'],
+      relatedCategory: 'Веб-безопасность' },
+    { id: 6, code: 'l6', name: 'Presentation', nameRu: 'Представления',
+      description: 'Кодирование, сжатие и шифрование данных: форматы, сериализация, TLS.',
+      attacker: ['Атаки на TLS (downgrade)', 'Небезопасная десериализация', 'Подмена кодировок'],
+      defender: ['Современные TLS-наборы', 'Безопасные форматы', 'Валидация сериализации'],
+      metaphor: 'Переводчик, приводящий речь к понятному обеим сторонам виду',
+      defenseMethod: { code: 'L6', nameRu: 'Представление', color: '#10b981' },
+      defenseTools: ['TLS 1.3', 'Безопасная сериализация', 'Canonicalization'],
+      relatedCategory: 'Криптография' },
+    { id: 7, code: 'l7', name: 'Application', nameRu: 'Прикладной',
+      description: 'Взаимодействие с приложением: HTTP, DNS, SMTP. Самый частый уровень атак.',
+      attacker: ['Веб-атаки (OWASP Top 10)', 'DNS-спуфинг', 'Атаки на API'],
+      defender: ['WAF', 'Валидация ввода', 'Аутентификация и авторизация', 'API-gateway'],
+      metaphor: 'Витрина магазина, с которой общается покупатель',
+      defenseMethod: { code: 'L7', nameRu: 'Приложение', color: '#f59e0b' },
+      defenseTools: ['WAF', 'API Gateway', 'CSP', 'DNSSEC'],
+      relatedCategory: 'Веб-безопасность' },
+  ],
+};
+
+const AR_MITRE = {
+  title: 'MITRE ATT&CK',
+  subtitle: 'Тактики жизненного цикла атаки (Enterprise)',
+  stages: [
+    { id: 1, code: 'ta0043', name: 'Reconnaissance', nameRu: 'Разведка',
+      description: 'Сбор информации для планирования атаки: цели, инфраструктура, сотрудники.',
+      attacker: ['Active/passive scanning', 'Сбор данных о сотрудниках', 'Поиск технической информации'],
+      defender: ['Минимизация публичной информации', 'Мониторинг сканирований', 'Threat Intelligence'],
+      metaphor: 'Разведчик, изучающий крепость перед штурмом',
+      defenseMethod: { code: 'Detect', nameRu: 'Обнаружение', color: '#3b82f6' },
+      defenseTools: ['Threat Intel', 'Анализ логов', 'OPSEC'],
+      relatedCategory: 'Технический оффенсив' },
+    { id: 2, code: 'ta0042', name: 'Resource Development', nameRu: 'Подготовка ресурсов',
+      description: 'Создание инфраструктуры атаки: домены, аккаунты, вредоносное ПО, C2.',
+      attacker: ['Регистрация доменов', 'Покупка/создание ВПО', 'Подготовка C2-серверов'],
+      defender: ['Мониторинг похожих доменов', 'Блокировка известной инфраструктуры', 'Threat hunting'],
+      metaphor: 'Кузница, где куют оружие перед боем',
+      defenseMethod: { code: 'Track', nameRu: 'Отслеживание', color: '#a855f7' },
+      defenseTools: ['Domain monitoring', 'TI-фиды', 'Sinkholing'],
+      relatedCategory: 'Технический оффенсив' },
+    { id: 3, code: 'ta0001', name: 'Initial Access', nameRu: 'Первичный доступ',
+      description: 'Проникновение в сеть: фишинг, эксплуатация публичных сервисов, валидные учётки.',
+      attacker: ['Фишинг', 'Эксплуатация внешних сервисов', 'Кража учётных данных'],
+      defender: ['Email-фильтрация', 'Патч-менеджмент', 'MFA', 'Обучение сотрудников'],
+      metaphor: 'Первая нога в приоткрытой двери',
+      defenseMethod: { code: 'Block', nameRu: 'Блокировка', color: '#ef4444' },
+      defenseTools: ['Email security', 'MFA', 'Vuln management', 'Awareness'],
+      relatedCategory: 'Социальная инженерия и человеческий фактор' },
+    { id: 4, code: 'ta0002', name: 'Execution', nameRu: 'Выполнение',
+      description: 'Запуск вредоносного кода на целевой системе.',
+      attacker: ['Запуск скриптов (PowerShell)', 'Макросы в документах', 'Эксплойты'],
+      defender: ['EDR/контроль выполнения', 'Application allowlisting', 'Отключение макросов'],
+      metaphor: 'Поворот ключа зажигания вредоносной программы',
+      defenseMethod: { code: 'EDR', nameRu: 'Контроль выполнения', color: '#3b82f6' },
+      defenseTools: ['EDR', 'AppLocker/WDAC', 'Script logging'],
+      relatedCategory: 'Реверс-инжиниринг и анализ вредоносного ПО' },
+    { id: 5, code: 'ta0003', name: 'Persistence', nameRu: 'Закрепление',
+      description: 'Сохранение доступа после перезагрузок и смены учётных данных.',
+      attacker: ['Автозагрузка/службы', 'Запланированные задачи', 'Бэкдоры'],
+      defender: ['Контроль автозапуска', 'Мониторинг изменений', 'Baseline-сравнение'],
+      metaphor: 'Запасной ключ, спрятанный под ковриком',
+      defenseMethod: { code: 'Monitor', nameRu: 'Мониторинг', color: '#10b981' },
+      defenseTools: ['Autoruns', 'FIM', 'EDR', 'Sysmon'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 6, code: 'ta0004', name: 'Privilege Escalation', nameRu: 'Повышение привилегий',
+      description: 'Получение более высоких прав в системе.',
+      attacker: ['Эксплойты ядра', 'Ошибки конфигурации прав', 'Кража токенов'],
+      defender: ['Принцип наименьших привилегий', 'Патчи', 'PAM', 'Мониторинг привилегий'],
+      metaphor: 'Лестница из рядового в генералы',
+      defenseMethod: { code: 'PoLP', nameRu: 'Мин. привилегии', color: '#a855f7' },
+      defenseTools: ['PAM', 'Patch mgmt', 'Privilege monitoring'],
+      relatedCategory: 'Практический менеджмент и GRC (Управление, риск, соответствие)' },
+    { id: 7, code: 'ta0005', name: 'Defense Evasion', nameRu: 'Обход защиты',
+      description: 'Уклонение от обнаружения: обфускация, отключение защиты, очистка следов.',
+      attacker: ['Обфускация ВПО', 'Отключение антивируса', 'Очистка логов'],
+      defender: ['Защита целостности логов', 'Tamper protection', 'Поведенческий анализ'],
+      metaphor: 'Камуфляж и стёртые отпечатки пальцев',
+      defenseMethod: { code: 'Detect', nameRu: 'Обнаружение', color: '#3b82f6' },
+      defenseTools: ['EDR', 'Tamper protection', 'Behavior analytics'],
+      relatedCategory: 'Реверс-инжиниринг и анализ вредоносного ПО' },
+    { id: 8, code: 'ta0006', name: 'Credential Access', nameRu: 'Доступ к учёткам',
+      description: 'Кража логинов и паролей: дампы, кейлоггеры, перехват.',
+      attacker: ['Дамп LSASS', 'Кейлоггеры', 'Kerberoasting'],
+      defender: ['Credential Guard', 'MFA', 'Мониторинг доступа к секретам'],
+      metaphor: 'Связка чужих ключей в кармане',
+      defenseMethod: { code: 'Protect', nameRu: 'Защита секретов', color: '#10b981' },
+      defenseTools: ['Credential Guard', 'LAPS', 'PAM', 'MFA'],
+      relatedCategory: 'Криптография' },
+    { id: 9, code: 'ta0007', name: 'Discovery', nameRu: 'Исследование',
+      description: 'Изучение внутренней среды: системы, учётки, сеть.',
+      attacker: ['Перечисление систем и пользователей', 'Сетевое сканирование изнутри'],
+      defender: ['Сегментация', 'Обнаружение аномального перечисления', 'Honeypots'],
+      metaphor: 'Осмотр комнат изнутри захваченного здания',
+      defenseMethod: { code: 'Detect', nameRu: 'Обнаружение', color: '#3b82f6' },
+      defenseTools: ['Honeypots', 'Network detection', 'Segmentation'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 10, code: 'ta0008', name: 'Lateral Movement', nameRu: 'Перемещение',
+      description: 'Распространение по сети к новым системам.',
+      attacker: ['Pass-the-Hash', 'RDP/SMB', 'Использование валидных учёток'],
+      defender: ['Сегментация', 'MFA для внутренних сервисов', 'Мониторинг латерального трафика'],
+      metaphor: 'Переход из комнаты в комнату по внутренним дверям',
+      defenseMethod: { code: 'Segment', nameRu: 'Сегментация', color: '#a855f7' },
+      defenseTools: ['Microsegmentation', 'PAM', 'NDR'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 11, code: 'ta0011', name: 'Command & Control', nameRu: 'Управление (C2)',
+      description: 'Связь с захваченными системами для управления.',
+      attacker: ['C2 по HTTPS/DNS', 'Маскировка под легитимный трафик', 'Домены-фронтинг'],
+      defender: ['Анализ исходящего трафика', 'DNS-мониторинг', 'Блокировка C2'],
+      metaphor: 'Рация для управления агентами в тылу',
+      defenseMethod: { code: 'Detect', nameRu: 'Обнаружение', color: '#3b82f6' },
+      defenseTools: ['NDR', 'DNS analytics', 'Proxy/Egress filtering'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 12, code: 'ta0009', name: 'Collection', nameRu: 'Сбор данных',
+      description: 'Сбор ценной информации перед выводом.',
+      attacker: ['Сбор файлов и БД', 'Скриншоты/запись экрана', 'Архивирование данных'],
+      defender: ['DLP', 'Мониторинг доступа к данным', 'Классификация данных'],
+      metaphor: 'Складывание добычи в мешок перед побегом',
+      defenseMethod: { code: 'DLP', nameRu: 'Защита данных', color: '#10b981' },
+      defenseTools: ['DLP', 'Data classification', 'Access monitoring'],
+      relatedCategory: 'Управление безопасности данных' },
+    { id: 13, code: 'ta0010', name: 'Exfiltration', nameRu: 'Вывод данных',
+      description: 'Кража данных из сети наружу.',
+      attacker: ['Вывод по C2-каналу', 'Загрузка в облако', 'Туннелирование'],
+      defender: ['DLP на периметре', 'Лимиты исходящего трафика', 'Мониторинг аномалий'],
+      metaphor: 'Грузовик, вывозящий украденное за ворота',
+      defenseMethod: { code: 'Block', nameRu: 'Блокировка', color: '#ef4444' },
+      defenseTools: ['DLP', 'Egress filtering', 'CASB'],
+      relatedCategory: 'Управление безопасности данных' },
+    { id: 14, code: 'ta0040', name: 'Impact', nameRu: 'Воздействие',
+      description: 'Нарушение работы: шифрование, уничтожение, подмена данных.',
+      attacker: ['Шифрование (ransomware)', 'Уничтожение данных', 'DoS'],
+      defender: ['Резервные копии', 'План восстановления (DRP)', 'Сегментация и иммутабельные бэкапы'],
+      metaphor: 'Поджог здания на выходе',
+      defenseMethod: { code: 'Recover', nameRu: 'Восстановление', color: '#f59e0b' },
+      defenseTools: ['Immutable backups', 'DRP/BCP', 'EDR rollback'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+  ],
+};
+
+// Реестр всех схем. Активная схема выбирается в openARWithScheme.
+const AR_SCHEMES = {
+  killchain: AR_KILL_CHAIN,
+  owasp: AR_OWASP,
+  osi: AR_OSI,
+  mitre: AR_MITRE,
+};
+let arActiveSchemeCode = 'killchain';
+function activeScheme() { return AR_SCHEMES[arActiveSchemeCode] || AR_KILL_CHAIN; }
+
 let arSelectedStage = null;  // id текущей раскрытой стадии (или null)
 // Рендер схемы — пока заглушка, будет переписан в Итерации 2
 let arViewMode = 'attack'; // 'attack' | 'defense'
 function renderARScheme(schemeCode) {
-  console.log('renderARScheme вызван с кодом:', schemeCode);
-  
   const container = document.getElementById('arSchemeContainer');
-  if (!container) {
-    console.error('arSchemeContainer не найден!');
-    return;
-  }
-  
-  // Очищаем перед рендером
+  if (!container) return;
   container.innerHTML = '';
   arSelectedStage = null;
 
-  if (schemeCode === 'killchain') {
-    renderKillChainScheme();
-  } else {
-    container.innerHTML = `
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);padding:20px;border-radius:12px;color:#fff;text-align:center;pointer-events:none;">
-        Схема в разработке
-      </div>
-    `;
+  if (!AR_SCHEMES[schemeCode]) {
+    container.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);padding:20px;border-radius:12px;color:#fff;text-align:center;pointer-events:none;">Схема в разработке</div>`;
+    return;
   }
+  arActiveSchemeCode = schemeCode;
+
+  if (schemeCode === 'killchain') renderKillChainScheme();
+  else if (schemeCode === 'owasp')    renderOwaspScheme();
+  else if (schemeCode === 'osi')      renderOsiScheme();
+  else if (schemeCode === 'mitre')    renderMitreScheme();
+}
+// ─── OWASP: вертикальный стек с цветовой шкалой опасности ───────────────────
+// 3D-фигуры (CSS) для каждой схемы — декоративный фон, добавляет «вау»-эффект
+const AR_3D = {
+  cube: '<div class="ar-shield-scene"><div class="ar-shield"><svg viewBox="0 0 24 28" fill="none" stroke="rgba(0,212,255,0.9)" stroke-width="1.5"><path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z" fill="rgba(0,212,255,0.08)"/><path d="M9 13l2 2 4-4" stroke="rgba(0,212,255,0.9)" stroke-width="2"/></svg></div>'
+    + '<span class="ar-digit d1">1010</span><span class="ar-digit d2">0x4F</span><span class="ar-digit d3">1101</span><span class="ar-digit d4">00111</span><span class="ar-digit d5">0xA2</span></div>',
+  pyramid: '<div class="ar-3d-stage"><div class="ar-3d-obj ar-pyramid"><div class="ar-3d-face p1"></div><div class="ar-3d-face p2"></div><div class="ar-3d-face p3"></div><div class="ar-3d-face p4"></div></div></div>',
+  layers: '<div class="ar-3d-stage"><div class="ar-3d-obj ar-layers"><div class="ar-3d-face ly1"></div><div class="ar-3d-face ly2"></div><div class="ar-3d-face ly3"></div><div class="ar-3d-face ly4"></div></div></div>',
+  octa: '<div class="ar-3d-stage"><div class="ar-3d-obj ar-octa"><div class="ar-3d-face o1"></div><div class="ar-3d-face o2"></div><div class="ar-3d-face o3"></div><div class="ar-3d-face o4"></div><div class="ar-3d-face o5"></div><div class="ar-3d-face o6"></div></div></div>',
+};
+
+function renderOwaspScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  const stages = AR_OWASP.stages;
+  // Цвета по убыванию критичности: A01 самый опасный → красный, к A10 → жёлтый
+  const colors = ['#ef4444','#f97316','#f97316','#f59e0b','#f59e0b',
+                  '#eab308','#84cc16','#84cc16','#10b981','#3b82f6'];
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      ${AR_3D.pyramid}
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(239,68,68,0.5);color:#ef4444;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(239,68,68,0.5);color:#ef4444;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(239,68,68,0.5);color:#ef4444;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 100px;-webkit-overflow-scrolling:touch;">
+        <div id="killChainWrapper" style="display:flex;justify-content:safe center;min-width:min-content;margin:auto;">
+          <div id="killChainNodes" style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:380px;transition:transform 0.2s ease;transform-origin:top center;">
+            ${stages.map((s, i) => {
+              const color = colors[i] || '#3b82f6';
+              return `<button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
+                style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;
+                       background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
+                       border:1px solid ${color}44;border-left:4px solid ${color};
+                       border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;
+                       transition:all 0.2s;pointer-events:auto;">
+                <div style="width:36px;height:36px;border-radius:8px;background:${color}22;
+                            border:1px solid ${color};color:${color};display:flex;align-items:center;
+                            justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">A${String(s.id).padStart(2,'0')}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:12px;font-weight:700;color:#fff;">${eh(s.nameRu)}</div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${eh(s.name)}</div>
+                </div>
+                <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
+        <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <div style="font-size:10px;color:#ef4444;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УЯЗВИМОСТЬ</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на уязвимость, чтобы узнать подробнее</div>
+    </div>`;
+  initStageDetailsSwipe();
+  initARPan();
+
+  // Анимация: строки вылетают снизу одна за другой
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const node = document.getElementById('arNode' + s.id);
+      if (!node) return;
+      node.style.opacity = '0';
+      node.style.transform = 'translateX(-32px)';
+      setTimeout(() => {
+        node.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1), border-color 0.2s';
+        node.style.opacity = '1';
+        node.style.transform = 'translateX(0)';
+      }, i * 60);
+    });
+  }, 50);
+}
+
+// ─── OSI: горизонтальные слои-плашки (L7 сверху, L1 снизу) ──────────────────
+function renderOsiScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  const stages = [...AR_OSI.stages].reverse(); // L7 вверху
+  const layerColors = ['#f59e0b','#10b981','#3b82f6','#a855f7','#ef4444','#64748b','#0ea5e9'];
+  // Обращаем — L7=idx0 самый яркий, L1=idx6
+  const colorMap = { 7:'#f59e0b', 6:'#10b981', 5:'#3b82f6', 4:'#a855f7', 3:'#8b5cf6', 2:'#6366f1', 1:'#64748b' };
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.35);">
+      ${AR_3D.layers}
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 100px;-webkit-overflow-scrolling:touch;">
+        <div id="killChainWrapper" style="display:flex;justify-content:center;">
+          <div id="killChainNodes" style="display:flex;flex-direction:column;gap:3px;width:100%;max-width:400px;transition:transform 0.2s ease;transform-origin:top center;">
+            ${stages.map(s => {
+              const color = colorMap[s.id] || '#3b82f6';
+              const w = 60 + (s.id / 7) * 40; // L7=100%, L1=60% ширина для пирамиды
+              return `<button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
+                style="display:flex;align-items:center;gap:0;width:${w}%;align-self:center;
+                       padding:0;background:transparent;border:none;cursor:pointer;pointer-events:auto;transition:all 0.2s;">
+                <div style="flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;
+                            background:${color}20;border:1px solid ${color}55;border-radius:8px;
+                            backdrop-filter:blur(8px);">
+                  <div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;
+                              display:flex;align-items:center;justify-content:center;
+                              font-weight:800;font-size:12px;flex-shrink:0;">L${s.id}</div>
+                  <div style="flex:1;text-align:left;">
+                    <div style="font-size:12px;font-weight:700;color:#fff;">${eh(s.nameRu)}</div>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.5);">${eh(s.name)}</div>
+                  </div>
+                </div>
+              </button>`;
+            }).join('')}
+            <div style="text-align:center;margin-top:8px;font-size:10px;color:rgba(255,255,255,0.4);">▼ Физический уровень (снизу) → Прикладной (сверху) ▲</div>
+          </div>
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
+        <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <div style="font-size:10px;color:#3b82f6;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УРОВЕНЬ</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на уровень для подробностей</div>
+    </div>`;
+  initStageDetailsSwipe();
+  initARPan();
+
+  // Анимация: слои раскрываются от середины наружу
+  const mid = Math.floor(stages.length / 2);
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const node = document.getElementById('arNode' + s.id);
+      if (!node) return;
+      const delay = Math.abs(i - mid) * 70;
+      node.style.opacity = '0';
+      node.style.transform = 'scaleX(0.3)';
+      node.style.transformOrigin = 'center';
+      setTimeout(() => {
+        node.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+        node.style.opacity = '1';
+        node.style.transform = 'scaleX(1)';
+      }, delay);
+    });
+  }, 50);
+}
+
+// ─── MITRE: матрица тактик 2 колонки с цветовой кодировкой фаз ───────────────
+function renderMitreScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  const stages = AR_MITRE.stages;
+  // Цвет фазы по id: 1-2 разведка/подготовка, 3-5 вход, 6-9 действия внутри, 10-12 С2/сбор, 13-14 вывод/удар
+  const phaseColor = (id) => {
+    if (id <= 2) return '#a855f7';
+    if (id <= 5) return '#ef4444';
+    if (id <= 9) return '#f97316';
+    if (id <= 12) return '#3b82f6';
+    return '#10b981';
+  };
+
+  // Разбиваем на 2 колонки
+  const left = stages.filter((_, i) => i % 2 === 0);
+  const right = stages.filter((_, i) => i % 2 === 1);
+  const maxRows = Math.max(left.length, right.length);
+
+  const cardHtml = (s) => {
+    if (!s) return '<div></div>';
+    const color = phaseColor(s.id);
+    return `<button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
+      style="display:flex;flex-direction:column;align-items:flex-start;padding:8px 10px;
+             background:${color}15;border:1px solid ${color}44;border-top:3px solid ${color};
+             border-radius:8px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;
+             width:100%;transition:all 0.2s;pointer-events:auto;min-height:60px;">
+      <div style="font-size:9px;color:${color};font-weight:700;letter-spacing:0.5px;margin-bottom:3px;">TA${String(s.id).padStart(4,'0')}</div>
+      <div style="font-size:11px;font-weight:700;line-height:1.2;">${eh(s.nameRu)}</div>
+    </button>`;
+  };
+
+  const rows = Array.from({length: maxRows}, (_, i) =>
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+      ${cardHtml(left[i])}${cardHtml(right[i])}
+    </div>`
+  ).join('');
+
+  // Легенда фаз
+  const legend = [
+    {label:'Подготовка', color:'#a855f7'},
+    {label:'Вход', color:'#ef4444'},
+    {label:'Внутри', color:'#f97316'},
+    {label:'C2/Сбор', color:'#3b82f6'},
+    {label:'Финал', color:'#10b981'},
+  ].map(l => `<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:rgba(255,255,255,0.7);">
+    <div style="width:10px;height:10px;border-radius:2px;background:${l.color};"></div>${l.label}
+  </div>`).join('');
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      ${AR_3D.octa}
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(168,85,247,0.5);color:#a855f7;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(168,85,247,0.5);color:#a855f7;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(168,85,247,0.5);color:#a855f7;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:56px 12px 100px;-webkit-overflow-scrolling:touch;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;pointer-events:none;">${legend}</div>
+        <div id="killChainWrapper" style="width:100%;">
+          <div id="killChainNodes" style="width:100%;transition:transform 0.2s ease;transform-origin:top center;">
+            ${rows}
+          </div>
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
+        <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <div style="font-size:10px;color:#a855f7;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ТАКТИКУ</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на тактику для подробностей</div>
+    </div>`;
+  initStageDetailsSwipe();
+  initARPan();
+
+  // Анимация: карточки матрицы всплывают по колонкам
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const node = document.getElementById('arNode' + s.id);
+      if (!node) return;
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const delay = row * 50 + col * 25;
+      node.style.opacity = '0';
+      node.style.transform = 'scale(0.7) translateY(10px)';
+      setTimeout(() => {
+        node.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.4,0.64,1)';
+        node.style.opacity = '1';
+        node.style.transform = 'scale(1) translateY(0)';
+      }, delay);
+    });
+  }, 50);
 }
 function findKillChainStageForBook(book) {
   // Ищем первую категорию книги, которая привязана к этапу Kill Chain
   const cats = (book && book.categories) || [];
   for (const cat of cats) {
-    const stage = AR_KILL_CHAIN.stages.find(s => s.relatedCategory === cat);
+    const stage = activeScheme().stages.find(s => s.relatedCategory === cat);
     if (stage) return stage;
   }
   return null;
@@ -619,12 +1171,11 @@ function isKillChainStageStudied(stage) {
     .map(([id]) => parseInt(id));
   if (completedBookIds.length === 0) return false;
   return state.books.some(b =>
-    b.category === stage.relatedCategory && completedBookIds.includes(b.id)
+    (b.categories || []).includes(stage.relatedCategory) && completedBookIds.includes(b.id)
   );
 }
 
 function renderKillChainScheme() {
-  console.log('renderKillChainScheme вызван');
   // Показываем переключатель режима (он скрыт по умолчанию для других схем)
   const toggle = document.getElementById('arViewModeToggle');
   if (toggle) toggle.style.display = 'flex';
@@ -639,18 +1190,19 @@ function renderKillChainScheme() {
     return;
   }
   
-  const stages = AR_KILL_CHAIN.stages;
+  const stages = activeScheme().stages;
   
   // Определяем ориентацию
   const isMobile = window.innerWidth < 768;
   const isPortrait = window.innerHeight > window.innerWidth;
-  const isVertical = isMobile && isPortrait;
+  const isVertical = window.innerWidth < 1400;
   
   // Сбрасываем зум при открытии
   currentARSchemeZoom = 1;
   
   let html = `
     <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.3);">
+      ${AR_3D.cube}
       
       <!-- Контролы зума -->
       <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
@@ -661,10 +1213,10 @@ function renderKillChainScheme() {
       
       <!-- Контейнер для скролла с поддержкой зума -->
       <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:64px 16px 80px;-webkit-overflow-scrolling:touch;">
-        <div id="killChainWrapper" style="display:flex;justify-content:center;min-width:min-content;">
+        <div id="killChainWrapper" style="display:flex;justify-content:safe center;min-width:min-content;margin:auto;">
           <div id="killChainNodes" style="display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;">
             ${stages.map((s, i) => `
-              ${i > 0 ? `<div style="width:${isVertical ? '2px' : '24px'};height:${isVertical ? '24px' : '2px'};background:linear-gradient(${isVertical ? '180deg' : '90deg'},rgba(0,212,255,0.3),rgba(124,58,237,0.3));flex-shrink:0;"></div>` : ''}
+              ${i > 0 ? `<div class="ar-flow-line${isVertical ? ' vertical' : ''}" style="width:${isVertical ? '2px' : '24px'};height:${isVertical ? '24px' : '2px'};background:linear-gradient(${isVertical ? '180deg' : '90deg'},rgba(0,212,255,0.3),rgba(124,58,237,0.3));flex-shrink:0;"></div>` : ''}
               ${(() => {
                 const studied = isKillChainStageStudied(s);
                 const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
@@ -704,6 +1256,7 @@ function renderKillChainScheme() {
   
   // Инициализируем свайп для панели деталей
   initStageDetailsSwipe();
+  initARPan();
   
   if (isVertical) {
     setTimeout(() => {
@@ -717,6 +1270,35 @@ function renderKillChainScheme() {
       }
     }, 500);
   }
+
+  // Анимация появления нод — каждая вылетает с задержкой
+  setTimeout(() => {
+    document.querySelectorAll('.ar-killchain-node').forEach((node, i) => {
+      node.style.opacity = '0';
+      node.style.transform = 'scale(0.5)';
+      setTimeout(() => {
+        node.style.transition = 'opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s';
+        node.style.opacity = '1';
+        node.style.transform = 'scale(1)';
+      }, i * 80);
+    });
+    // Пульсирующий эффект на первой ноде как подсказка
+    setTimeout(() => {
+      const first = document.getElementById('arNode1');
+      if (first) first.style.animation = 'arNodePulse 2s ease-in-out 3';
+    }, stages.length * 80 + 200);
+
+    // 3D floating анимация с разными задержками
+    document.querySelectorAll('.ar-killchain-node').forEach((node, i) => {
+      const delay = (i * 300) % 1200;
+      const dur = 2.8 + (i % 3) * 0.4;
+      setTimeout(() => {
+        if (!node.style.animation || node.style.animation.includes('arNodePulse') === false) {
+          node.style.animation = `ar3dFloat ${dur}s ease-in-out ${delay}ms infinite`;
+        }
+      }, stages.length * 80 + 800);
+    });
+  }, 100);
 }
 
 // Глобальные переменные для свайпа
@@ -725,19 +1307,81 @@ let detailsPanelCurrentY = 0;
 let detailsPanelIsDragging = false;
 let detailsPanelOpen = false;
 
+// Панорамирование схемы: нативный скролл (тачпад/колесо) + drag мышью
+function initARPan() {
+  const sc = document.getElementById('killChainScrollContainer');
+  if (!sc) return;
+  // Колесо/тачпад: вертикальный жест → горизонтальная прокрутка ТОЛЬКО если
+  // по горизонтали скроллить некуда нативно (узкий контент). Иначе не мешаем.
+  sc.onwheel = (e) => {
+    const canScrollV = sc.scrollHeight > sc.clientHeight;
+    const canScrollH = sc.scrollWidth > sc.clientWidth;
+    // Если контент шире, чем выше, и вертикально скроллить некуда — конвертим
+    if (canScrollH && !canScrollV && e.deltaX === 0) {
+      sc.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+    // во всех остальных случаях — нативный скролл (работает на тачпаде сам)
+  };
+  // Drag-to-pan мышью (для обычной мыши без колеса-горизонтали)
+  let dragging = false, sx = 0, sy = 0, sl = 0, st = 0, moved = false;
+  sc.onmousedown = (e) => {
+    if (e.target.closest('button')) return;
+    dragging = true; moved = false;
+    sx = e.clientX; sy = e.clientY;
+    sl = sc.scrollLeft; st = sc.scrollTop;
+    sc.style.cursor = 'grabbing';
+  };
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    sc.scrollLeft = sl - dx;
+    sc.scrollTop = st - dy;
+  });
+  window.addEventListener('mouseup', () => { dragging = false; sc.style.cursor = ''; });
+}
+
 function initStageDetailsSwipe() {
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;
-  
-  // Удаляем старые обработчики
+
   panel.removeEventListener('touchstart', onDetailsTouchStart);
   panel.removeEventListener('touchmove', onDetailsTouchMove);
   panel.removeEventListener('touchend', onDetailsTouchEnd);
-  
-  // Добавляем новые
+  panel.removeEventListener('mousedown', onDetailsMouseDown);
+
   panel.addEventListener('touchstart', onDetailsTouchStart, { passive: false });
   panel.addEventListener('touchmove', onDetailsTouchMove, { passive: false });
   panel.addEventListener('touchend', onDetailsTouchEnd);
+  panel.addEventListener('mousedown', onDetailsMouseDown);
+}
+
+function onDetailsMouseDown(e) {
+  // Игнорируем клики по кнопкам внутри панели
+  if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+  detailsPanelStartY = e.clientY;
+  detailsPanelIsDragging = true;
+  const panel = document.getElementById('arStageDetails');
+  if (panel) panel.style.transition = 'none';
+  const onMove = (ev) => {
+    if (!detailsPanelIsDragging) return;
+    const p = document.getElementById('arStageDetails');
+    if (!p) return;
+    const delta = ev.clientY - detailsPanelStartY;
+    const ph = p.offsetHeight;
+    const base = detailsPanelOpen ? 0 : ph - 60;
+    const nt = Math.max(0, Math.min(base + delta, ph - 60));
+    p.style.transform = `translateY(${nt}px)`;
+    detailsPanelCurrentY = nt;
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    onDetailsTouchEnd({ touches: [] });
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function onDetailsTouchStart(e) {
@@ -842,7 +1486,7 @@ function applyARSchemeZoom() {
   }
 
   // Обновляем все ноды
-  AR_KILL_CHAIN.stages.forEach(s => {
+  activeScheme().stages.forEach(s => {
     const node = document.getElementById('arNode' + s.id);
     if (!node) return;
     node.style.width = nodeSize + 'px';
@@ -940,13 +1584,13 @@ style.textContent = `
 document.head.appendChild(style);
 
 function selectKillChainStage(stageId) {
-  const stage = AR_KILL_CHAIN.stages.find(s => s.id === stageId);
+  const stage = activeScheme().stages.find(s => s.id === stageId);
   if (!stage) return;
 
   arSelectedStage = stageId;
 
   // Подсветить выбранную ноду
-  AR_KILL_CHAIN.stages.forEach(s => {
+  activeScheme().stages.forEach(s => {
     const node = document.getElementById('arNode' + s.id);
     if (!node) return;
     if (s.id === stageId) {
@@ -954,6 +1598,7 @@ function selectKillChainStage(stageId) {
       node.style.borderColor = '#fff';
       node.style.transform = 'scale(1.15)';
       node.style.boxShadow = '0 0 24px rgba(0,212,255,0.7)';
+      node.style.animation = 'arNodePulse 1.5s ease-in-out 2';
     } else {
       node.style.background = 'rgba(0,0,0,0.5)';
       node.style.borderColor = isKillChainStageStudied(s) ? '#10b981' : 'rgba(255,255,255,0.2)';
@@ -1054,19 +1699,60 @@ function selectKillChainStage(stageId) {
 
       <div style="display:flex;gap:10px;margin-top:8px;">
         <button onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
-        <button onclick="nextKillChainStage()" ${stageId === 7 ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === 7 ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
+        <button onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
       </div>
     `;
   }
 
-  // Показываем панель
+  // Показываем панель и СРАЗУ открываем полностью (без свайпа)
   const panel = document.getElementById('arStageDetails');
   if (panel) {
     panel.style.display = 'block';
+    const isWide = window.innerWidth >= 900;
+    void panel.offsetHeight; // reflow для transition
+    if (isWide) {
+      // Правый сайдбар
+      panel.style.top = '0';
+      panel.style.bottom = '0';
+      panel.style.left = 'auto';
+      panel.style.right = '0';
+      panel.style.width = 'min(420px, 42vw)';
+      panel.style.maxHeight = '100%';
+      panel.style.height = '100%';
+      panel.style.borderRadius = '0';
+      panel.style.borderTop = 'none';
+      panel.style.borderLeft = '1px solid rgba(255,255,255,0.2)';
+      panel.style.transform = 'translateX(0)';
+      panel.classList.add('open');
+    } else {
+      // Узкий экран: нижняя шторка, СРАЗУ открыта полностью
+      panel.classList.remove('open');
+      panel.style.top = 'auto';
+      panel.style.bottom = '0';
+      panel.style.left = '0';
+      panel.style.right = '0';
+      panel.style.width = '100%';
+      panel.style.height = 'auto';
+      panel.style.maxHeight = '78%';
+      panel.style.borderRadius = '20px 20px 0 0';
+      panel.style.borderTop = '1px solid rgba(255,255,255,0.2)';
+      panel.style.borderLeft = 'none';
+      panel.style.transform = 'translateY(0)';
+    }
+    detailsPanelOpen = true;
+
+    // Кнопка закрытия (добавляем один раз)
+    if (!document.getElementById('arПанельCloseBtn')) {
+      const cb = document.createElement('button');
+      cb.id = 'arПанельCloseBtn';
+      cb.innerHTML = '✕';
+      cb.onclick = (e) => { e.stopPropagation(); closeKillChainStage(); };
+      cb.style.cssText = 'position:absolute;top:10px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:16px;cursor:pointer;z-index:30;display:flex;align-items:center;justify-content:center;';
+      panel.appendChild(cb);
+    }
   }
 }
 function switchKillChainTab(tab) {
-  // Переключаем кнопки
   ['attack', 'defense', 'tools'].forEach(t => {
     const btn = document.getElementById('killChainTabBtn-' + t);
     const content = document.getElementById('killChainTabContent-' + t);
@@ -1117,7 +1803,7 @@ function setKillChainViewMode(mode) {
 }
 
 function applyKillChainViewMode() {
-  AR_KILL_CHAIN.stages.forEach(s => {
+  activeScheme().stages.forEach(s => {
     const node = document.getElementById('arNode' + s.id);
     if (!node) return;
 
@@ -1239,26 +1925,53 @@ function applyKillChainViewMode() {
 
       <div style="display:flex;gap:10px;margin-top:8px;">
        <button onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
-        <button onclick="nextKillChainStage()" ${stageId === 7 ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === 7 ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
+        <button onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
       </div>
     `;
 
   // Показываем панель с анимацией
   const panel = document.getElementById('arStageDetails');
-  if (panel && panel.style.display !== 'block') {
+  if (panel) {
     panel.style.display = 'block';
-    setTimeout(() => {
-      const panelHeight = panel.offsetHeight;
-      panel.style.transform = `translateY(${panelHeight - 60}px)`;
-      detailsPanelOpen = false;
-    }, 10);
+    const isDesktop = window.innerWidth >= 1024;
+    if (isDesktop) {
+      panel.style.transition = '';
+      panel.style.transform = '';  // CSS берёт управление через класс
+      setTimeout(() => {
+        panel.classList.add('open');
+        // Помечаем корень чтобы сдвинуть контент
+        const root = document.getElementById('arSchemeRoot');
+        if (root) root.classList.add('panel-visible');
+      }, 10);
+      detailsPanelOpen = true;
+    } else {
+      panel.classList.remove('open');
+      setTimeout(() => {
+        const panelHeight = panel.offsetHeight;
+        panel.style.transform = `translateY(${panelHeight - 60}px)`;
+        detailsPanelOpen = false;
+      }, 10);
+    }
+  }
+
+  // Ripple-эффект на выбранной ноде
+  const selectedNode = document.getElementById('arNode' + stageId);
+  if (selectedNode) {
+    const ripple = document.createElement('div');
+    ripple.style.cssText = `position:absolute;top:50%;left:50%;width:100%;height:100%;
+      border-radius:50%;transform:translate(-50%,-50%) scale(1);
+      background:rgba(0,212,255,0.3);animation:arRipple 0.6s ease-out forwards;
+      pointer-events:none;z-index:2;`;
+    selectedNode.style.position = 'relative';
+    selectedNode.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 700);
   }
 }
 
 function closeKillChainStage() {
   arSelectedStage = null;
   // Сбросить визуальное состояние нод
-  AR_KILL_CHAIN.stages.forEach(s => {
+  activeScheme().stages.forEach(s => {
     const node = document.getElementById('arNode' + s.id);
     if (!node) return;
     node.style.background = 'rgba(0,0,0,0.7)';
@@ -1266,8 +1979,15 @@ function closeKillChainStage() {
     node.style.transform = 'scale(1)';
     node.style.boxShadow = 'none';
   });
-  document.getElementById('arStageDetails').style.display = 'none';
-  document.getElementById('arStageHint').style.display = 'block';
+  const detailPanel = document.getElementById('arStageDetails');
+  if (detailPanel) {
+    detailPanel.classList.remove('open');
+    detailPanel.style.display = 'none';
+    // полный сброс инлайнов сайдбара
+    ['top','bottom','left','right','width','maxHeight','height','borderRadius','borderTop','borderLeft','transform'].forEach(p => detailPanel.style[p] = '');
+  }
+  const root = document.getElementById('arSchemeRoot');
+  if (root) root.classList.remove('panel-visible');
 }
 
 function prevKillChainStage() {
@@ -1277,7 +1997,7 @@ function prevKillChainStage() {
 }
 
 function nextKillChainStage() {
-  if (arSelectedStage && arSelectedStage < 7) {
+  if (arSelectedStage && arSelectedStage < activeScheme().stages.length) {
     selectKillChainStage(arSelectedStage + 1);
   }
 }
@@ -1301,6 +2021,7 @@ const state = {
   analyticsCache: null,
 };
 let pdfDoc = null, pdfCurrentPage = 1, pdfTotalPages = 0, currentBookId = null, lastSelection = null;
+let readerCurrentPageText = '';  // текст текущей страницы для AI-ассистента
 let epubCurrentPage = 1, epubTotalPages = 0;
 let currentQuiz = { bookId: null, questions: [], currentIndex: 0, score: 0, answers: [] };
 let pomodoroInterval = null, pomodoroSeconds = 25 * 60, pomodoroRunning = false, pomodoroMode = 'work';
@@ -1385,6 +2106,33 @@ function getAchievementIcon(code) {
     'ach_quiz_1':    ICONS.achQuiz,
     'xp_1000':       ICONS.achXp,
     'review_1':      ICONS.achReview,
+    // новые
+    'ach_finish_1':  ICONS.check,
+    'books_5':       ICONS.book,
+    'books_10':      ICONS.book,
+    'finish_5':      ICONS.check,
+    'ach_note_1':    ICONS.achReview,
+    'quiz_5':        ICONS.achQuiz,
+    'quiz_10':       ICONS.achQuiz,
+    'quiz_perfect':  ICONS.star,
+    'review_5':      ICONS.achReview,
+    'xp_500':        ICONS.achXp,
+    'xp_5000':       ICONS.achXp,
+    'streak_3':      ICONS.fire,
+    'streak_7':      ICONS.fire,
+    'streak_30':     ICONS.fire,
+    'ach_level_test': ICONS.target,
+    // дополнительный набор
+    'books_25':       ICONS.book,
+    'finish_10':      ICONS.check,
+    'finish_25':      ICONS.check,
+    'quiz_25':        ICONS.achQuiz,
+    'quiz_perfect_5': ICONS.star,
+    'review_10':      ICONS.achReview,
+    'streak_14':      ICONS.fire,
+    'streak_100':     ICONS.fire,
+    'xp_2500':        ICONS.achXp,
+    'xp_10000':       ICONS.achXp,
   };
   return map[code] || ICONS.target;  // fallback на мишень, если код не знаем
 }
@@ -1393,31 +2141,105 @@ function renderAchievementsInProfile() {
   const l = document.getElementById('achievementsList');
   if (!l) return;
   const owned = state.gamification.achievementsOwned || [];
-  if (!owned.length) {
+  const catalog = state.gamification.achievementsCatalog || [];
+  const ownedCodes = new Set(owned.map(a => a.code));
+
+  if (!owned.length && !catalog.length) {
     l.innerHTML = '<span style="font-size:10px;color:var(--text-muted);">Нет достижений</span>';
     return;
   }
-  l.innerHTML = owned.map(a =>
+
+  // Сначала полученные (ярко), затем остальные из каталога (приглушённо — как цели).
+  const lockedList = catalog.filter(a => !ownedCodes.has(a.code));
+  const ownedHtml = owned.map(a =>
     `<span class="achievement-badge ${a.tier}" title="${eh(a.description)}"><span style="display:inline-flex;vertical-align:middle;margin-right:4px;">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
   ).join('');
+  const lockedHtml = lockedList.map(a =>
+    `<span class="achievement-badge ${a.tier} locked" title="${eh(a.description)}"><span style="display:inline-flex;vertical-align:middle;margin-right:4px;">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
+  ).join('');
+
+  l.innerHTML = ownedHtml + lockedHtml;
 }
 
-function getRecommendations(limit = 3) {
+// ===== Рекомендации по подразделению (#10) =====
+// Каждое подразделение → ключевые слова тем. Сопоставляем с категориями книг
+// в каталоге (регистронезависимо, по вхождению). Коды и полные названия — оба варианта.
+const DEPARTMENT_TOPICS = {
+  'ЦКЗ':   ['soc', 'мониторинг', 'incident', 'инцидент', 'threat', 'ВПО', 'malware', 'форензик', 'forensic', 'siem', 'сетев', 'анализ'],
+  'ДПМ':   ['мошенничес', 'fraud', 'социальн', 'social', 'osint', 'фишинг', 'phishing', 'поведенч'],
+  'УБД':   ['данны', 'data', 'dlp', 'приватнос', 'privacy', 'субд', 'database', 'классификац', 'gdpr'],
+  'УКИИ':  ['ии', 'ai', 'machine learning', 'ml', 'нейросет', 'adversarial', 'модел'],
+  'УКАИ':  ['криптограф', 'crypto', 'pki', 'tls', 'iam', 'аутентификац', 'идентификац', 'zero trust', 'ключ'],
+  'УМК':   ['методолог', 'governance', 'compliance', 'риск', 'risk', 'дизайн', 'ux', 'метрик', 'nist'],
+  'УЭК':   ['пентест', 'pentest', 'red team', 'эксплуатац', 'уязвим', 'web', 'веб', 'exploit', 'devops', 'devsecops'],
+  'ЦКГ':   ['архитектур', 'стратег', 'лидер', 'ciso', 'enterprise', 'программ', 'devsecops', 'управлени'],
+  'ЦУПКБ': ['продукт', 'product', 'vendor', 'рынок', 'mvp', 'управлени'],
+  'ЦВВ':   ['коммуникац', 'переговор', 'влияни', 'изменени', 'команд', 'взаимодейств', 'поддержк'],
+};
+
+// Возвращает ключевые слова тем для текущего пользователя по его подразделению.
+function departmentTopicKeywords() {
+  const dep = (state.currentUser && state.currentUser.department) || '';
+  if (!dep) return null;
+  // Сопоставляем по коду в начале строки (ЦКЗ, ДПМ, ...) либо по подстроке.
+  const upper = dep.toUpperCase();
+  for (const code of Object.keys(DEPARTMENT_TOPICS)) {
+    if (upper.startsWith(code) || upper.includes(code)) return DEPARTMENT_TOPICS[code];
+  }
+  return null; // «Другое» / не распознано → рекомендуем по уровню (см. ниже)
+}
+
+function bookMatchesDepartment(book, keywords) {
+  if (!keywords) return false;
+  const hay = ((book.categories || []).join(' ') + ' ' + (book.title || '') + ' ' + (book.author || '')).toLowerCase();
+  return keywords.some(k => hay.includes(k));
+}
+
+// Для «Другое» / внешних людей — рекомендуем по уровню знаний (cyber_level).
+// Ключевые слова сложности сопоставляем с темами книг.
+const LEVEL_TOPICS = {
+  gate_guardian:    ['основ', 'введен', 'beginner', 'для начинающих', 'азбук', 'чайник', 'basics', 'fundamental'],
+  scout:            ['основ', 'practical', 'практическ', 'hands-on', 'introduction', 'web', 'сет'],
+  stronghold:       ['security engineering', 'pentest', 'пентест', 'attacking', 'cloud', 'практическ', 'defense', 'защит'],
+  shadow_architect: ['advanced', 'продвинут', 'architecture', 'архитектур', 'apt', 'red team', 'exploit', 'reverse'],
+  abyss_warden:     ['advanced', 'architecture', 'архитектур', 'cyberwar', 'нулев', 'zero day', 'research', 'эксперт', 'strategy'],
+};
+
+function levelTopicKeywords() {
+  const lvl = state.currentUser && state.currentUser.cyber_level;
+  if (!lvl) return null;
+  return LEVEL_TOPICS[lvl] || null;
+}
+
+function getRecommendations(limit = 5) {
   if (!state.currentUser) return [];
+  const depKeywords = departmentTopicKeywords();
+  // Если подразделение не распознано (или «Другое») — рекомендуем по уровню знаний.
+  const levelKeywords = depKeywords ? null : levelTopicKeywords();
+
   const ub = Object.entries(state.mylist || {}).filter(([, s]) => ['reading', 'completed', 'liked'].includes(s)).map(([id]) => parseInt(id));
-  if (!ub.length) return [...state.books].sort((a, b) => b.popularity - a.popularity).slice(0, limit);
   const cats = new Set(), auths = new Set();
   ub.forEach(id => {
     const b = state.books.find(x => x.id === id);
     if (b) { (b.categories || []).forEach(c => cats.add(c)); auths.add(b.author); }
   });
+
   return state.books.filter(b => !ub.includes(b.id))
     .map(b => {
       const bookCats = b.categories || [];
       const hasMatchingCategory = bookCats.some(c => cats.has(c));
-      return { b, score: (hasMatchingCategory ? 40 : 0) + (auths.has(b.author) ? 25 : 0) + b.popularity / 20 };
+      const depMatch = bookMatchesDepartment(b, depKeywords);
+      const lvlMatch = bookMatchesDepartment(b, levelKeywords);
+      const score = (depMatch ? 60 : 0)               // приоритет — профиль подразделения
+                  + (lvlMatch ? 50 : 0)                 // либо по уровню (для «Другое»)
+                  + (hasMatchingCategory ? 40 : 0)      // затем — личная история
+                  + (auths.has(b.author) ? 25 : 0)
+                  + (b.popularity || 0) / 20;
+      return { b, score };
     })
-    .sort((a, b) => b.score - a.score).slice(0, limit).map(x => x.b);
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(x => x.b);
 }
 
 // ========== DRAG AND DROP FOR MYLIST ==========
@@ -1556,6 +2378,283 @@ function setReviewStar(n) {
 
 function renderStarSVG(filled) {
   return filled ? ICONS.star : ICONS.starEmpty;
+}
+
+// ===== Полнотекстовый поиск по содержимому книг (H) =====
+async function runFullTextSearch() {
+  const input = document.getElementById('searchInput');
+  const q = (input?.value || '').trim();
+  if (q.length < 2) { showToast('Введите минимум 2 символа'); return; }
+
+  const container = document.getElementById('booksContainer') || document.getElementById('homeBooksGrid');
+  // показываем оверлей результатов
+  let panel = document.getElementById('fullTextResults');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'fullTextResults';
+    panel.style.cssText = 'margin-top:14px;';
+    const anchor = document.getElementById('sectionResume') || container;
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor);
+    else if (container) container.parentNode.insertBefore(panel, container);
+  }
+  panel.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Ищу «${eh(q)}»…</div>`;
+
+  try {
+    const res = await api.library.searchBooks(q, 20);
+    renderFullTextResults(res);
+  } catch (e) {
+    panel.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:13px;">Ошибка поиска. ${eh(e?.detail || '')}</div>`;
+  }
+}
+
+function renderFullTextResults(res) {
+  const panel = document.getElementById('fullTextResults');
+  if (!panel) return;
+  if (!res.hits || !res.hits.length) {
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="section-title">Поиск: «${eh(res.query)}»</div>
+        <button onclick="clearFullTextSearch()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;">Очистить</button>
+      </div>
+      <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Ничего не найдено. Возможно, книги ещё не проиндексированы (админ → «Переиндексировать»).</div>`;
+    return;
+  }
+  const matchLabel = { meta: 'в описании', content: 'в тексте', both: 'в описании и тексте' };
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="section-title">Найдено: ${res.total} по «${eh(res.query)}»</div>
+      <button onclick="clearFullTextSearch()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;">Очистить</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${res.hits.map(h => `
+        <div onclick="openBookDetail(${h.book_id})" style="display:flex;gap:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+          <div style="width:46px;height:62px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg-primary);">
+            ${h.has_cover ? `<img src="${api.books.coverUrl(h.book_id)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:20px;">📕</div>`}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;">${eh(h.title)}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin:2px 0 4px;">${eh(h.author)} · совпадение ${matchLabel[h.matched_in] || ''}</div>
+            ${h.pages && h.pages.length ? h.pages.map(p => `
+              <div style="font-size:11px;color:var(--text-secondary);background:var(--bg-primary);border-radius:6px;padding:5px 8px;margin-top:4px;line-height:1.4;">
+                <span style="color:var(--accent);font-weight:600;">с. ${p.page}:</span> …${p.snippet}…
+                <button onclick="event.stopPropagation();askAiAboutSnippet(${h.book_id}, ${p.page}, '${_encodeSnippet(p.snippet)}', '${_encodeSnippet(h.title)}')" style="display:block;margin-top:4px;background:none;border:none;color:var(--accent);cursor:pointer;font-size:10px;padding:0;font-family:inherit;">✨ Спросить AI про этот фрагмент</button>
+              </div>`).join('') : ''}
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+// убирает <b>-теги и кодирует для безопасной передачи в onclick
+function _encodeSnippet(s) {
+  const clean = String(s || '').replace(/<\/?b>/g, '');
+  return encodeURIComponent(clean).replace(/'/g, '%27');
+}
+
+function askAiAboutSnippet(bookId, page, encSnippet, encTitle) {
+  const snippet = decodeURIComponent(encSnippet);
+  const title = decodeURIComponent(encTitle);
+  // переходим к ассистенту и задаём вопрос с контекстом фрагмента
+  navigateTo('assistant');
+  setTimeout(() => {
+    const surface = assistantSurface('full');
+    const prompt = `Объясни простыми словами этот фрагмент из книги «${title}» (стр. ${page}):\n\n«${snippet}»\n\nЧто это означает и почему это важно?`;
+    assistantSend(surface, prompt);
+  }, 150);
+}
+
+function clearFullTextSearch() {
+  const panel = document.getElementById('fullTextResults');
+  if (panel) panel.remove();
+  const input = document.getElementById('searchInput');
+  if (input) { input.value = ''; renderHome(); }
+}
+
+async function openAdminLogs() {
+  const ex = document.getElementById('adminLogsModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'adminLogsModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Журнал действий</h3>
+      <button onclick="document.getElementById('adminLogsModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div id="adminLogsBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загрузка…</div>
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+  try {
+    const logs = await api.library.adminLogs(100);
+    const body = document.getElementById('adminLogsBody');
+    if (!logs.length) { body.innerHTML = '<div style="padding:16px;color:var(--text-muted);">Записей пока нет.</div>'; return; }
+    const actionLabel = {
+      book_create: '➕ Создание', book_update: '✏️ Изменение', book_delete: '🗑 Удаление',
+      pdf_upload: '📄 Загрузка PDF', cover_upload: '🖼 Обложка', reindex: '🔍 Индексация',
+    };
+    body.style.textAlign = 'left'; body.style.padding = '0';
+    body.innerHTML = logs.map(l => {
+      const d = new Date(l.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      return `<div style="padding:9px 6px;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;gap:8px;">
+          <span style="font-size:12px;color:var(--text-primary);">${actionLabel[l.action] || l.action}</span>
+          <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${d}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${eh(l.detail || '')}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${eh(l.admin || '—')}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    const body = document.getElementById('adminLogsBody');
+    if (body) body.innerHTML = '<div style="padding:16px;color:#ef4444;">Не удалось загрузить журнал.</div>';
+  }
+}
+
+async function reindexAllBooksUI() {
+  showConfirmModal({
+    title: 'Переиндексировать все книги?',
+    message: 'Будет извлечён текст из всех PDF для полнотекстового поиска. Это может занять несколько минут при большом каталоге.',
+    confirmText: 'Запустить',
+    cancelText: 'Отмена',
+    onConfirm: async () => {
+      showToast('Индексация запущена…');
+      try {
+        const res = await api.library.reindexAllBooks();
+        showToast(`Готово: ${res.indexed_books} книг, ${res.indexed_pages} страниц`);
+      } catch (e) {
+        showToast(e && e.detail ? e.detail : 'Ошибка индексации');
+      }
+    },
+  });
+}
+
+// ===== Обсуждения книги (комментарии + ответы) =====
+let _replyingTo = null;
+
+async function renderDiscussion() {
+  const c = document.getElementById('detailTabDiscussion');
+  if (!c || !currentBookId) return;
+  c.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <textarea id="discussInput" placeholder="Написать комментарий..." rows="3" style="width:100%;box-sizing:border-box;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;resize:vertical;"></textarea>
+      <div id="discussReplyHint" style="display:none;font-size:11px;color:var(--accent);margin-top:4px;"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button onclick="submitComment()" class="set-save-btn" style="flex:1;">Отправить</button>
+        <button id="discussCancelReply" onclick="cancelReply()" style="display:none;padding:0 16px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);cursor:pointer;font-family:inherit;font-size:13px;">Отмена</button>
+      </div>
+    </div>
+    <div id="discussList" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загрузка...</div>
+  `;
+  loadComments();
+}
+
+async function loadComments() {
+  const list = document.getElementById('discussList');
+  if (!list) return;
+  try {
+    const comments = await api.library.bookComments(currentBookId);
+    if (!comments.length) {
+      list.style.textAlign = 'center';
+      list.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Пока нет комментариев. Будьте первым!</div>';
+      return;
+    }
+    list.style.textAlign = 'left';
+    list.style.padding = '0';
+    list.innerHTML = comments.map(renderCommentNode).join('');
+  } catch (e) {
+    list.innerHTML = '<div style="padding:16px;color:#ef4444;">Не удалось загрузить обсуждение.</div>';
+  }
+}
+
+function _commentBubble(c, isReply) {
+  const name = eh(c.author.full_name || c.author.username);
+  const when = _formatCommentDate(c.created_at);
+  const avatar = c.author.has_avatar
+    ? `<img src="${api.users.avatarUrl(c.author.id)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
+    : `<div style="width:32px;height:32px;border-radius:50%;background:var(--accent-gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;">${name.charAt(0).toUpperCase()}</div>`;
+  return `
+    <div style="display:flex;gap:10px;padding:10px 0;${isReply ? 'margin-left:42px;' : ''}">
+      ${avatar}
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${name}</span>
+          <span style="font-size:10px;color:var(--text-muted);">${when}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:3px 0 6px;white-space:pre-wrap;word-break:break-word;">${eh(c.text)}</div>
+        <div style="display:flex;gap:14px;">
+          ${!isReply ? `<button onclick="startReply(${c.id}, '${name.replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0;">Ответить</button>` : ''}
+          ${c.can_delete ? `<button onclick="deleteComment(${c.id})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0;">Удалить</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderCommentNode(c) {
+  const replies = (c.replies || []).map(r => _commentBubble(r, true)).join('');
+  return `<div style="border-bottom:1px solid var(--border);padding-bottom:4px;">${_commentBubble(c, false)}${replies}</div>`;
+}
+
+function _formatCommentDate(iso) {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = (now - d) / 1000;
+    if (diff < 60) return 'только что';
+    if (diff < 3600) return Math.floor(diff / 60) + ' мин назад';
+    if (diff < 86400) return Math.floor(diff / 3600) + ' ч назад';
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch (_) { return ''; }
+}
+
+function startReply(commentId, name) {
+  _replyingTo = commentId;
+  const hint = document.getElementById('discussReplyHint');
+  const cancel = document.getElementById('discussCancelReply');
+  const input = document.getElementById('discussInput');
+  if (hint) { hint.style.display = 'block'; hint.textContent = `Ответ для ${name}`; }
+  if (cancel) cancel.style.display = 'block';
+  if (input) input.focus();
+}
+
+function cancelReply() {
+  _replyingTo = null;
+  const hint = document.getElementById('discussReplyHint');
+  const cancel = document.getElementById('discussCancelReply');
+  if (hint) hint.style.display = 'none';
+  if (cancel) cancel.style.display = 'none';
+}
+
+async function submitComment() {
+  const input = document.getElementById('discussInput');
+  const text = (input?.value || '').trim();
+  if (!text) { showToast('Введите текст'); return; }
+  try {
+    await api.library.addBookComment(currentBookId, text, _replyingTo);
+    input.value = '';
+    cancelReply();
+    if (navigator.vibrate) navigator.vibrate(10);
+    loadComments();
+  } catch (e) {
+    showToast(e && e.detail ? e.detail : 'Не удалось отправить');
+  }
+}
+
+async function deleteComment(commentId) {
+  showConfirmModal({
+    title: 'Удалить комментарий?',
+    message: 'Комментарий и ответы на него будут удалены.',
+    confirmText: 'Удалить',
+    cancelText: 'Отмена',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        await api.library.deleteBookComment(currentBookId, commentId);
+        loadComments();
+      } catch (e) {
+        showToast(e && e.detail ? e.detail : 'Не удалось удалить');
+      }
+    },
+  });
 }
 
 async function renderReviews() {
@@ -1715,8 +2814,15 @@ async function convertToNote(annId) {
   const list = await getAnnotations(currentBookId);
   const ann = list.find(a => a.id === annId);
   if (!ann) return;
-  const noteText = prompt('Введите заметку:', '');
-  if (!noteText || !noteText.trim()) return;
+  showPromptModal({
+    title: 'Заметка',
+    placeholder: 'Введите текст заметки…',
+    confirmText: 'Сохранить',
+    onConfirm: (noteText) => { if (noteText) convertToNoteSave(ann, noteText); },
+  });
+}
+
+async function convertToNoteSave(ann, noteText) {
 
   try {
     await api.library.addAnnotation(currentBookId, {
@@ -1726,7 +2832,7 @@ async function convertToNote(annId) {
       note_text: noteText.trim(),
       position: ann.position || {},
     });
-    await api.library.deleteAnnotation(annId);
+    await api.library.deleteAnnotation(ann.id);
 
     delete annotationsCache[currentBookId];
     document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
@@ -1744,7 +2850,7 @@ async function renderAnnotations() {
   const list = await getAnnotations(currentBookId);
   const onPage = list.filter(a => a.page === pdfCurrentPage);
   layer.innerHTML = onPage.map(a => a.type === 'highlight'
-    ? `<div class="highlight-mark" style="left:${a.position?.x || 10}%;top:${a.position?.y || 10}%;width:${a.position?.w || 30}%;height:${a.position?.h || 3}%;" title="${eh(a.text)}" onclick="showAnnotationDetail(${a.id})"></div>`
+    ? `<div class="highlight-mark" style="left:${a.position?.x || 10}%;top:${a.position?.y || 10}%;width:${a.position?.w || 30}%;height:${a.position?.h || 3}%;background:${a.position?.color || '#fbbf24'}55;border-bottom:2px solid ${a.position?.color || '#fbbf24'};" title="${eh(a.text)}" onclick="showAnnotationDetail(${a.id})"></div>`
     : `<div class="note-indicator" style="left:${a.position?.x || 15}%;top:${a.position?.y || 15}%;" onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</div>`
   ).join('');
 }
@@ -1775,29 +2881,153 @@ async function showNoteTooltip(id) {
   document.getElementById('pdfViewport').appendChild(t);
 }
 
+function _downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function _csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+async function exportAllUserData() {
+  showToast('Собираю данные…');
+  const u = state.currentUser || {};
+  const out = {
+    exported_at: new Date().toISOString(),
+    format: 'aegis-user-data-v1',
+    profile: {
+      username: u.name, full_name: u.full_name || null, email: u.email || null,
+      department: u.department || null, role: u.role || null,
+      cyber_level: u.cyber_level || null, xp: state.gamification?.xp || 0,
+      streak: state.gamification?.streakCount || 0,
+    },
+    mylist: [], reading_progress: [], achievements: [], quiz_attempts: [], annotations: [],
+    settings: {
+      theme: localStorage.getItem('aegis_app_theme') || 'dark',
+      reading_goal: localStorage.getItem('aegis_reading_goal') || null,
+      reader_font: localStorage.getItem('aegis_reader_font') || null,
+      favorite_categories: getFavCategories(),
+    },
+  };
+
+  // mylist + прогресс из state
+  Object.entries(state.mylist || {}).forEach(([bid, status]) => {
+    const b = (state.books || []).find(x => String(x.id) === String(bid));
+    out.mylist.push({ book_id: Number(bid), title: b?.title || null, status });
+  });
+  Object.entries(state.readingProgress || {}).forEach(([bid, p]) => {
+    out.reading_progress.push({ book_id: Number(bid), current_page: p.currentPage, total_pages: p.totalPages, started: p.started });
+  });
+
+  // ачивки
+  (state.gamification?.achievementsOwned || []).forEach(a => out.achievements.push({ code: a.code, name: a.name || null }));
+
+  // дозапрос с сервера: попытки тестов + аннотации по всем книгам из mylist
+  try { out.quiz_attempts = (await api.library.myQuizAttempts()) || []; } catch (_) {}
+  const bookIds = Object.keys(state.mylist || {});
+  for (const bid of bookIds) {
+    try {
+      const ann = await api.library.annotations(Number(bid));
+      (ann || []).forEach(a => out.annotations.push({
+        book_id: Number(bid), page: a.page, type: a.type,
+        text: a.selected_text, note: a.note_text || null,
+      }));
+    } catch (_) {}
+  }
+
+  _downloadBlob(JSON.stringify(out, null, 2), `aegis_my_data_${u.name || 'user'}.json`, 'application/json');
+  if (navigator.vibrate) navigator.vibrate(15);
+  showToast('Данные выгружены');
+}
+
 async function exportNotes() {
   if (!currentBookId) { showToast('Откройте книгу для экспорта заметок'); return; }
   const ann = await getAnnotations(currentBookId);
   if (!ann.length) { showToast('Нет заметок для экспорта'); return; }
+  const ex = document.getElementById('exportFmtModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'exportFmtModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const btn = (fmt, label, desc) => `<button onclick="doExportNotes('${fmt}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;font-family:inherit;color:var(--text-primary);">
+    <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);font-size:13px;min-width:42px;">${fmt.toUpperCase()}</span>
+    <span><span style="font-size:13px;font-weight:600;display:block;">${label}</span><span style="font-size:11px;color:var(--text-muted);">${desc}</span></span>
+  </button>`;
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:380px;width:100%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Экспорт заметок</h3>
+      <button onclick="document.getElementById('exportFmtModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">&times;</button>
+    </div>
+    ${btn('pdf', 'PDF документ', 'Для печати и чтения')}
+    ${btn('md', 'Markdown', 'Текст с разметкой')}
+    ${btn('json', 'JSON', 'Для импорта в другие приложения')}
+    ${btn('csv', 'CSV', 'Таблица для Excel')}
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+}
+
+async function doExportNotes(fmt) {
+  const modal = document.getElementById('exportFmtModal');
+  if (modal) modal.remove();
+  const ann = await getAnnotations(currentBookId);
   const b = state.books.find(x => x.id === currentBookId);
-  let md = `# Заметки: ${b ? b.title : 'Книга'}\n\n`;
-  ann.sort((a, b) => a.page - b.page).forEach(a => {
-    md += `## Стр. ${a.page}\n`;
-    if (a.type === 'highlight') md += `> ${a.text}\n\n`;
-    if (a.type === 'note') {
-      md += `> ${a.text}\n\n`;
-      md += `Заметка: ${a.note}\n\n`;
-    }
-    md += `---\n\n`;
-  });
-  const blob = new Blob([md], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `notes_${b?.title?.replace(/[^a-z0-9]/gi, '_') || 'book'}.md`;
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  showToast('Заметки экспортированы!');
+  const title = b ? b.title : 'Книга';
+  const safe = (title.replace(/[^a-z0-9а-яё]/gi, '_') || 'book');
+  const sorted = [...ann].sort((a, b) => a.page - b.page);
+
+  if (fmt === 'json') {
+    const data = {
+      book: title, author: b?.author || null,
+      exported_at: new Date().toISOString(),
+      annotations: sorted.map(a => ({ page: a.page, type: a.type, text: a.text, note: a.note || null })),
+    };
+    _downloadBlob(JSON.stringify(data, null, 2), `notes_${safe}.json`, 'application/json');
+  } else if (fmt === 'csv') {
+    let csv = 'Страница;Тип;Текст;Заметка\n';
+    sorted.forEach(a => {
+      csv += [a.page, a.type === 'note' ? 'Заметка' : 'Выделение', _csvEscape(a.text), _csvEscape(a.note || '')].join(';') + '\n';
+    });
+    _downloadBlob('\uFEFF' + csv, `notes_${safe}.csv`, 'text/csv;charset=utf-8');
+  } else if (fmt === 'md') {
+    let md = `# Заметки: ${title}\n\n`;
+    sorted.forEach(a => {
+      md += `## Стр. ${a.page}\n> ${a.text}\n\n`;
+      if (a.type === 'note' && a.note) md += `Заметка: ${a.note}\n\n`;
+      md += `---\n\n`;
+    });
+    _downloadBlob(md, `notes_${safe}.md`, 'text/markdown');
+  } else if (fmt === 'pdf') {
+    exportNotesPdf(title, b?.author, sorted);
+  }
+  if (navigator.vibrate) navigator.vibrate(12);
+  if (fmt !== 'pdf') showToast('Заметки экспортированы!');
+}
+
+function exportNotesPdf(title, author, sorted) {
+  const rows = sorted.map(a => `
+    <div style="margin-bottom:14px;page-break-inside:avoid;">
+      <div style="font-size:11px;color:#888;margin-bottom:3px;">Страница ${a.page} &middot; ${a.type === 'note' ? 'Заметка' : 'Выделение'}</div>
+      <div style="border-left:3px solid #00b4d8;padding-left:10px;font-size:13px;">${eh(a.text)}</div>
+      ${a.type === 'note' && a.note ? `<div style="margin-top:5px;font-size:13px;color:#333;"><b>Заметка:</b> ${eh(a.note)}</div>` : ''}
+    </div>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Заметки: ${eh(title)}</title>
+    <style>body{font-family:Arial,sans-serif;color:#111;max-width:720px;margin:24px auto;padding:0 16px;}
+    h1{font-size:22px;} .meta{color:#888;font-size:12px;margin-bottom:20px;}</style></head>
+    <body><h1>Заметки: ${eh(title)}</h1>
+    <div class="meta">${author ? eh(author) + ' &middot; ' : ''}Экспорт: ${new Date().toLocaleDateString('ru-RU')}</div>
+    ${rows}
+    <script>window.onload=()=>{window.print();}<\/script></body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { showToast('Разрешите всплывающие окна для PDF'); return; }
+  w.document.write(html); w.document.close();
 }
 
 async function renderDetailNotes() {
@@ -1955,7 +3185,11 @@ async function fetchQuizForBook(bookId) {
     quizCache[bookId] = questions;
     return questions;
   } catch (err) {
-    showToast('Не удалось загрузить тест');
+    console.error('Не удалось загрузить тест для книги', bookId, err);
+    const msg = (err && err.status)
+      ? `Ошибка теста (${err.status}${err.detail ? ': ' + err.detail : ''})`
+      : 'Не удалось загрузить тест';
+    showToast(msg);
     return [];
   }
 }
@@ -2116,37 +3350,71 @@ function generateAIResponse(msg) {
 }
 
 // ========== NAVIGATION ==========
-const screens = {
-  auth: document.getElementById('authScreen'),
-  home: document.getElementById('homeScreen'),
-  detail: document.getElementById('detailScreen'),
-  reader: document.getElementById('readerScreen'),
-  mylist: document.getElementById('mylistScreen'),
-  profile: document.getElementById('profileScreen'),
-  settings: document.getElementById('settingsScreen'),
-  admin: document.getElementById('adminScreen'),
-  training: document.getElementById('trainingScreen'),
-  onboarding: document.getElementById('onboardingScreen'),
+// Ленивая инициализация: запоминаем элементы при первом обращении,
+// чтобы избежать гонки если app.js загружается до конца DOM
+const _screensCache = {};
+const SCREEN_IDS = {
+  auth: 'authScreen',
+  home: 'homeScreen',
+  detail: 'detailScreen',
+  reader: 'readerScreen',
+  mylist: 'mylistScreen',
+  profile: 'profileScreen',
+  assistant: 'assistantScreen',
+  settings: 'settingsScreen',
+  admin: 'adminScreen',
+  training: 'trainingScreen',
+  onboarding: 'onboardingScreen',
 };
 
+const screens = new Proxy({}, {
+  get(_t, key) {
+    if (_screensCache[key]) return _screensCache[key];
+    const id = SCREEN_IDS[key];
+    if (!id) return null;
+    const el = document.getElementById(id);
+    if (el) _screensCache[key] = el;
+    return el;
+  },
+  ownKeys() {
+    return Object.keys(SCREEN_IDS);
+  },
+  getOwnPropertyDescriptor(_t, key) {
+    return { enumerable: true, configurable: true };
+  },
+});
+
 function navigateTo(s) {
-  Object.values(screens).forEach(x => x.classList.remove('active'));
-  if (s === 'auth' || s === 'onboarding') {
+  // Снимаем active со всех известных экранов
+  Object.keys(SCREEN_IDS).forEach(key => {
+    const el = screens[key];
+    if (el) el.classList.remove('active');
+  });
+  const target = screens[s];
+  if (!target) {
+    console.error(`Screen "${s}" not found, fallback to home`);
+    s = 'home';
+  }
+  const isAuthScreen = s === 'auth' || s === 'onboarding';
+  if (isAuthScreen) {
     screens[s].classList.add('active');
-    document.getElementById('bottomNav').classList.add('hidden');
+    document.getElementById('bottomNav')?.classList.add('hidden');
+    document.getElementById('sidebarNav')?.classList.add('hidden-on-auth');
   } else {
     screens[s].classList.add('active');
-    document.getElementById('bottomNav').classList.remove('hidden');
+    document.getElementById('bottomNav')?.classList.remove('hidden');
+    document.getElementById('sidebarNav')?.classList.remove('hidden-on-auth');
   }
   state.currentScreen = s;
   document.body.classList.toggle('reader-active', s === 'reader');
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.screen === s));
+  document.querySelectorAll('.nav-item, .sidebar-item').forEach(i => i.classList.toggle('active', i.dataset.screen === s));
   closeAIPanel();
   if (s === 'home') { renderHome(); renderRecommendations(); }
   if (s === 'mylist') { renderMyList(); initDragAndDrop(); }
   if (s === 'training') renderTrainingScreen();
   if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); }
   if (s === 'settings') { renderSettingsScreen(); }
+  if (s === 'assistant') { renderAssistantScreen(); }
   if (s === 'admin') renderAdminPanel();
   updateFabVisibility();
 }
@@ -2166,8 +3434,30 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   document.getElementById('registerFirstNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerLastNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('authPass').required = !isRegister;
-  document.querySelector('#authForm .btn').textContent = isRegister ? 'Зарегистрироваться' : 'Войти';
+  // Обновляем текст кнопки и заголовка формы
+  const submitText = document.getElementById('authSubmitText');
+  if (submitText) submitText.textContent = isRegister ? 'Зарегистрироваться' : 'Войти';
+  else if (document.querySelector('#authForm .btn')) document.querySelector('#authForm .btn').textContent = isRegister ? 'Зарегистрироваться' : 'Войти';
+  const title = document.getElementById('authFormTitle');
+  const subtitle = document.getElementById('authFormSubtitle');
+  const forgotHint = document.getElementById('forgotPasswordHint');
+  if (title) title.textContent = isRegister ? 'Создать аккаунт' : 'С возвращением';
+  if (subtitle) subtitle.textContent = isRegister ? 'Заполните данные для регистрации' : 'Войдите в свой аккаунт';
+  if (forgotHint) forgotHint.style.display = isRegister ? 'none' : '';
 }));
+
+function togglePasswordVisibility() {
+  const input = document.getElementById('authPass');
+  const icon = document.getElementById('eyeIcon');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    if (icon) icon.innerHTML = '<path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
 
 function socialAuth(provider) {
   if (provider === 'sberid') {
@@ -2232,11 +3522,21 @@ function ensureProgress(book) {
 
 async function loadBooksFromApi() {
   try {
-    const data = await api.books.list({ per_page: 100 });
-    state.books = data.items.map(adaptBookFromApi);
-    state.books.forEach(b => {
-      ensureProgress(b);
-    });
+    const perPage = 100;
+    let page = 1;
+    let all = [];
+    let total = Infinity;
+    // догружаем страницы, пока не соберём все книги (защита: максимум 50 страниц = 5000 книг)
+    while (all.length < total && page <= 50) {
+      const data = await api.books.list({ per_page: perPage, page });
+      if (typeof data.total === 'number') total = data.total;
+      const items = data.items || [];
+      all = all.concat(items);
+      if (items.length < perPage) break; // последняя страница
+      page++;
+    }
+    state.books = all.map(adaptBookFromApi);
+    state.books.forEach(b => { ensureProgress(b); });
     saveState();
     return true;
   } catch (err) {
@@ -2250,14 +3550,23 @@ async function loadBooksFromApi() {
 function formatApiError(err) {
   if (!(err instanceof api.ApiError)) return 'Не удаётся связаться с сервером.';
 
+  // Полезно для отладки: показываем точную причину от сервера в консоли
+  try { console.warn('API error', err.status, err.detail, err.body); } catch (_) {}
+
   if (Array.isArray(err.detail) && err.detail.length > 0) {
     const first = err.detail[0];
     const field = first.loc?.[first.loc.length - 1] || 'поле';
-    const fieldRu = { username: 'логин', password: 'пароль', email: 'email', full_name: 'имя' }[field] || field;
+    const fieldRu = { username: 'логин', password: 'пароль', email: 'email', full_name: 'имя', department: 'подразделение' }[field] || field;
     return `${fieldRu}: ${first.msg}`;
   }
 
-  if (typeof err.detail === 'string') return err.detail;
+  if (typeof err.detail === 'string' && err.detail) return err.detail;
+
+  // Иногда сервер кладёт сообщение в другие поля тела
+  if (err.body && typeof err.body === 'object') {
+    if (typeof err.body.message === 'string') return err.body.message;
+    if (typeof err.body.error === 'string') return err.body.error;
+  }
 
   return `Ошибка ${err.status}`;
 }
@@ -2275,13 +3584,18 @@ document.getElementById('authForm').addEventListener('submit', async e => {
     if (n.length > 64) return showToast('Логин: максимум 64 символа');
     if (!/^[a-zA-Z0-9_]+$/.test(n)) return showToast('Логин: только латиница, цифры и _');
     if (p.length < 8) return showToast('Пароль: минимум 8 символов');
-    if (email && !email.includes('@')) return showToast('Введите корректный email');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Введите корректный email (например, name@example.com)');
   }
 
   const submitBtn = document.getElementById('authSubmitBtn');
-  const originalText = submitBtn.textContent;
+  const submitText = document.getElementById('authSubmitText');
+  const submitSpinner = document.getElementById('authSubmitSpinner');
+  const originalText = submitText ? submitText.textContent : submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = '...';
+  submitBtn.classList.add('loading');
+  if (submitText) submitText.textContent = '...';
+  else submitBtn.textContent = '...';
+  if (submitSpinner) submitSpinner.classList.remove('hidden');
 
   try {
     if (state.currentTab === 'register') {
@@ -2311,6 +3625,7 @@ document.getElementById('authForm').addEventListener('submit', async e => {
         cyber_level: user.cyber_level,
         topic_scores: user.topic_scores,
         level_assessed_at: user.level_assessed_at,
+        department: user.department || null,
       };
       await loadBooksFromApi();
       await loadMyListFromApi();
@@ -2318,6 +3633,7 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       await loadCompletedQuizzesFromApi();
       await loadGamificationFromApi();
       await loadOfflineBookIds();
+      maybeAutoPreload();
 
       saveState();
       document.getElementById('authForm').reset();
@@ -2334,7 +3650,10 @@ document.getElementById('authForm').addEventListener('submit', async e => {
     if (!(err instanceof api.ApiError)) console.error(err);
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = originalText;
+    submitBtn.classList.remove('loading');
+    if (submitText) submitText.textContent = originalText;
+    else submitBtn.textContent = originalText;
+    if (submitSpinner) submitSpinner.classList.add('hidden');
   }
 });
 
@@ -2370,6 +3689,7 @@ async function tryAutoLogin() {
       topic_scores: user.topic_scores,
       level_assessed_at: user.level_assessed_at,
       profile_visibility: user.profile_visibility || 'public',
+      department: user.department || null,
     };
 
     await loadBooksFromApi();
@@ -2378,6 +3698,7 @@ async function tryAutoLogin() {
     await loadCompletedQuizzesFromApi();
     await loadGamificationFromApi();
     await loadOfflineBookIds();
+      maybeAutoPreload();
 
     saveState();
     return true;
@@ -2385,6 +3706,527 @@ async function tryAutoLogin() {
     api.logout();
     return false;
   }
+}
+
+// ========== AI АССИСТЕНТ ==========
+
+let assistantMessages = [];
+let assistantBusy = false;
+
+// ============================================================================
+// Единый "движок" ассистента (DeepSeek через api.assistantChat).
+// Используется и полноэкранным экраном (#assistantScreen), и панелью в
+// читалке (#aiPanel). Различия — только в наборе DOM-элементов (surface).
+// ============================================================================
+function assistantSurface(kind) {
+  if (kind === 'reader') {
+    return {
+      kind,
+      get messages() { return readerAiMessages; },
+      set messages(v) { readerAiMessages = v; },
+      get busy() { return readerAiBusy; },
+      set busy(v) { readerAiBusy = v; },
+      messagesEl: () => document.getElementById('aiChat'),
+      inputEl: () => document.getElementById('aiInput'),
+      sendBtnEl: () => null,
+    };
+  }
+  return {
+    kind: 'full',
+    get messages() { return assistantMessages; },
+    set messages(v) { assistantMessages = v; },
+    get busy() { return assistantBusy; },
+    set busy(v) { assistantBusy = v; },
+    messagesEl: () => document.getElementById('assistantMessages'),
+    inputEl: () => document.getElementById('assistantInput'),
+    sendBtnEl: () => document.getElementById('assistantSendBtn'),
+  };
+}
+
+// Лёгкое и безопасное форматирование ответа ассистента (markdown-подмножество).
+// Сначала экранируем HTML, затем применяем разметку к уже безопасному тексту.
+function mdAssistant(src) {
+  let s = eh(src || '');
+
+  // Блоки кода ```...```
+  const blocks = [];
+  s = s.replace(/```(?:[a-zA-Z0-9_+-]+)?\n?([\s\S]*?)```/g, (_m, code) => {
+    blocks.push(code.replace(/\n$/, ''));
+    return `\u0000CB${blocks.length - 1}\u0000`;
+  });
+  // Инлайн-код `...`
+  const inlines = [];
+  s = s.replace(/`([^`\n]+)`/g, (_m, c) => {
+    inlines.push(c);
+    return `\u0000IC${inlines.length - 1}\u0000`;
+  });
+
+  // Жирный / курсив
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+       .replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+
+  // Ссылки [текст](http...)
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // Построчно собираем абзацы, списки и заголовки
+  const lines = s.split('\n');
+  let out = '';
+  let i = 0;
+  const isUL = (l) => /^\s*[-*•]\s+/.test(l);
+  const isOL = (l) => /^\s*\d+[.)]\s+/.test(l);
+  while (i < lines.length) {
+    let line = lines[i];
+
+    if (line.trim() === '') { i++; continue; }
+
+    // Заголовки # ## ###
+    const h = line.match(/^\s*#{1,6}\s+(.*)$/);
+    if (h) { out += `<div class="ai-h">${h[1]}</div>`; i++; continue; }
+
+    if (isUL(line)) {
+      out += '<ul>';
+      while (i < lines.length && isUL(lines[i])) {
+        out += `<li>${lines[i].replace(/^\s*[-*•]\s+/, '')}</li>`;
+        i++;
+      }
+      out += '</ul>';
+      continue;
+    }
+    if (isOL(line)) {
+      out += '<ol>';
+      while (i < lines.length && isOL(lines[i])) {
+        out += `<li>${lines[i].replace(/^\s*\d+[.)]\s+/, '')}</li>`;
+        i++;
+      }
+      out += '</ol>';
+      continue;
+    }
+
+    // Параграф: собираем подряд идущие непустые/несписочные строки
+    const para = [];
+    while (i < lines.length && lines[i].trim() !== '' && !isUL(lines[i]) && !isOL(lines[i]) && !/^\s*#{1,6}\s+/.test(lines[i])) {
+      para.push(lines[i]);
+      i++;
+    }
+    out += `<p>${para.join('<br>')}</p>`;
+  }
+
+  // Возвращаем код на место
+  out = out.replace(/\u0000IC(\d+)\u0000/g, (_m, n) => `<code>${inlines[+n]}</code>`);
+  out = out.replace(/\u0000CB(\d+)\u0000/g, (_m, n) => `<pre><code>${blocks[+n]}</code></pre>`);
+  return out;
+}
+
+const COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+function assistantRenderBubble(m, surfaceKind, idx) {
+  if (m._loading) {
+    return `<div class="ai-msg-wrap bot"><div class="ai-bubble bot"><span class="ai-typing"><i></i><i></i><i></i></span></div></div>`;
+  }
+
+  const isUser = m.role === 'user';
+  let inner = isUser ? eh(m.content).replace(/\n/g, '<br>') : mdAssistant(m.content);
+
+  if (m._picker && Array.isArray(m._picker.books)) {
+    const action = m._picker.action; // 'summary' | 'quiz'
+    inner += `<div class="ai-book-picker">` + m._picker.books.map(b =>
+      `<button class="ai-book-option" onclick="assistantPickBook('${surfaceKind}','${action}',${b.id})"><span class="t">${eh(b.title)}</span></button>`
+    ).join('') + `</div>`;
+  }
+
+  if (m._action === 'goto_quiz' && m._bookId != null) {
+    inner += `<button class="ai-action-btn" onclick="assistantGotoQuiz(${m._bookId})">` +
+      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>` +
+      `Перейти к тесту</button>`;
+  }
+
+  const copyBtn = `<button class="ai-copy" onclick="assistantCopy('${surfaceKind}',${idx})" title="Скопировать">${COPY_SVG}<span>Копировать</span></button>`;
+
+  return `<div class="ai-msg-wrap ${isUser ? 'user' : 'bot'}">` +
+    `<div class="ai-bubble ${isUser ? 'user' : 'bot'}">${inner}</div>` +
+    copyBtn +
+  `</div>`;
+}
+
+function assistantRender(surface) {
+  const el = surface.messagesEl();
+  if (!el) return;
+  el.innerHTML = surface.messages.map((m, i) => assistantRenderBubble(m, surface.kind, i)).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+// Плавное обновление последнего (AI) сообщения во время стриминга
+function assistantRenderStreaming(surface, fullText) {
+  const el = surface.messagesEl();
+  if (!el) return;
+  const bubbles = el.querySelectorAll('.ai-bubble.bot');
+  const last = bubbles[bubbles.length - 1];
+  const wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  if (last) {
+    last.innerHTML = (typeof mdAssistant === 'function' ? mdAssistant(fullText) : eh(fullText).replace(/\n/g, '<br>'))
+      + '<span class="ai-type-cursor">▋</span>';
+  }
+  if (wasAtBottom) el.scrollTop = el.scrollHeight;
+}
+
+// Копирование текста сообщения (и пользователя, и ассистента)
+function assistantCopy(kind, idx) {
+  const surface = assistantSurface(kind);
+  const m = surface.messages[idx];
+  if (!m) return;
+  const text = m.content || '';
+  const done = () => showToast('Скопировано');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => assistantFallbackCopy(text, done));
+  } else {
+    assistantFallbackCopy(text, done);
+  }
+}
+function assistantFallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (_) {}
+  ta.remove();
+  if (cb) cb();
+}
+
+async function assistantSend(surface, text, opts = {}) {
+  if (surface.busy) return;
+  text = (text || '').trim();
+  if (!text) return;
+  if (text.length > 4000) { showToast('Слишком длинное сообщение'); return; }
+
+  const userMsg = { role: 'user', content: text };
+  surface.messages.push(userMsg);
+  surface.messages.push({ role: 'assistant', content: '', _loading: true });
+  assistantRender(surface);
+  surface.busy = true;
+
+  const sendBtn = surface.sendBtnEl();
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.style.opacity = '0.5'; }
+
+  try {
+    const apiMessages = surface.messages
+      .filter((m, i) => !m._loading && !m._picker && !(i === 0 && m.role === 'assistant'))
+      .map(m => ({ role: m.role, content: m.content }));
+    // Структурированный контекст уходит в отдельные поля запроса (бэкенд их понимает).
+    const context = buildAssistantContext(text);
+
+    // Заменяем «загрузку» на пустое сообщение, которое будем наполнять по буквам
+    surface.messages.pop();
+    const aiMsg = { role: 'assistant', content: '' };
+    surface.messages.push(aiMsg);
+    assistantRender(surface);
+
+    let streamed = false;
+    try {
+      await api.assistantChatStream(apiMessages, context, (delta, full) => {
+        streamed = true;
+        aiMsg.content = full;
+        assistantRenderStreaming(surface, full);
+      });
+    } catch (streamErr) {
+      // Фолбэк на обычный (нестриминговый) ответ, если стрим не сработал
+      if (!streamed) {
+        const data = await api.assistantChat(apiMessages, context);
+        aiMsg.content = data.reply;
+      } else {
+        throw streamErr;
+      }
+    }
+    assistantRender(surface);
+  } catch (e) {
+    // убираем пустое/частичное AI-сообщение и показываем ошибку
+    if (surface.messages.length && surface.messages[surface.messages.length - 1].role === 'assistant') {
+      surface.messages.pop();
+    }
+    const errText = e.status === 429
+      ? (e.detail || 'Слишком много запросов. Попробуйте позже.')
+      : (e.status === 502 ? 'AI временно недоступен. Попробуйте позже.' : 'Не удалось получить ответ.');
+    surface.messages.push({ role: 'assistant', content: '⚠ ' + errText });
+    console.error('Assistant error:', e);
+  } finally {
+    surface.busy = false;
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = '1'; }
+    assistantRender(surface);
+    const input = surface.inputEl();
+    if (input) input.focus();
+    // E1: сохраняем диалог в историю (фоном, без блокировки)
+    persistCurrentChat();
+  }
+}
+
+// ===== E1: автосохранение/история диалогов AI =====
+let _currentChatId = null;
+async function persistCurrentChat() {
+  try {
+    const msgs = (assistantMessages || [])
+      .filter(m => !m._loading && !m._picker && (m.role === 'user' || m.role === 'assistant') && m.content)
+      .map(m => ({ role: m.role, content: m.content }));
+    if (msgs.length < 2) return; // нечего сохранять
+    if (_currentChatId) {
+      await api.library.syncChatMessages(_currentChatId, msgs);
+    } else {
+      const created = await api.library.createChat(msgs);
+      _currentChatId = created.id;
+    }
+  } catch (_) { /* история — не критично */ }
+}
+
+async function openChatHistory() {
+  const ex = document.getElementById('chatHistoryModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'chatHistoryModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">История диалогов</h3>
+      <button onclick="document.getElementById('chatHistoryModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div id="chatHistoryBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загружаю…</div>
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+  try {
+    const chats = await api.library.chats();
+    const body = document.getElementById('chatHistoryBody');
+    if (!chats.length) { body.innerHTML = '<div style="padding:16px;color:var(--text-muted);">Сохранённых диалогов пока нет.</div>'; return; }
+    body.style.textAlign = 'left'; body.style.padding = '0';
+    body.innerHTML = chats.map(c => `
+      <div style="display:flex;align-items:center;gap:8px;padding:11px 8px;border-bottom:1px solid var(--border);">
+        <div onclick="loadChatFromHistory(${c.id})" style="flex:1;cursor:pointer;">
+          <div style="font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${eh(c.title)}</div>
+          <div style="font-size:10px;color:var(--text-muted);">${c.message_count} сообщений</div>
+        </div>
+        <button onclick="deleteChatFromHistory(${c.id})" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:15px;padding:4px 8px;">✕</button>
+      </div>`).join('');
+  } catch (_) {
+    const body = document.getElementById('chatHistoryBody');
+    if (body) body.innerHTML = '<div style="padding:16px;color:#ef4444;">Не удалось загрузить историю.</div>';
+  }
+}
+
+async function loadChatFromHistory(chatId) {
+  try {
+    const chat = await api.library.chat(chatId);
+    assistantMessages = (chat.messages || []).map(m => ({ role: m.role, content: m.content }));
+    _currentChatId = chatId;
+    const m = document.getElementById('chatHistoryModal');
+    if (m) m.remove();
+    if (state.currentScreen !== 'assistant') navigateTo('assistant');
+    renderAssistantScreen();
+  } catch (_) { showToast('Не удалось открыть диалог'); }
+}
+
+async function deleteChatFromHistory(chatId) {
+  try {
+    await api.library.deleteChat(chatId);
+    if (_currentChatId === chatId) _currentChatId = null;
+    openChatHistory();
+  } catch (_) { showToast('Не удалось удалить'); }
+}
+
+function startNewChat() {
+  assistantMessages = [];
+  _currentChatId = null;
+  renderAssistantScreen();
+}
+
+// Структурированный контекст для бэкенда: книга/страница (#8), библиотека (#9),
+// подразделение и уровень (#10). Все поля опциональны.
+function buildAssistantContext(text) {
+  const ctx = {};
+
+  // #10 — профиль
+  if (state.currentUser?.department) ctx.department = state.currentUser.department;
+  if (state.currentUser?.cyber_level) ctx.level = state.currentUser.cyber_level;
+
+  // #8 — текущая книга/страница (только в читалке)
+  if (state.currentScreen === 'reader' && state.currentBook) {
+    const b = state.currentBook;
+    ctx.book_context = {
+      title: b.title || null,
+      author: b.author || null,
+      page: pdfCurrentPage || null,
+      total_pages: pdfTotalPages || b.total_pages || null,
+      page_text: (readerCurrentPageText || '').trim().slice(0, 6000) || null,
+    };
+  }
+
+  // #9 — библиотеку шлём, когда вопрос про рекомендации/выбор книги
+  const t = (text || '').toLowerCase();
+  if (/рекоменд|посоветуй|что почитать|какую книг|подбери|с чего начать|порекоменд|почитат/.test(t)) {
+    const statusRu = { reading: 'читаю', planned: 'в планах', completed: 'прочитано', dropped: 'брошено', liked: 'нравится' };
+    ctx.library = (state.books || []).slice(0, 60).map(b => ({
+      title: b.title,
+      author: b.author || null,
+      categories: b.categories || [],
+      status: state.mylist[b.id] ? (statusRu[state.mylist[b.id]] || state.mylist[b.id]) : null,
+    }));
+  }
+
+  return ctx;
+}
+
+// Быстрые действия (чипы). Если книга в контексте — действуем сразу,
+// иначе показываем выбор книги прямо в чате.
+function assistantHandleQuick(surface, action) {
+  if (surface.busy) return;
+  const book = state.currentBook;
+
+  if (action === 'recommend') {
+    const dep = state.currentUser && state.currentUser.department;
+    const depPart = (dep && departmentTopicKeywords())
+      ? ` Я работаю в подразделении «${dep}» — учитывай его специфику.`
+      : '';
+    const prompt = `Посоветуй, что мне почитать из моей библиотеки с учётом моего уровня.${depPart}`;
+    assistantSend(surface, prompt);
+    return;
+  }
+  if (action === 'vacation') {
+    assistantSend(surface, 'Я уезжаю в отпуск и хочу взять с собой что-то лёгкое и интересное по кибербезопасности из моей библиотеки. Посоветуй 2-3 книги, которые приятно читать без напряжения, и кратко объясни почему.');
+    return;
+  }
+  if (action === 'exam') {
+    const dep = state.currentUser && state.currentUser.department;
+    const depPart = dep ? ` Мой профиль — «${dep}».` : '';
+    assistantSend(surface, `Мне скоро сдавать экзамен/аттестацию по информационной безопасности.${depPart} Составь из моей библиотеки план интенсивной подготовки: какие книги читать в первую очередь и на что обратить внимание.`);
+    return;
+  }
+  if (action === 'summary') {
+    if (book) { assistantSend(surface, summaryPrompt(book)); return; }
+    assistantShowBookPicker(surface, 'summary', 'По какой книге сделать саммари?');
+    return;
+  }
+  if (action === 'quiz') {
+    if (book) { assistantOfferQuiz(surface, book); return; }
+    assistantShowBookPicker(surface, 'quiz', 'По какой книге пройти тест?');
+    return;
+  }
+}
+
+function summaryPrompt(book) {
+  return `Сделай краткое саммари книги «${book.title}»${book.author ? ` (автор: ${book.author})` : ''}: о чём она и ключевые идеи.`;
+}
+
+function assistantBookChoices(limit = 8) {
+  const inList = state.books.filter(b => state.mylist[b.id] || state.readingProgress[b.id]?.started);
+  const rest = state.books.filter(b => !inList.includes(b));
+  const ordered = [...inList, ...rest.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))];
+  return ordered.slice(0, limit);
+}
+
+function assistantShowBookPicker(surface, action, prompt) {
+  const books = assistantBookChoices(8);
+  if (!books.length) {
+    surface.messages.push({ role: 'assistant', content: 'Пока нет доступных книг.' });
+    assistantRender(surface);
+    return;
+  }
+  surface.messages.push({ role: 'assistant', content: prompt, _picker: { action, books } });
+  assistantRender(surface);
+}
+
+function assistantPickBook(surfaceKind, action, bookId) {
+  const surface = assistantSurface(surfaceKind);
+  const book = state.books.find(b => b.id === bookId);
+  if (!book) return;
+
+  const last = surface.messages[surface.messages.length - 1];
+  if (last && last._picker) delete last._picker;
+  surface.messages.push({ role: 'user', content: book.title });
+
+  if (action === 'summary') {
+    assistantRender(surface);
+    assistantSend(surface, summaryPrompt(book));
+  } else if (action === 'quiz') {
+    assistantOfferQuiz(surface, book);
+  }
+}
+
+// Тест НЕ ведём в диалоге — даём кнопку «Перейти к тесту».
+function assistantOfferQuiz(surface, book) {
+  surface.messages.push({
+    role: 'assistant',
+    content: `Тест по книге «${book.title}» готов. Нажмите кнопку ниже — откроется тест в карточке книги.`,
+    _action: 'goto_quiz',
+    _bookId: book.id,
+  });
+  assistantRender(surface);
+}
+
+function assistantGotoQuiz(bookId) {
+  closeAIPanel();                 // закрыть панель в читалке, если открыта
+  startQuizFromTraining(bookId);  // открыть карточку книги и вкладку с тестом
+}
+
+// ===== Полноэкранный экран ассистента =====
+function renderAssistantScreen() {
+  const surface = assistantSurface('full');
+  const sendBtn = surface.sendBtnEl();
+  if (sendBtn && !sendBtn.innerHTML.trim()) {
+    sendBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>';
+  }
+
+  const input = surface.inputEl();
+  if (input && !input._handlersAttached) {
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendAssistantMessage();
+      }
+    });
+    input._handlersAttached = true;
+  }
+
+  if (surface.messages.length === 0) {
+    surface.messages.push({
+      role: 'assistant',
+      content: 'Привет! Я AI-ассистент Aegis. Помогу разобраться с темами по кибербезопасности, объясню концепции и посоветую что почитать.\n\nС чего начнём?'
+    });
+  }
+  assistantRender(surface);
+  setTimeout(() => input && input.focus(), 100);
+}
+
+function sendAssistantMessage() {
+  const surface = assistantSurface('full');
+  const input = surface.inputEl();
+  const text = input ? input.value : '';
+  if (input) { input.value = ''; input.style.height = 'auto'; }
+  assistantSend(surface, text);
+}
+
+function assistantQuick(action) {
+  assistantHandleQuick(assistantSurface('full'), action);
+}
+
+function clearAssistantChat() {
+  if (assistantMessages.length === 0) return;
+  showConfirmModal({
+    title: 'Очистить диалог?',
+    message: 'История этого диалога будет удалена.',
+    confirmText: 'Очистить',
+    cancelText: 'Отмена',
+    danger: true,
+    onConfirm: () => {
+      assistantMessages = [];
+      _currentChatId = null;
+      renderAssistantScreen();
+    },
+  });
 }
 
 // ========== CATALOG & FILTERS ==========
@@ -2430,10 +4272,19 @@ function renderRecommendations() {
   const list = document.getElementById('recommendationsList');
   if (!container || !list) return;
 
-  const recs = getRecommendations(3);
+  const recs = getRecommendations(5);
   if (recs.length === 0) {
     container.style.display = 'none';
     return;
+  }
+
+  // Заголовок секции: если есть подразделение — подсказываем, что подборка под него
+  const titleEl = container.querySelector('.section-title');
+  if (titleEl) {
+    const dep = state.currentUser && state.currentUser.department;
+    titleEl.textContent = (dep && departmentTopicKeywords())
+      ? `Рекомендуем для вашего подразделения`
+      : 'Рекомендации';
   }
 
   container.style.display = 'block';
@@ -2459,9 +4310,150 @@ function renderHome() {
   updateFabVisibility();
   const sorted = getFilteredBooks(), q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   renderBookScroll('scrollContinue', sorted.filter(b => state.readingProgress[b.id]?.started), q);
-  renderBookScroll('scrollPopular', [...sorted].sort((a, b) => b.popularity - a.popularity), q);
+  renderBookScroll('scrollPopular', [...sorted].sort((a, b) => b.popularity - a.popularity).slice(0, 5), q);
   renderBookScroll('scrollAll', sorted, q);
+  setHomeBooksTab(state.homeBooksTab || 'popular');
+  renderResumeReading();
+  renderBooksGoalWidget();
+  renderFavCategories();
   renderRecommendations();
+}
+
+function setHomeBooksTab(tab) {
+  state.homeBooksTab = tab;
+  document.querySelectorAll('.books-tab').forEach(b => b.classList.toggle('active', b.dataset.btab === tab));
+  const pop = document.getElementById('scrollPopular');
+  const all = document.getElementById('scrollAll');
+  if (pop) pop.classList.toggle('hidden', tab !== 'popular');
+  if (all) all.classList.toggle('hidden', tab !== 'all');
+}
+
+// ===== D: Виджет цели по книгам =====
+function renderBooksGoalWidget() {
+  const section = document.getElementById('sectionBooksGoal');
+  const wrap = document.getElementById('booksGoalWidget');
+  if (!section || !wrap) return;
+  const goal = getBooksGoal();
+  if (!goal) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  const done = booksCompletedInPeriod();
+  const pct = Math.min(100, Math.round(done / goal.count * 100));
+  const periodLabel = goal.period === 'month' ? 'месяц' : goal.period === 'quarter' ? 'квартал' : 'год';
+  wrap.innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:700;">Цель: ${goal.count} книг за ${periodLabel}</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:700;font-family:'JetBrains Mono',monospace;">${done}/${goal.count}</div>
+      </div>
+      <div style="height:8px;background:var(--bg-primary);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:var(--accent-gradient);transition:width 0.4s;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">${pct >= 100 ? '🎉 Цель достигнута!' : `Осталось ${goal.count - done} — продолжайте!`}</div>
+    </div>`;
+}
+
+// ===== D: Возобновить чтение (последние 1-3 книги) =====
+function renderResumeReading() {
+  const section = document.getElementById('sectionResume');
+  const wrap = document.getElementById('resumeReadingCards');
+  if (!section || !wrap) return;
+
+  const started = (state.books || [])
+    .filter(b => state.readingProgress[b.id]?.started)
+    .map(b => ({ b, p: state.readingProgress[b.id] }))
+    .sort((x, y) => {
+      const tx = x.p.lastReadAt ? new Date(x.p.lastReadAt).getTime() : 0;
+      const ty = y.p.lastReadAt ? new Date(y.p.lastReadAt).getTime() : 0;
+      return ty - tx;
+    })
+    .slice(0, 3);
+
+  if (!started.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  wrap.innerHTML = started.map(({ b, p }) => {
+    const pct = p.totalPages ? Math.round(p.currentPage / p.totalPages * 100) : 0;
+    return `<div onclick="openReader(${b.id})" style="display:flex;gap:12px;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
+      <div style="width:48px;height:64px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg-primary);">
+        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:22px;">📖</div>`}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${eh(b.title)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin:3px 0 6px;">Стр. ${p.currentPage} из ${p.totalPages} · ${pct}%</div>
+        <div style="height:5px;background:var(--bg-primary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
+      </div>
+      <div style="flex-shrink:0;color:var(--accent);">${ICONS.book}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== A3: Избранные категории =====
+const FAV_CATS_KEY = 'aegis_fav_categories';
+function getFavCategories() {
+  try { return JSON.parse(localStorage.getItem(FAV_CATS_KEY) || '[]'); } catch (_) { return []; }
+}
+function saveFavCategories(arr) { localStorage.setItem(FAV_CATS_KEY, JSON.stringify(arr)); }
+function toggleFavCategory(cat) {
+  const favs = getFavCategories();
+  const i = favs.indexOf(cat);
+  if (i >= 0) favs.splice(i, 1); else favs.push(cat);
+  saveFavCategories(favs);
+  if (navigator.vibrate) navigator.vibrate(10);
+  renderFavCategories();
+  if (document.getElementById('favCatsPickerModal')) renderFavCatsPicker();
+}
+function renderFavCategories() {
+  const section = document.getElementById('sectionFavCategories');
+  const wrap = document.getElementById('favCategoriesChips');
+  if (!section || !wrap) return;
+  const favs = getFavCategories();
+  section.style.display = 'block';
+  const chipStyle = 'display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);';
+  let html = favs.map(c =>
+    `<button onclick="filterByCategory('${encodeURIComponent(c).replace(/'/g, '')}')" style="${chipStyle}background:var(--accent-gradient);color:#fff;border-color:transparent;">${eh(c)}</button>`
+  ).join('');
+  html += `<button onclick="openFavCatsPicker()" style="${chipStyle}background:transparent;color:var(--text-secondary);border-style:dashed;">+ Тема</button>`;
+  wrap.innerHTML = html;
+}
+function filterByCategory(encCat) {
+  const cat = decodeURIComponent(encCat);
+  const input = document.getElementById('searchInput');
+  if (input) { input.value = cat; }
+  // используем существующую фильтрацию по тексту
+  setHomeBooksTab('all');
+  renderHome();
+  const all = document.getElementById('scrollAll');
+  if (all) all.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function openFavCatsPicker() {
+  const ex = document.getElementById('favCatsPickerModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'favCatsPickerModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Избранные темы</h3>
+      <button onclick="document.getElementById('favCatsPickerModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div id="favCatsPickerBody"></div>
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+  renderFavCatsPicker();
+}
+function renderFavCatsPicker() {
+  const body = document.getElementById('favCatsPickerBody');
+  if (!body) return;
+  const allCats = new Set();
+  (state.books || []).forEach(b => (b.categories || []).forEach(c => allCats.add(c)));
+  const favs = getFavCategories();
+  body.innerHTML = [...allCats].sort().map(c => {
+    const on = favs.includes(c);
+    return `<button onclick="toggleFavCategory(${JSON.stringify(c).replace(/"/g, '&quot;')})" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:11px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
+      <span>${eh(c)}</span><span style="color:var(--accent);font-weight:700;">${on ? '✓' : '+'}</span>
+    </button>`;
+  }).join('') || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Категорий пока нет</div>';
 }
 
 function highlightText(text, query) {
@@ -2692,19 +4684,19 @@ function renderProfile() {
     if (!takeQuizBtn) {
       takeQuizBtn = document.createElement('button');
       takeQuizBtn.id = 'profileTakeQuizBtn';
-      takeQuizBtn.style.cssText = 'margin-top:14px;width:100%;padding:14px;background:var(--accent-gradient);border:none;border-radius:12px;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 15px rgba(0,212,255,0.3);';
+      takeQuizBtn.className = 'profile-take-quiz-btn';
       takeQuizBtn.onclick = () => {
         navigateTo('onboarding');
         document.getElementById('onboardingResult').classList.add('hidden');
         document.getElementById('onboardingQuiz').classList.add('hidden');
         document.getElementById('onboardingWelcome').classList.remove('hidden');
       };
-      // Вставляем кнопку в карточку профиля сразу после username
-      const insertAfter = usernameLine.parentNode;
-      insertAfter.insertBefore(takeQuizBtn, usernameLine.nextSibling);
+      // Кнопка — в отдельный слот внизу карточки профиля
+      const slot = document.getElementById('profileTestSlot');
+      (slot || usernameLine.parentNode).appendChild(takeQuizBtn);
     }
     takeQuizBtn.innerHTML = `<span style="display:inline-flex;vertical-align:middle;margin-right:10px;">${ICONS.target}</span>Пройти тест уровня кибербезопасности`;
-    takeQuizBtn.style.display = 'block';
+    takeQuizBtn.style.display = 'flex';
   } else if (takeQuizBtn) {
     // Юзер уже прошёл — кнопка не нужна
     takeQuizBtn.style.display = 'none';
@@ -2938,6 +4930,30 @@ async function renderSettingsStorageTab(c) {
       </div>
     </div>
 
+    <!-- Тумблер автопредзагрузки -->
+    <div class="set-row" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Автосохранение книг офлайн</div>
+          <div style="font-size:10px;color:var(--text-muted);">Начатые книги автоматически скачиваются по Wi-Fi</div>
+        </div>
+        <label class="toggle-switch" style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;">
+          <input type="checkbox" id="autoPreloadToggle" ${isAutoPreloadEnabled() ? 'checked' : ''} onchange="setAutoPreload(this.checked);showToast(this.checked ? 'Автосохранение включено' : 'Автосохранение выключено')" style="opacity:0;width:0;height:0;">
+          <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${isAutoPreloadEnabled() ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;">
+            <span style="position:absolute;height:18px;width:18px;left:${isAutoPreloadEnabled() ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <button class="set-save-btn" onclick="exportAllUserData()" style="background:rgba(0,212,255,0.12);color:var(--accent);border:1px solid rgba(0,212,255,0.4);margin-top:14px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Скачать все мои данные</span>
+    </button>
+    <div style="margin-top:8px;font-size:10px;color:var(--text-muted);line-height:1.5;">
+      Выгрузка всех ваших данных (профиль, списки, заметки, прогресс, результаты тестов) одним JSON-файлом.
+    </div>
+
     <button class="set-save-btn" onclick="confirmClearCache()" style="background:#ef444425;color:#ef4444;border:1px solid #ef444466;margin-top:14px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
       <span>Очистить кэш</span>
@@ -3008,10 +5024,10 @@ function renderSettingsPrivacyTab(c) {
   c.innerHTML = `
     <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Приватность</h3>
 
-    <div style="background:#fbbf2415;border:1px solid #fbbf2455;border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
       <div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">
-        Публичные профили будут доступны в будущем обновлении. Сейчас твой выбор сохранится и сработает, когда мы добавим эту функцию.
+        В публичном профиле ваш email показывается замаскированным (например i***n@mail.ru). Приватный профиль скрыт от всех.
       </div>
     </div>
 
@@ -3031,7 +5047,55 @@ function renderSettingsPrivacyTab(c) {
         `).join('')}
       </div>
     </div>
+
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+      <label style="font-size:12px;color:#ef4444;font-weight:700;display:block;margin-bottom:8px;">Опасная зона</label>
+      <button onclick="confirmDeleteAccount()" class="set-save-btn" style="background:#ef444418;color:#ef4444;border:1px solid #ef444455;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>Удалить аккаунт</span>
+      </button>
+      <div style="margin-top:8px;font-size:10px;color:var(--text-muted);line-height:1.5;">
+        Безвозвратно удаляет аккаунт и все данные: списки, заметки, прогресс, результаты тестов, коллекции.
+      </div>
+    </div>
   `;
+}
+
+function confirmDeleteAccount() {
+  const ex = document.getElementById('deleteAccModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'deleteAccModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid #ef444455;border-radius:16px;padding:22px;max-width:400px;width:100%;">
+    <h3 style="font-size:16px;font-weight:700;color:#ef4444;margin-bottom:10px;">Удалить аккаунт?</h3>
+    <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">Это действие необратимо. Все ваши данные будут удалены навсегда. Для подтверждения введите пароль и слово <b style="color:var(--text-primary);">УДАЛИТЬ</b>.</p>
+    <input id="delAccPassword" type="password" placeholder="Пароль" style="width:100%;padding:11px 14px;margin-bottom:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;">
+    <input id="delAccConfirm" type="text" placeholder="Введите УДАЛИТЬ" style="width:100%;padding:11px 14px;margin-bottom:14px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="document.getElementById('deleteAccModal').remove()" style="flex:1;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Отмена</button>
+      <button onclick="doDeleteAccount()" style="flex:1;padding:12px;background:#ef4444;border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Удалить</button>
+    </div>
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+}
+
+async function doDeleteAccount() {
+  const pwd = document.getElementById('delAccPassword')?.value || '';
+  const conf = document.getElementById('delAccConfirm')?.value || '';
+  if (!pwd || !conf) { showToast('Заполните оба поля'); return; }
+  try {
+    await api.library.deleteAccount(pwd, conf);
+    const m = document.getElementById('deleteAccModal');
+    if (m) m.remove();
+    showToast('Аккаунт удалён');
+    api.logout();
+    setTimeout(() => location.reload(), 800);
+  } catch (err) {
+    const msg = err && err.detail ? err.detail : (err && err.status ? 'Ошибка ' + err.status : 'Не удалось удалить');
+    showToast(msg);
+  }
 }
 
 async function setPrivacyVisibility(value) {
@@ -3046,9 +5110,58 @@ async function setPrivacyVisibility(value) {
   }
 }
 
+// --- Цель чтения (страниц/день) ---
+const READING_GOAL_KEY = 'aegis_reading_goal';
+// --- Цель по книгам за период (#10 целей) ---
+const BOOKS_GOAL_KEY = 'aegis_books_goal';
+function getBooksGoal() {
+  try { return JSON.parse(localStorage.getItem(BOOKS_GOAL_KEY) || 'null'); } catch (_) { return null; }
+}
+function saveBooksGoalFromUI() {
+  const input = document.getElementById('booksGoalCount');
+  const count = parseInt(input?.value) || window._booksGoalCount || 0;
+  const period = window._booksGoalPeriod || (getBooksGoal()?.period) || 'quarter';
+  if (!count || count < 1) { showToast('Укажите количество книг'); return; }
+  setBooksGoal(count, period);
+}
+
+function setBooksGoal(count, period) {
+  if (!count) { localStorage.removeItem(BOOKS_GOAL_KEY); }
+  else { localStorage.setItem(BOOKS_GOAL_KEY, JSON.stringify({ count, period, since: new Date().toISOString() })); }
+  renderBooksGoalWidget();
+  if (document.getElementById('settingsContent')) renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
+  showToast(count ? `Цель: ${count} книг / ${period === 'month' ? 'месяц' : period === 'quarter' ? 'квартал' : 'год'}` : 'Цель снята');
+}
+// сколько книг завершено с начала периода
+function booksCompletedInPeriod() {
+  const goal = getBooksGoal();
+  if (!goal) return 0;
+  const since = new Date(goal.since).getTime();
+  // считаем completed из mylist (без дат завершения — берём все completed; для простоты)
+  return Object.values(state.mylist || {}).filter(s => s === 'completed').length;
+}
+
+function getReadingGoal() { return parseInt(localStorage.getItem(READING_GOAL_KEY) || '20', 10); }
+function setReadingGoal(n) {
+  localStorage.setItem(READING_GOAL_KEY, String(n));
+  renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
+  showToast(`Цель: ${n} стр./день`);
+}
+
+// --- Размер шрифта читалки (масштаб PDF/EPUB-текста) ---
+const READER_FONT_KEY = 'aegis_reader_font';
+function getReaderFontScale() { return parseInt(localStorage.getItem(READER_FONT_KEY) || '100', 10); }
+function setReaderFontScale(pct) {
+  localStorage.setItem(READER_FONT_KEY, String(pct));
+  renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
+  showToast(`Шрифт читалки: ${pct}%`);
+}
+
 function renderSettingsPersonalizationTab(c) {
   const currentTheme = getAppTheme();
   const currentGrid = getGridSize();
+  const goal = getReadingGoal();
+  const fontScale = getReaderFontScale();
 
   c.innerHTML = `
     <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Персонализация</h3>
@@ -3092,6 +5205,62 @@ function renderSettingsPersonalizationTab(c) {
       </div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Изменения применяются ко всему каталогу</div>
     </div>
+
+    <!-- Цель чтения -->
+    <div class="set-row">
+      <label>Цель чтения (страниц в день)</label>
+      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+        ${[10, 20, 30, 50].map(n => `
+          <button onclick="setReadingGoal(${n})" style="flex:1;padding:10px;background:${goal === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${goal === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;">
+            ${n}
+          </button>
+        `).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Цель отображается в профиле и тепловой карте</div>
+    </div>
+
+    <!-- Цель по книгам за период -->
+    <div class="set-row">
+      <label>Цель: сколько книг прочитать</label>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Выберите количество книг и период</div>
+
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">Количество книг</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+        ${[5, 10, 15, 20, 30].map(n => {
+          const sel = (getBooksGoal()?.count) === n;
+          return `<button type="button" onclick="window._booksGoalCount=${n};document.querySelectorAll('.bg-count-btn').forEach(b=>{b.style.background='var(--bg-primary)';b.style.color='var(--text-secondary)';b.style.borderColor='var(--border)';});this.style.background='var(--accent-gradient)';this.style.color='#fff';this.style.borderColor='transparent';document.getElementById('booksGoalCount').value=${n};" class="bg-count-btn" style="min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${n}</button>`;
+        }).join('')}
+      </div>
+
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">Или своё число</div>
+      <input id="booksGoalCount" type="number" inputmode="numeric" min="1" max="200" value="${(getBooksGoal()?.count) || ''}" placeholder="например, 12" style="width:100%;box-sizing:border-box;padding:14px 16px;margin-bottom:14px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:16px;">
+
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">За какой период</div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        ${[{v:'month',l:'Месяц'},{v:'quarter',l:'Квартал'},{v:'year',l:'Год'}].map(o => {
+          const cur = getBooksGoal()?.period || 'quarter';
+          const sel = cur === o.v;
+          return `<button type="button" onclick="window._booksGoalPeriod='${o.v}';document.querySelectorAll('.bg-period-btn').forEach(b=>{b.style.background='var(--bg-primary)';b.style.color='var(--text-secondary)';b.style.borderColor='var(--border)';});this.style.background='var(--accent-gradient)';this.style.color='#fff';this.style.borderColor='transparent';" class="bg-period-btn" style="flex:1;padding:13px 8px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;">${o.l}</button>`;
+        }).join('')}
+      </div>
+
+      <button onclick="saveBooksGoalFromUI()" class="set-save-btn" style="width:100%;">Сохранить цель</button>
+      ${getBooksGoal() ? `<button onclick="setBooksGoal(0)" class="set-save-btn" style="width:100%;background:#ef444418;color:#ef4444;border:1px solid #ef444455;margin-top:8px;">Снять цель</button>` : ''}
+      <div style="font-size:10px;color:var(--text-muted);margin-top:8px;">Прогресс-бар появится на главной странице</div>
+    </div>
+
+    <!-- Размер шрифта читалки -->
+    <div class="set-row">
+      <label>Размер шрифта в читалке</label>
+      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+        ${[{p:90,l:'А-'},{p:100,l:'А'},{p:115,l:'А+'},{p:130,l:'А++'}].map(o => `
+          <button onclick="setReaderFontScale(${o.p})" style="flex:1;padding:10px;background:${fontScale === o.p ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${fontScale === o.p ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">
+            ${o.l}
+          </button>
+        `).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Масштаб страницы при открытии книги</div>
+    </div>
   `;
 }
 
@@ -3134,11 +5303,69 @@ function renderSettingsSecurityTab(c) {
     </button>
 
     <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
-      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
-        <strong style="color:var(--text-secondary);">Смена email</strong> будет доступна позже — она требует подтверждения по почте, и эта функция в разработке.
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--accent);">Смена email</h3>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
+        Текущий email: <strong style="color:var(--text-secondary);">${eh(state.currentUser?.email || 'не указан')}</strong>.
+        На новый адрес придёт код подтверждения.
+      </div>
+
+      <div id="emailStep1">
+        <div class="set-row">
+          <label>Новый email</label>
+          <input type="email" id="setNewEmail" autocomplete="email" placeholder="new@example.com">
+        </div>
+        <div class="set-row">
+          <label>Пароль (для подтверждения)</label>
+          <input type="password" id="setEmailPassword" autocomplete="current-password" placeholder="Ваш пароль">
+        </div>
+        <div id="setEmailError" style="font-size:11px;color:#ef4444;margin-bottom:10px;min-height:14px;"></div>
+        <button class="set-save-btn" onclick="requestEmailChangeUI()">Отправить код подтверждения</button>
+      </div>
+
+      <div id="emailStep2" style="display:none;">
+        <div style="font-size:11px;color:#10b981;margin-bottom:10px;">Код отправлен на новый адрес. Введите его ниже.</div>
+        <div class="set-row">
+          <label>Код из письма</label>
+          <input type="text" inputmode="numeric" id="setEmailCode" placeholder="6-значный код" maxlength="6">
+        </div>
+        <div id="setEmailError2" style="font-size:11px;color:#ef4444;margin-bottom:10px;min-height:14px;"></div>
+        <button class="set-save-btn" onclick="confirmEmailChangeUI()">Подтвердить смену email</button>
+        <button class="set-save-btn" onclick="renderSettingsSecurityTab(document.getElementById('settingsContent'))" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);margin-top:8px;">Отмена</button>
       </div>
     </div>
   `;
+}
+
+async function requestEmailChangeUI() {
+  const email = (document.getElementById('setNewEmail').value || '').trim();
+  const pwd = (document.getElementById('setEmailPassword').value || '');
+  const err = document.getElementById('setEmailError');
+  err.textContent = '';
+  if (!email || !email.includes('@')) { err.textContent = 'Введите корректный email'; return; }
+  if (!pwd) { err.textContent = 'Введите пароль'; return; }
+  try {
+    await api.requestEmailChange(email, pwd);
+    document.getElementById('emailStep1').style.display = 'none';
+    document.getElementById('emailStep2').style.display = 'block';
+    showToast('Код отправлен на новый адрес');
+  } catch (e) {
+    err.textContent = e && e.detail ? e.detail : 'Не удалось отправить код';
+  }
+}
+
+async function confirmEmailChangeUI() {
+  const code = (document.getElementById('setEmailCode').value || '').trim();
+  const err = document.getElementById('setEmailError2');
+  err.textContent = '';
+  if (!code) { err.textContent = 'Введите код'; return; }
+  try {
+    const updated = await api.confirmEmailChange(code);
+    state.currentUser.email = updated.email;
+    showToast('Email изменён');
+    renderSettingsSecurityTab(document.getElementById('settingsContent'));
+  } catch (e) {
+    err.textContent = e && e.detail ? e.detail : 'Неверный код';
+  }
 }
 
 async function saveSettingsPassword() {
@@ -3389,6 +5616,114 @@ async function uploadAvatar(e) {
   }
 }
 
+async function showMyStatsModal() {
+  const ex = document.getElementById('myStatsModal');
+  if (ex) ex.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'myStatsModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:22px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h2 style="font-size:18px;font-weight:800;color:var(--accent);">Моя статистика</h2>
+      <button id="myStatsClose" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;width:32px;height:32px;border-radius:50%;">✕</button>
+    </div>
+    <div id="myStatsBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:24px;">Считаю…</div>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('myStatsClose').onclick = () => modal.remove();
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  // Подгружаем свежие данные
+  try { await loadHeatmapFromApi(); } catch (_) {}
+  let attempts = [];
+  try { attempts = await api.library.myQuizAttempts(); } catch (_) {}
+
+  const days = state.heatmapData || [];
+  const totalPages = days.reduce((s, d) => s + (d.pages || 0), 0);
+  const activeDays = days.filter(d => (d.pages || 0) > 0).length;
+  // Оценка часов: ~1.8 мин на страницу
+  const hours = Math.round((totalPages * 1.8 / 60) * 10) / 10;
+  const goal = (typeof getReadingGoal === 'function') ? getReadingGoal() : 20;
+
+  // Любимые категории — из mylist + books
+  const catCount = {};
+  Object.keys(state.mylist || {}).forEach(bid => {
+    const b = (state.books || []).find(x => String(x.id) === String(bid));
+    if (b) (b.categories || []).forEach(c => { catCount[c] = (catCount[c] || 0) + 1; });
+  });
+  const topCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  // Средний балл тестов
+  const avgQuiz = attempts.length
+    ? Math.round(attempts.reduce((s, a) => s + (a.percentage || 0), 0) / attempts.length)
+    : null;
+  const passedCount = attempts.filter(a => (a.percentage || 0) >= 60).length;
+
+  // Динамика по неделям (последние ~12 недель)
+  const weeks = [];
+  for (let i = 0; i < days.length; i += 7) {
+    const chunk = days.slice(i, i + 7);
+    weeks.push(chunk.reduce((s, d) => s + (d.pages || 0), 0));
+  }
+  const maxWeek = Math.max(1, ...weeks);
+
+  // Статусы книг
+  const statuses = Object.values(state.mylist || {});
+  const reading = statuses.filter(s => s === 'reading').length;
+  const completed = statuses.filter(s => s === 'completed').length;
+  const planned = statuses.filter(s => s === 'planned').length;
+
+  const card = (val, label, color) => `
+    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:24px;font-weight:800;color:${color};font-family:'JetBrains Mono',monospace;">${val}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${label}</div>
+    </div>`;
+
+  const body = document.getElementById('myStatsBody');
+  if (!body) return;
+  body.style.textAlign = 'left';
+  body.style.padding = '0';
+  body.style.color = 'var(--text-primary)';
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;">
+      ${card(totalPages, 'страниц прочитано', 'var(--accent)')}
+      ${card(hours + ' ч', 'примерно времени', '#a855f7')}
+      ${card(activeDays, 'активных дней', '#10b981')}
+      ${card(avgQuiz !== null ? avgQuiz + '%' : '—', 'средний балл тестов', '#f59e0b')}
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Динамика по неделям</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:90px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;">
+        ${weeks.map(w => `<div title="${w} стр." style="flex:1;min-width:4px;height:${Math.max(4, Math.round(w / maxWeek * 70))}px;background:var(--accent-gradient);border-radius:3px 3px 0 0;"></div>`).join('') || '<div style="margin:auto;color:var(--text-muted);font-size:11px;">Нет данных</div>'}
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Сумма страниц за каждую неделю (90 дней)</div>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Любимые категории</div>
+      ${topCats.length ? topCats.map(([cat, n]) => {
+        const pct = Math.round(n / topCats[0][1] * 100);
+        return `<div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>${eh(cat)}</span><span style="color:var(--text-muted);">${n}</span></div>
+          <div style="height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
+        </div>`;
+      }).join('') : '<div style="font-size:11px;color:var(--text-muted);">Добавь книги в список, чтобы увидеть категории</div>'}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      ${card(reading, 'читаю', '#3b82f6')}
+      ${card(completed, 'прочитано', '#10b981')}
+      ${card(planned, 'в планах', '#a855f7')}
+    </div>
+
+    <div style="margin-top:16px;font-size:11px;color:var(--text-muted);text-align:center;">
+      Тестов пройдено: ${passedCount} из ${attempts.length} · Цель: ${goal} стр./день
+    </div>
+  `;
+}
+
 function updateAvatar(id) {
   const el = document.getElementById(id);
   if (!el || !state.currentUser) return;
@@ -3570,6 +5905,7 @@ document.getElementById('detailTabs')?.addEventListener('click', e => {
   const el = document.getElementById(tabId);
   if (el) el.classList.remove('hidden');
   if (state.detailTab === 'reviews') { reviewRating = 0; renderReviews(); }
+  if (state.detailTab === 'discussion') renderDiscussion();
   if (state.detailTab === 'training') renderDetailTraining();
   if (state.detailTab === 'notes') renderDetailNotes();
 });
@@ -3630,13 +5966,102 @@ function renderBookInfo() {
             return `<button class="btn-detail" style="background:rgba(0,212,255,0.1);border:1px solid var(--accent);color:var(--accent);" onclick="openARWithScheme('killchain', ${stage.id})" title="Открыть схему Cyber Kill Chain на этапе «${eh(stage.nameRu)}»">${ICONS.target} Смотреть схему атаки</button>`;
           })()}
           ${isAdmin ? `<button class="btn-detail" style="background:linear-gradient(135deg,#00d4ff,#7c3aed);color:#fff;border:none;" onclick="openAdminBookModal(${b.id})">${ICONS.settings} Управление</button>` : ''}
+          <button class="btn-detail" style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.5);color:#c084fc;" onclick="openAddToCollection(${b.id})">${ICONS.bookmark || ''} В коллекцию</button>
         </div>
       </div>
-    </div>`;
+    </div>
+    <div id="alsoReadSection" style="margin-top:28px;"></div>`;
+  loadAlsoRead(currentBookId);
+}
+
+async function loadAlsoRead(bookId) {
+  const c = document.getElementById('alsoReadSection');
+  if (!c) return;
+  try {
+    const books = await api.library.alsoRead(bookId, 8);
+    if (!books || !books.length) { c.innerHTML = ''; return; }
+    c.innerHTML = `
+      <div class="section-title" style="margin-bottom:12px;">Также читают</div>
+      <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;">
+        ${books.map(b => `
+          <div onclick="openBookDetail(${b.id})" style="flex:0 0 auto;width:120px;cursor:pointer;">
+            <div style="width:120px;height:160px;border-radius:10px;overflow:hidden;background:var(--bg-primary);border:1px solid var(--border);margin-bottom:6px;">
+              ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px;">📕</div>`}
+            </div>
+            <div style="font-size:12px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${eh(b.title)}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${eh(b.author)}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  } catch (_) { c.innerHTML = ''; }
+}
+
+// ===== #9 Кастомные коллекции =====
+let _collectionsCache = null;
+async function getCollections(force) {
+  if (_collectionsCache && !force) return _collectionsCache;
+  try { _collectionsCache = await api.library.collections(); } catch (_) { _collectionsCache = []; }
+  return _collectionsCache;
+}
+
+async function openAddToCollection(bookId) {
+  const cols = await getCollections(true);
+  const ex = document.getElementById('addToColModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'addToColModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const rows = cols.map(col => {
+    const has = (col.book_ids || []).includes(bookId);
+    return `<button onclick="toggleBookInCollection(${col.id},${bookId},${has})" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${has ? 'var(--accent)' : 'var(--border)'};background:${has ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
+      <span>${col.icon || '📁'} ${eh(col.name)}</span><span style="color:var(--accent);font-weight:700;">${has ? '✓' : '+'}</span>
+    </button>`;
+  }).join('');
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">В коллекцию</h3>
+      <button onclick="document.getElementById('addToColModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div id="addToColRows">${rows || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">Пока нет коллекций</div>'}</div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input id="newColName" placeholder="Новая коллекция" style="flex:1;padding:10px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:13px;">
+      <button onclick="createCollectionFromModal(${bookId})" style="padding:10px 14px;background:var(--accent-gradient);border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Создать</button>
+    </div>
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+}
+
+async function toggleBookInCollection(colId, bookId, has) {
+  try {
+    if (has) await api.library.removeFromCollection(colId, bookId);
+    else await api.library.addToCollection(colId, bookId);
+    if (navigator.vibrate) navigator.vibrate(10);
+    await getCollections(true);
+    openAddToCollection(bookId); // перерисовать
+  } catch (_) { showToast('Ошибка'); }
+}
+
+async function createCollectionFromModal(bookId) {
+  const name = document.getElementById('newColName')?.value.trim();
+  if (!name) { showToast('Введите название'); return; }
+  try {
+    const col = await api.library.createCollection(name);
+    await api.library.addToCollection(col.id, bookId);
+    await getCollections(true);
+    showToast('Коллекция создана');
+    openAddToCollection(bookId);
+  } catch (err) {
+    showToast(err && err.detail ? err.detail : 'Не удалось создать');
+  }
 }
 
 function renderDetailTraining() {
   if (!currentBookId) return;
+  const isAdmin = state.currentUser?.role === 'admin';
+  const adminBtn = isAdmin
+    ? `<button onclick="regenerateBookQuiz(${currentBookId})" id="regenQuizBtn" style="margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.5);border-radius:10px;color:#c084fc;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">${ICONS.sparkles || ''}<span>Пересоздать тест (ИИ)</span></button>`
+    : '';
   const c = state.completedQuizzes[state.currentUser?.name] || [];
   if (c.includes(currentBookId)) {
     document.getElementById('detailTabTraining').innerHTML = `
@@ -3644,9 +6069,26 @@ function renderDetailTraining() {
         <div style="font-size:48px;">${ICONS.check}</div>
         <p>Пройдено!</p>
         <button class="btn-quiz primary" onclick="startQuiz(${currentBookId})" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">${ICONS.refresh}<span>Заново</span></button>
+        <div>${adminBtn}</div>
         </div>`;
   } else {
     startQuiz(currentBookId);
+  }
+}
+
+async function regenerateBookQuiz(bookId) {
+  if (!confirm('Пересоздать тест через ИИ? Старые вопросы будут заменены.')) return;
+  const btn = document.getElementById('regenQuizBtn');
+  if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Генерация…'; }
+  try {
+    const questions = await api.library.regenerateQuiz(bookId);
+    delete quizCache[bookId];
+    showToast(`Тест пересоздан: ${questions.length} вопросов`);
+    startQuiz(bookId);
+  } catch (err) {
+    const msg = (err && err.status) ? `Ошибка (${err.status})` : 'Не удалось пересоздать тест';
+    showToast(msg);
+    if (btn) { btn.disabled = false; btn.querySelector('span').textContent = 'Пересоздать тест (ИИ)'; }
   }
 }
 
@@ -3673,6 +6115,7 @@ async function loadProgressFromApi() {
         currentPage: p.current_page,
         totalPages: p.total_pages,
         started: p.started,
+        lastReadAt: p.last_read_at || null,
       };
     });
     return true;
@@ -3749,12 +6192,12 @@ async function loadOfflineBookIds() {
 }
 
 // Скачать книгу с бэка и сохранить в IndexedDB (файл + обложку + метаданные)
-async function saveBookOffline(bookId) {
+async function saveBookOffline(bookId, silent) {
   const book = state.books.find(b => b.id === bookId);
-  if (!book) return showToast('Книга не найдена');
-  if (!book.has_file) return showToast('У книги нет файла для скачивания');
+  if (!book) { if (!silent) showToast('Книга не найдена'); return; }
+  if (!book.has_file) { if (!silent) showToast('У книги нет файла для скачивания'); return; }
 
-  showToast('Скачиваем книгу...');
+  if (!silent) showToast('Скачиваем книгу...');
 
   try {
     // 1. Скачиваем сам файл (PDF или EPUB) как Blob
@@ -3781,7 +6224,7 @@ async function saveBookOffline(bookId) {
 
     // 4. Сообщаем юзеру и перерисовываем
     const sizeMB = (fileBlob.size / 1024 / 1024).toFixed(1);
-    showToast(`Сохранено оффлайн (${sizeMB} МБ)`);
+    if (!silent) showToast(`Сохранено оффлайн (${sizeMB} МБ)`);
 
     if (state.currentScreen === 'detail' && currentBookId === bookId) renderBookInfo();
     if (state.currentScreen === 'home') renderHome();
@@ -3963,10 +6406,16 @@ function showEpubSelectionPopup(selectedText, cfiRange, x, y, contents) {
 
   document.getElementById('epubBtnNote').onclick = async () => {
     hideEpubSelectionPopup();
-    const noteText = prompt('Заметка к выделению:', '');
-    if (noteText === null) return;  // отмена
-    await saveEpubAnnotation('note', selectedText, cfiRange, noteText.trim());
-    if (contents && contents.window) contents.window.getSelection().removeAllRanges();
+    const sel = selectedText, cfi = cfiRange, ctx = contents;
+    showPromptModal({
+      title: 'Заметка к выделению',
+      placeholder: 'Введите текст заметки…',
+      confirmText: 'Сохранить',
+      onConfirm: async (noteText) => {
+        await saveEpubAnnotation('note', sel, cfi, noteText || '');
+        if (ctx && ctx.window) ctx.window.getSelection().removeAllRanges();
+      },
+    });
   };
 
   // Авто-скрытие через 8 секунд
@@ -4129,6 +6578,7 @@ function updatePageIndicator() {
 
   const topIndicator = document.getElementById('pageIndicatorTop');
   if (topIndicator) topIndicator.textContent = `${current} / ${total}`;
+  if (typeof updateBookmarkIcon === 'function') updateBookmarkIcon();
 
   const overlayCurrent = document.getElementById('pageCurrent');
   const overlayTotal = document.getElementById('pageTotal');
@@ -4138,9 +6588,310 @@ function updatePageIndicator() {
   flashPageIndicator();
 }
 
+// ===== D: Закладки страниц (быстрый переход, отдельно от аннотаций) =====
+const PAGE_BOOKMARKS_KEY = 'aegis_page_bookmarks';
+function getPageBookmarks() {
+  try { return JSON.parse(localStorage.getItem(PAGE_BOOKMARKS_KEY) || '{}'); } catch (_) { return {}; }
+}
+function savePageBookmarks(obj) { localStorage.setItem(PAGE_BOOKMARKS_KEY, JSON.stringify(obj)); }
+function getBookBookmarks(bookId) {
+  const all = getPageBookmarks();
+  return all[bookId] || [];
+}
+function currentReaderPage() {
+  return isEpubMode ? epubCurrentPage : pdfCurrentPage;
+}
+function togglePageBookmark() {
+  if (!currentBookId) return;
+  const all = getPageBookmarks();
+  const page = currentReaderPage();
+  const list = all[currentBookId] || [];
+  const idx = list.indexOf(page);
+  if (idx >= 0) { list.splice(idx, 1); showToast('Закладка убрана'); }
+  else { list.push(page); list.sort((a, b) => a - b); showToast('Страница в закладках'); }
+  all[currentBookId] = list;
+  savePageBookmarks(all);
+  if (navigator.vibrate) navigator.vibrate(12);
+  updateBookmarkIcon();
+}
+function updateBookmarkIcon() {
+  const icon = document.getElementById('bookmarkIcon');
+  if (!icon || !currentBookId) return;
+  const has = getBookBookmarks(currentBookId).includes(currentReaderPage());
+  icon.setAttribute('fill', has ? 'var(--accent)' : 'none');
+  icon.setAttribute('stroke', has ? 'var(--accent)' : 'currentColor');
+}
+function openBookmarksList() {
+  if (!currentBookId) return;
+  const list = getBookBookmarks(currentBookId);
+  const ex = document.getElementById('bookmarksListModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'bookmarksListModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const rows = list.length
+    ? list.map(p => `<button onclick="jumpToBookmark(${p})" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
+        <span>${ICONS.bookmark} Страница ${p}</span>
+        <span onclick="event.stopPropagation();removeBookmark(${p})" style="color:#ef4444;font-size:16px;padding:0 6px;">✕</span>
+      </button>`).join('')
+    : '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Закладок пока нет. Нажмите на флажок в панели, чтобы добавить.</div>';
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:380px;width:100%;max-height:75vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Закладки</h3>
+      <button onclick="document.getElementById('bookmarksListModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div id="bookmarksListRows">${rows}</div>
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+}
+function jumpToBookmark(page) {
+  const m = document.getElementById('bookmarksListModal');
+  if (m) m.remove();
+  goToPage(page);
+}
+function removeBookmark(page) {
+  const all = getPageBookmarks();
+  all[currentBookId] = (all[currentBookId] || []).filter(p => p !== page);
+  savePageBookmarks(all);
+  updateBookmarkIcon();
+  openBookmarksList();
+}
+
+// ===== E2: Оглавление (TOC) с прогрессом по главам =====
+let _currentTOC = null;
+
+// ===== E3: Режим повторения (flashcards из заметок, spaced-repetition) =====
+const SRS_KEY = 'aegis_srs';            // {cardId: {box, due}}
+const SRS_BOXES = [1, 2, 4, 7, 14, 30]; // интервалы в днях по «коробкам» Лейтнера
+
+function getSRS() { try { return JSON.parse(localStorage.getItem(SRS_KEY) || '{}'); } catch (_) { return {}; } }
+function saveSRS(o) { localStorage.setItem(SRS_KEY, JSON.stringify(o)); }
+
+function _cardId(bookId, ann) { return `${bookId}:${ann.page}:${(ann.text || '').slice(0, 24)}`; }
+
+async function buildFlashcards() {
+  // Карточки из всех аннотаций книг в mylist: лицо = выделение, оборот = заметка/контекст
+  const cards = [];
+  const bookIds = Object.keys(state.mylist || {});
+  for (const bid of bookIds) {
+    let ann = [];
+    try { ann = await api.library.annotations(Number(bid)); } catch (_) { continue; }
+    const b = (state.books || []).find(x => String(x.id) === String(bid));
+    (ann || []).forEach(a => {
+      const text = a.selected_text || '';
+      const note = a.note_text || '';
+      if (!text && !note) return;
+      cards.push({
+        id: _cardId(bid, { page: a.page, text }),
+        bookTitle: b?.title || 'Книга',
+        page: a.page,
+        front: text || note,
+        back: note || `Стр. ${a.page} · ${b?.title || ''}`,
+      });
+    });
+  }
+  return cards;
+}
+
+function dueCards(cards) {
+  const srs = getSRS();
+  const now = Date.now();
+  // Карточка «к повторению», если её срок наступил или она новая
+  return cards.filter(c => {
+    const rec = srs[c.id];
+    if (!rec) return true;
+    return rec.due <= now;
+  });
+}
+
+let _reviewQueue = [];
+let _reviewIdx = 0;
+
+async function openReviewMode() {
+  const ex = document.getElementById('reviewModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'reviewModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="max-width:460px;width:100%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:16px;font-weight:800;color:#fff;">Повторение</h3>
+      <button onclick="document.getElementById('reviewModal').remove()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;cursor:pointer;font-size:18px;width:34px;height:34px;border-radius:50%;">✕</button>
+    </div>
+    <div id="reviewBody" style="color:#fff;text-align:center;padding:30px;">Готовлю карточки…</div>
+  </div>`;
+  document.body.appendChild(m);
+
+  const all = await buildFlashcards();
+  if (!all.length) {
+    document.getElementById('reviewBody').innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.7);">Нет карточек. Делайте выделения и заметки в книгах — они станут карточками для повторения.</div>';
+    return;
+  }
+  _reviewQueue = dueCards(all);
+  if (!_reviewQueue.length) {
+    document.getElementById('reviewBody').innerHTML = `<div style="padding:30px;color:rgba(255,255,255,0.7);">На сегодня всё повторено! 🎉<br><br>Всего карточек: ${all.length}. Возвращайтесь завтра.</div>`;
+    return;
+  }
+  _reviewIdx = 0;
+  renderReviewCard();
+}
+
+function renderReviewCard() {
+  const body = document.getElementById('reviewBody');
+  if (!body) return;
+  if (_reviewIdx >= _reviewQueue.length) {
+    body.innerHTML = `<div style="padding:30px;color:#fff;">Сессия завершена! 🎉<br><br>Повторено карточек: ${_reviewQueue.length}</div>`;
+    return;
+  }
+  const c = _reviewQueue[_reviewIdx];
+  body.innerHTML = `
+    <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:10px;">${_reviewIdx + 1} из ${_reviewQueue.length} · ${eh(c.bookTitle)}</div>
+    <div id="flashcard" onclick="flipFlashcard()" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:30px 22px;min-height:160px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:16px;">
+      <div id="flashFront" style="font-size:15px;line-height:1.5;color:var(--text-primary);">${eh(c.front)}</div>
+      <div id="flashBack" style="display:none;font-size:14px;line-height:1.5;color:var(--accent);">${eh(c.back)}</div>
+    </div>
+    <div id="flashHint" style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:14px;">Нажмите на карточку, чтобы увидеть ответ</div>
+    <div id="flashRating" style="display:none;gap:8px;">
+      <button onclick="rateCard(false)" style="flex:1;padding:14px;background:#ef444425;border:1px solid #ef444466;border-radius:10px;color:#ef4444;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Повторить ещё</button>
+      <button onclick="rateCard(true)" style="flex:1;padding:14px;background:#10b98125;border:1px solid #10b98166;border-radius:10px;color:#10b981;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Помню</button>
+    </div>`;
+}
+
+function flipFlashcard() {
+  const back = document.getElementById('flashBack');
+  const front = document.getElementById('flashFront');
+  const hint = document.getElementById('flashHint');
+  const rating = document.getElementById('flashRating');
+  if (!back) return;
+  front.style.display = 'none';
+  back.style.display = 'block';
+  if (hint) hint.style.display = 'none';
+  if (rating) rating.style.display = 'flex';
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
+function rateCard(remembered) {
+  const c = _reviewQueue[_reviewIdx];
+  const srs = getSRS();
+  const rec = srs[c.id] || { box: 0 };
+  if (remembered) rec.box = Math.min(rec.box + 1, SRS_BOXES.length - 1);
+  else rec.box = 0;
+  const days = SRS_BOXES[rec.box];
+  rec.due = Date.now() + days * 24 * 60 * 60 * 1000;
+  srs[c.id] = rec;
+  saveSRS(srs);
+  _reviewIdx++;
+  renderReviewCard();
+}
+
+async function buildTOC() {
+  // Возвращает [{title, page}] из PDF outline или EPUB navigation
+  const items = [];
+  try {
+    if (isEpubMode && epubBook) {
+      const nav = await epubBook.loaded.navigation;
+      (nav.toc || []).forEach((it, i) => {
+        items.push({ title: it.label.trim(), page: i + 1, href: it.href });
+      });
+    } else if (pdfDoc) {
+      const outline = await pdfDoc.getOutline();
+      if (outline) {
+        for (const it of outline) {
+          let page = null;
+          try {
+            if (it.dest) {
+              const dest = typeof it.dest === 'string' ? await pdfDoc.getDestination(it.dest) : it.dest;
+              if (dest && dest[0]) {
+                const idx = await pdfDoc.getPageIndex(dest[0]);
+                page = idx + 1;
+              }
+            }
+          } catch (_) {}
+          items.push({ title: it.title.trim(), page: page });
+        }
+      }
+    }
+  } catch (_) {}
+  return items;
+}
+
+const TOC_READ_KEY = 'aegis_toc_read';
+function getTocRead(bookId) {
+  try { return JSON.parse(localStorage.getItem(TOC_READ_KEY) || '{}')[bookId] || []; } catch (_) { return []; }
+}
+function toggleTocRead(bookId, idx) {
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(TOC_READ_KEY) || '{}'); } catch (_) {}
+  const list = all[bookId] || [];
+  const i = list.indexOf(idx);
+  if (i >= 0) list.splice(i, 1); else list.push(idx);
+  all[bookId] = list;
+  localStorage.setItem(TOC_READ_KEY, JSON.stringify(all));
+  if (navigator.vibrate) navigator.vibrate(8);
+  renderTocPanel();
+}
+
+async function openTOC() {
+  if (!currentBookId) return;
+  const ex = document.getElementById('tocModal');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'tocModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Оглавление</h3>
+      <button onclick="document.getElementById('tocModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div id="tocPanelBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загружаю оглавление…</div>
+  </div>`;
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  document.body.appendChild(m);
+  _currentTOC = await buildTOC();
+  renderTocPanel();
+}
+
+function renderTocPanel() {
+  const body = document.getElementById('tocPanelBody');
+  if (!body) return;
+  if (!_currentTOC || !_currentTOC.length) {
+    body.style.textAlign = 'center';
+    body.innerHTML = '<div style="padding:16px;color:var(--text-muted);">В этой книге нет встроенного оглавления.</div>';
+    return;
+  }
+  const read = getTocRead(currentBookId);
+  const total = _currentTOC.length;
+  const doneCount = read.length;
+  const pct = Math.round(doneCount / total * 100);
+  body.style.textAlign = 'left';
+  body.style.padding = '0';
+  body.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px;"><span>Прогресс по главам</span><span>${doneCount}/${total} · ${pct}%</span></div>
+      <div style="height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
+    </div>
+    ${_currentTOC.map((it, i) => {
+      const isRead = read.includes(i);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid var(--border);">
+        <button onclick="toggleTocRead(${currentBookId},${i})" title="Отметить прочитанным" style="width:22px;height:22px;flex-shrink:0;border-radius:6px;border:2px solid ${isRead ? 'var(--accent)' : 'var(--border-light)'};background:${isRead ? 'var(--accent)' : 'transparent'};color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;">${isRead ? '✓' : ''}</button>
+        <div onclick="${it.page ? `tocGoTo(${it.page})` : ''}" style="flex:1;cursor:${it.page ? 'pointer' : 'default'};font-size:13px;color:${isRead ? 'var(--text-muted)' : 'var(--text-primary)'};${isRead ? 'text-decoration:line-through;' : ''}">
+          ${eh(it.title)}${it.page ? `<span style="color:var(--text-muted);font-size:11px;"> · стр. ${it.page}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function tocGoTo(page) {
+  const m = document.getElementById('tocModal');
+  if (m) m.remove();
+  goToPage(page);
+}
+
 function goToPage(pn) {
   const total = isEpubMode ? (epubTotalPages || 1) : pdfTotalPages;
   const target = Math.max(1, Math.min(pn, total));
+  if (navigator.vibrate) navigator.vibrate(8);
 
   if (isEpubMode) {
     epubCurrentPage = target;
@@ -4208,6 +6959,11 @@ async function loadEpub(b) {
     }
 
     // 3. Рендерим EPUB
+    if (typeof ePub === 'undefined') {
+      showToast('EPUB-движок не загрузился. Проверьте интернет/доступ к CDN.');
+      closeReader();
+      return;
+    }
     epubBook = ePub(epubData);
     epubRendition = epubBook.renderTo(container, {
       width: '100%',
@@ -4308,6 +7064,10 @@ async function loadPdf(b) {
   }
 
   // Рендерим PDF
+  if (typeof pdfjsLib === 'undefined') {
+    showToast('PDF-движок не загрузился. Проверьте интернет/доступ к CDN.');
+    return;
+  }
   try {
     const loadingTask = pdfjsLib.getDocument({ data: bytes });
     pdfDoc = await loadingTask.promise;
@@ -4356,9 +7116,28 @@ async function renderPdfPage(pn) {
   const container = document.getElementById('pdfViewport');
   if (!container) return;
 
-  const containerWidth = container.clientWidth;
+  // Иногда clientWidth ещё 0/крошечный (рендер до раскладки) — подстраховываемся
+  // шириной окна, иначе страница выходит микроскопической в углу.
+  let containerWidth = container.clientWidth;
+  if (!containerWidth || containerWidth < 200) {
+    containerWidth = Math.min(window.innerWidth - 32, 1100);
+  }
   const isMobile = window.innerWidth < 700;
-  const targetWidth = isMobile ? containerWidth : Math.min(containerWidth, 900);
+  // На ПК страница ~в 2 раза меньше прежнего (масштаб браузера 100%).
+  let maxWidth;
+  if (isMobile) {
+    maxWidth = containerWidth;
+  } else if (window.innerWidth >= 1600) {
+    maxWidth = 650;
+  } else if (window.innerWidth >= 1024) {
+    maxWidth = 550;
+  } else {
+    maxWidth = 600;
+  }
+  let targetWidth = Math.min(containerWidth - (isMobile ? 0 : 24), maxWidth);
+  // Множитель размера шрифта из настроек (90–130%)
+  const fontScale = (parseInt(localStorage.getItem('aegis_reader_font') || '100', 10)) / 100;
+  targetWidth = Math.min(targetWidth * fontScale, containerWidth - (isMobile ? 0 : 12));
 
   const dpr = window.devicePixelRatio || 1;
   const scale = targetWidth / viewport1.width;
@@ -4388,20 +7167,25 @@ async function renderPdfPage(pn) {
   const textLayerDiv = document.getElementById('pdfTextLayer');
   if (textLayerDiv) {
     textLayerDiv.innerHTML = '';
-    // Точно совпадает с CSS-размерами canvas
-    const cssHeight = viewport.height;  // в CSS-пикселях, без DPR
+    const cssHeight = viewport.height;
+    // Читаем offsetLeft/Top ПОСЛЕ применения стилей canvas (через rAF),
+    // иначе margin:0 auto ещё не применён и слой уезжает.
+    await new Promise(r => requestAnimationFrame(r));
     textLayerDiv.style.position = 'absolute';
-    textLayerDiv.style.left = '50%';
-    textLayerDiv.style.top = '0';
-    textLayerDiv.style.transform = 'translateX(-50%)';
+    textLayerDiv.style.left = canvas.offsetLeft + 'px';
+    textLayerDiv.style.top = canvas.offsetTop + 'px';
+    textLayerDiv.style.transform = 'none';
     textLayerDiv.style.width = targetWidth + 'px';
     textLayerDiv.style.height = cssHeight + 'px';
     textLayerDiv.style.pointerEvents = 'auto';
-    // pdf.js требует --scale-factor для корректного позиционирования спанов
     textLayerDiv.style.setProperty('--scale-factor', String(viewport.scale));
 
     try {
       const textContent = await page.getTextContent();
+      // Сохраняем плоский текст страницы — ассистент сможет отвечать по нему
+      try {
+        readerCurrentPageText = (textContent.items || []).map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+      } catch (_) { readerCurrentPageText = ''; }
       pdfjsLib.renderTextLayer({
         textContentSource: textContent,
         container: textLayerDiv,
@@ -4808,7 +7592,95 @@ document.addEventListener('DOMContentLoaded', () => {
       closeReaderSearch();
     }
   });
+
+  initPullToRefresh();
+  initReaderBrightnessGesture();
 });
+
+// ===== A2: Pull-to-refresh на главной =====
+function initPullToRefresh() {
+  let startY = 0, pulling = false, indicator = null;
+  const THRESHOLD = 70;
+
+  function getScroller() {
+    // Тянем только когда на главной и страница вверху
+    if (state.currentScreen !== 'home') return null;
+    return document.scrollingElement || document.documentElement;
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    const sc = getScroller();
+    if (!sc || sc.scrollTop > 5) { pulling = false; return; }
+    startY = e.touches[0].clientY;
+    pulling = true;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 10) {
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:4000;background:var(--bg-elevated);border:1px solid var(--border);border-radius:0 0 14px 14px;padding:8px 18px;font-size:12px;color:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:opacity 0.2s;';
+        document.body.appendChild(indicator);
+      }
+      const ready = dy >= THRESHOLD;
+      indicator.textContent = ready ? '↓ Отпустите для обновления' : '↓ Потяните вниз';
+      indicator.style.opacity = Math.min(1, dy / THRESHOLD);
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', async (e) => {
+    if (!pulling || !indicator) { pulling = false; return; }
+    const dy = (e.changedTouches[0]?.clientY || 0) - startY;
+    const ind = indicator;
+    indicator = null; pulling = false;
+    if (dy >= THRESHOLD) {
+      ind.textContent = '⟳ Обновляю…';
+      if (navigator.vibrate) navigator.vibrate(15);
+      try {
+        await Promise.allSettled([
+          loadBooksFromApi?.(),
+          loadMyListFromApi?.(),
+          loadProgressFromApi?.(),
+        ]);
+        if (typeof renderHome === 'function') renderHome();
+        showToast('Обновлено');
+      } catch (_) {}
+    }
+    ind.style.opacity = '0';
+    setTimeout(() => ind.remove(), 250);
+  });
+}
+
+// ===== A2: Gesture-zone яркости (вертикальный свайп слева в читалке) =====
+let readerBrightness = parseFloat(localStorage.getItem('aegis_reader_brightness') || '1');
+function applyReaderBrightness() {
+  const vp = document.getElementById('pdfViewport');
+  const ep = document.getElementById('epubViewport');
+  [vp, ep].forEach(el => { if (el) el.style.filter = `brightness(${readerBrightness})`; });
+}
+function initReaderBrightnessGesture() {
+  const zone = document.getElementById('tapZoneLeft');
+  if (!zone) return;
+  let startY = 0, startB = 1, active = false;
+  zone.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY; startB = readerBrightness; active = true;
+  }, { passive: true });
+  zone.addEventListener('touchmove', (e) => {
+    if (!active) return;
+    const dy = startY - e.touches[0].clientY;       // вверх = ярче
+    const delta = dy / 300;                          // чувствительность
+    readerBrightness = Math.max(0.4, Math.min(1.6, startB + delta));
+    applyReaderBrightness();
+    if (Math.abs(dy) > 12) e.stopPropagation();      // чтобы не сработал тап-переход
+  }, { passive: true });
+  zone.addEventListener('touchend', () => {
+    if (active) localStorage.setItem('aegis_reader_brightness', String(readerBrightness));
+    active = false;
+  });
+  applyReaderBrightness();
+}
 
 // Ctrl+F / Cmd+F в читалке открывает панель
 document.addEventListener('keydown', (e) => {
@@ -4884,7 +7756,74 @@ document.addEventListener('mouseup', function (e) {
   }
 });
 
-function highlightSelection() {
+// ===== A1: ИИ-функции читалки (словарь / объяснение / конспект) =====
+function showReaderAiPopup(title, loadingText) {
+  const ex = document.getElementById('readerAiPopup');
+  if (ex) ex.remove();
+  const p = document.createElement('div');
+  p.id = 'readerAiPopup';
+  p.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  p.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="font-size:15px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:6px;">${ICONS.sparkles || ''}<span>${eh(title)}</span></h3>
+      <button onclick="document.getElementById('readerAiPopup').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:50%;">✕</button>
+    </div>
+    <div id="readerAiContent" style="font-size:13px;line-height:1.6;color:var(--text-primary);">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);"><span class="ai-spinner" style="width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin 0.7s linear infinite;"></span>${eh(loadingText)}</div>
+    </div>
+  </div>`;
+  p.onclick = (e) => { if (e.target === p) p.remove(); };
+  document.body.appendChild(p);
+}
+
+async function runReaderAi(prompt, title, loading) {
+  if (navigator.vibrate) navigator.vibrate(10);
+  const tb = document.getElementById('selectionToolbar');
+  if (tb) tb.style.display = 'none';
+  showReaderAiPopup(title, loading);
+  try {
+    const ctx = buildAssistantContext(prompt);
+    const data = await api.assistantChat([{ role: 'user', content: prompt }], ctx);
+    const text = (data && (data.reply || data.content || data.message)) || (typeof data === 'string' ? data : '');
+    const el = document.getElementById('readerAiContent');
+    if (el) el.innerHTML = (typeof mdAssistant === 'function') ? mdAssistant(text) : eh(text).replace(/\n/g, '<br>');
+  } catch (err) {
+    const el = document.getElementById('readerAiContent');
+    if (el) el.innerHTML = `<div style="color:#ef4444;">Не удалось получить ответ. ${err && err.status ? '(' + err.status + ')' : ''}</div>`;
+  }
+}
+
+function lookupSelectionWord() {
+  const word = (lastSelection?.text || '').trim();
+  if (!word) return;
+  runReaderAi(
+    `Дай краткое определение и перевод термина «${word}» в контексте информационной безопасности. Коротко: 1) определение одним-двумя предложениями, 2) перевод на английский если термин русский (или на русский если английский).`,
+    'Словарь: ' + (word.length > 30 ? word.slice(0, 30) + '…' : word),
+    'Ищу определение…'
+  );
+}
+
+function explainSelectionTerm() {
+  const term = (lastSelection?.text || '').trim();
+  if (!term) return;
+  runReaderAi(
+    `Объясни простыми словами, что означает «${term}» в контексте этой книги по кибербезопасности. Приведи короткий пример. Не более 4 предложений.`,
+    'Объяснение',
+    'Объясняю…'
+  );
+}
+
+function summarizeCurrentChapter() {
+  const pageText = (readerCurrentPageText || '').trim();
+  if (!pageText) { showToast('Нет текста страницы для конспекта'); return; }
+  runReaderAi(
+    `Сделай краткое содержание этого фрагмента одним абзацем (3-4 предложения), выделив главную мысль:\n\n${pageText.slice(0, 4000)}`,
+    'Краткое содержание',
+    'Составляю конспект…'
+  );
+}
+
+function highlightSelection(color) {
   if (!lastSelection || !currentBookId || isEpubMode) return;
   const v = document.getElementById('pdfViewport');
   const vr = v.getBoundingClientRect();
@@ -4894,28 +7833,38 @@ function highlightSelection() {
     y: (r.top - vr.top) / v.scrollHeight * 100,
     w: r.width / v.scrollWidth * 100,
     h: r.height / v.scrollHeight * 100,
+    color: color || '#fbbf24',
   });
   document.getElementById('selectionToolbar').style.display = 'none';
   window.getSelection().removeAllRanges();
+  if (navigator.vibrate) navigator.vibrate(15);
   showToast('Выделено!');
 }
 
 function addNoteToSelection() {
   if (!lastSelection || !currentBookId || isEpubMode) return;
-  const n = prompt('Заметка:', '');
-  if (!n?.trim()) return;
+  const sel = lastSelection;  // фиксируем выделение, т.к. модалка асинхронная
   const v = document.getElementById('pdfViewport');
-  const vr = v.getBoundingClientRect();
-  const r = lastSelection.range.getBoundingClientRect();
-  addNote(currentBookId, lastSelection.text, n.trim(), pdfCurrentPage, {
-    x: (r.left - vr.left) / v.scrollWidth * 100,
-    y: (r.top - vr.top) / v.scrollHeight * 100,
-    w: r.width / v.scrollWidth * 100,
-    h: r.height / v.scrollHeight * 100,
-  });
+  const page = pdfCurrentPage;
   document.getElementById('selectionToolbar').style.display = 'none';
-  window.getSelection().removeAllRanges();
-  showToast('Заметка!');
+  showPromptModal({
+    title: 'Заметка к выделенному тексту',
+    placeholder: 'Введите текст заметки…',
+    confirmText: 'Сохранить',
+    onConfirm: (n) => {
+      if (!n) return;
+      const vr = v.getBoundingClientRect();
+      const r = sel.range.getBoundingClientRect();
+      addNote(currentBookId, sel.text, n, page, {
+        x: (r.left - vr.left) / v.scrollWidth * 100,
+        y: (r.top - vr.top) / v.scrollHeight * 100,
+        w: r.width / v.scrollWidth * 100,
+        h: r.height / v.scrollHeight * 100,
+      });
+      window.getSelection().removeAllRanges();
+      showToast('Заметка сохранена');
+    },
+  });
 }
 
 // ========== ADD BOOK MODAL ==========
@@ -5426,6 +8375,47 @@ function showConfirmModal({ title, message, confirmText = 'OK', cancelText = 'О
   document.addEventListener('keydown', escHandler);
 }
 
+// In-app аналог prompt() — чтобы не выскакивало нативное окно браузера
+function showPromptModal({ title, placeholder = '', value = '', confirmText = 'Сохранить', cancelText = 'Отмена', multiline = true, onConfirm }) {
+  const ex = document.getElementById('promptModal');
+  if (ex) ex.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'promptModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn 0.15s ease;';
+
+  const field = multiline
+    ? `<textarea id="promptInput" rows="3" placeholder="${eh(placeholder)}" style="width:100%;resize:vertical;min-height:70px;">${eh(value)}</textarea>`
+    : `<input id="promptInput" type="text" placeholder="${eh(placeholder)}" value="${eh(value)}" style="width:100%;">`;
+
+  modal.innerHTML = `
+    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:var(--text-primary);">${eh(title)}</h3>
+      ${field}
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+        <button id="promptCancelBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(cancelText)}</button>
+        <button id="promptOkBtn" style="background:var(--accent-gradient);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(confirmText)}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const input = document.getElementById('promptInput');
+  setTimeout(() => input?.focus(), 50);
+  const close = () => modal.remove();
+  document.getElementById('promptCancelBtn').onclick = close;
+  document.getElementById('promptOkBtn').onclick = () => {
+    const val = (input.value || '').trim();
+    close();
+    if (typeof onConfirm === 'function') onConfirm(val);
+  };
+  modal.onclick = (e) => { if (e.target === modal) close(); };
+  const escHandler = (e) => {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
+    if (e.key === 'Enter' && !multiline) { document.getElementById('promptOkBtn').click(); }
+  };
+  document.addEventListener('keydown', escHandler);
+}
+
 document.getElementById('adminDeleteFileBtn').addEventListener('click', async () => {
   if (!adminBookModalCurrentId) return;
   if (!confirm('Удалить файл книги? Файл будет удалён с сервера.')) return;
@@ -5648,11 +8638,25 @@ function showToast(m) {
   }, 2500);
 }
 
-// ========== AI PANEL ==========
+// ========== AI PANEL (читалка) — на общем бэкенд-движке ==========
+let readerAiMessages = [];
+let readerAiBusy = false;
+
 function toggleAIPanel() {
   state.aiOpen = !state.aiOpen;
   document.getElementById('aiPanel').classList.toggle('show', state.aiOpen);
   document.getElementById('aiOverlay').classList.toggle('show', state.aiOpen);
+  if (state.aiOpen) {
+    const surface = assistantSurface('reader');
+    if (surface.messages.length === 0) {
+      surface.messages.push({
+        role: 'assistant',
+        content: 'Привет! Я AI-ассистент Aegis. Спроси про книгу, попроси саммари, тест или рекомендации.'
+      });
+    }
+    assistantRender(surface);
+    setTimeout(() => document.getElementById('aiInput')?.focus(), 100);
+  }
 }
 
 function closeAIPanel() {
@@ -5663,30 +8667,15 @@ function closeAIPanel() {
 }
 
 function sendAIMessage() {
-  const i = document.getElementById('aiInput'), t = i.value.trim();
-  if (!t) return;
-  addAIMsg(t, 'user');
-  i.value = '';
-  setTimeout(() => addAIMsg(generateAIResponse(t), 'bot'), 600);
+  const surface = assistantSurface('reader');
+  const input = surface.inputEl();
+  const text = input ? input.value : '';
+  if (input) input.value = '';
+  assistantSend(surface, text);
 }
 
-function addAIMsg(t, c) {
-  const ch = document.getElementById('aiChat'),
-        m = document.createElement('div');
-  m.className = 'ai-msg ' + c;
-  m.textContent = t;
-  ch.appendChild(m);
-  ch.scrollTop = ch.scrollHeight;
-}
-
-function aiQuick(a) {
-  document.getElementById('aiInput').value = {
-    summarize: 'Опиши книгу',
-    quiz: 'Тест',
-    recommend: 'Что почитать?',
-    progress: 'Прогресс'
-  }[a] || a;
-  sendAIMessage();
+function aiQuick(action) {
+  assistantHandleQuick(assistantSurface('reader'), action);
 }
 
 // ========== SHORTCUTS MODAL ==========
@@ -5777,6 +8766,14 @@ function renderAdminBooks() {
       <button onclick="openBulkUploadModal()" style="background:var(--accent-gradient);border:none;color:#000;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/><path d="M12 5v8"/><path d="M8 9l4-4 4 4"/></svg>
         Массовая загрузка
+      </button>
+      <button onclick="reindexAllBooksUI()" title="Переиндексировать текст всех книг для поиска" style="background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.4);color:var(--accent);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Индексировать поиск
+      </button>
+      <button onclick="openAdminLogs()" title="Журнал действий администраторов" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Журнал
       </button>
     </div>
     <div class="table-wrap">

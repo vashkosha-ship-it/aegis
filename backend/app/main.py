@@ -83,6 +83,20 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+# --- Дополнительные роутеры (группы C и E) ---
+# Подключаем напрямую, чтобы не зависеть от сборки api_router.
+# Префикс /api — как у остального API (api_router его уже добавляет своим роутерам,
+# поэтому здесь указываем явно).
+from app.api.collections import router as collections_router  # noqa: E402
+from app.api.chats import router as chats_router  # noqa: E402
+from app.api.discussions import router as discussions_router  # noqa: E402
+from app.api.search import router as search_router  # noqa: E402
+
+app.include_router(collections_router, prefix="/api")
+app.include_router(chats_router, prefix="/api")
+app.include_router(discussions_router, prefix="/api")
+app.include_router(search_router, prefix="/api")
+
 
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:

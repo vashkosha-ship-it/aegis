@@ -75,3 +75,37 @@ class LoginRateLimiter:
 
 # Singleton — один на процесс
 login_limiter = LoginRateLimiter()
+
+class AssistantRateLimiter:
+    """Rate limiter для AI-ассистента: ограничиваем запросы по user_id."""
+
+    def __init__(self, max_requests: int = 20, window_seconds: int = 3600):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self._store: dict[int, list[float]] = {}
+        self._lock = Lock()
+
+    def check_allowed(self, user_id: int) -> tuple[bool, int]:
+        """(allowed, seconds_until_reset). Если allowed=False — указывает когда снова можно."""
+        now = time.time()
+        with self._lock:
+            history = self._store.get(user_id, [])
+            # Чистим старые
+            history = [t for t in history if now - t < self.window_seconds]
+            if len(history) >= self.max_requests:
+                oldest = history[0]
+                wait = int(self.window_seconds - (now - oldest))
+                return False, max(wait, 1)
+            self._store[user_id] = history
+            return True, 0
+
+    def record(self, user_id: int) -> None:
+        now = time.time()
+        with self._lock:
+            history = self._store.get(user_id, [])
+            history = [t for t in history if now - t < self.window_seconds]
+            history.append(now)
+            self._store[user_id] = history
+
+
+assistant_limiter = AssistantRateLimiter(max_requests=20, window_seconds=3600)

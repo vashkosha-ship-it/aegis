@@ -126,12 +126,64 @@
       // payload: {full_name?: string|null}
       return request('/me', { method: 'PATCH', body: payload });
     },
-
+    assistantChat(messages, context = {}) {
+          return request('/me/assistant/chat', {
+            method: 'POST',
+            body: { messages, ...context },
+          });
+        },
+    // Streaming: вызывает onDelta(piece) по мере прихода кусков, возвращает полный текст
+    async assistantChatStream(messages, context = {}, onDelta, signal) {
+      const url = BASE + '/me/assistant/chat/stream';
+      const headers = { 'Content-Type': 'application/json' };
+      if (tokens.access) headers['Authorization'] = 'Bearer ' + tokens.access;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ messages, ...context }),
+        signal,
+      });
+      if (resp.status === 401 && tokens.refresh) {
+        const ok = await tryRefresh();
+        if (ok) return api.assistantChatStream(messages, context, onDelta, signal);
+      }
+      if (!resp.ok) {
+        let detail = null; try { detail = (await resp.json()).detail; } catch (_) {}
+        throw new ApiError(resp.status, detail);
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '', full = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const json = trimmed.slice(5).trim();
+          try {
+            const obj = JSON.parse(json);
+            if (obj.delta) { full += obj.delta; if (onDelta) onDelta(obj.delta, full); }
+            else if (obj.error) { throw new ApiError(502, obj.error); }
+          } catch (e) { if (e instanceof ApiError) throw e; }
+        }
+      }
+      return full;
+    },
     changePassword(currentPassword, newPassword) {
       return request('/me/password', {
         method: 'POST',
         body: { current_password: currentPassword, new_password: newPassword },
       });
+    },
+    requestEmailChange(newEmail, password) {
+      return request('/me/email/request', { method: 'POST', body: { new_email: newEmail, password } });
+    },
+    confirmEmailChange(code) {
+      return request('/me/email/confirm', { method: 'POST', body: { code } });
     },
 
     uploadAvatar(file) {
@@ -246,6 +298,40 @@
       },
       // Quizzes
       quiz(bookId) { return request('/books/' + bookId + '/quiz'); },
+      regenerateQuiz(bookId) { return request('/books/' + bookId + '/quiz/regenerate', { method: 'POST' }); },
+      // Collaborative filtering: «также читают»
+      alsoRead(bookId, limit = 8) { return request('/books/' + bookId + '/also-read?limit=' + limit); },
+      // Кастомные коллекции
+      collections() { return request('/me/collections'); },
+      createCollection(name, icon = '📁') { return request('/me/collections', { method: 'POST', body: { name, icon } }); },
+      updateCollection(id, payload) { return request('/me/collections/' + id, { method: 'PATCH', body: payload }); },
+      deleteCollection(id) { return request('/me/collections/' + id, { method: 'DELETE' }); },
+      addToCollection(id, bookId) { return request('/me/collections/' + id + '/books/' + bookId, { method: 'PUT' }); },
+      removeFromCollection(id, bookId) { return request('/me/collections/' + id + '/books/' + bookId, { method: 'DELETE' }); },
+      // Публичный профиль (с маскировкой email)
+      publicProfile(userId) { return request('/users/' + userId + '/profile'); },
+      // Удаление аккаунта
+      deleteAccount(password, confirm) { return request('/me/delete', { method: 'POST', body: { password, confirm } }); },
+      // E1: история диалогов AI
+      chats() { return request('/me/chats'); },
+      chat(id) { return request('/me/chats/' + id); },
+      createChat(messages, title) { return request('/me/chats', { method: 'POST', body: { title: title || 'Новый диалог', messages } }); },
+      syncChatMessages(id, messages) { return request('/me/chats/' + id + '/messages', { method: 'PUT', body: messages }); },
+      renameChat(id, title) { return request('/me/chats/' + id, { method: 'PATCH', body: { title } }); },
+      deleteChat(id) { return request('/me/chats/' + id, { method: 'DELETE' }); },
+      // E4: обязательные книги
+      setRequiredBook(bookId, department) { return request('/books/' + bookId + '/required', { method: 'POST', body: { department } }); },
+      myRequiredBooks() { return request('/books/required/mine'); },
+      // Полнотекстовый поиск по содержимому и метаданным
+      searchBooks(query, limit = 20) { return request('/search?q=' + encodeURIComponent(query) + '&limit=' + limit); },
+      // Переиндексация (админ)
+      reindexBook(bookId) { return request('/books/' + bookId + '/reindex', { method: 'POST' }); },
+      reindexAllBooks() { return request('/books/reindex-all', { method: 'POST' }); },
+      adminLogs(limit = 50) { return request('/books/admin/logs?limit=' + limit); },
+      // Обсуждения книги
+      bookComments(bookId) { return request('/books/' + bookId + '/comments'); },
+      addBookComment(bookId, text, parentId) { return request('/books/' + bookId + '/comments', { method: 'POST', body: { text, parent_id: parentId || null } }); },
+      deleteBookComment(bookId, commentId) { return request('/books/' + bookId + '/comments/' + commentId, { method: 'DELETE' }); },
       submitQuiz(bookId, answers) {
         return request('/books/' + bookId + '/quiz/submit', {
           method: 'POST',

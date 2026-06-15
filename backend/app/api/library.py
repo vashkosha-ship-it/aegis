@@ -451,8 +451,8 @@ async def get_day_stats(
         .join(Book, Book.id == QuizAttempt.book_id)
         .where(
             QuizAttempt.user_id == current.id,
-            QuizAttempt.created_at >= day_start,
-            QuizAttempt.created_at < day_end,
+            QuizAttempt.completed_at >= day_start,
+            QuizAttempt.completed_at < day_end,
         )
     )
     quizzes_data = quiz_rows.all()

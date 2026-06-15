@@ -43,8 +43,23 @@ class Settings(BaseSettings):
     S3_BUCKET_BOOKS: str = "neon-books"
     S3_REGION: str = "us-east-1"
 
+    # --- SMTP (отправка писем: подтверждение смены email) -------------------
+    # Если SMTP_HOST пуст — отправка отключена, код смены пишется в лог (dev-режим).
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "Aegis <noreply@aegis.local>"
+    SMTP_TLS: bool = True
+    # База для ссылок в письмах (фронт)
+    FRONTEND_BASE_URL: str = "http://localhost:5173"
+
     # AI — пригодится на Этапе 3
     ANTHROPIC_API_KEY: str = ""
+
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
 
     # --- удобные derived-проперти -------------------------------------------
     @property

@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-69';
+const CACHE_NAME = 'aegis-cache-v126';
 
 // Ресурсы для предварительного кэширования
 const PRECACHE_URLS = [
@@ -10,21 +10,26 @@ const PRECACHE_URLS = [
   '/api.js',
   '/app.js',
   '/manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-  'https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap',
+  '/vendor/pdf.min.js',
+  '/vendor/pdf.worker.min.js',
+  '/vendor/pdf_viewer.min.css',
+  '/vendor/epub.min.js',
+  '/vendor/chart.umd.min.js',
 ];
 
 // Установка: кэшируем статику
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Кэширую статические ресурсы (v2)');
-      return cache.addAll(PRECACHE_URLS).catch((err) => {
-        console.warn('[SW] Не удалось закэшировать некоторые ресурсы:', err);
-      });
+      console.log('[SW] Кэширую статические ресурсы (v3)');
+      // Кэшируем поштучно: один сбойный файл не ломает весь прекэш
+      return Promise.all(
+        PRECACHE_URLS.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('[SW] Пропущен ресурс при кэшировании:', url, err.message);
+          })
+        )
+      );
     })
   );
   self.skipWaiting();
@@ -58,7 +63,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Для статики — Cache First с fallback
+  // Собственные файлы приложения (свой origin) — NETWORK FIRST.
+  // Иначе обновлённые app.js/styles.css/index.html не подхватываются:
+  // SW отдаёт старую закэшированную версию навсегда. Теперь всегда берём
+  // свежую версию из сети, а кэш используем только как офлайн-фолбэк.
+  const isSameOrigin = url.origin === self.location.origin;
+  if (isSameOrigin) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (event.request.method === 'GET' && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.destination === 'document' ||
+              event.request.headers.get('accept')?.includes('text/html')) {
+            return caches.match('/offline.html');
+          }
+          return new Response('Оффлайн', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+        });
+      })
+    );
+    return;
+  }
+
+  // Внешние библиотеки (CDN, шрифты) — CACHE FIRST (они не меняются).
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -70,8 +102,7 @@ self.addEventListener('fetch', (event) => {
         if (
           event.request.method === 'GET' &&
           response.status === 200 &&
-          (url.pathname.startsWith('/') ||
-           url.hostname.includes('cdnjs.cloudflare.com') ||
+          (url.hostname.includes('cdnjs.cloudflare.com') ||
            url.hostname.includes('cdn.jsdelivr.net') ||
            url.hostname.includes('fonts.googleapis.com') ||
            url.hostname.includes('fonts.gstatic.com'))

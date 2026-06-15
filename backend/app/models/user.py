@@ -46,6 +46,11 @@ class User(Base):
     topic_scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     level_assessed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Смена email с подтверждением (G/SMTP)
+    pending_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email_change_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    email_change_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

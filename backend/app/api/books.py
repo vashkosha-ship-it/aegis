@@ -191,13 +191,120 @@ async def get_book(
     return _to_public(book)
 
 
+@router.get("/{book_id}/also-read", response_model=list[BookPublic])
+async def also_read(
+    book_id: int,
+    limit: int = 8,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[BookPublic]:
+    """Collaborative filtering: «люди, читающие эту книгу, также читают…».
+
+    Находим пользователей, у которых эта книга в списке, и собираем другие
+    книги из их списков, ранжируя по частоте пересечений.
+    """
+    from app.models.library import MyListEntry
+
+    # Пользователи, у которых текущая книга в mylist
+    user_ids_subq = (
+        select(MyListEntry.user_id)
+        .where(MyListEntry.book_id == book_id)
+        .subquery()
+    )
+
+    # Другие книги этих пользователей, ранжированные по количеству пользователей
+    freq_q = (
+        select(MyListEntry.book_id, func.count(MyListEntry.user_id).label("cnt"))
+        .where(
+            MyListEntry.user_id.in_(select(user_ids_subq)),
+            MyListEntry.book_id != book_id,
+        )
+        .group_by(MyListEntry.book_id)
+        .order_by(desc("cnt"))
+        .limit(limit)
+    )
+    rows = (await db.execute(freq_q)).all()
+    book_ids = [r[0] for r in rows]
+
+    if not book_ids:
+        return []
+
+    books = (
+        await db.scalars(
+            select(Book).options(selectinload(Book.categories)).where(Book.id.in_(book_ids))
+        )
+    ).all()
+    # сохраняем порядок по частоте
+    order = {bid: i for i, bid in enumerate(book_ids)}
+    books_sorted = sorted(books, key=lambda b: order.get(b.id, 999))
+    return [_to_public(b) for b in books_sorted]
+
+
+# ---- E4: обязательные книги для подразделения ----
+from pydantic import BaseModel as _BaseModel  # noqa: E402
+
+
+class RequiredBookSet(_BaseModel):
+    department: str | None = None  # None — снять обязательность
+
+
+class RequiredBookBrief(_BaseModel):
+    id: int
+    title: str
+    author: str
+    required_for_department: str | None = None
+
+
+@router.post("/{book_id}/required", response_model=RequiredBookBrief)
+async def set_required(
+    book_id: int,
+    payload: RequiredBookSet,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> RequiredBookBrief:
+    """Admin only: пометить книгу обязательной для подразделения (или снять)."""
+    book = await _get_book_or_404(db, book_id)
+    book.required_for_department = (payload.department or None)
+    await db.commit()
+    await db.refresh(book)
+    return RequiredBookBrief(
+        id=book.id, title=book.title, author=book.author,
+        required_for_department=book.required_for_department,
+    )
+
+
+@router.get("/required/mine", response_model=list[RequiredBookBrief])
+async def my_required_books(
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> list[RequiredBookBrief]:
+    """Книги, обязательные для подразделения текущего пользователя."""
+    if not current.department:
+        return []
+    rows = (
+        await db.scalars(
+            select(Book).where(Book.required_for_department == current.department)
+        )
+    ).all()
+    return [
+        RequiredBookBrief(
+            id=b.id, title=b.title, author=b.author,
+            required_for_department=b.required_for_department,
+        )
+        for b in rows
+    ]
+
+
+
 @router.post("", response_model=BookPublic, status_code=status.HTTP_201_CREATED)
 async def create_book(
     payload: BookCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> BookPublic:
     """Admin only: create a new book record."""
+    from app.services.admin_audit import log_admin_action
+
     # Распаковываем без поля categories — оно обрабатывается отдельно
     data = payload.model_dump(exclude={"categories"})
     book = Book(**data)
@@ -209,6 +316,8 @@ async def create_book(
     db.add(book)
     await db.commit()
     await db.refresh(book)
+    await log_admin_action(db, admin, "book_create", target=f"book:{book.id}", detail=f"Создана книга «{book.title}»")
+    await db.commit()
     return _to_public(book)
 
 
@@ -217,9 +326,11 @@ async def update_book(
     book_id: int,
     payload: BookUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> BookPublic:
     """Admin only: update book fields."""
+    from app.services.admin_audit import log_admin_action
+
     book = await _get_book_or_404(db, book_id)
     
     update_data = payload.model_dump(exclude_unset=True)
@@ -235,6 +346,8 @@ async def update_book(
     
     await db.commit()
     await db.refresh(book)
+    await log_admin_action(db, admin, "book_update", target=f"book:{book.id}", detail=f"Изменена книга «{book.title}»")
+    await db.commit()
     return _to_public(book)
 
 
@@ -242,17 +355,22 @@ async def update_book(
 async def delete_book(
     book_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
     storage: StorageBackend = Depends(get_storage),
 ) -> None:
     """Admin only: delete a book and all related records (cascade) + связанные файлы."""
+    from app.services.admin_audit import log_admin_action
+
     book = await _get_book_or_404(db, book_id)
+    book_title = book.title
 
     # Запоминаем ключи до коммита БД.
     pdf_key = book.pdf_storage_key
     cover_key = book.cover_storage_key
 
     await db.delete(book)
+    await db.commit()
+    await log_admin_action(db, admin, "book_delete", target=f"book:{book_id}", detail=f"Удалена книга «{book_title}»")
     await db.commit()
 
     # Файлы чистим ПОСЛЕ успешного удаления из БД.
@@ -341,6 +459,67 @@ async def upload_book_pdf(
     )
 
 
+# ============================================================================
+# Полнотекстовый поиск: индексация содержимого книг (H)
+# ============================================================================
+
+
+async def _read_storage_bytes(storage, key: str) -> bytes:
+    """Прочитать весь файл из storage в память (для индексации)."""
+    chunks = await storage.open_stream(key)
+    buf = bytearray()
+    async for chunk in chunks:
+        buf.extend(chunk)
+    return bytes(buf)
+
+
+@router.post("/{book_id}/reindex")
+async def reindex_book(
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> dict:
+    """Admin only: переиндексировать текст книги для полнотекстового поиска."""
+    from app.services.search_index import index_book_content
+
+    book = await _get_book_or_404(db, book_id)
+    if not book.pdf_storage_key:
+        raise HTTPException(status_code=400, detail="У книги нет PDF для индексации")
+
+    try:
+        data = await _read_storage_bytes(storage, book.pdf_storage_key)
+    except StorageNotFound:
+        raise HTTPException(status_code=404, detail="PDF-файл не найден в хранилище") from None
+
+    pages = await index_book_content(db, book_id, data)
+    return {"book_id": book_id, "indexed_pages": pages}
+
+
+@router.post("/reindex-all")
+async def reindex_all_books(
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Admin only: запустить фоновую индексацию всех книг с PDF.
+
+    Возвращает сразу, не дожидаясь завершения. Прогресс — через /books/reindex/status.
+    """
+    from app.services.search_worker import start_reindex_all
+
+    return await start_reindex_all()
+
+
+@router.get("/reindex/status")
+async def reindex_status(
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Admin only: текущий статус фоновой индексации."""
+    from app.services.search_worker import get_index_status
+
+    return get_index_status()
+
+
+
 @router.get("/{book_id}/pdf")
 async def download_book_pdf(
     book_id: int,
@@ -426,7 +605,7 @@ async def upload_book_cover(
     admin: User = Depends(get_current_admin),
     storage: StorageBackend = Depends(get_storage),
 ) -> BookFileUploadResult:
-    """Admin only: загрузить обложку книги."""
+    """Admin only: загрузить обложку книги. Изображение сжимается (макс. 800px, JPEG)."""
     book = await _get_book_or_404(db, book_id)
 
     head = await file.read(_MAGIC_HEAD_BYTES)
@@ -435,13 +614,43 @@ async def upload_book_cover(
     except FileValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
 
+    # читаем весь файл (обложки небольшие; лимит MAX_COVER_SIZE_BYTES)
+    rest = await file.read(settings.MAX_COVER_SIZE_BYTES + 1)
+    raw = head + rest
+    if len(raw) > settings.MAX_COVER_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail="Обложка слишком большая")
+
+    # сжимаем через Pillow: ресайз до 800px по большей стороне, JPEG q=85
+    try:
+        from io import BytesIO
+        from PIL import Image
+
+        img = Image.open(BytesIO(raw))
+        img = img.convert("RGB")
+        max_side = 800
+        if max(img.size) > max_side:
+            ratio = max_side / max(img.size)
+            new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+        out = BytesIO()
+        img.save(out, format="JPEG", quality=85, optimize=True)
+        compressed = out.getvalue()
+        save_ext = ".jpg"
+    except Exception:  # noqa: BLE001 — если Pillow недоступен/ошибка, сохраняем оригинал
+        logger.exception("Сжатие обложки не удалось, сохраняю оригинал (book %s)", book_id)
+        compressed = raw
+        save_ext = ext
+
     old_key = book.cover_storage_key
-    new_key = StorageBackend.make_key("books/cover", ext)
+    new_key = StorageBackend.make_key("books/cover", save_ext)
+
+    async def _one_chunk():
+        yield compressed
 
     try:
         size = await storage.save_stream(
             new_key,
-            _stream_remainder(file, head),
+            _one_chunk(),
             max_bytes=settings.MAX_COVER_SIZE_BYTES,
         )
     except StorageError as e:
@@ -526,3 +735,39 @@ async def delete_book_cover(
         logger.exception("Failed to delete cover %s for book %s", key, book_id)
 
     logger.info("Admin %s deleted cover for book %s (key=%s)", admin.id, book_id, key)
+
+
+# ============================================================================
+# Журнал действий администратора (audit log)
+# ============================================================================
+
+
+@router.get("/admin/logs")
+async def get_admin_logs(
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> list[dict]:
+    """Admin only: последние действия администраторов.
+
+    Путь /books/admin/logs — 'admin' не парсится как int book_id, поэтому
+    конфликта с GET /books/{book_id} нет (book_id объявлен с типом int).
+    """
+    from app.models.admin_log import AdminLog
+
+    rows = (
+        await db.scalars(
+            select(AdminLog).order_by(AdminLog.created_at.desc()).limit(limit)
+        )
+    ).all()
+    return [
+        {
+            "id": r.id,
+            "admin": r.admin_username,
+            "action": r.action,
+            "target": r.target,
+            "detail": r.detail,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in rows
+    ]

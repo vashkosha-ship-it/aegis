@@ -3,7 +3,7 @@ import logging
 from collections.abc import AsyncIterator
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from app.core.security import hash_password, verify_password
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -112,6 +112,138 @@ async def change_my_password(
     await db.commit()
 
     logger.info("User %s changed own password", current.id)
+
+
+# ============================================================================
+# Смена email с подтверждением по коду (G/SMTP)
+# ============================================================================
+
+
+class EmailChangeRequest(BaseModel):
+    new_email: EmailStr
+    password: str = Field(..., min_length=1)
+
+
+class EmailChangeConfirm(BaseModel):
+    code: str = Field(..., min_length=4, max_length=16)
+
+
+@router.post("/me/email/request", status_code=status.HTTP_202_ACCEPTED)
+async def request_email_change(
+    payload: EmailChangeRequest,
+    current: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Запросить смену email. Отправляет код подтверждения на НОВЫЙ адрес."""
+    from datetime import datetime, timedelta, timezone
+    import secrets
+
+    from sqlalchemy import select
+
+    from app.services.email_service import send_email_change_code
+
+    if not verify_password(payload.password, current.password_hash):
+        raise HTTPException(status_code=401, detail="Неверный пароль")
+
+    new_email = payload.new_email.lower().strip()
+    if new_email == (current.email or "").lower():
+        raise HTTPException(status_code=400, detail="Это уже ваш текущий email")
+
+    # email не должен быть занят другим пользователем
+    exists = await db.scalar(select(User).where(User.email == new_email))
+    if exists and exists.id != current.id:
+        raise HTTPException(status_code=400, detail="Этот email уже используется")
+
+    code = f"{secrets.randbelow(1000000):06d}"  # 6-значный код
+    current.pending_email = new_email
+    current.email_change_code = code
+    current.email_change_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+    await db.commit()
+
+    await send_email_change_code(new_email, code)
+    logger.info("User %s requested email change to %s", current.id, new_email)
+    return {"status": "code_sent", "email": new_email}
+
+
+@router.post("/me/email/confirm", response_model=UserPublic)
+async def confirm_email_change(
+    payload: EmailChangeConfirm,
+    current: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserPublic:
+    """Подтвердить смену email кодом из письма."""
+    from datetime import datetime, timezone
+
+    if not current.pending_email or not current.email_change_code:
+        raise HTTPException(status_code=400, detail="Нет активного запроса на смену email")
+
+    if current.email_change_expires and datetime.now(timezone.utc) > current.email_change_expires:
+        current.pending_email = None
+        current.email_change_code = None
+        current.email_change_expires = None
+        await db.commit()
+        raise HTTPException(status_code=400, detail="Срок действия кода истёк. Запросите новый.")
+
+    if payload.code.strip() != current.email_change_code:
+        raise HTTPException(status_code=400, detail="Неверный код")
+
+    current.email = current.pending_email
+    current.pending_email = None
+    current.email_change_code = None
+    current.email_change_expires = None
+    await db.commit()
+    await db.refresh(current)
+
+    logger.info("User %s confirmed email change", current.id)
+    return UserPublic.model_validate(current)
+
+
+# ============================================================================
+# DELETE /api/me — удаление аккаунта (подтверждение паролем)
+# ============================================================================
+
+
+class AccountDeleteRequest(BaseModel):
+    password: str = Field(..., min_length=1)
+    confirm: str = Field(..., description="Должно быть 'УДАЛИТЬ' для подтверждения")
+
+
+@router.post("/me/delete", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_my_account(
+    payload: AccountDeleteRequest,
+    current: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
+) -> None:
+    """Удалить свой аккаунт безвозвратно.
+
+    Требует пароль и слово-подтверждение. SMTP в проекте не настроен,
+    поэтому подтверждение по email заменено на подтверждение паролем —
+    это надёжно защищает от случайного и чужого удаления.
+
+    Все связанные данные (списки, прогресс, заметки, попытки тестов,
+    достижения, коллекции) удаляются каскадно через ondelete=CASCADE.
+    """
+    if not verify_password(payload.password, current.password_hash):
+        raise HTTPException(status_code=401, detail="Неверный пароль")
+
+    if payload.confirm.strip().upper() != "УДАЛИТЬ":
+        raise HTTPException(status_code=400, detail="Подтверждение неверное")
+
+    avatar_key = current.avatar_url
+    user_id = current.id
+
+    await db.delete(current)
+    await db.commit()
+
+    # Удаляем аватар из хранилища уже после успешного удаления из БД
+    if avatar_key:
+        try:
+            await storage.delete(avatar_key)
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to delete avatar for removed user %s", user_id)
+
+    logger.info("User %s deleted own account", user_id)
 
 
 # ============================================================================
@@ -228,4 +360,84 @@ async def download_user_avatar(
             # чтобы юзер увидел свой новый аватар сразу. 5 минут — компромисс.
             "Cache-Control": "public, max-age=300",
         },
+    )
+
+
+# ============================================================================
+# GET /api/users/{user_id}/profile — публичный профиль (#15 маскировка email)
+# ============================================================================
+from sqlalchemy import func, select  # noqa: E402
+from app.models.library import MyListEntry  # noqa: E402
+from app.models.quiz import QuizAttempt  # noqa: E402
+
+
+def _mask_email(email: str | None) -> str | None:
+    """Маскирует email: ivan.petrov@mail.ru -> i***v@mail.ru."""
+    if not email or "@" not in email:
+        return None
+    local, domain = email.split("@", 1)
+    if len(local) <= 2:
+        masked = local[0] + "*"
+    else:
+        masked = local[0] + "***" + local[-1]
+    return f"{masked}@{domain}"
+
+
+class PublicProfile(BaseModel):
+    id: int
+    username: str
+    full_name: str | None
+    department: str | None
+    cyber_level: str | None
+    xp: int
+    streak_count: int
+    has_avatar: bool
+    email_masked: str | None = None  # замаскированный email (или None если скрыт)
+    books_count: int = 0
+    quizzes_passed: int = 0
+
+
+@users_router.get("/{user_id}/profile", response_model=PublicProfile)
+async def get_public_profile(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> PublicProfile:
+    """Публичный профиль пользователя.
+
+    Учитывает profile_visibility:
+      - 'public'  — видят все авторизованные;
+      - 'private' — виден только владельцу (иначе 403).
+    Email всегда маскируется (#15), даже для публичных профилей.
+    """
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    is_owner = current.id == user.id
+    if user.profile_visibility == "private" and not is_owner:
+        raise HTTPException(status_code=403, detail="Профиль скрыт настройками приватности")
+
+    books_count = await db.scalar(
+        select(func.count(MyListEntry.id)).where(MyListEntry.user_id == user_id)
+    ) or 0
+    quizzes_passed = await db.scalar(
+        select(func.count(QuizAttempt.id)).where(
+            QuizAttempt.user_id == user_id, QuizAttempt.percentage >= 60
+        )
+    ) or 0
+
+    return PublicProfile(
+        id=user.id,
+        username=user.username,
+        full_name=user.full_name,
+        department=user.department,
+        cyber_level=user.cyber_level,
+        xp=user.xp,
+        streak_count=user.streak_count,
+        has_avatar=bool(user.avatar_url),
+        # маскированный email показываем только если профиль публичный
+        email_masked=_mask_email(user.email) if user.profile_visibility == "public" else None,
+        books_count=books_count,
+        quizzes_passed=quizzes_passed,
     )

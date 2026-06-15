@@ -1,5 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* Шрифты: системный стек, без внешних CDN (надёжно работает офлайн и при блокировке) */
 
+/* CSS-VERSION-29 — если видите этот комментарий в DevTools и рамку ниже, файл свежий */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
@@ -69,7 +70,7 @@ body, .screen, .auth-container, .book-card-compact, input, select, textarea, but
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   min-height: 100vh;
   min-height: -webkit-fill-available;
   line-height: 1.5;
@@ -85,6 +86,8 @@ body {
 .cyber-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
 .cyber-bg .grid { position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px); background-size: 50px 50px; animation: gridMove 20s linear infinite; }
 @keyframes gridMove { 0% { transform: translate(0,0); } 100% { transform: translate(50px,50px); } }
+.ai-type-cursor { display:inline-block; margin-left:1px; color: var(--accent); animation: aiCursorBlink 0.9s steps(1) infinite; font-weight:400; }
+@keyframes aiCursorBlink { 0%,50% { opacity:1; } 50.01%,100% { opacity:0; } }
 .cyber-bg .particles { position: absolute; width: 100%; height: 100%; }
 .cyber-bg .scan-line { position: absolute; width: 100%; height: 2px; background: linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.1) 30%, rgba(0,212,255,0.3) 50%, rgba(0,212,255,0.1) 70%, transparent 100%); animation: scanLine 4s linear infinite; }
 @keyframes scanLine { 0% { top: -2px; } 100% { top: 100%; } }
@@ -232,6 +235,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .books-scroll::-webkit-scrollbar { height: 4px; }
 .books-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+/* Переносящаяся сетка (Популярное, Все книги): число колонок — из настроек */
+.books-grid { display: grid; grid-template-columns: repeat(var(--books-grid-columns, 2), 1fr); gap: 12px; }
+.books-grid .book-card-compact { min-width: 0; max-width: none; width: 100%; }
+
 /* ========== КАРТОЧКА КНИГИ ========== */
 .book-card-compact { min-width: 120px; max-width: 120px; flex-shrink: 0; background: var(--bg-card); border-radius: 14px; overflow: hidden; cursor: pointer; transition: var(--transition-slow); border: 1px solid var(--border); scroll-snap-align: start; }
 .book-card-compact.dragging { opacity: 0.5; border-color: var(--accent); border-style: dashed; transform: scale(0.95); }
@@ -337,16 +344,36 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .star-input .star svg { width: 24px; height: 24px; }
 
 /* ========== ПРОФИЛЬ ========== */
-.profile-header-card { display: flex; gap: 16px; padding: 20px; background: var(--bg-card); border-radius: var(--radius-xl); border: 1px solid var(--border); margin-bottom: 20px; align-items: center; flex-wrap: wrap; box-shadow: var(--shadow-card); }
-@media(min-width: 768px) { .profile-header-card { gap: 24px; padding: 28px; } }
+.profile-header-card { display: flex; flex-direction: column; gap: 16px; padding: 20px; background: var(--bg-card); border-radius: var(--radius-xl); border: 1px solid var(--border); margin-bottom: 20px; box-shadow: var(--shadow-card); }
+@media(min-width: 768px) { .profile-header-card { gap: 18px; padding: 28px; } }
+
+/* Верхняя строка: аватар + имя/ник */
+.profile-identity { display: flex; align-items: center; gap: 14px; }
+.profile-identity-names { min-width: 0; }
+.profile-identity-names h2 { font-size: 20px; font-weight: 800; line-height: 1.2; word-break: break-word; }
+@media(min-width: 768px) { .profile-identity-names h2 { font-size: 24px; } }
+
 .profile-avatar-lg { width: 60px; height: 60px; border-radius: var(--radius); background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: #fff; flex-shrink: 0; cursor: pointer; box-shadow: var(--shadow-glow-strong); border: 3px solid transparent; }
-@media(min-width: 768px) { .profile-avatar-lg { width: 80px; height: 80px; font-size: 34px; } }
+@media(min-width: 768px) { .profile-avatar-lg { width: 76px; height: 76px; font-size: 32px; } }
 .profile-avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
-.profile-info-block { flex: 1; min-width: 150px; }
+.profile-info-block { min-width: 0; }
 .profile-info-block h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
 .role-tag { display: inline-block; padding: 4px 10px; border-radius: 6px; background: rgba(0,212,255,0.12); color: var(--accent); font-size: 10px; font-weight: 600; margin-top: 4px; border: 1px solid rgba(0,212,255,0.2); }
 .profile-stats-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .profile-stat { text-align: center; padding: 8px 10px; background: var(--bg-primary); border-radius: var(--radius); border: 1px solid var(--border); min-width: 55px; transition: var(--transition); }
+
+/* Кнопка «Пройти тест уровня» — внизу карточки, на всю ширину */
+.profile-take-quiz-btn { width: 100%; padding: 14px; background: var(--accent-gradient); border: none; border-radius: 12px; color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(0,212,255,0.3); display: flex; align-items: center; justify-content: center; transition: var(--transition); }
+.profile-take-quiz-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(0,212,255,0.4); }
+#profileTestSlot:empty { display: none; }
+
+/* На широких экранах (ПК) — аватар+имя слева, инфо справа, кнопка снизу во всю ширину */
+@media(min-width: 900px) {
+  .profile-header-card { display: grid; grid-template-columns: auto 1fr; gap: 20px 24px; align-items: start; }
+  .profile-identity { grid-column: 1; }
+  .profile-info-block { grid-column: 2; }
+  #profileTestSlot { grid-column: 1 / -1; }
+}
 @media(min-width: 768px) { .profile-stat { padding: 12px 20px; min-width: 80px; } }
 .profile-stat:hover { border-color: var(--accent); transform: translateY(-2px); }
 .profile-stat .val { font-size: 18px; font-weight: 700; color: var(--accent); }
@@ -492,9 +519,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* ========== ЧИТАЛКА (ЖЕСТЫ И СВАЙПЫ) ========== */
 .reader-container { display: flex; flex-direction: column; flex: 1; height: 100vh; height: 100dvh; }
-.reader-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; flex-shrink: 0; }
-.reader-toolbar .book-name { font-weight: 600; font-size: 12px; flex: 1; min-width: 60px; }
-.reader-toolbar .book-format-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(0,212,255,0.12); color: var(--accent); font-size: 10px; font-weight: 600; border: 1px solid rgba(0,212,255,0.2); }
+.reader-toolbar { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.reader-toolbar-row { display: flex; align-items: center; gap: 8px; }
+.reader-toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.reader-toolbar .book-name { font-weight: 600; font-size: 13px; line-height: 1.35; width: 100%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-primary); }
+.reader-toolbar .book-format-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(0,212,255,0.12); color: var(--accent); font-size: 10px; font-weight: 600; border: 1px solid rgba(0,212,255,0.2); flex-shrink: 0; }
 .reader-toolbar .header-icon-btn svg { width: 16px; height: 16px; }
 
 /* Индикатор страниц в тулбаре */
@@ -884,6 +913,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .achievement-badge.bronze { background: rgba(217,119,6,0.1); border-color: var(--bronze); color: var(--bronze); }
 .achievement-badge.silver { background: rgba(148,163,184,0.1); border-color: var(--silver); color: var(--silver); }
 .achievement-badge.gold { background: rgba(245,158,11,0.1); border-color: var(--gold); color: var(--gold); }
+.achievement-badge.platinum { background: linear-gradient(135deg,rgba(0,212,255,0.12),rgba(168,85,247,0.12)); border-color: #67e8f9; color: #a5f3fc; }
+.achievement-badge.locked { opacity: 0.38; filter: grayscale(0.6); }
+.achievement-badge.locked:hover { opacity: 0.6; }
 .recommendation-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; cursor: pointer; transition: var(--transition); display: flex; gap: 10px; align-items: center; }
 .recommendation-card:hover { border-color: var(--accent); background: var(--bg-card-hover); }
 .recommendation-card svg { stroke: var(--text-muted); opacity: 0.5; }
@@ -912,31 +944,40 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 /* ========== ТЕПЛОВАЯ КАРТА ========== */
 .heatmap-container { display: flex; flex-wrap: wrap; gap: 3px; padding: 8px 0; }
+#heatmapContainer .heatmap-cell {
+  width: 22px;
+  height: 22px;
+  aspect-ratio: auto;
+  min-width: 0;
+}
 .heatmap-cell {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+/* Свотчи в легенде — фиксированного маленького размера */
+.heatmap-legend .heatmap-cell { width: 16px; height: 16px; aspect-ratio: auto; cursor: default; }
 .heatmap-cell:hover {
-  transform: scale(1.25);
+  transform: scale(1.2);
   box-shadow: 0 0 0 2px var(--accent);
   z-index: 10;
   position: relative;
 }
+.heatmap-legend .heatmap-cell:hover { transform: none; box-shadow: none; }
 
-/* Контейнер тоже подправим — больше gap для дыхания */
+/* Карта: колонки-недели вплотную, ячейки фиксированного крупного размера,
+   контейнер по содержимому (не растягивается на всю ширину). */
 #heatmapContainer {
   display: grid;
+  grid-template-rows: repeat(7, 22px);
   grid-auto-flow: column;
-  grid-template-rows: repeat(7, 1fr);
-  gap: 3px;
-  overflow-x: auto;
+  grid-auto-columns: 22px;
+  gap: 4px;
   padding: 4px 2px 8px 2px;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
 }
-@media(min-width: 480px) { .heatmap-cell { width: 14px; height: 14px; } }
-.heatmap-cell:hover { transform: scale(1.3); }
 .heatmap-cell.level-0 { background: var(--bg-primary); }
 .heatmap-cell.level-1 { background: rgba(0,212,255,0.15); }
 .heatmap-cell.level-2 { background: rgba(0,212,255,0.3); }
@@ -1803,6 +1844,255 @@ select[multiple] option:hover {
 [data-theme="light"] .modal-overlay {
   background: var(--overlay) !important;
 }
+
+/* ===== AR: 3D-фигуры (CSS, без библиотек) ===== */
+.ar-3d-stage {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px; height: 140px;
+  pointer-events: none; z-index: 1; opacity: 0.5;
+  perspective: 600px;
+}
+.ar-3d-obj { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+.ar-3d-face { position: absolute; border: 2px solid; }
+
+/* Kill Chain: щит справа, цифры летят слева и разбиваются о щит */
+.ar-shield-scene {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px; height: 200px;
+  pointer-events: none; z-index: 1;
+}
+.ar-shield {
+  position: absolute; right: 20px; top: 50%;
+  transform: translateY(-50%);
+  width: 90px; height: 105px;
+  animation: arShieldPulse 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(0,212,255,0.5));
+}
+.ar-shield svg { width: 100%; height: 100%; }
+.ar-digit {
+  position: absolute; right: 110px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; font-weight: 700;
+  color: rgba(0,212,255,0.85);
+  white-space: nowrap;
+  opacity: 0;
+}
+.ar-digit.d1 { top: 18%;  animation: arDigitFly 2.8s linear infinite 0s; }
+.ar-digit.d2 { top: 36%;  animation: arDigitFly 2.8s linear infinite 0.6s; }
+.ar-digit.d3 { top: 50%;  animation: arDigitFly 2.8s linear infinite 1.1s; }
+.ar-digit.d4 { top: 64%;  animation: arDigitFly 2.8s linear infinite 1.6s; }
+.ar-digit.d5 { top: 80%;  animation: arDigitFly 2.8s linear infinite 2.1s; }
+
+@keyframes arDigitFly {
+  0%   { transform: translateX(-200px) scale(1); opacity: 0; }
+  15%  { opacity: 0.9; }
+  70%  { transform: translateX(-10px) scale(1); opacity: 0.9; }
+  /* удар о щит — разлёт/распад */
+  82%  { transform: translateX(0) scale(1.4); opacity: 1; color: #fff; }
+  100% { transform: translateX(10px) scale(0.2) rotate(40deg); opacity: 0; color: #ef4444; }
+}
+@keyframes arShieldPulse {
+  0%,100% { filter: drop-shadow(0 0 8px rgba(0,212,255,0.4)); transform: translateY(-50%) scale(1); }
+  50%     { filter: drop-shadow(0 0 20px rgba(0,212,255,0.9)); transform: translateY(-50%) scale(1.05); }
+}
+
+/* Пирамида (OWASP) */
+.ar-pyramid { animation: ar3dSpin 12s linear infinite; }
+.ar-pyramid .ar-3d-face { width: 0; height: 0; left: 20px; top: 30px;
+  border-left: 50px solid transparent; border-right: 50px solid transparent;
+  border-bottom: 100px solid rgba(239,68,68,0.35); background: none; }
+.ar-pyramid .p1 { transform: rotateY(0deg) translateZ(29px) rotateX(0deg); }
+.ar-pyramid .p2 { transform: rotateY(90deg) translateZ(29px); }
+.ar-pyramid .p3 { transform: rotateY(180deg) translateZ(29px); }
+.ar-pyramid .p4 { transform: rotateY(270deg) translateZ(29px); }
+
+/* Стопка слоёв (OSI) */
+.ar-layers { animation: ar3dSpinY 16s linear infinite; }
+.ar-layers .ar-3d-face { width: 110px; height: 22px; left: 15px;
+  border-color: rgba(59,130,246,0.7); background: rgba(59,130,246,0.12); border-radius: 4px; }
+.ar-layers .ly1 { top: 10px; transform: translateZ(0); }
+.ar-layers .ly2 { top: 40px; border-color: rgba(16,185,129,0.7); background: rgba(16,185,129,0.12); }
+.ar-layers .ly3 { top: 70px; border-color: rgba(168,85,247,0.7); background: rgba(168,85,247,0.12); }
+.ar-layers .ly4 { top: 100px; border-color: rgba(245,158,11,0.7); background: rgba(245,158,11,0.12); }
+
+/* Октаэдр-щит (MITRE) */
+.ar-octa { animation: ar3dSpin 10s linear infinite; }
+.ar-octa .ar-3d-face { width: 0; height: 0; left: 20px; top: 20px;
+  border-left: 50px solid transparent; border-right: 50px solid transparent;
+  border-bottom: 70px solid rgba(168,85,247,0.4); background: none; }
+.ar-octa .o1 { transform: rotateY(0deg) translateZ(25px); }
+.ar-octa .o2 { transform: rotateY(120deg) translateZ(25px); }
+.ar-octa .o3 { transform: rotateY(240deg) translateZ(25px); }
+.ar-octa .o4 { top: 90px; transform: rotateY(0deg) translateZ(25px) rotateZ(180deg); }
+.ar-octa .o5 { top: 90px; transform: rotateY(120deg) translateZ(25px) rotateZ(180deg); }
+.ar-octa .o6 { top: 90px; transform: rotateY(240deg) translateZ(25px) rotateZ(180deg); }
+
+@keyframes ar3dSpin {
+  from { transform: rotateX(-20deg) rotateY(0deg); }
+  to   { transform: rotateX(-20deg) rotateY(360deg); }
+}
+@keyframes ar3dSpinY {
+  from { transform: rotateX(60deg) rotateZ(0deg); }
+  to   { transform: rotateX(60deg) rotateZ(360deg); }
+}
+
+/* ===== AR: анимации ===== */
+@keyframes arSlideIn {
+  from { opacity:0; transform: translateY(24px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+@keyframes arPop {
+  0%   { opacity:0; transform: scale(0.6); }
+  70%  { transform: scale(1.08); }
+  100% { opacity:1; transform: scale(1); }
+}
+@keyframes arPulseGlow {
+  0%,100% { box-shadow: 0 0 0 0 currentColor; opacity:1; }
+  50%      { box-shadow: 0 0 0 8px transparent; opacity:0.85; }
+}
+@keyframes arConnectorDash {
+  from { stroke-dashoffset: 40; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes arFadeRow {
+  from { opacity:0; transform: translateX(-16px); }
+  to   { opacity:1; transform: translateX(0); }
+}
+@keyframes arMatrixIn {
+  from { opacity:0; transform: scale(0.85) translateY(8px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+@keyframes arLayerSlide {
+  from { opacity:0; transform: scaleX(0.5); }
+  to   { opacity:1; transform: scaleX(1); }
+}
+@keyframes arNodePulse {
+  0%,100% { box-shadow: 0 0 8px 2px rgba(0,212,255,0.4); }
+  50%     { box-shadow: 0 0 28px 10px rgba(0,212,255,0.9); }
+}
+@keyframes arScanLine {
+  0%   { top: 0; opacity:0.6; }
+  100% { top: 100%; opacity:0; }
+}
+@keyframes ar3dFloat {
+  0%,100% { transform: translateY(0) scale(1); }
+  50%     { transform: translateY(-8px) scale(1.04); }
+}
+@keyframes arOrbit {
+  from { transform: rotate(0deg) translateX(6px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(6px) rotate(-360deg); }
+}
+@keyframes arRipple {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* Kill Chain ноды — 3D hover */
+.ar-killchain-node {
+  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s, filter 0.2s;
+}
+.ar-killchain-node:hover {
+  transform: scale(1.18) translateY(-4px) !important;
+  filter: drop-shadow(0 8px 20px rgba(0,212,255,0.7));
+  z-index: 10;
+  position: relative;
+}
+
+/* ПК: панель деталей — правый сайдбар */
+@media (min-width: 1024px) {
+  .ar-stage-details-panel {
+    top: 0 !important;
+    bottom: 0 !important;
+    left: auto !important;
+    right: 0 !important;
+    width: min(400px, 38vw) !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    border-radius: 0 !important;
+    border-top: none !important;
+    border-left: 1px solid rgba(255,255,255,0.15) !important;
+    transform: translateX(110%);
+    transition: transform 0.35s cubic-bezier(0.2,0.9,0.4,1.1) !important;
+  }
+  .ar-stage-details-panel.open {
+    transform: translateX(0);
+  }
+
+  /* Контент схемы не перекрывается панелью */
+  #killChainScrollContainer { padding-right: 24px !important; }
+  #arSchemeRoot.panel-visible #killChainScrollContainer,
+  #arSchemeRoot.panel-visible #killChainWrapper { margin-right: min(400px, 38vw); }
+
+  /* Ноды крупнее */
+  .ar-killchain-node { width: 96px !important; height: 96px !important; font-size: 15px !important; }
+
+  /* Zoom кнопки крупнее */
+  #arSchemeRoot > div[style*="top:70px"] button { width: 52px !important; height: 52px !important; font-size: 24px !important; }
+}
+
+/* ===== AR схемы: меню ===== */
+.ar-menu-btn {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; text-align: left;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+  box-sizing: border-box;
+}
+.ar-menu-btn:hover { border-color: var(--accent); }
+.ar-menu-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: #fff;
+}
+.ar-menu-text { flex: 1; min-width: 0; }
+.ar-menu-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.ar-menu-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.ar-menu-arrow { font-size: 16px; color: var(--accent); flex-shrink: 0; }
+/* Сетка фона на светлом фоне — делаем чуть заметнее и нейтральнее */
+[data-theme="light"] .cyber-bg .grid {
+  background-image: linear-gradient(rgba(2,132,199,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(2,132,199,0.05) 1px, transparent 1px);
+}
+[data-theme="light"] .cyber-bg .scan-line { opacity: 0.4; }
+
+/* Бейдж рейтинга на обложке — тёмная плашка плохо читается; делаем светлую */
+[data-theme="light"] .book-card-compact .rating-badge {
+  background: rgba(255,255,255,0.92);
+  color: #b45309;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.15);
+}
+
+/* Поля ввода: явный фон и рамка, чтобы не сливались с белой карточкой */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background: #f8fafc;
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder { color: var(--text-muted); }
+
+/* Стрелка селекта — тёмная вместо серой для контраста */
+[data-theme="light"] select {
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23475569' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+
+/* Заметки/тултипы и всплывашки на тёмном фоне внутри светлой темы оставляем
+   как есть (AR, ридер-оверлеи поверх камеры/PDF — там тёмная подложка уместна). */
+
+/* Тепловая карта: пустой день на светлой теме — мягкий серый, а не белый */
+[data-theme="light"] .heatmap-cell.level-0 { background: #e2e8f0; }
+[data-theme="light"] .heatmap-cell.level-1 { background: rgba(2,132,199,0.25); }
+[data-theme="light"] .heatmap-cell.level-2 { background: rgba(2,132,199,0.45); }
+[data-theme="light"] .heatmap-cell.level-3 { background: rgba(2,132,199,0.65); }
+[data-theme="light"] .heatmap-cell.level-4 { background: rgba(2,132,199,0.85); }
+
+/* Полоса прокрутки в светлой теме */
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 .settings-tab {
   display: flex;
   align-items: center;
@@ -1881,4 +2171,448 @@ select[multiple] option:hover {
 #btnOpenSettings:hover {
   background: var(--bg-card-hover);
   color: var(--accent);
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { transform: scale(0.6); opacity: 0.4; }
+  30% { transform: scale(1); opacity: 1; }
+}
+/* ===== AI-ассистент: общие элементы ===== */
+.assistant-quick-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; flex-shrink: 0; }
+
+/* Раскладка экрана ассистента: чат занимает доступную высоту, ввод закреплён снизу */
+#assistantScreen { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+#assistantScreen .top-header { flex-shrink: 0; }
+.assistant-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+#assistantMessages { flex: 1; min-height: 0; overflow-y: auto; }
+#assistantInputBar { flex-shrink: 0; }
+.ai-typing { display: inline-flex; gap: 4px; align-items: center; }
+.ai-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); animation: typingDot 1.2s ease-in-out infinite; }
+.ai-typing i:nth-child(2) { animation-delay: .2s; }
+.ai-typing i:nth-child(3) { animation-delay: .4s; }
+.ai-book-picker { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ai-book-option { display: flex; align-items: center; gap: 8px; text-align: left; width: 100%; padding: 8px 10px; border-radius: 10px; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); font-family: inherit; font-size: 12px; cursor: pointer; transition: var(--transition); }
+.ai-book-option:hover { border-color: var(--accent); color: var(--accent); }
+.ai-book-option .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-action-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 9px 16px; border-radius: 10px; background: var(--accent-gradient); border: none; color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.ai-action-btn:hover { opacity: .92; }
+
+/* ============================================================
+   АДАПТАЦИЯ ПОД ПЛАНШЕТЫ (портрет и ландшафт)
+   Диапазон ~600–1200px: между телефоном и десктопом.
+   ============================================================ */
+@media (min-width: 600px) and (max-width: 1200px) {
+  /* Контент собран в читаемую колонку, а не растянут во всю ширину */
+  .home-section,
+  #mylistScreen .screen-inner,
+  #profileScreen .screen-inner { }
+
+  /* Карусели: карточки чуть крупнее */
+  .books-scroll .book-card-compact { min-width: 150px; max-width: 150px; }
+
+  /* Полноэкранный ассистент — чат не во всю ширину планшета */
+  .assistant-body { max-width: 760px; margin: 0 auto; width: 100%; }
+
+  /* Карточка деталей книги — фикс. ширина обложки уже задана; центрируем блок */
+  .detail-content { margin: 0 auto; }
+
+  /* Модалки — не на весь экран */
+  .shortcuts-modal { max-width: 560px; }
+
+  /* Тулбар читалки крупнее для тача */
+  .reader-toolbar .btn-nav-page,
+  .reader-toolbar .header-icon-btn { width: 34px !important; height: 34px !important; }
+  .reader-toolbar .book-name { font-size: 15px; }
+}
+
+/* Планшет в ПОРТРЕТЕ: книги — минимум аккуратной сеткой */
+@media (min-width: 600px) and (max-width: 1024px) and (orientation: portrait) {
+  /* Если пользователь оставил 2 колонки, на планшете не растягиваем карточки сильно */
+  .books-grid { gap: 16px; }
+  .home-section { margin-bottom: 28px; }
+  /* PDF-страница в читалке — ограниченная ширина по центру */
+  .pdf-viewport canvas { max-width: 680px; }
+}
+
+/* Планшет в ЛАНДШАФТЕ: используем ширину — две колонки где уместно */
+@media (min-width: 700px) and (max-width: 1366px) and (orientation: landscape) {
+  /* Аналитика и характеристики — в две колонки */
+  .analytics-charts { grid-template-columns: repeat(2, 1fr); }
+  /* Читалка: страница центрирована, шире */
+  .pdf-viewport canvas { max-width: 820px; }
+  /* Чат-панель ассистента в читалке не на весь экран */
+  .ai-panel { width: 440px; max-width: 60vw; }
+  /* Чуть больше воздуха в каруселях */
+  .books-scroll .book-card-compact { min-width: 160px; max-width: 160px; }
+}
+
+/* ===== AI-ассистент: пузыри, копирование, форматирование ===== */
+.ai-msg-wrap { display: flex; flex-direction: column; gap: 3px; max-width: 92%; animation: msgIn 0.25s ease; }
+.ai-msg-wrap.user { align-self: flex-end; align-items: flex-end; }
+.ai-msg-wrap.bot { align-self: flex-start; align-items: flex-start; }
+.ai-bubble { padding: 10px 14px; font-size: 13px; line-height: 1.55; border-radius: 14px; word-break: break-word; max-width: 100%; }
+.ai-bubble.user { background: var(--accent-gradient); color: #fff; border-radius: 14px 14px 4px 14px; }
+.ai-bubble.bot { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); border-radius: 14px 14px 14px 4px; }
+.ai-copy { display: inline-flex; align-items: center; gap: 4px; background: transparent; border: none; color: var(--text-muted); font-size: 10px; font-family: inherit; cursor: pointer; padding: 2px 6px; border-radius: 6px; opacity: 0; transition: opacity .15s, color .15s; }
+.ai-msg-wrap:hover .ai-copy { opacity: 1; }
+.ai-copy:hover { color: var(--accent); }
+.ai-copy svg { width: 12px; height: 12px; }
+@media (hover: none) { .ai-copy { opacity: .7; } }  /* на тач-устройствах кнопка видна всегда */
+
+/* Форматирование текста ответа */
+.ai-bubble p { margin: 0 0 8px; }
+.ai-bubble p:last-child { margin-bottom: 0; }
+.ai-bubble .ai-h { font-weight: 700; font-size: 14px; margin: 6px 0 4px; color: var(--text-primary); }
+.ai-bubble ul, .ai-bubble ol { margin: 4px 0 8px; padding-left: 20px; }
+.ai-bubble li { margin: 2px 0; }
+.ai-bubble code { background: rgba(0,212,255,0.12); padding: 1px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.ai-bubble pre { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow-x: auto; margin: 6px 0; }
+.ai-bubble pre code { background: none; padding: 0; font-size: 12px; line-height: 1.5; }
+.ai-bubble strong { font-weight: 700; }
+.ai-bubble em { font-style: italic; }
+.ai-bubble a { color: var(--accent); text-decoration: underline; }
+.ai-bubble.user a { color: #fff; }
+
+/* ===== Главная: переключаемые вкладки «Популярное / Все книги» ===== */
+.books-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.books-tab { padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); transition: var(--transition); font-family: inherit; }
+.books-tab:hover { border-color: var(--accent); color: var(--accent); }
+.books-tab.active { border-color: var(--accent); background: rgba(0,212,255,0.08); color: var(--accent); }
+@media(min-width: 768px) { .books-tab { font-size: 13px; padding: 9px 20px; } }
+
+/* ============================================================
+   АДАПТАЦИЯ ПОД ПК (десктоп, ≥1024px) + общая проверка
+   ============================================================ */
+@media (min-width: 1024px) {
+  /* Чат ассистента — читаемая колонка по центру, не на всю ширину */
+  .assistant-body { max-width: 860px; margin: 0 auto; width: 100%; }
+
+  /* Карточка деталей книги — ограничиваем ширину текста */
+  .detail-content { }
+
+  /* Сетки книг: колонки шириной с карточку (а не 1fr во всю ширину),
+     иначе при 2 колонках между книгами огромный зазор. */
+  .books-grid {
+    grid-template-columns: repeat(var(--books-grid-columns, 2), minmax(0, 200px));
+    justify-content: start;
+    gap: 16px;
+  }
+  .books-grid .book-card-compact { max-width: none; }
+
+  /* Читалка: страница по центру с комфортной шириной */
+  .reader-toolbar { padding-left: 24px; padding-right: 24px; }
+}
+
+/* Очень широкие экраны — чуть крупнее карточки и больше воздуха */
+@media (min-width: 1440px) {
+  .assistant-body { max-width: 920px; }
+  .books-grid { grid-template-columns: repeat(var(--books-grid-columns, 2), minmax(0, 220px)); gap: 18px; }
+}
+
+/* Узкие экраны — чипы и пузыри ассистента */
+@media (max-width: 480px) {
+  .assistant-quick-chips { padding: 6px 0; }
+  .ai-msg-wrap { max-width: 96%; }
+}
+
+/* ============================================================
+   АВТОРИЗАЦИЯ — тот же layout на всех устройствах, крупнее на больших экранах
+   ============================================================ */
+@media (min-width: 768px) {
+  #authScreen { padding: 40px; }
+  .auth-container { max-width: 440px; padding: 40px 36px; }
+  .auth-logo { margin-bottom: 24px; }
+  .auth-logo .logo-icon { width: 72px; height: 72px; border-radius: 18px; }
+  .auth-logo .logo-icon svg { width: 40px; height: 47px; }
+  .auth-logo h1 { font-size: 30px; }
+  .auth-logo p { font-size: 14px; }
+  .auth-tabs { margin-bottom: 24px; padding: 5px; }
+  .auth-tab { padding: 12px; font-size: 14px; }
+  .auth-container .form-group { margin-bottom: 16px; }
+  .auth-container .form-group label { font-size: 12px; margin-bottom: 7px; }
+  .auth-container input, .auth-container select { padding: 14px 16px; font-size: 15px; border-radius: 12px; }
+  .auth-container .input-icon-wrap input { padding-left: 44px; }
+  .auth-container .input-icon-wrap .input-icon { left: 15px; width: 18px; height: 18px; }
+  .auth-container .input-icon-wrap:has(.input-eye-btn) input { padding-right: 44px; }
+  .auth-container .input-eye-btn svg { width: 18px; height: 18px; }
+  .auth-container .btn { padding: 15px; font-size: 16px; }
+}
+@media (min-width: 1024px) {
+  #authScreen { padding: 40px; }
+  .auth-container { max-width: 480px; padding: 48px 44px; }
+  .auth-logo { margin-bottom: 28px; }
+  .auth-logo .logo-icon { width: 84px; height: 84px; border-radius: 20px; }
+  .auth-logo .logo-icon svg { width: 46px; height: 54px; }
+  .auth-logo h1 { font-size: 34px; }
+  .auth-logo p { font-size: 15px; }
+  .auth-tabs { margin-bottom: 28px; padding: 6px; }
+  .auth-tab { padding: 14px; font-size: 15px; }
+  .auth-container .form-group { margin-bottom: 18px; }
+  .auth-container .form-group label { font-size: 13px; margin-bottom: 8px; }
+  .auth-container input, .auth-container select { padding: 15px 18px; font-size: 16px; border-radius: 12px; }
+  .auth-container .input-icon-wrap input { padding-left: 46px; }
+  .auth-container .input-icon-wrap .input-icon { left: 16px; width: 19px; height: 19px; }
+  .auth-container .input-icon-wrap:has(.input-eye-btn) input { padding-right: 46px; }
+  .auth-container .input-eye-btn { right: 14px; }
+  .auth-container .input-eye-btn svg { width: 19px; height: 19px; }
+  .auth-container .btn { padding: 16px; font-size: 17px; }
+}
+@media (min-width: 1440px) {
+  .auth-container { max-width: 520px; padding: 52px 48px; }
+  .auth-logo { margin-bottom: 30px; }
+  .auth-logo .logo-icon { width: 92px; height: 92px; }
+  .auth-logo .logo-icon svg { width: 50px; height: 58px; }
+  .auth-logo h1 { font-size: 38px; }
+  .auth-logo p { font-size: 16px; }
+  .auth-tab { padding: 15px; font-size: 16px; }
+  .auth-container .form-group label { font-size: 13px; }
+  .auth-container input, .auth-container select { padding: 16px 18px; font-size: 16px; }
+  .auth-container .input-icon-wrap .input-icon { width: 20px; height: 20px; }
+  .auth-container .btn { padding: 17px; font-size: 18px; }
+}
+
+/* ============================================================
+   ЧИТАЛКА на ПК: страница по центру, комфортная ширина, без «висящей»
+   маленькой страницы в углу (см. скрин). canvas центрируется.
+   ============================================================ */
+@media (min-width: 1024px) {
+  .pdf-viewport { padding: 28px 0; }
+  .pdf-viewport canvas { max-width: 900px; margin: 0 auto; }
+  .epub-viewport #epubContainer { max-width: 760px; }
+}
+
+/* ============================================================
+   AR: адаптация под планшет/ПК. На больших экранах элементы AR
+   не должны быть микроскопическими/прижатыми к краю.
+   ============================================================ */
+@media (min-width: 768px) {
+  .ar-overlay-info { left: 50%; right: auto; transform: translateX(-50%); max-width: 560px; width: calc(100% - 64px); }
+  .ar-mode-selector { gap: 12px; }
+  .ar-mode-btn { padding: 10px 22px; font-size: 13px; }
+  .ar-control-btn, .ar-close-btn { width: 48px; height: 48px; }
+  #killChainScrollContainer { max-width: 1100px; margin: 0 auto; }
+}
+@media (min-width: 1024px) {
+  .ar-killchain-node { width: 96px !important; height: 96px !important; }
+}
+/* ========== ПОЛЯ ВВОДА С ИКОНКАМИ (auth) ========== */
+.input-icon-wrap { position: relative; display: flex; align-items: center; }
+.input-icon-wrap .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--text-muted); pointer-events: none; flex-shrink: 0; z-index: 1; }
+.input-icon-wrap input { padding-left: 40px; }
+.input-icon-wrap:has(.input-eye-btn) input { padding-right: 42px; }
+.input-eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; display: flex; align-items: center; justify-content: center; transition: color var(--transition); z-index: 1; }
+.input-eye-btn:hover { color: var(--accent); }
+.input-eye-btn svg { width: 16px; height: 16px; stroke: currentColor; display: block; }
+.auth-submit-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* =====================================================================
+   ============ AEGIS DESKTOP — КРУПНОЕ ОФОРМЛЕНИЕ ДЛЯ ПК ============
+   Финальный блок. Идёт последним, перебивает всё. Размеры крупные.
+   ===================================================================== */
+
+@media (min-width: 512px) {
+
+  /* === БАЗОВЫЙ ШРИФТ === */
+  html { font-size: 16px !important; }
+  body { font-size: 1rem !important; }
+
+  /* === БОКОВОЕ МЕНЮ === */
+  .sidebar-nav { width: 150px !important; padding: 16px 10px !important; }
+  .sidebar-logo { padding: 4px 6px 14px !important; margin-bottom: 12px !important; gap: 8px !important; }
+  .sidebar-logo-icon { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
+  .sidebar-logo-icon svg { width: 18px !important; height: 21px !important; }
+  .sidebar-logo-text { font-size: 16px !important; letter-spacing: 2px !important; }
+  .sidebar-item { font-size: 11px !important; padding: 10px 11px !important; gap: 10px !important; border-radius: 8px !important; }
+  .sidebar-item svg { width: 17px !important; height: 17px !important; }
+
+  #app { margin-left: 150px !important; max-width: none !important; width: auto !important; padding: 0 28px !important; }
+  body:has(#authScreen.active) #app,
+  body:has(#onboardingScreen.active) #app { margin-left: 0 !important; padding: 0 !important; }
+  body.reader-active #app { margin-left: 0 !important; padding: 0 !important; max-width: 100% !important; }
+
+  /* === ХЕДЕР === */
+  .top-header { padding: 14px 0 11px !important; gap: 8px !important; }
+  .header-icon-btn { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
+  .header-icon-btn svg { width: 15px !important; height: 15px !important; }
+  .header-avatar { width: 30px !important; height: 30px !important; font-size: 12px !important; border-radius: 8px !important; }
+  #badgeHome { font-size: 8px !important; padding: 3px 7px !important; }
+
+  /* === ПОИСК === */
+  .search-catalog-row { gap: 9px !important; margin-bottom: 18px !important; }
+  .search-bar input { font-size: 12px !important; padding: 13px 14px 13px 36px !important; border-radius: 9px !important; }
+  .search-bar .search-icon { left: 14px !important; }
+  .search-bar .search-icon svg { width: 16px !important; height: 16px !important; }
+  .btn-catalog-toggle { font-size: 11px !important; padding: 13px 18px !important; border-radius: 9px !important; }
+  .btn-catalog-toggle svg { width: 16px !important; height: 16px !important; }
+
+  /* === ЗАГОЛОВКИ СЕКЦИЙ === */
+  .section-title { font-size: 21px !important; font-weight: 800 !important; margin-bottom: 16px !important; }
+  .home-section { margin-bottom: 28px !important; }
+
+  /* === РЕКОМЕНДАЦИИ === */
+  #recommendationsList { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 11px !important; }
+  .recommendation-card { padding: 16px !important; gap: 15px !important; border-radius: 10px !important; }
+  .recommendation-card > div:first-child { width: 55px !important; height: 74px !important; font-size: 25px !important; border-radius: 7px !important; }
+  .recommendation-card > div:last-child > div:first-child { font-size: 13px !important; line-height: 1.35 !important; }
+  .recommendation-card > div:last-child > div:last-child { font-size: 10px !important; margin-top: 4px !important; }
+
+  /* === СЕТКИ КНИГ === */
+  .books-scroll, .books-grid:not(.hidden), .mylist-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 18px !important;
+    overflow-x: visible !important;
+    scroll-snap-type: none !important;
+    padding-bottom: 0 !important;
+  }
+  .books-grid.hidden { display: none !important; }
+  .books-scroll .book-card-compact,
+  .books-grid .book-card-compact,
+  .mylist-grid .book-card-compact {
+    min-width: 0 !important; max-width: none !important; width: 100% !important; flex-shrink: unset !important;
+  }
+  .book-card-meta { padding: 9px 8px 8px !important; gap: 4px !important; }
+  .book-card-title { font-size: 11px !important; line-height: 1.4 !important; }
+  .book-card-year { font-size: 9px !important; }
+  .book-card-compact .cover-bg svg { width: 36px !important; height: 44px !important; }
+  .book-card-compact .rating-badge,
+  .book-card-compact .progress-badge { font-size: 8px !important; padding: 4px 8px !important; }
+  .book-card-compact .rating-badge svg { width: 9px !important; height: 9px !important; }
+
+  /* === ВКЛАДКИ === */
+  .books-tab, .home-books-tab, .mylist-tab { font-size: 10px !important; padding: 8px 17px !important; border-radius: 14px !important; }
+  .mylist-tab .count { font-size: 8px !important; padding: 2px 6px !important; }
+  .mylist-tabs { gap: 7px !important; margin-bottom: 16px !important; }
+
+  /* === АВТОРИЗАЦИЯ === */
+  .auth-container { max-width: 380px !important; padding: 38px 40px !important; }
+  .auth-logo { margin-bottom: 24px !important; }
+  .auth-logo .logo-icon { width: 70px !important; height: 70px !important; border-radius: 17px !important; }
+  .auth-logo .logo-icon svg { width: 40px !important; height: 47px !important; }
+  .auth-logo h1 { font-size: 30px !important; }
+  .auth-logo p { font-size: 12px !important; margin-top: 5px !important; }
+  .auth-tabs { margin-bottom: 20px !important; padding: 5px !important; gap: 4px !important; }
+  .auth-tab { font-size: 13px !important; padding: 12px !important; border-radius: 8px !important; }
+  .auth-container .form-group { margin-bottom: 15px !important; }
+  .auth-container .form-group label { font-size: 11px !important; margin-bottom: 7px !important; letter-spacing: 0.5px !important; }
+  .auth-container input, .auth-container select { font-size: 13px !important; padding: 14px 15px !important; border-radius: 9px !important; }
+  .auth-container .input-icon-wrap input { padding-left: 38px !important; }
+  .auth-container .input-icon-wrap .input-icon { left: 14px !important; width: 17px !important; height: 17px !important; }
+  .auth-container .input-icon-wrap:has(.input-eye-btn) input { padding-right: 38px !important; }
+  .auth-container .input-eye-btn { right: 11px !important; }
+  .auth-container .input-eye-btn svg { width: 17px !important; height: 17px !important; }
+  .auth-container .btn, .auth-submit-btn { font-size: 14px !important; padding: 15px !important; border-radius: 9px !important; }
+
+  /* === ДЕТАЛИ КНИГИ === */
+  #detailScreen .detail-header { padding: 14px 0 12px !important; }
+  #detailScreen .detail-header .btn-back { width: 28px !important; height: 28px !important; font-size: 13px !important; }
+  #detailScreen .detail-header > div,
+  #detailScreen .detail-header span { font-size: 14px !important; font-weight: 800 !important; }
+  .detail-tabs { margin-bottom: 16px !important; padding: 4px !important; }
+  .detail-tab { font-size: 11px !important; padding: 10px 12px !important; }
+  .detail-content { display: flex !important; gap: 28px !important; flex-wrap: nowrap !important; align-items: flex-start !important; }
+  .detail-cover { width: 200px !important; height: 275px !important; flex-shrink: 0 !important; position: sticky !important; top: 14px !important; }
+  .detail-cover svg { width: 70px !important; height: 82px !important; }
+  .detail-info { flex: 1 !important; min-width: 0 !important; }
+  .detail-title { font-size: 23px !important; line-height: 1.2 !important; margin-bottom: 7px !important; }
+  .detail-author { font-size: 13px !important; margin-bottom: 7px !important; }
+  .detail-rating { font-size: 12px !important; margin-bottom: 7px !important; }
+  .detail-rating svg { width: 13px !important; height: 13px !important; }
+  .detail-category { font-size: 10px !important; padding: 4px 10px !important; margin-bottom: 10px !important; }
+  .detail-desc { font-size: 11px !important; line-height: 1.7 !important; margin: 11px 0 !important; }
+  .mylist-status-select { font-size: 10px !important; padding: 10px 12px !important; margin: 11px 0 !important; max-width: 230px !important; }
+  .detail-actions { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; margin-top: 12px !important; }
+  .btn-detail { font-size: 10px !important; padding: 10px 16px !important; border-radius: 8px !important; }
+  .btn-detail svg { width: 13px !important; height: 13px !important; }
+
+  /* === ЧИТАЛКА === */
+  body.reader-active .reader-toolbar { padding: 8px 16px !important; min-height: 38px !important; }
+  .reader-toolbar .btn-back { width: 27px !important; height: 27px !important; font-size: 13px !important; border-radius: 7px !important; }
+  .reader-toolbar .book-format-badge { font-size: 8px !important; padding: 4px 7px !important; }
+  .reader-toolbar .page-indicator-top { font-size: 10px !important; }
+  .reader-toolbar-actions { gap: 6px !important; }
+  .reader-toolbar-actions .btn-nav-page,
+  .reader-toolbar-actions .header-icon-btn { width: 27px !important; height: 27px !important; border-radius: 7px !important; }
+  .reader-toolbar-actions .btn-nav-page svg,
+  .reader-toolbar-actions .header-icon-btn svg { width: 14px !important; height: 14px !important; }
+  .reader-toolbar .book-name { font-size: 10px !important; }
+  /* PDF: занимает почти всю доступную ширину, центрирован */
+  .pdf-viewport { display: flex !important; justify-content: center !important; align-items: flex-start !important; padding: 14px 0 !important; }
+  .pdf-viewport canvas { margin: 0 auto !important; display: block !important; max-width: none !important; box-shadow: 0 8px 28px rgba(0,0,0,0.55) !important; border-radius: 2px !important; }
+  .page-indicator-overlay { font-size: 10px !important; padding: 6px 11px !important; }
+  /* Кнопки перелистывания (стрелки по бокам) */
+  .reader-gesture-zone .nav-arrow,
+  [class*="reader"] [class*="arrow"] { width: 30px !important; height: 30px !important; font-size: 14px !important; }
+
+  /* === ОБУЧЕНИЕ / ТЕСТЫ === */
+  .quiz-container { padding: 24px 28px !important; border-radius: 11px !important; }
+  .quiz-question { font-size: 14px !important; line-height: 1.5 !important; margin-bottom: 16px !important; }
+  .quiz-option, .quiz-options button, .quiz-options label { font-size: 11px !important; padding: 11px 14px !important; }
+  .quiz-nav button, .btn-quiz { font-size: 10px !important; padding: 9px 18px !important; }
+
+  /* === ПРОФИЛЬ === */
+  .profile-name { font-size: 16px !important; }
+  .profile-stat .val { font-size: 16px !important; }
+  .profile-stat .lbl { font-size: 8px !important; }
+  .settings-section h3 { font-size: 12px !important; }
+  .settings-row { padding: 11px 13px !important; font-size: 10px !important; }
+  .settings-row * { font-size: 10px !important; }
+  .btn-logout { font-size: 10px !important; padding: 11px !important; }
+
+  /* === ФОРМЫ / МОДАЛКИ === */
+  input, select, textarea { font-size: 10px !important; padding: 9px 10px !important; }
+  #addModal h3 { font-size: 15px !important; }
+  #addModal label { font-size: 10px !important; }
+  #addModal .btn { font-size: 10px !important; padding: 9px !important; }
+  .catalog-panel-header h3 { font-size: 13px !important; }
+  .btn-catalog-action { font-size: 10px !important; padding: 8px 14px !important; }
+
+  /* === КНОПКИ ОБЩИЕ === */
+  button, .btn, [role="button"] { font-size: 10px; }
+  .btn-primary, .btn-secondary { font-size: 10px !important; padding: 9px 15px !important; }
+
+  /* === FAB === */
+  .fab-super-btn { width: 38px !important; height: 38px !important; font-size: 20px !important; }
+
+  /* === ЧИПСЫ / ТЕГИ === */
+  .catalog-chip, .ai-quick-chip, .achievement-badge { font-size: 10px !important; padding: 4px 10px !important; }
+
+  /* === AR-СХЕМЫ === */
+  .ar-killchain-node { width: 80px !important; height: 80px !important; }
+  .ar-killchain-node > div:first-child { font-size: 24px !important; }
+  .ar-killchain-node > div:nth-child(2) { font-size: 8px !important; margin-top: 6px !important; padding: 0 7px !important; }
+  .ar-flow-line { width: 32px !important; }
+  #arSchemeRoot button[id^="arNode"] { padding: 10px 12px !important; min-height: 44px !important; border-radius: 8px !important; }
+  #arSchemeRoot button[onclick^="zoomARScheme"],
+  #arSchemeRoot button[onclick^="resetARSchemeZoom"] { width: 32px !important; height: 32px !important; font-size: 16px !important; }
+  #arStageDetailContent { padding: 14px 18px 20px !important; font-size: 10px !important; line-height: 1.7 !important; }
+  #arStageHint { font-size: 9px !important; padding: 12px !important; }
+  #arSchemeTitle { font-size: 11px !important; }
+
+  /* === AR-МЕНЮ ВЫБОРА === */
+  #arSchemeMenuModal > div { max-width: 340px !important; padding: 18px !important; }
+  .ar-menu-icon { width: 34px !important; height: 34px !important; }
+  .ar-menu-icon svg { width: 17px !important; height: 17px !important; }
+  .ar-menu-title { font-size: 10px !important; }
+  .ar-menu-sub { font-size: 8px !important; }
+  #arSchemeMenuModal h3 { font-size: 14px !important; }
+
+  /* === ПУСТЫЕ СОСТОЯНИЯ === */
+  .mylist-empty { padding: 55px 10px !important; font-size: 11px !important; }
+  .mylist-empty .icon svg { width: 45px !important; height: 45px !important; }
+}
+
+/* Очень широкие мониторы — ещё крупнее */
+@media (min-width: 1700px) {
+  html { font-size: 17px !important; }
+  .section-title { font-size: 32px !important; }
+  .books-scroll, .books-grid:not(.hidden), .mylist-grid {
+    grid-template-columns: repeat(auto-fill, minmax(239px, 1fr)) !important; gap: 27px !important;
+  }
+  .book-card-title { font-size: 16px !important; }
+  .book-card-year { font-size: 13px !important; }
+  .sidebar-item { font-size: 16px !important; }
+  .auth-logo h1 { font-size: 45px !important; }
+  .detail-title { font-size: 35px !important; }
+  .detail-desc { font-size: 16px !important; }
 }
