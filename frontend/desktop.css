@@ -1,4 +1,4 @@
-/* DESKTOP-CSS-VERSION-104 */
+/* DESKTOP-CSS-VERSION-105 */
 /* =====================================================================
    AEGIS — DESKTOP / TABLET LANDSCAPE RESPONSIVE LAYER
    Подключается после styles.css. Брейкпоинты:
@@ -1847,4 +1847,31 @@
   .quiz-option, .quiz-options button, .quiz-options label { font-size: 14px !important; }
   .profile-name { font-size: 21px !important; }
   .settings-row { font-size: 13px !important; }
+}
+
+/* ===== Фикс раскладки AI-ассистента на десктопе (v105) ===== */
+@media (min-width: 1024px) {
+  /* Полноэкранный экран ассистента: занимает всю высоту, ввод закреплён снизу */
+  #assistantScreen {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  #assistantScreen .top-header { flex-shrink: 0 !important; }
+  #assistantScreen .assistant-body {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  #assistantScreen #assistantMessages {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+  #assistantScreen .assistant-quick-chips { flex-shrink: 0 !important; }
+  #assistantScreen #assistantInputBar { flex-shrink: 0 !important; }
 }
