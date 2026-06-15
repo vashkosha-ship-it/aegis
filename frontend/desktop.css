@@ -1,4 +1,4 @@
-/* DESKTOP-CSS-VERSION-105 */
+/* DESKTOP-CSS-VERSION-106 */
 /* =====================================================================
    AEGIS — DESKTOP / TABLET LANDSCAPE RESPONSIVE LAYER
    Подключается после styles.css. Брейкпоинты:
@@ -1852,7 +1852,7 @@
 /* ===== Фикс раскладки AI-ассистента на десктопе (v105) ===== */
 @media (min-width: 1024px) {
   /* Полноэкранный экран ассистента: занимает всю высоту, ввод закреплён снизу */
-  #assistantScreen {
+  #assistantScreen.active {
     display: flex !important;
     flex-direction: column !important;
     height: 100vh !important;

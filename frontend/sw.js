@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v126';
+const CACHE_NAME = 'aegis-cache-v127';
 
 // Ресурсы для предварительного кэширования
 const PRECACHE_URLS = [

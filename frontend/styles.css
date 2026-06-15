@@ -2181,11 +2181,11 @@ select[multiple] option:hover {
 .assistant-quick-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; flex-shrink: 0; }
 
 /* Раскладка экрана ассистента: чат занимает доступную высоту, ввод закреплён снизу */
-#assistantScreen { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+#assistantScreen.active { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 #assistantScreen .top-header { flex-shrink: 0; }
-.assistant-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-#assistantMessages { flex: 1; min-height: 0; overflow-y: auto; }
-#assistantInputBar { flex-shrink: 0; }
+#assistantScreen .assistant-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+#assistantScreen #assistantMessages { flex: 1; min-height: 0; overflow-y: auto; }
+#assistantScreen #assistantInputBar { flex-shrink: 0; }
 .ai-typing { display: inline-flex; gap: 4px; align-items: center; }
 .ai-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); animation: typingDot 1.2s ease-in-out infinite; }
 .ai-typing i:nth-child(2) { animation-delay: .2s; }
