@@ -9096,6 +9096,18 @@ async function startBulkUpload() {
         await api.books.uploadEpub(created.id, item.file);
       } else {
         await api.books.uploadPdf(created.id, item.file);
+        // Автообложка из первой страницы PDF
+        item.message = 'Создание обложки...';
+        renderBulkUploadList();
+        try {
+          const coverBlob = await generateCoverFromPdf(item.file);
+          if (coverBlob) {
+            const coverGenFile = new File([coverBlob], 'cover.jpg', { type: 'image/jpeg' });
+            await api.books.uploadCover(created.id, coverGenFile);
+          }
+        } catch (coverErr) {
+          console.warn('Автообложка не создана для', item.file.name, coverErr);
+        }
       }
 
       item.status = 'done';
