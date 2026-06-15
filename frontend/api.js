@@ -4,7 +4,18 @@
 // Токены хранятся в localStorage. При 401 пытаемся обновить refresh-токеном.
 // ============================================================================
 (function () {
-  const BASE = 'http://localhost:8000/api';
+  // Умное определение адреса API:
+  // - localhost / 127.0.0.1 (локальная разработка) → backend на порту 8000
+  // - любой другой хост (прод: IP или домен, http или https) → тот же origin + /api
+  // Так один и тот же файл работает локально, на сервере по IP и на домене с HTTPS
+  // без ручных правок после каждого деплоя.
+  const BASE = (function () {
+    const h = window.location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1' || h === '') {
+      return 'http://localhost:8000/api';
+    }
+    return window.location.origin + '/api';
+  })();
 
   // --- хранение токенов ----------------------------------------------------
   const TOKEN_KEY = 'neon_access_token';
@@ -327,6 +338,7 @@
       // Переиндексация (админ)
       reindexBook(bookId) { return request('/books/' + bookId + '/reindex', { method: 'POST' }); },
       reindexAllBooks() { return request('/books/reindex-all', { method: 'POST' }); },
+      reindexStatus() { return request('/books/reindex/status'); },
       adminLogs(limit = 50) { return request('/books/admin/logs?limit=' + limit); },
       // Обсуждения книги
       bookComments(bookId) { return request('/books/' + bookId + '/comments'); },
