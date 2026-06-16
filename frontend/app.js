@@ -2510,6 +2510,183 @@ async function openAdminLogs() {
   }
 }
 
+let _certExam = null; // {token, category, questions, answers, index}
+
+async function renderMyCertificates() {
+  const el = document.getElementById('certMineList');
+  if (!el) return;
+  try {
+    const certs = await api.library.certMine();
+    if (!certs.length) { el.innerHTML = ''; return; }
+    el.innerHTML = certs.map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
+        <div><span style="color:var(--text-primary);font-weight:600;">${eh(c.category)}</span> <span style="color:var(--text-muted);font-size:11px;">· ${c.score}%</span></div>
+        <button onclick="downloadCertificate('${encodeURIComponent(c.category).replace(/'/g, '')}')" style="background:rgba(0,212,255,0.15);border:none;color:var(--accent);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-family:inherit;">Скачать PDF</button>
+      </div>`).join('');
+  } catch (_) { el.innerHTML = ''; }
+}
+
+async function downloadCertificate(categoryEnc) {
+  const category = decodeURIComponent(categoryEnc);
+  try {
+    const blob = await api.library.certPdfBlob(category);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sertifikat_' + category + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) { showToast('Не удалось скачать сертификат'); }
+}
+
+function certModalShell(inner) {
+  let modal = document.getElementById('certModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'certModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2500;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `<div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:560px;width:96%;border:1px solid var(--border);max-height:90vh;overflow-y:auto;">${inner}</div>`;
+  return modal;
+}
+
+function closeCertModal() {
+  const m = document.getElementById('certModal');
+  if (m) m.remove();
+  _certExam = null;
+}
+
+async function openCertificationModal() {
+  certModalShell('<div style="text-align:center;padding:30px;color:var(--text-secondary);">Загрузка тем…</div>');
+  try {
+    const cats = await api.library.certCategories();
+    const options = cats.map(c => `<option value="${eh(c)}">${eh(c)}</option>`).join('');
+    certModalShell(`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:16px;font-weight:700;">Аттестация</h3>
+        <button onclick="closeCertModal()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Выберите тему. Будет сгенерирован тест из 50 вопросов (это может занять до минуты). Для прохождения нужно 85% правильных.</p>
+      <select id="certCategorySelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:16px;font-family:inherit;">${options}</select>
+      <button id="certStartBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;">Начать тест</button>
+    `);
+    document.getElementById('certStartBtn').onclick = startCertExam;
+  } catch (e) {
+    certModalShell('<div style="padding:20px;color:#ef4444;">Не удалось загрузить темы<br><button onclick="closeCertModal()" style="margin-top:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:8px 16px;border-radius:8px;cursor:pointer;">Закрыть</button></div>');
+  }
+}
+
+async function startCertExam() {
+  const category = document.getElementById('certCategorySelect').value;
+  certModalShell(`<div style="text-align:center;padding:40px;color:var(--text-secondary);"><div style="font-size:32px;margin-bottom:12px;">⏳</div>Генерируем тест по теме<br><b style="color:var(--text-primary);">${eh(category)}</b><br><span style="font-size:12px;color:var(--text-muted);">Это может занять до минуты…</span></div>`);
+  try {
+    const data = await api.library.certStartExam(category);
+    _certExam = { token: data.exam_token, category: data.category, questions: data.questions, answers: new Array(data.questions.length).fill(-1), index: 0 };
+    renderCertQuestion();
+  } catch (e) {
+    const msg = (e && e.detail) || 'Не удалось сгенерировать тест';
+    certModalShell(`<div style="padding:20px;color:#ef4444;">${eh(msg)}<br><button onclick="closeCertModal()" style="margin-top:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:8px 16px;border-radius:8px;cursor:pointer;">Закрыть</button></div>`);
+  }
+}
+
+function renderCertQuestion() {
+  const ex = _certExam;
+  if (!ex) return;
+  const q = ex.questions[ex.index];
+  const total = ex.questions.length;
+  const opts = q.options.map((o, i) => `
+    <button onclick="answerCertQuestion(${i})" style="display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 14px;border-radius:8px;border:1px solid ${ex.answers[ex.index] === i ? 'var(--accent)' : 'var(--border)'};background:${ex.answers[ex.index] === i ? 'rgba(0,212,255,0.12)' : 'var(--bg-card)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">${eh(o)}</button>`).join('');
+  const answered = ex.answers.filter(a => a >= 0).length;
+  certModalShell(`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--text-muted);">Вопрос ${ex.index + 1} из ${total}</span>
+      <button onclick="closeCertModal()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:26px;height:26px;border-radius:7px;cursor:pointer;">✕</button>
+    </div>
+    <div style="height:4px;background:var(--bg-card);border-radius:2px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;width:${(answered / total * 100)}%;background:var(--accent);"></div></div>
+    <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:16px;">${eh(q.question)}</div>
+    ${opts}
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:16px;">
+      <button onclick="certNav(-1)" ${ex.index === 0 ? 'disabled' : ''} style="flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;opacity:${ex.index === 0 ? '0.4' : '1'};">← Назад</button>
+      ${ex.index < total - 1
+        ? `<button onclick="certNav(1)" style="flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;">Далее →</button>`
+        : `<button onclick="submitCertExam()" style="flex:1;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;">Завершить</button>`}
+    </div>
+  `);
+}
+
+function answerCertQuestion(i) {
+  if (!_certExam) return;
+  _certExam.answers[_certExam.index] = i;
+  renderCertQuestion();
+}
+
+function certNav(d) {
+  if (!_certExam) return;
+  _certExam.index = Math.max(0, Math.min(_certExam.questions.length - 1, _certExam.index + d));
+  renderCertQuestion();
+}
+
+async function submitCertExam() {
+  const ex = _certExam;
+  if (!ex) return;
+  const unanswered = ex.answers.filter(a => a < 0).length;
+  if (unanswered > 0 && !confirm(`Без ответа: ${unanswered}. Они будут засчитаны как неверные. Завершить?`)) return;
+  certModalShell('<div style="text-align:center;padding:40px;color:var(--text-secondary);">Проверяем ответы…</div>');
+  try {
+    const res = await api.library.certSubmitExam(ex.token, ex.answers);
+    if (res.needs_full_name) {
+      certModalShell(`
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">Заполните ФИО</h3>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Вы прошли тест (${res.score}%)! Для сертификата укажите ФИО — оно появится в документе.</p>
+        <input type="text" id="certFullName" placeholder="Фамилия Имя Отчество" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:14px;font-family:inherit;">
+        <button id="certSaveNameBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700;">Сохранить и получить сертификат</button>
+      `);
+      document.getElementById('certSaveNameBtn').onclick = async () => {
+        const fio = document.getElementById('certFullName').value.trim();
+        if (fio.length < 3) return showToast('Введите ФИО');
+        try {
+          await api.updateMe({ full_name: fio });
+          if (state.currentUser) state.currentUser.full_name = fio;
+          // повторно отправляем экзамен — теперь ФИО есть
+          const res2 = await api.library.certSubmitExam(ex.token, ex.answers);
+          if (res2.passed && !res2.needs_full_name) {
+            showCertResult(res2.score, ex.category);
+          } else {
+            showToast('Экзамен истёк, пройдите заново');
+            closeCertModal();
+          }
+        } catch (e) { showToast('Не удалось сохранить'); }
+      };
+    } else if (res.passed) {
+      showCertResult(res.score, ex.category);
+    } else {
+      certModalShell(`
+        <div style="text-align:center;padding:20px;">
+          <div style="font-size:36px;margin-bottom:10px;">😔</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Не пройдено</h3>
+          <p style="color:var(--text-secondary);margin-bottom:6px;">Результат: ${res.score}% (${res.correct_count} из ${res.total})</p>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px;">Для сертификата нужно 85%. Попробуйте ещё раз после изучения материалов.</p>
+          <button onclick="closeCertModal()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px 20px;border-radius:8px;cursor:pointer;font-family:inherit;">Закрыть</button>
+        </div>`);
+    }
+  } catch (e) {
+    showToast('Ошибка проверки');
+    closeCertModal();
+  }
+}
+
+function showCertResult(score, category) {
+  certModalShell(`
+    <div style="text-align:center;padding:20px;">
+      <div style="font-size:44px;margin-bottom:10px;">🎉</div>
+      <h3 style="font-size:20px;font-weight:800;margin-bottom:8px;">Поздравляем!</h3>
+      <p style="color:var(--text-secondary);margin-bottom:6px;">Вы прошли аттестацию по теме<br><b style="color:var(--text-primary);">${eh(category)}</b></p>
+      <p style="color:var(--accent);font-weight:700;font-size:18px;margin-bottom:18px;">${score}%</p>
+      <button onclick="downloadCertificate('${encodeURIComponent(category).replace(/'/g, '')}');closeCertModal();renderMyCertificates();" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:11px 22px;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700;margin-bottom:10px;">Скачать сертификат</button>
+      <br><button onclick="closeCertModal();renderMyCertificates();" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px;">Закрыть</button>
+    </div>`);
+}
+
 function openExportModal() {
   let modal = document.getElementById('exportModal');
   if (!modal) {
@@ -3652,7 +3829,7 @@ function navigateTo(s) {
   if (s === 'home') { renderHome(); renderRecommendations(); }
   if (s === 'mylist') { renderMyList(); initDragAndDrop(); }
   if (s === 'training') renderTrainingScreen();
-  if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); renderSkillsRadar(); }
+  if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); renderSkillsRadar(); renderMyCertificates(); }
   if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'assistant') { renderAssistantScreen(); }
   if (s === 'admin') { renderAdminPanel(); refreshPendingBadge(); }

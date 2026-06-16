@@ -4,6 +4,7 @@ from app.models.admin_log import AdminLog
 from app.models.book import Book
 from app.models.book_comment import BookComment
 from app.models.book_page import BookPage
+from app.models.certificate import Certificate
 from app.models.chat import ChatMessage, ChatSession
 from app.models.collection import Collection, collection_books
 from app.models.library import (
@@ -26,6 +27,7 @@ __all__ = [
     "Book",
     "BookComment",
     "BookPage",
+    "Certificate",
     "ChatMessage",
     "ChatSession",
     "Collection",

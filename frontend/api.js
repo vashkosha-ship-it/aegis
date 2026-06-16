@@ -403,6 +403,19 @@
         const resp = await request(path, { raw: true });
         return resp.blob();
       },
+      certCategories() { return request('/certificates/categories'); },
+      certMine() { return request('/certificates/mine'); },
+      certStartExam(category) {
+        return request('/certificates/exam/start', { method: 'POST', body: { category } });
+      },
+      certSubmitExam(examToken, answers) {
+        return request('/certificates/exam/submit', { method: 'POST', body: { exam_token: examToken, answers } });
+      },
+      certPdfUrl(category) { return BASE + '/certificates/' + encodeURIComponent(category) + '/pdf'; },
+      async certPdfBlob(category) {
+        const resp = await request('/certificates/' + encodeURIComponent(category) + '/pdf', { raw: true });
+        return resp.blob();
+      },
       adminApproveUser(userId) {
         return request('/admin/users/' + userId + '/approve', { method: 'POST' });
       },
