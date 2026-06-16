@@ -56,6 +56,9 @@ class User(Base):
     verify_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
     verify_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Одобрение аккаунта администратором (второй этап после подтверждения email)
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

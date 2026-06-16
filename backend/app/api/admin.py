@@ -1,4 +1,6 @@
 """Admin endpoints: dashboard stats, user management, leaderboard, book analytics."""
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import and_, func, select
@@ -208,7 +210,64 @@ async def delete_user(
     await db.commit()
 
 
-@router.get("/leaderboard", response_model=list[LeaderboardEntry])
+class PendingUserView(BaseModel):
+    id: int
+    username: str
+    email: str | None
+    full_name: str | None
+    department: str | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/users/pending", response_model=list[PendingUserView])
+async def list_pending_users(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> list[PendingUserView]:
+    """Список пользователей, подтвердивших email, но ещё не одобренных админом."""
+    rows = await db.scalars(
+        select(User)
+        .where(and_(User.is_verified == True, User.is_approved == False))  # noqa: E712
+        .order_by(User.created_at.asc())
+    )
+    return [PendingUserView.model_validate(u) for u in rows.all()]
+
+
+@router.post("/users/{user_id}/approve", status_code=status.HTTP_200_OK)
+async def approve_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Одобрить аккаунт — пользователь получает доступ к библиотеке."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_approved = True
+    await db.commit()
+    return {"detail": "approved", "user_id": user_id}
+
+
+@router.post("/users/{user_id}/reject", status_code=status.HTTP_200_OK)
+async def reject_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_admin),
+) -> dict:
+    """Отклонить заявку — удалить неодобренный аккаунт."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(status_code=400, detail="Cannot reject admin accounts")
+    if user.is_approved:
+        raise HTTPException(status_code=400, detail="User already approved")
+    await db.delete(user)
+    await db.commit()
+    return {"detail": "rejected", "user_id": user_id}
 async def leaderboard(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),

@@ -391,6 +391,16 @@
     adminBookAnalytics(bookId) {
       return request('/admin/books/' + bookId + '/analytics');
     },
+
+    adminPendingUsers() {
+      return request('/admin/users/pending');
+    },
+    adminApproveUser(userId) {
+      return request('/admin/users/' + userId + '/approve', { method: 'POST' });
+    },
+    adminRejectUser(userId) {
+      return request('/admin/users/' + userId + '/reject', { method: 'POST' });
+    },
     },
   };
 

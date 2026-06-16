@@ -58,6 +58,7 @@ class UserPublic(BaseModel):
     level_assessed_at: datetime | None = None
     department: str | None = None
     profile_visibility: str = "public"
+    is_approved: bool = True
 
     @classmethod
     def model_validate(cls, obj, *, strict=None, from_attributes=None, context=None):

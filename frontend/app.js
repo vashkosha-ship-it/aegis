@@ -2510,6 +2510,94 @@ async function openAdminLogs() {
   }
 }
 
+async function openPendingUsersModal() {
+  let modal = document.getElementById('pendingUsersModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pendingUsersModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="background:var(--bg-elevated);border-radius:14px;padding:20px;max-width:560px;width:95%;border:1px solid var(--border);max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="font-size:16px;font-weight:700;">Заявки на регистрацию</h3>
+        <button onclick="document.getElementById('pendingUsersModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+      </div>
+      <div id="pendingUsersList" style="font-size:13px;color:var(--text-secondary);">Загрузка…</div>
+    </div>`;
+
+  try {
+    const users = await api.adminPendingUsers();
+    const list = document.getElementById('pendingUsersList');
+    if (!users.length) {
+      list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Нет заявок на рассмотрении</div>';
+    } else {
+      list.innerHTML = users.map(u => `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
+          <div style="min-width:0;flex:1;">
+            <div style="font-weight:600;color:var(--text-primary);">${eh(u.full_name || u.username)}</div>
+            <div style="font-size:11px;color:var(--text-muted);">@${eh(u.username)} · ${eh(u.email || '—')}</div>
+            ${u.department ? `<div style="font-size:11px;color:var(--accent);">${eh(u.department)}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="approvePendingUser(${u.id}, this)" style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#22c55e;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Одобрить</button>
+            <button onclick="rejectPendingUser(${u.id}, this)" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#ef4444;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Отклонить</button>
+          </div>
+        </div>`).join('');
+    }
+    updatePendingBadge(users.length);
+  } catch (err) {
+    document.getElementById('pendingUsersList').innerHTML = '<div style="color:#ef4444;padding:16px;">Не удалось загрузить заявки</div>';
+  }
+}
+
+async function approvePendingUser(userId, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await api.adminApproveUser(userId);
+    btn.closest('div[style*="justify-content:space-between"]').parentElement.remove();
+    showToast('Пользователь одобрен');
+    refreshPendingBadge();
+    const list = document.getElementById('pendingUsersList');
+    if (list && !list.querySelector('button')) {
+      list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Нет заявок на рассмотрении</div>';
+    }
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Одобрить';
+    showToast('Не удалось одобрить');
+  }
+}
+
+async function rejectPendingUser(userId, btn) {
+  if (!confirm('Отклонить заявку? Аккаунт будет удалён.')) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await api.adminRejectUser(userId);
+    btn.closest('div[style*="justify-content:space-between"]').parentElement.remove();
+    showToast('Заявка отклонена');
+    refreshPendingBadge();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Отклонить';
+    showToast('Не удалось отклонить');
+  }
+}
+
+function updatePendingBadge(count) {
+  const badge = document.getElementById('pendingUsersBadge');
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+  else badge.style.display = 'none';
+}
+
+async function refreshPendingBadge() {
+  if (!state.currentUser || state.currentUser.role !== 'admin') return;
+  try {
+    const users = await api.adminPendingUsers();
+    updatePendingBadge(users.length);
+  } catch (_) {}
+}
+
 async function generateMissingCoversUI() {
   const candidates = (state.books || []).filter(b => !b.has_cover && (b.has_pdf || b.format !== 'epub'));
   if (!candidates.length) {
@@ -3509,7 +3597,7 @@ function navigateTo(s) {
   if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); renderSkillsRadar(); }
   if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'assistant') { renderAssistantScreen(); }
-  if (s === 'admin') renderAdminPanel();
+  if (s === 'admin') { renderAdminPanel(); refreshPendingBadge(); }
   updateFabVisibility();
 }
 
@@ -3668,6 +3756,67 @@ function formatApiError(err) {
 let pendingVerifyEmail = null;
 let pendingVerifyCreds = null;
 
+function showPendingApprovalScreen() {
+  let overlay = document.getElementById('pendingApprovalOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'pendingApprovalOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg-primary);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
+    document.body.appendChild(overlay);
+  }
+  const hasLevel = state.currentUser && state.currentUser.cyber_level;
+  overlay.innerHTML = `
+    <div style="max-width:420px;width:100%;text-align:center;">
+      <div style="font-size:44px;margin-bottom:14px;">⏳</div>
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:10px;color:var(--text-primary);">Заявка на рассмотрении</h2>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">
+        Ваш email подтверждён. Теперь администратор должен одобрить доступ к библиотеке.
+        Это обычно занимает немного времени.
+      </p>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:22px;line-height:1.5;">
+        А пока вы можете пройти тест на уровень знаний — результат сохранится в вашем профиле.
+      </p>
+      ${hasLevel ? `
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text-secondary);">
+          Вы уже прошли тест уровня. Дождитесь одобрения администратора.
+        </div>` : `
+        <button id="pendingStartTestBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:13px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;margin-bottom:12px;">Пройти тест на уровень знаний</button>
+      `}
+      <button id="pendingRefreshBtn" style="width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;margin-bottom:10px;">Проверить статус одобрения</button>
+      <button id="pendingLogoutBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px;">Выйти</button>
+    </div>`;
+
+  const startBtn = document.getElementById('pendingStartTestBtn');
+  if (startBtn) {
+    startBtn.onclick = () => {
+      overlay.style.display = 'none';
+      renderLevelChoices();
+      navigateTo('onboarding');
+    };
+  }
+  document.getElementById('pendingRefreshBtn').onclick = async () => {
+    try {
+      const u = await api.me();
+      if (u.is_approved !== false) {
+        overlay.remove();
+        state.currentUser.is_approved = true;
+        showToast('Доступ одобрен! Добро пожаловать');
+        navigateTo(u.cyber_level ? 'home' : 'onboarding');
+      } else {
+        showToast('Заявка пока на рассмотрении');
+      }
+    } catch (_) {
+      showToast('Не удалось проверить статус');
+    }
+  };
+  document.getElementById('pendingLogoutBtn').onclick = () => {
+    overlay.remove();
+    api.logout();
+    state.currentUser = null;
+    navigateTo('auth');
+  };
+}
+
 function showVerifyEmailScreen(email) {
   let overlay = document.getElementById('verifyEmailOverlay');
   if (!overlay) {
@@ -3727,6 +3876,7 @@ async function submitVerifyCode() {
       full_name: user.full_name, has_avatar: user.has_avatar, cyber_level: user.cyber_level,
       topic_scores: user.topic_scores, level_assessed_at: user.level_assessed_at,
       department: user.department || null,
+      is_approved: user.is_approved !== false,
     };
     await loadBooksFromApi();
     await loadMyListFromApi();
@@ -3739,7 +3889,9 @@ async function submitVerifyCode() {
     pendingVerifyEmail = null;
     pendingVerifyCreds = null;
     showToast('Email подтверждён! Добро пожаловать');
-    if (!user.cyber_level) navigateTo('onboarding');
+    if (state.currentUser && state.currentUser.is_approved === false) {
+      showPendingApprovalScreen();
+    } else if (!user.cyber_level) navigateTo('onboarding');
     else navigateTo('home');
   } catch (err) {
     btn.disabled = false;
@@ -3813,6 +3965,7 @@ document.getElementById('authForm').addEventListener('submit', async e => {
         topic_scores: user.topic_scores,
         level_assessed_at: user.level_assessed_at,
         department: user.department || null,
+      is_approved: user.is_approved !== false,
       };
       await loadBooksFromApi();
       await loadMyListFromApi();
@@ -3825,11 +3978,13 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       saveState();
       document.getElementById('authForm').reset();
 
-      // Если регистрация и cyber_level ещё не определён — показываем онбординг
-      if (state.currentTab === 'register' && !user.cyber_level) {
-      renderLevelChoices();  // Сначала рендерим карточки
-      navigateTo('onboarding');
-    } else {
+      // Не одобрен админом — показываем экран ожидания (с возможностью пройти тест уровня)
+      if (state.currentUser && state.currentUser.is_approved === false) {
+        showPendingApprovalScreen();
+      } else if (state.currentTab === 'register' && !user.cyber_level) {
+        renderLevelChoices();
+        navigateTo('onboarding');
+      } else {
         navigateTo('home');
       }
   } catch (err) {
@@ -3898,6 +4053,7 @@ async function tryAutoLogin() {
       level_assessed_at: user.level_assessed_at,
       profile_visibility: user.profile_visibility || 'public',
       department: user.department || null,
+      is_approved: user.is_approved !== false,
     };
 
     await loadBooksFromApi();
@@ -9174,6 +9330,11 @@ function renderAdminBooks() {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         Обложки
       </button>
+      <button onclick="openPendingUsersModal()" title="Заявки на регистрацию" style="position:relative;background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.4);color:#7b61ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Заявки
+        <span id="pendingUsersBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;font-weight:700;"></span>
+      </button>
     </div>
     <div class="table-wrap">
       <table>
@@ -10126,8 +10287,17 @@ function renderOnboardingResult(result) {
       ${topicsHtml}
     </div>
     ${weakHtml}
-    <button class="btn-onboarding-finish-result" onclick="navigateTo('home')">Начать обучение</button>
+    <button class="btn-onboarding-finish-result" onclick="finishOnboardingNav()">Начать обучение</button>
   `;
+}
+
+function finishOnboardingNav() {
+  // Если пользователь ещё не одобрен — возвращаем на экран ожидания, не пускаем в библиотеку
+  if (state.currentUser && state.currentUser.is_approved === false) {
+    showPendingApprovalScreen();
+  } else {
+    navigateTo('home');
+  }
 }
 // ========== ИНФА ОБ УРОВНЕ + МОДАЛКА «МОЙ УРОВЕНЬ» ==========
 function getCyberLevelInfo(code) {
