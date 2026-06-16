@@ -2626,3 +2626,8 @@ select[multiple] option:hover {
   .detail-title { font-size: 35px !important; }
   .detail-desc { font-size: 16px !important; }
 }
+/* Кнопки действий админа (Заявки/Excel) — адаптивность на телефоне */
+@media (max-width: 640px) {
+  .admin-actions-bar { flex-direction: column; }
+  .admin-actions-bar button { width: 100%; justify-content: center; }
+}
