@@ -101,6 +101,7 @@
   // --- публичный API -------------------------------------------------------
   const api = {
     isAuthenticated: () => !!tokens.access,
+    baseUrl: BASE,
     tokens,
     ApiError,
     request,
