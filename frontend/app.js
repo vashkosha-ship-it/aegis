@@ -2510,6 +2510,55 @@ async function openAdminLogs() {
   }
 }
 
+function openExportModal() {
+  let modal = document.getElementById('exportModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'exportModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:420px;width:95%;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:16px;font-weight:700;">Выгрузка в Excel</h3>
+        <button onclick="document.getElementById('exportModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Прочитанные книги по сотрудникам за период (ФИО, подразделение, книги). Оставьте даты пустыми — выгрузится всё.</p>
+      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Дата с</label>
+      <input type="date" id="exportDateFrom" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:12px;font-family:inherit;">
+      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Дата по</label>
+      <input type="date" id="exportDateTo" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:18px;font-family:inherit;">
+      <button id="exportRunBtn" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;">Скачать Excel</button>
+    </div>`;
+
+  document.getElementById('exportRunBtn').onclick = async () => {
+    const btn = document.getElementById('exportRunBtn');
+    const from = document.getElementById('exportDateFrom').value || null;
+    const to = document.getElementById('exportDateTo').value || null;
+    btn.disabled = true;
+    btn.textContent = 'Формирую…';
+    try {
+      const blob = await api.library.adminExportReading(from, to);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'aegis_reading' + (from || to ? '_' + (from || 'нач') + '_' + (to || 'кон') : '') + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      document.getElementById('exportModal').remove();
+      showToast('Файл выгружен');
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Скачать Excel';
+      console.error('Ошибка экспорта:', err);
+      showToast('Не удалось сформировать файл');
+    }
+  };
+}
+
 async function openPendingUsersModal() {
   let modal = document.getElementById('pendingUsersModal');
   if (!modal) {
@@ -9359,6 +9408,10 @@ function renderAdminBooks() {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         Заявки
         <span id="pendingUsersBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;font-weight:700;"></span>
+      </button>
+      <button onclick="openExportModal()" title="Выгрузка прочитанного в Excel" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);color:#22c55e;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Excel
       </button>
     </div>
     <div class="table-wrap">

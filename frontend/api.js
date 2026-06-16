@@ -395,6 +395,14 @@
       adminPendingUsers() {
         return request('/admin/users/pending');
       },
+      async adminExportReading(dateFrom, dateTo) {
+        let qs = [];
+        if (dateFrom) qs.push('date_from=' + encodeURIComponent(dateFrom));
+        if (dateTo) qs.push('date_to=' + encodeURIComponent(dateTo));
+        const path = '/admin/export/reading' + (qs.length ? '?' + qs.join('&') : '');
+        const resp = await request(path, { raw: true });
+        return resp.blob();
+      },
       adminApproveUser(userId) {
         return request('/admin/users/' + userId + '/approve', { method: 'POST' });
       },

@@ -1,7 +1,9 @@
 """Admin endpoints: dashboard stats, user management, leaderboard, book analytics."""
-from datetime import datetime
+import io
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -268,6 +270,112 @@ async def reject_user(
     await db.delete(user)
     await db.commit()
     return {"detail": "rejected", "user_id": user_id}
+
+
+@router.get("/export/reading")
+async def export_reading_xlsx(
+    date_from: str | None = Query(None, description="ISO-дата начала периода, напр. 2026-01-01"),
+    date_to: str | None = Query(None, description="ISO-дата конца периода"),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Выгрузка в Excel: ФИО, подразделение, прочитанные книги за период.
+    Период по дате завершения чтения (updated_at записи со статусом completed)."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+    except ImportError:
+        raise HTTPException(
+            status_code=500,
+            detail="openpyxl не установлен на сервере",
+        )
+
+    # Разбор периода
+    df = dt = None
+    try:
+        if date_from:
+            df = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+        if date_to:
+            dt = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Неверный формат даты (нужен ГГГГ-ММ-ДД)")
+
+    # Завершённые книги с пользователем и книгой
+    conds = [MyListEntry.status == MyListStatus.COMPLETED]
+    if df:
+        conds.append(MyListEntry.updated_at >= df)
+    if dt:
+        conds.append(MyListEntry.updated_at <= dt)
+
+    stmt = (
+        select(User, Book, MyListEntry.updated_at)
+        .join(MyListEntry, MyListEntry.user_id == User.id)
+        .join(Book, Book.id == MyListEntry.book_id)
+        .where(and_(*conds))
+        .order_by(User.full_name.asc().nulls_last(), MyListEntry.updated_at.asc())
+    )
+    rows = (await db.execute(stmt)).all()
+
+    # Сводка: сколько книг прочёл каждый пользователь
+    summary: dict[int, dict] = {}
+    for user, book, when in rows:
+        s = summary.setdefault(
+            user.id,
+            {"fio": user.full_name or user.username, "dept": user.department or "—", "count": 0},
+        )
+        s["count"] += 1
+
+    wb = Workbook()
+
+    # Лист 1: сводка по пользователям
+    ws1 = wb.active
+    ws1.title = "Сводка"
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill("solid", fgColor="2F2B7B")
+    for col, name in enumerate(["ФИО", "Подразделение", "Прочитано книг"], start=1):
+        c = ws1.cell(row=1, column=col, value=name)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = Alignment(horizontal="center")
+    for i, s in enumerate(sorted(summary.values(), key=lambda x: -x["count"]), start=2):
+        ws1.cell(row=i, column=1, value=s["fio"])
+        ws1.cell(row=i, column=2, value=s["dept"])
+        ws1.cell(row=i, column=3, value=s["count"])
+    ws1.column_dimensions["A"].width = 30
+    ws1.column_dimensions["B"].width = 22
+    ws1.column_dimensions["C"].width = 16
+
+    # Лист 2: детализация (каждая прочитанная книга)
+    ws2 = wb.create_sheet("Детализация")
+    for col, name in enumerate(["ФИО", "Подразделение", "Книга", "Дата завершения"], start=1):
+        c = ws2.cell(row=1, column=col, value=name)
+        c.font = header_font
+        c.fill = header_fill
+        c.alignment = Alignment(horizontal="center")
+    for i, (user, book, when) in enumerate(rows, start=2):
+        ws2.cell(row=i, column=1, value=user.full_name or user.username)
+        ws2.cell(row=i, column=2, value=user.department or "—")
+        ws2.cell(row=i, column=3, value=book.title)
+        ws2.cell(row=i, column=4, value=when.strftime("%Y-%m-%d %H:%M") if when else "")
+    ws2.column_dimensions["A"].width = 30
+    ws2.column_dimensions["B"].width = 22
+    ws2.column_dimensions["C"].width = 45
+    ws2.column_dimensions["D"].width = 18
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    period = ""
+    if date_from or date_to:
+        period = f"_{date_from or 'нач'}_{date_to or 'кон'}"
+    filename = f"aegis_reading{period}.xlsx"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 async def leaderboard(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
