@@ -381,7 +381,8 @@
       },
       adminUsers() { return request('/admin/users'); },
       adminDeleteUser(userId) {
-      return request('/admin/users/' + userId, { method: 'DELETE' });
+        return request('/admin/users/' + userId, { method: 'DELETE' });
+      },
     },
 
     adminDashboard() {
@@ -400,7 +401,6 @@
     },
     adminRejectUser(userId) {
       return request('/admin/users/' + userId + '/reject', { method: 'POST' });
-    },
     },
   };
 
