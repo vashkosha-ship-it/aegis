@@ -54,6 +54,19 @@ async def get_current_admin(current: User = Depends(get_current_user)) -> User:
     return current
 
 
+async def get_approved_user(current: User = Depends(get_current_user)) -> User:
+    """Like get_current_user but requires the account to be approved by an admin.
+    Admins are always considered approved. Used to gate library content."""
+    if current.role == UserRole.ADMIN:
+        return current
+    if not getattr(current, "is_approved", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account pending admin approval",
+        )
+    return current
+
+
 async def get_current_user_optional(
     token: str | None = Depends(oauth2_scheme),
     bearer = Depends(bearer_scheme),

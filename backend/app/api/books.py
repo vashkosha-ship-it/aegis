@@ -19,7 +19,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from app.api.deps import get_current_admin, get_current_user, get_current_user_optional
+from app.api.deps import get_current_admin, get_current_user, get_current_user_optional, get_approved_user
 from app.core.config import settings
 from app.core.file_validation import (
     FileValidationError,
@@ -526,7 +526,7 @@ async def download_book_pdf(
     book_id: int,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_approved_user),
     storage: StorageBackend = Depends(get_storage),
 ):
     """Любой авторизованный: скачать/прочитать PDF книги. Поддерживает HTTP Range

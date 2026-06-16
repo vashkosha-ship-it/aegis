@@ -1,4 +1,4 @@
-/* DESKTOP-CSS-VERSION-106 */
+/* DESKTOP-CSS-VERSION-107 */
 /* =====================================================================
    AEGIS — DESKTOP / TABLET LANDSCAPE RESPONSIVE LAYER
    Подключается после styles.css. Брейкпоинты:
@@ -1874,4 +1874,34 @@
   }
   #assistantScreen .assistant-quick-chips { flex-shrink: 0 !important; }
   #assistantScreen #assistantInputBar { flex-shrink: 0 !important; }
+}
+/* ===== Карта знаний + тепловая карта в один ряд (v107) ===== */
+@media (min-width: 1024px) {
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .stats-row > .settings-section {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .stats-row > .settings-section > .settings-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Ограничиваем размер radar, чтобы не был огромным */
+  #skillsRadarSection .settings-card > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+  #skillsRadarCanvas {
+    max-height: 280px;
+    max-width: 280px;
+  }
 }
