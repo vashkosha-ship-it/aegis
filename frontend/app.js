@@ -2548,7 +2548,9 @@ async function openPendingUsersModal() {
     }
     updatePendingBadge(users.length);
   } catch (err) {
-    document.getElementById('pendingUsersList').innerHTML = '<div style="color:#ef4444;padding:16px;">Не удалось загрузить заявки</div>';
+    console.error('Ошибка загрузки заявок:', err, err && err.status, err && err.body);
+    const detail = (err && (err.detail || (err.body && err.body.detail))) || (err && err.message) || '';
+    document.getElementById('pendingUsersList').innerHTML = '<div style="color:#ef4444;padding:16px;">Не удалось загрузить заявки' + (detail ? '<br><span style="font-size:11px;color:var(--text-muted);">' + eh(String(detail)) + '</span>' : '') + '</div>';
   }
 }
 
