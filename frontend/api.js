@@ -116,13 +116,30 @@
     },
 
     async register(username, password, email = null, full_name = null, department = null) {
-    const data = await request('/auth/register', {
-      method: 'POST',
-      body: { username, password, email, full_name, department },
-      auth: false,
-    });
+      // Регистрация больше НЕ выдаёт токены — аккаунт ждёт подтверждения email
+      return await request('/auth/register', {
+        method: 'POST',
+        body: { username, password, email, full_name, department },
+        auth: false,
+      });
+    },
+
+    async verifyEmail(email, code) {
+      const data = await request('/auth/verify', {
+        method: 'POST',
+        body: { email, code },
+        auth: false,
+      });
       tokens.set(data.access_token, data.refresh_token);
       return data;
+    },
+
+    async resendCode(email) {
+      return await request('/auth/resend-code', {
+        method: 'POST',
+        body: { email },
+        auth: false,
+      });
     },
 
     logout() {

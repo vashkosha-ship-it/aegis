@@ -2510,6 +2510,43 @@ async function openAdminLogs() {
   }
 }
 
+async function generateMissingCoversUI() {
+  const candidates = (state.books || []).filter(b => !b.has_cover && (b.has_pdf || b.format !== 'epub'));
+  if (!candidates.length) {
+    showToast('Все книги уже с обложками');
+    return;
+  }
+  showConfirmModal({
+    title: 'Создать обложки?',
+    message: `Книг без обложки: ${candidates.length}. Для каждой будет скачан PDF и создана обложка из первой страницы. Это может занять время.`,
+    confirmText: 'Создать',
+    cancelText: 'Отмена',
+    onConfirm: async () => {
+      let done = 0, failed = 0;
+      showToast('Создание обложек запущено…');
+      for (const b of candidates) {
+        try {
+          const bytes = await api.books.fetchPdfBytes(b.id);
+          const blob = await generateCoverFromPdf(new Blob([bytes], { type: 'application/pdf' }));
+          if (blob) {
+            const f = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
+            await api.books.uploadCover(b.id, f);
+            done++;
+          } else {
+            failed++;
+          }
+        } catch (e) {
+          failed++;
+          console.warn('Обложка не создана для книги', b.id, e);
+        }
+      }
+      showToast(`Обложки созданы: ${done}` + (failed ? ` · не удалось: ${failed}` : ''));
+      await loadBooksFromApi();
+      if (typeof renderAdminPanel === 'function') renderAdminPanel();
+    },
+  });
+}
+
 async function reindexAllBooksUI() {
   showConfirmModal({
     title: 'Переиндексировать все книги?',
@@ -3469,7 +3506,7 @@ function navigateTo(s) {
   if (s === 'home') { renderHome(); renderRecommendations(); }
   if (s === 'mylist') { renderMyList(); initDragAndDrop(); }
   if (s === 'training') renderTrainingScreen();
-  if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); }
+  if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); renderSkillsRadar(); }
   if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'assistant') { renderAssistantScreen(); }
   if (s === 'admin') renderAdminPanel();
@@ -3628,6 +3665,89 @@ function formatApiError(err) {
   return `Ошибка ${err.status}`;
 }
 
+let pendingVerifyEmail = null;
+let pendingVerifyCreds = null;
+
+function showVerifyEmailScreen(email) {
+  let overlay = document.getElementById('verifyEmailOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'verifyEmailOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg-primary);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div style="max-width:400px;width:100%;text-align:center;">
+      <div style="font-size:40px;margin-bottom:12px;">✉️</div>
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--text-primary);">Подтвердите email</h2>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+        Мы отправили код подтверждения на<br><b style="color:var(--text-primary);">${email}</b><br>
+        <span style="font-size:11px;color:var(--text-muted);">Проверьте папку «Спам», если письма нет</span>
+      </p>
+      <input type="text" id="verifyCodeInput" inputmode="numeric" maxlength="6" placeholder="000000"
+        style="width:100%;text-align:center;font-size:24px;letter-spacing:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:14px;font-family:inherit;">
+      <button id="verifyCodeBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;margin-bottom:12px;">Подтвердить</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+        <button id="verifyResendBtn" style="background:none;border:none;color:var(--accent);cursor:pointer;font-family:inherit;font-size:12px;">Отправить код повторно</button>
+        <button id="verifyBackBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px;">Назад</button>
+      </div>
+    </div>`;
+
+  const input = document.getElementById('verifyCodeInput');
+  input.focus();
+  document.getElementById('verifyCodeBtn').onclick = submitVerifyCode;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submitVerifyCode(); });
+  document.getElementById('verifyResendBtn').onclick = async () => {
+    try {
+      await api.resendCode(pendingVerifyEmail);
+      showToast('Код отправлен повторно');
+    } catch (err) {
+      showToast(getAuthErrorMessage(err));
+    }
+  };
+  document.getElementById('verifyBackBtn').onclick = () => {
+    overlay.remove();
+    pendingVerifyEmail = null;
+    pendingVerifyCreds = null;
+  };
+}
+
+async function submitVerifyCode() {
+  const code = document.getElementById('verifyCodeInput').value.trim();
+  if (code.length < 4) return showToast('Введите код из письма');
+  const btn = document.getElementById('verifyCodeBtn');
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    await api.verifyEmail(pendingVerifyEmail, code);
+    // Успех — токены сохранены, грузим пользователя
+    const user = await api.me();
+    state.currentUser = {
+      name: user.username, role: user.role, id: user.id, email: user.email,
+      full_name: user.full_name, has_avatar: user.has_avatar, cyber_level: user.cyber_level,
+      topic_scores: user.topic_scores, level_assessed_at: user.level_assessed_at,
+      department: user.department || null,
+    };
+    await loadBooksFromApi();
+    await loadMyListFromApi();
+    await loadProgressFromApi();
+    await loadCompletedQuizzesFromApi();
+    await loadGamificationFromApi();
+    await loadOfflineBookIds();
+    const ov = document.getElementById('verifyEmailOverlay');
+    if (ov) ov.remove();
+    pendingVerifyEmail = null;
+    pendingVerifyCreds = null;
+    showToast('Email подтверждён! Добро пожаловать');
+    if (!user.cyber_level) navigateTo('onboarding');
+    else navigateTo('home');
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Подтвердить';
+    showToast(getAuthErrorMessage(err));
+  }
+}
+
 document.getElementById('authForm').addEventListener('submit', async e => {
   e.preventDefault();
   const n = document.getElementById('authName').value.trim();
@@ -3641,7 +3761,8 @@ document.getElementById('authForm').addEventListener('submit', async e => {
     if (n.length > 64) return showToast('Логин: максимум 64 символа');
     if (!/^[a-zA-Z0-9_]+$/.test(n)) return showToast('Логин: только латиница, цифры и _');
     if (p.length < 8) return showToast('Пароль: минимум 8 символов');
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Введите корректный email (например, name@example.com)');
+    if (!email) return showToast('Email обязателен — на него придёт код подтверждения');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Введите корректный email (например, name@example.com)');
   }
 
   const submitBtn = document.getElementById('authSubmitBtn');
@@ -3667,7 +3788,16 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       } else if (depSelect) {
         department = depSelect;
       }
-      await api.register(n, p, email || null, fullName, department);
+      await api.register(n, p, email, fullName, department);
+      // Регистрация создаёт неподтверждённый аккаунт — показываем экран ввода кода
+      pendingVerifyEmail = email;
+      pendingVerifyCreds = { username: n, password: p };
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+      if (submitText) submitText.textContent = originalText;
+      if (submitSpinner) submitSpinner.classList.add('hidden');
+      showVerifyEmailScreen(email);
+      return;
     } else {
       await api.login(n, p);
     }
@@ -3703,8 +3833,29 @@ document.getElementById('authForm').addEventListener('submit', async e => {
         navigateTo('home');
       }
   } catch (err) {
-    showToast(formatApiError(err));
-    if (!(err instanceof api.ApiError)) console.error(err);
+    // Если вход заблокирован из-за неподтверждённого email — показываем экран кода
+    const msg = (err && (err.detail || (err.body && err.body.detail))) || '';
+    if (err && err.status === 403 && /not verified/i.test(msg)) {
+      const loginName = document.getElementById('authName').value.trim();
+      const loginPass = document.getElementById('authPass').value.trim();
+      try {
+        // Узнаём email по аккаунту нельзя без входа — просим ввести email для повторной отправки
+        const emailForVerify = document.getElementById('authEmail')?.value?.trim();
+        if (emailForVerify) {
+          pendingVerifyEmail = emailForVerify;
+          pendingVerifyCreds = { username: loginName, password: loginPass };
+          await api.resendCode(emailForVerify);
+          showVerifyEmailScreen(emailForVerify);
+        } else {
+          showToast('Подтвердите email. Введите его в поле email и попробуйте снова.');
+        }
+      } catch (_) {
+        showToast('Подтвердите email перед входом');
+      }
+    } else {
+      showToast(formatApiError(err));
+      if (!(err instanceof api.ApiError)) console.error(err);
+    }
   } finally {
     submitBtn.disabled = false;
     submitBtn.classList.remove('loading');
@@ -4786,6 +4937,7 @@ function renderProfile() {
   updateProfileXpDisplay();
   renderAchievementsInProfile();
   renderHeatmap();
+  renderSkillsRadar();
   renderOfflineBooks();
   // Кнопки переключения темы приложения
   const btnDark = document.getElementById('appThemeBtnDark');
@@ -5834,6 +5986,110 @@ async function loadHeatmapFromApi() {
     state.heatmapData = [];
     return false;
   }
+}
+
+// ===== Карта знаний по темам (radar chart) =====
+// Группируем категории книг в крупные направления кибербезопасности
+const SKILL_THEMES = {
+  'Network Security': ['сет', 'network', 'сетев', 'firewall', 'protocol', 'traffic', 'трафик'],
+  'AppSec / Web': ['web', 'веб', 'приложен', 'app', 'owasp', 'devsecops', 'код', 'программ'],
+  'Offensive': ['пентест', 'pentest', 'red team', 'эксплуатац', 'exploit', 'атак', 'attack', 'взлом', 'hacking'],
+  'Defense / SOC': ['soc', 'мониторинг', 'incident', 'инцидент', 'защит', 'defense', 'blue team', 'siem', 'форензик', 'forensic'],
+  'Crypto / IAM': ['криптограф', 'crypto', 'шифр', 'pki', 'tls', 'iam', 'аутентификац', 'идентификац', 'ключ'],
+  'GRC / Risk': ['риск', 'risk', 'governance', 'compliance', 'политик', 'аудит', 'audit', 'nist', 'iso', 'методолог', 'управлени'],
+  'Malware / RE': ['malware', 'впо', 'вирус', 'reverse', 'реверс', 'анализ вредонос', 'троян'],
+  'AI Security': ['ии', 'ai', 'machine learning', 'ml', 'нейросет', 'adversarial', 'модел'],
+};
+
+function computeSkillScores() {
+  // Для каждой темы: сила = прочитанные книги (вес 2) + в процессе (вес 1), нормализуем 0-100
+  const scores = {};
+  for (const theme of Object.keys(SKILL_THEMES)) scores[theme] = 0;
+
+  const books = state.books || [];
+  for (const b of books) {
+    const status = state.mylist && state.mylist[b.id];
+    const prog = state.readingProgress && state.readingProgress[b.id];
+    let weight = 0;
+    if (status === 'completed') weight = 2;
+    else if (status === 'reading' || (prog && prog.started)) weight = 1;
+    else if (status === 'liked' || status === 'planned') weight = 0.3;
+    if (weight === 0) continue;
+
+    const hay = ((b.categories || []).join(' ') + ' ' + (b.title || '')).toLowerCase();
+    for (const [theme, keywords] of Object.entries(SKILL_THEMES)) {
+      if (keywords.some(k => hay.includes(k))) {
+        scores[theme] += weight;
+      }
+    }
+  }
+  // Нормализация: максимум приводим к 100, чтобы график читался
+  const max = Math.max(1, ...Object.values(scores));
+  const normalized = {};
+  for (const [theme, val] of Object.entries(scores)) {
+    normalized[theme] = Math.round((val / max) * 100);
+  }
+  return { raw: scores, normalized };
+}
+
+let _skillsRadarChart = null;
+function renderSkillsRadar() {
+  const canvas = document.getElementById('skillsRadarCanvas');
+  const empty = document.getElementById('skillsRadarEmpty');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const { raw, normalized } = computeSkillScores();
+  const total = Object.values(raw).reduce((a, b) => a + b, 0);
+
+  // Если совсем нет данных — показываем заглушку
+  if (total < 0.5) {
+    canvas.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  canvas.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+
+  const labels = Object.keys(SKILL_THEMES);
+  const data = labels.map(l => normalized[l]);
+
+  if (_skillsRadarChart) { _skillsRadarChart.destroy(); _skillsRadarChart = null; }
+
+  const styles = getComputedStyle(document.documentElement);
+  const accent = (styles.getPropertyValue('--accent') || '#00d4ff').trim();
+  const textMuted = (styles.getPropertyValue('--text-muted') || '#8a93a6').trim();
+  const border = (styles.getPropertyValue('--border') || 'rgba(255,255,255,0.1)').trim();
+
+  _skillsRadarChart = new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Уровень знаний',
+        data,
+        fill: true,
+        backgroundColor: 'rgba(0,212,255,0.18)',
+        borderColor: accent,
+        borderWidth: 2,
+        pointBackgroundColor: accent,
+        pointRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { display: false, stepSize: 25 },
+          grid: { color: border },
+          angleLines: { color: border },
+          pointLabels: { color: textMuted, font: { size: 10 } },
+        },
+      },
+    },
+  });
 }
 
 async function renderHeatmap() {
@@ -8071,7 +8327,46 @@ initCategoryTags('adminCategoriesContainer', book.categories || []);
   document.getElementById('adminBookFileInput').value = '';
   document.getElementById('adminCoverFile').value = '';
 
+  renderRecommendDepts(book);
+
   document.getElementById('adminBookModal').classList.remove('hidden');
+}
+
+// Вычисляет, каким подразделениям релевантна книга (по совпадению категорий/названия с темами)
+function renderRecommendDepts(book) {
+  const el = document.getElementById('adminRecommendDepts');
+  if (!el) return;
+  const hay = ((book.categories || []).join(' ') + ' ' + (book.title || '') + ' ' + (book.description || '')).toLowerCase();
+  const matches = [];
+  for (const [code, keywords] of Object.entries(DEPARTMENT_TOPICS)) {
+    const hits = keywords.filter(k => hay.includes(k.toLowerCase())).length;
+    if (hits > 0) matches.push({ code, hits });
+  }
+  matches.sort((a, b) => b.hits - a.hits);
+
+  if (!matches.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);">Нет явных совпадений по темам. Книга подходит для общего доступа.</div>';
+    return;
+  }
+  el.innerHTML = '<div style="margin-bottom:8px;">Книга релевантна подразделениям:</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+    matches.map(m => `
+      <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 10px;">
+        <span style="font-weight:600;color:var(--text-primary);">${m.code}</span>
+        <span style="font-size:10px;color:var(--text-muted);">${m.hits}</span>
+        <button onclick="markRequiredForDept(${book.id}, '${m.code}', this)" title="Сделать обязательной для ${m.code}" style="background:rgba(0,212,255,0.15);border:none;color:var(--accent);border-radius:5px;padding:2px 7px;cursor:pointer;font-size:10px;font-family:inherit;">★ обязательная</button>
+      </span>`).join('') +
+    '</div>';
+}
+
+async function markRequiredForDept(bookId, deptCode, btn) {
+  try {
+    await api.library.setRequiredBook(bookId, deptCode);
+    if (btn) { btn.textContent = '✓ отмечена'; btn.disabled = true; btn.style.opacity = '0.6'; }
+    showToast(`Книга обязательна для ${deptCode}`);
+  } catch (e) {
+    showToast(e && e.detail ? e.detail : 'Не удалось отметить');
+  }
 }
 
 function closeAdminBookModal() {
@@ -8874,6 +9169,10 @@ function renderAdminBooks() {
       <button onclick="openAdminLogs()" title="Журнал действий администраторов" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Журнал
+      </button>
+      <button onclick="generateMissingCoversUI()" title="Создать обложки для книг без обложки" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
+        Обложки
       </button>
     </div>
     <div class="table-wrap">

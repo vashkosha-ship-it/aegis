@@ -73,3 +73,17 @@ async def send_email_change_code(to: str, code: str) -> None:
         "Если вы не запрашивали смену — просто проигнорируйте это письмо."
     )
     await send_email(to, subject, body)
+
+
+async def send_verification_code(to: str, code: str) -> None:
+    """Письмо с кодом подтверждения регистрации."""
+    subject = "Aegis — подтверждение регистрации"
+    body = (
+        "Здравствуйте!\n\n"
+        "Вы зарегистрировались в библиотеке Aegis.\n"
+        f"Ваш код подтверждения: {code}\n\n"
+        "Введите его в приложении, чтобы активировать аккаунт.\n"
+        "Код действителен 30 минут.\n\n"
+        "Если вы не регистрировались — просто проигнорируйте это письмо."
+    )
+    await send_email(to, subject, body)

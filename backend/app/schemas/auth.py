@@ -8,9 +8,24 @@ from datetime import datetime
 class UserRegister(BaseModel):
     username: str = Field(min_length=3, max_length=64, pattern=r"^[a-zA-Z0-9_]+$")
     password: str = Field(min_length=8, max_length=128)
-    email: EmailStr | None = None
+    email: EmailStr  # обязателен — на него приходит код подтверждения
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=16)
+
+
+class ResendCodeRequest(BaseModel):
+    email: EmailStr
+
+
+class RegisterResponse(BaseModel):
+    detail: str
+    email: str
+    verification_required: bool = True
 
 
 class UserLogin(BaseModel):

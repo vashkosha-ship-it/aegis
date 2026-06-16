@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v131';
+const CACHE_NAME = 'aegis-cache-v134';
 
 // Ресурсы для предварительного кэширования
 const PRECACHE_URLS = [
@@ -32,7 +32,15 @@ self.addEventListener('install', (event) => {
       );
     })
   );
-  self.skipWaiting();
+  // НЕ вызываем skipWaiting() здесь — ждём явного согласия пользователя
+  // (кнопка «Обновить» шлёт SKIP_WAITING). Так обновление не прерывает чтение.
+});
+
+// Сообщение от страницы: применить обновление сейчас
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Активация: чистим старые кэши (включая v1)
