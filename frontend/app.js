@@ -3567,6 +3567,13 @@ const screens = new Proxy({}, {
 });
 
 function navigateTo(s) {
+  // Привратник: неодобрённый пользователь не попадает в библиотеку.
+  // Разрешены только онбординг (тест уровня) и экран авторизации.
+  if (state.currentUser && state.currentUser.is_approved === false
+      && s !== 'onboarding' && s !== 'auth') {
+    showPendingApprovalScreen();
+    return;
+  }
   // Снимаем active со всех известных экранов
   Object.keys(SCREEN_IDS).forEach(key => {
     const el = screens[key];
@@ -3795,18 +3802,32 @@ function showPendingApprovalScreen() {
     };
   }
   document.getElementById('pendingRefreshBtn').onclick = async () => {
+    const rbtn = document.getElementById('pendingRefreshBtn');
+    rbtn.disabled = true;
+    const orig = rbtn.textContent;
+    rbtn.textContent = 'Проверяю…';
     try {
       const u = await api.me();
-      if (u.is_approved !== false) {
+      if (u && u.is_approved === true) {
         overlay.remove();
-        state.currentUser.is_approved = true;
+        if (state.currentUser) state.currentUser.is_approved = true;
         showToast('Доступ одобрен! Добро пожаловать');
+        // Подгружаем данные библиотеки перед входом
+        try {
+          await loadBooksFromApi();
+          await loadMyListFromApi();
+          await loadProgressFromApi();
+        } catch (_) {}
         navigateTo(u.cyber_level ? 'home' : 'onboarding');
       } else {
-        showToast('Заявка пока на рассмотрении');
+        rbtn.disabled = false;
+        rbtn.textContent = orig;
+        showToast('Заявка пока на рассмотрении администратором');
       }
-    } catch (_) {
-      showToast('Не удалось проверить статус');
+    } catch (err) {
+      rbtn.disabled = false;
+      rbtn.textContent = orig;
+      showToast('Не удалось проверить статус, попробуйте ещё раз');
     }
   };
   document.getElementById('pendingLogoutBtn').onclick = () => {
@@ -10141,7 +10162,11 @@ async function maybeShowOnboarding() {
 }
 
 function skipOnboarding() {
-  // Просто переходим на главную, ничего не сохраняем
+  // Если аккаунт не одобрен админом — нельзя попасть в библиотеку
+  if (state.currentUser && state.currentUser.is_approved === false) {
+    showPendingApprovalScreen();
+    return;
+  }
   navigateTo('home');
 }
 
