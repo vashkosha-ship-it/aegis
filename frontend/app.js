@@ -3128,12 +3128,12 @@ function submitReview() {
 // ========== ANNOTATIONS ==========
 const annotationsCache = {};
 
-function adaptAnnotation(a) {
+async function adaptAnnotation(a) {
   return {
     id: a.id,
     type: a.type,
-    text: a.selected_text,
-    note: a.note_text || '',
+    text: await decryptNote(a.selected_text),
+    note: await decryptNote(a.note_text || ''),
     page: a.page,
     position: a.position || {},
     date: a.created_at,
@@ -3144,7 +3144,7 @@ async function getAnnotations(bookId) {
   if (annotationsCache[bookId]) return annotationsCache[bookId];
   try {
     const list = await api.library.annotations(bookId);
-    const adapted = list.map(adaptAnnotation);
+    const adapted = await Promise.all(list.map(adaptAnnotation));
     annotationsCache[bookId] = adapted;
     return adapted;
   } catch (err) {
@@ -3159,10 +3159,11 @@ async function addHighlight(bookId, text, pageNum, pos) {
     return null;
   }
   try {
+    const encText = await encryptNote(text);
     const created = await api.library.addAnnotation(bookId, {
       type: 'highlight',
       page: pageNum,
-      selected_text: text,
+      selected_text: encText,
       position: pos || {},
     });
     delete annotationsCache[bookId];
@@ -3176,6 +3177,73 @@ async function addHighlight(bookId, text, pageNum, pos) {
   }
 }
 
+// ============ ШИФРОВАНИЕ ЗАМЕТОК (client-side, AES-GCM) ============
+// Ключ выводится из пароля пользователя при входе и держится только в памяти.
+// Сервер хранит лишь шифротекст и не может его расшифровать.
+let _noteKey = null; // CryptoKey | null
+const NOTE_ENC_PREFIX = 'enc:v1:'; // маркер зашифрованного значения
+
+async function deriveNoteKey(password, username) {
+  // PBKDF2 из пароля; соль привязана к username (стабильна на пользователя)
+  try {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey(
+      'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+    );
+    const salt = enc.encode('aegis-notes-salt:' + (username || ''));
+    _noteKey = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  } catch (e) {
+    console.warn('Не удалось вывести ключ шифрования заметок:', e);
+    _noteKey = null;
+  }
+}
+
+function clearNoteKey() { _noteKey = null; }
+
+async function encryptNote(plain) {
+  // Возвращает строку enc:v1:<base64(iv+ciphertext)>; при отсутствии ключа — исходный текст
+  if (!_noteKey || plain == null || plain === '') return plain;
+  try {
+    const enc = new TextEncoder();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, _noteKey, enc.encode(plain));
+    const combined = new Uint8Array(iv.length + ct.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(ct), iv.length);
+    let bin = '';
+    combined.forEach(b => bin += String.fromCharCode(b));
+    return NOTE_ENC_PREFIX + btoa(bin);
+  } catch (e) {
+    console.warn('Ошибка шифрования заметки:', e);
+    return plain;
+  }
+}
+
+async function decryptNote(value) {
+  // Расшифровывает enc:v1:...; обычный текст (старые незашифрованные) возвращает как есть
+  if (value == null || typeof value !== 'string') return value;
+  if (!value.startsWith(NOTE_ENC_PREFIX)) return value; // не зашифровано
+  if (!_noteKey) return '🔒 (зашифровано — войдите заново для просмотра)';
+  try {
+    const bin = atob(value.slice(NOTE_ENC_PREFIX.length));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const iv = bytes.slice(0, 12);
+    const ct = bytes.slice(12);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, _noteKey, ct);
+    return new TextDecoder().decode(pt);
+  } catch (e) {
+    console.warn('Ошибка расшифровки заметки:', e);
+    return '🔒 (не удалось расшифровать)';
+  }
+}
+
 async function addNote(bookId, text, note, pageNum, pos) {
   if (!text || text.length > 10000) {
     showToast('Слишком длинный фрагмент');
@@ -3185,12 +3253,17 @@ async function addNote(bookId, text, note, pageNum, pos) {
     showToast('Заметка слишком длинная (максимум 5000 символов)');
     return null;
   }
+  if (!_noteKey) {
+    showToast('Для шифрования заметок войдите в аккаунт заново (введите пароль)');
+  }
   try {
+    const encText = await encryptNote(text);
+    const encNote = await encryptNote(note || '');
     const created = await api.library.addAnnotation(bookId, {
       type: 'note',
       page: pageNum,
-      selected_text: text,
-      note_text: note || '',
+      selected_text: encText,
+      note_text: encNote,
       position: pos || {},
     });
     delete annotationsCache[bookId];
@@ -4060,7 +4133,7 @@ function showPendingApprovalScreen() {
   };
   document.getElementById('pendingLogoutBtn').onclick = () => {
     overlay.remove();
-    api.logout();
+    api.logout();    clearNoteKey();
     state.currentUser = null;
     navigateTo('auth');
   };
@@ -4118,6 +4191,10 @@ async function submitVerifyCode() {
   btn.textContent = '...';
   try {
     await api.verifyEmail(pendingVerifyEmail, code);
+    // Выводим ключ шифрования из сохранённого при регистрации пароля
+    if (pendingVerifyCreds && pendingVerifyCreds.password) {
+      await deriveNoteKey(pendingVerifyCreds.password, pendingVerifyCreds.username);
+    }
     // Успех — токены сохранены, грузим пользователя
     const user = await api.me();
     state.currentUser = {
@@ -4202,6 +4279,8 @@ document.getElementById('authForm').addEventListener('submit', async e => {
     } else {
       await api.login(n, p);
     }
+    // Выводим ключ шифрования заметок из пароля (держится только в памяти)
+    await deriveNoteKey(p, n);
     const user = await api.me();
     state.currentUser = {
         name: user.username,
@@ -4278,7 +4357,7 @@ function logout() {
     cancelText: 'Отмена',
     danger: true,
     onConfirm: () => {
-      api.logout();
+      api.logout();      clearNoteKey();
       state.currentUser = null;
       navigateTo('auth');
       showToast('Вы вышли из аккаунта');
@@ -4316,7 +4395,7 @@ async function tryAutoLogin() {
     saveState();
     return true;
   } catch (err) {
-    api.logout();
+    api.logout();    clearNoteKey();
     return false;
   }
 }
@@ -5704,7 +5783,7 @@ async function doDeleteAccount() {
     const m = document.getElementById('deleteAccModal');
     if (m) m.remove();
     showToast('Аккаунт удалён');
-    api.logout();
+    api.logout();    clearNoteKey();
     setTimeout(() => location.reload(), 800);
   } catch (err) {
     const msg = err && err.detail ? err.detail : (err && err.status ? 'Ошибка ' + err.status : 'Не удалось удалить');
