@@ -112,6 +112,7 @@ async def _gather_category_text(db: AsyncSession, category: str, max_chars: int 
 _EXAM_PROMPT = """На основе материалов по теме "{category}" сгенерируй РОВНО {n} вопросов для аттестации.
 Каждый вопрос — с 4 вариантами ответа, ровно один правильный.
 Вопросы должны проверять понимание темы, быть разной сложности, не повторяться.
+{extra}
 Верни СТРОГО JSON без markdown:
 {{"questions":[{{"question":"...","options":["A","B","C","D"],"correct_index":0}}]}}
 
@@ -119,30 +120,8 @@ _EXAM_PROMPT = """На основе материалов по теме "{categor
 {text}"""
 
 
-@router.post("/exam/start", response_model=StartExamResponse)
-async def start_exam(
-    payload: StartExamRequest,
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(get_current_user),
-) -> StartExamResponse:
-    """Сгенерировать экзамен из 50 вопросов по категории (AI на основе книг)."""
-    text = await _gather_category_text(db, payload.category)
-    if not text or len(text) < 500:
-        raise HTTPException(
-            status_code=400,
-            detail="Недостаточно проиндексированного текста книг по этой теме для генерации теста",
-        )
-
-    prompt = _EXAM_PROMPT.format(category=payload.category, n=NUM_QUESTIONS, text=text)
-    try:
-        raw = await chat_completion(
-            [{"role": "user", "content": prompt}],
-            system_prompt="Ты генерируешь экзаменационные тесты строго в формате JSON.",
-        )
-    except DeepSeekError as e:
-        logger.warning("Exam generation failed for %s: %s", payload.category, e)
-        raise HTTPException(status_code=502, detail="Не удалось сгенерировать тест, попробуйте позже")
-
+def _parse_questions(raw: str) -> tuple[list[dict], list[int]]:
+    """Разобрать JSON-ответ AI в (вопросы без ответов, индексы правильных)."""
     t = raw.strip()
     if t.startswith("```"):
         t = t.strip("`")
@@ -150,13 +129,12 @@ async def start_exam(
             t = t[4:]
     s, e = t.find("{"), t.rfind("}")
     if s == -1 or e == -1:
-        raise HTTPException(status_code=502, detail="Ошибка генерации теста")
+        return [], []
     try:
         data = json.loads(t[s:e + 1])
         raw_qs = data["questions"]
     except (ValueError, KeyError, TypeError):
-        raise HTTPException(status_code=502, detail="Ошибка генерации теста")
-
+        return [], []
     questions, correct = [], []
     for q in raw_qs:
         try:
@@ -168,9 +146,63 @@ async def start_exam(
         if qt and len(opts) >= 2 and 0 <= ci < len(opts):
             questions.append({"question": qt, "options": opts})
             correct.append(ci)
+    return questions, correct
+
+
+async def _generate_questions_batch(category: str, text: str, n: int, seen: list[str]) -> tuple[list[dict], list[int]]:
+    """Сгенерировать порцию из n вопросов. seen — уже использованные формулировки (для разнообразия)."""
+    extra = ""
+    if seen:
+        sample = "; ".join(seen[-15:])
+        extra = f"НЕ повторяй уже заданные вопросы: {sample}"
+    prompt = _EXAM_PROMPT.format(category=category, n=n, text=text, extra=extra)
+    raw = await chat_completion(
+        [{"role": "user", "content": prompt}],
+        system_prompt="Ты генерируешь экзаменационные тесты строго в формате JSON.",
+        max_tokens=4000,
+        timeout=120.0,
+    )
+    return _parse_questions(raw)
+
+
+@router.post("/exam/start", response_model=StartExamResponse)
+async def start_exam(
+    payload: StartExamRequest,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> StartExamResponse:
+    """Сгенерировать экзамен из 50 вопросов по категории (AI на основе книг), порциями."""
+    text = await _gather_category_text(db, payload.category)
+    if not text or len(text) < 500:
+        raise HTTPException(
+            status_code=400,
+            detail="Недостаточно проиндексированного текста книг по этой теме для генерации теста",
+        )
+
+    questions: list[dict] = []
+    correct: list[int] = []
+    batch_size = 10
+    attempts = 0
+    # Генерируем порциями по 10, пока не наберём 50 (или не исчерпаем попытки)
+    while len(questions) < NUM_QUESTIONS and attempts < 8:
+        attempts += 1
+        need = min(batch_size, NUM_QUESTIONS - len(questions))
+        try:
+            qs, cs = await _generate_questions_batch(
+                payload.category, text, need, [q["question"] for q in questions]
+            )
+        except DeepSeekError as e:
+            logger.warning("Exam batch failed for %s: %s", payload.category, e)
+            break
+        questions.extend(qs)
+        correct.extend(cs)
 
     if len(questions) < 10:
-        raise HTTPException(status_code=502, detail="Сгенерировано слишком мало вопросов, попробуйте ещё раз")
+        raise HTTPException(status_code=502, detail="Не удалось сгенерировать тест, попробуйте позже")
+
+    # Ограничиваем ровно NUM_QUESTIONS (или сколько набралось)
+    questions = questions[:NUM_QUESTIONS]
+    correct = correct[:NUM_QUESTIONS]
 
     import secrets
     token = secrets.token_urlsafe(16)
@@ -180,7 +212,6 @@ async def start_exam(
         "correct": correct,
         "total": len(questions),
     }
-    # Чистим старые экзамены, если их накопилось много
     if len(_active_exams) > 500:
         for k in list(_active_exams.keys())[:100]:
             _active_exams.pop(k, None)

@@ -23,7 +23,13 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
-async def chat_completion(messages: list[dict], *, system_prompt: str | None = None) -> str:
+async def chat_completion(
+    messages: list[dict],
+    *,
+    system_prompt: str | None = None,
+    max_tokens: int = 1024,
+    timeout: float = 60.0,
+) -> str:
     """Отправить диалог в DeepSeek, вернуть текст ответа.
 
     messages: [{"role": "user"|"assistant", "content": "..."}]
@@ -44,14 +50,14 @@ async def chat_completion(messages: list[dict], *, system_prompt: str | None = N
         "model": settings.DEEPSEEK_MODEL,
         "messages": payload_messages,
         "temperature": 0.7,
-        "max_tokens": 1024,
+        "max_tokens": max_tokens,
         "stream": False,
     }
 
     url = f"{settings.DEEPSEEK_BASE_URL}/chat/completions"
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(url, headers=headers, json=payload)
     except httpx.HTTPError as e:
         logger.exception("DeepSeek network error")
