@@ -383,24 +383,24 @@
       adminDeleteUser(userId) {
         return request('/admin/users/' + userId, { method: 'DELETE' });
       },
-    },
 
-    adminDashboard() {
-      return request('/admin/dashboard');
-    },
+      adminDashboard() {
+        return request('/admin/dashboard');
+      },
 
-    adminBookAnalytics(bookId) {
-      return request('/admin/books/' + bookId + '/analytics');
-    },
+      adminBookAnalytics(bookId) {
+        return request('/admin/books/' + bookId + '/analytics');
+      },
 
-    adminPendingUsers() {
-      return request('/admin/users/pending');
-    },
-    adminApproveUser(userId) {
-      return request('/admin/users/' + userId + '/approve', { method: 'POST' });
-    },
-    adminRejectUser(userId) {
-      return request('/admin/users/' + userId + '/reject', { method: 'POST' });
+      adminPendingUsers() {
+        return request('/admin/users/pending');
+      },
+      adminApproveUser(userId) {
+        return request('/admin/users/' + userId + '/approve', { method: 'POST' });
+      },
+      adminRejectUser(userId) {
+        return request('/admin/users/' + userId + '/reject', { method: 'POST' });
+      },
     },
   };
 

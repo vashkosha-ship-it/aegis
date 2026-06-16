@@ -2528,7 +2528,7 @@ async function openPendingUsersModal() {
     </div>`;
 
   try {
-    const users = await api.adminPendingUsers();
+    const users = await api.library.adminPendingUsers();
     const list = document.getElementById('pendingUsersList');
     if (!users.length) {
       list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Нет заявок на рассмотрении</div>';
@@ -2557,7 +2557,7 @@ async function openPendingUsersModal() {
 async function approvePendingUser(userId, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
-    await api.adminApproveUser(userId);
+    await api.library.adminApproveUser(userId);
     btn.closest('div[style*="justify-content:space-between"]').parentElement.remove();
     showToast('Пользователь одобрен');
     refreshPendingBadge();
@@ -2575,7 +2575,7 @@ async function rejectPendingUser(userId, btn) {
   if (!confirm('Отклонить заявку? Аккаунт будет удалён.')) return;
   btn.disabled = true; btn.textContent = '…';
   try {
-    await api.adminRejectUser(userId);
+    await api.library.adminRejectUser(userId);
     btn.closest('div[style*="justify-content:space-between"]').parentElement.remove();
     showToast('Заявка отклонена');
     refreshPendingBadge();
@@ -2595,7 +2595,7 @@ function updatePendingBadge(count) {
 async function refreshPendingBadge() {
   if (!state.currentUser || state.currentUser.role !== 'admin') return;
   try {
-    const users = await api.adminPendingUsers();
+    const users = await api.library.adminPendingUsers();
     updatePendingBadge(users.length);
   } catch (_) {}
 }
