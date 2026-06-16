@@ -499,25 +499,56 @@ async def reindex_book(
 
 @router.post("/reindex-all")
 async def reindex_all_books(
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
 ) -> dict:
-    """Admin only: запустить фоновую индексацию всех книг с PDF.
+    """Admin only: проиндексировать текст всех книг с PDF (для поиска и сертификации).
 
-    Возвращает сразу, не дожидаясь завершения. Прогресс — через /books/reindex/status.
+    Выполняется синхронно по всем книгам. На большом каталоге может занять время.
     """
-    from app.services.search_worker import start_reindex_all
+    from app.services.search_index import index_book_content
 
-    return await start_reindex_all()
+    books = (await db.scalars(select(Book).where(Book.pdf_storage_key.isnot(None)))).all()
+    total = len(books)
+    indexed_books = 0
+    indexed_pages = 0
+    failed = 0
+
+    for book in books:
+        if not book.pdf_storage_key:
+            continue
+        try:
+            data = await _read_storage_bytes(storage, book.pdf_storage_key)
+            pages = await index_book_content(db, book.id, data)
+            indexed_pages += pages
+            indexed_books += 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Не удалось проиндексировать книгу %s: %s", book.id, e)
+            failed += 1
+            continue
+
+    return {
+        "total_books": total,
+        "indexed_books": indexed_books,
+        "indexed_pages": indexed_pages,
+        "failed": failed,
+    }
 
 
 @router.get("/reindex/status")
 async def reindex_status(
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ) -> dict:
-    """Admin only: текущий статус фоновой индексации."""
-    from app.services.search_worker import get_index_status
+    """Admin only: сколько книг проиндексировано (есть текст в BookPage)."""
+    from app.models.book_page import BookPage
 
-    return get_index_status()
+    total = await db.scalar(select(func.count()).select_from(Book).where(Book.pdf_storage_key.isnot(None)))
+    indexed = await db.scalar(
+        select(func.count(func.distinct(BookPage.book_id)))
+    )
+    return {"total_books": total or 0, "indexed_books": indexed or 0}
 
 
 
