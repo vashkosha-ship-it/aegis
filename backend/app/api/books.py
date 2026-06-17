@@ -579,6 +579,23 @@ async def download_book_pdf(
     safe_title = "".join(c if c.isascii() and c not in '\\/:*?"<>|' else "_" for c in book.title)
     filename_ascii = f"{safe_title or 'book'}.pdf"
 
+    # --- Быстрая отдача через nginx (X-Accel-Redirect) ---
+    # Python только проверил права; тяжёлую передачу файла берёт на себя nginx —
+    # он отдаёт файл напрямую с диска с поддержкой Range. Работает для локального хранилища.
+    from app.core.config import settings as _settings
+    local_path = getattr(_settings, "STORAGE_LOCAL_PATH", None)
+    storage_backend = getattr(_settings, "STORAGE_BACKEND", "local")
+    if storage_backend == "local" and local_path:
+        # ключ хранения вида books/pdf/<file>.pdf -> internal location /_protected_pdf/
+        accel_path = "/_protected_pdf/" + book.pdf_storage_key.lstrip("/")
+        headers = {
+            "X-Accel-Redirect": accel_path,
+            "Content-Type": "application/pdf",
+            "Content-Disposition": f'inline; filename="{filename_ascii}"',
+            "Accept-Ranges": "bytes",
+        }
+        return Response(status_code=200, headers=headers)
+
     range_header = request.headers.get("range") or request.headers.get("Range")
 
     # --- Частичный запрос (Range) ---

@@ -106,6 +106,14 @@ async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(g
     user.verify_expires = None
     await db.commit()
 
+    # Уведомляем администратора, что появилась новая заявка на одобрение
+    if not user.is_approved:
+        try:
+            from app.services.email_service import send_admin_new_registration
+            await send_admin_new_registration(user.username, user.email, user.full_name)
+        except EmailError:
+            pass  # письмо админу не критично — не ломаем регистрацию
+
     return TokenPair(
         access_token=create_access_token(user.id, user.role.value),
         refresh_token=create_refresh_token(user.id),

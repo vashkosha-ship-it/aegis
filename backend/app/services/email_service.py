@@ -87,3 +87,18 @@ async def send_verification_code(to: str, code: str) -> None:
         "Если вы не регистрировались — просто проигнорируйте это письмо."
     )
     await send_email(to, subject, body)
+
+
+async def send_admin_new_registration(username: str, email: str, full_name: str | None) -> None:
+    """Уведомить администратора о новом пользователе, ожидающем одобрения."""
+    admin_to = getattr(settings, "ADMIN_NOTIFY_EMAIL", None) or "vash.kosha@gmail.com"
+    subject = "Aegis — новая заявка на регистрацию"
+    fio = full_name or "(не указано)"
+    body = (
+        "Новый пользователь подтвердил email и ожидает одобрения:\n\n"
+        f"Логин: {username}\n"
+        f"ФИО: {fio}\n"
+        f"Email: {email}\n\n"
+        "Зайдите в админ-панель → вкладка «Пользователи» → «Заявки», чтобы одобрить или отклонить."
+    )
+    await send_email(admin_to, subject, body)
