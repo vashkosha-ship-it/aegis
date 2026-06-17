@@ -9,6 +9,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
+from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.library import MyListEntry, MyListStatus, ReadingProgress, Review
@@ -270,6 +271,49 @@ async def reject_user(
     await db.delete(user)
     await db.commit()
     return {"detail": "rejected", "user_id": user_id}
+
+
+class CreateUserRequest(BaseModel):
+    username: str
+    password: str
+    full_name: str | None = None
+    department: str | None = None
+
+
+@router.post("/users/create", status_code=status.HTTP_201_CREATED)
+async def admin_create_user(
+    payload: CreateUserRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Создание пользователя администратором. Сразу активен (verified + approved),
+    роль — читатель. Email не требуется."""
+    username = (payload.username or "").strip()
+    if len(username) < 3 or len(username) > 64:
+        raise HTTPException(status_code=400, detail="Логин: от 3 до 64 символов")
+    if not all(c.isalnum() or c == "_" for c in username):
+        raise HTTPException(status_code=400, detail="Логин: только латиница, цифры и _")
+    if len(payload.password or "") < 8:
+        raise HTTPException(status_code=400, detail="Пароль: минимум 8 символов")
+
+    existing = await db.scalar(select(User).where(User.username == username))
+    if existing:
+        raise HTTPException(status_code=400, detail="Такой логин уже занят")
+
+    user = User(
+        username=username,
+        email=None,
+        password_hash=hash_password(payload.password),
+        full_name=(payload.full_name or "").strip() or None,
+        department=(payload.department or "").strip() or None,
+        role=UserRole.READER,
+        is_verified=True,
+        is_approved=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return {"detail": "created", "user_id": user.id, "username": user.username}
 
 
 @router.get("/export/reading")

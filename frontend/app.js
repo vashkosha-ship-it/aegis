@@ -2687,6 +2687,59 @@ function showCertResult(score, category) {
     </div>`);
 }
 
+function openCreateUserModal() {
+  let modal = document.getElementById('createUserModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'createUserModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:420px;width:95%;border:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:16px;font-weight:700;">Создать пользователя</h3>
+        <button onclick="document.getElementById('createUserModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Пользователь создаётся сразу активным. Передайте ему логин и пароль.</p>
+      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Логин (латиница, цифры, _)</label>
+      <input type="text" id="cuUsername" autocomplete="off" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:10px;font-family:inherit;">
+      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Пароль (минимум 8 символов)</label>
+      <input type="text" id="cuPassword" autocomplete="off" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:10px;font-family:inherit;">
+      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">ФИО</label>
+      <input type="text" id="cuFullName" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:10px;font-family:inherit;">
+      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Подразделение</label>
+      <input type="text" id="cuDepartment" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:18px;font-family:inherit;">
+      <button id="cuCreateBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;">Создать</button>
+    </div>`;
+
+  document.getElementById('cuCreateBtn').onclick = async () => {
+    const btn = document.getElementById('cuCreateBtn');
+    const username = document.getElementById('cuUsername').value.trim();
+    const password = document.getElementById('cuPassword').value;
+    const full_name = document.getElementById('cuFullName').value.trim() || null;
+    const department = document.getElementById('cuDepartment').value.trim() || null;
+    if (username.length < 3) return showToast('Логин: минимум 3 символа');
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) return showToast('Логин: только латиница, цифры и _');
+    if (password.length < 8) return showToast('Пароль: минимум 8 символов');
+    btn.disabled = true; btn.textContent = 'Создаю…';
+    try {
+      await api.library.adminCreateUser({ username, password, full_name, department });
+      showToast('Пользователь создан');
+      document.getElementById('createUserModal').remove();
+      // обновим список пользователей
+      try {
+        state._adminUsers = await api.library.adminUsers();
+        renderAdminUsersWithFilter();
+      } catch (_) {}
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Создать';
+      const msg = (e && (e.detail || (e.body && e.body.detail))) || 'Не удалось создать пользователя';
+      showToast(msg);
+    }
+  };
+}
+
 function openExportModal() {
   let modal = document.getElementById('exportModal');
   if (!modal) {
@@ -7940,7 +7993,7 @@ async function loadPdf(b) {
   pl.innerHTML = 'Загрузка PDF...';
   c.classList.add('hidden');
 
-  // Сначала пробуем IndexedDB
+  // Сначала пробуем IndexedDB (оффлайн-книги — читаем из байтов)
   let bytes = null;
   let fromOffline = false;
   if (offlineBookIds.has(b.id)) {
@@ -7955,31 +8008,34 @@ async function loadPdf(b) {
     }
   }
 
-  // Если в IndexedDB нет — тянем с API
-  if (!bytes) {
-    if (!b.has_file) {
-      pl.classList.remove('hidden');
-      c.classList.add('hidden');
-      generateDemoPdf(b);
-      return;
-    }
-    try {
-      bytes = await api.books.fetchPdfBytes(b.id);
-    } catch (err) {
-      console.error('Ошибка загрузки PDF с API:', err);
-      showToast('Не удалось загрузить PDF файл');
-      generateDemoPdf(b);
-      return;
-    }
-  }
-
-  // Рендерим PDF
   if (typeof pdfjsLib === 'undefined') {
     showToast('PDF-движок не загрузился. Проверьте интернет/доступ к CDN.');
     return;
   }
+
+  // Если не оффлайн — грузим ПРОГРЕССИВНО по URL (pdf.js тянет страницы по частям,
+  // первая страница появляется почти сразу, не дожидаясь всего файла).
   try {
-    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+    let loadingTask;
+    if (fromOffline && bytes) {
+      loadingTask = pdfjsLib.getDocument({ data: bytes });
+    } else {
+      if (!b.has_file) {
+        pl.classList.remove('hidden');
+        c.classList.add('hidden');
+        generateDemoPdf(b);
+        return;
+      }
+      const cfg = api.books.pdfStreamConfig(b.id);
+      loadingTask = pdfjsLib.getDocument({
+        url: cfg.url,
+        httpHeaders: cfg.httpHeaders,
+        withCredentials: cfg.withCredentials,
+        rangeChunkSize: 262144,       // 256 КБ на чанк
+        disableAutoFetch: true,        // не докачивать весь файл в фоне
+        disableStream: false,
+      });
+    }
     pdfDoc = await loadingTask.promise;
 
     pdfTotalPages = pdfDoc.numPages;
@@ -10235,6 +10291,10 @@ function renderAdminUsersWithFilter() {
 
   const actionsBar = `
     <div class="admin-actions-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      <button onclick="openCreateUserModal()" title="Создать пользователя" style="background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.4);color:#00d4ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="11" x2="19" y2="17"/><line x1="16" y1="14" x2="22" y2="14"/></svg>
+        Создать пользователя
+      </button>
       <button onclick="openPendingUsersModal()" title="Заявки на регистрацию" style="position:relative;background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.4);color:#7b61ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         Заявки

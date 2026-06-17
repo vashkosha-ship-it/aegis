@@ -279,6 +279,15 @@
         const resp = await request('/books/' + id + '/pdf', { raw: true });
         return resp.arrayBuffer();
       },
+      // Данные для прогрессивной загрузки PDF в pdf.js (по Range-запросам):
+      // URL + заголовок авторизации. pdf.js сам тянет файл по частям.
+      pdfStreamConfig(id) {
+        return {
+          url: BASE + '/books/' + id + '/pdf',
+          httpHeaders: tokens.access ? { 'Authorization': 'Bearer ' + tokens.access } : {},
+          withCredentials: false,
+        };
+      },
     },
     library: {
       // MyList
@@ -395,6 +404,9 @@
 
       adminPendingUsers() {
         return request('/admin/users/pending');
+      },
+      adminCreateUser(payload) {
+        return request('/admin/users/create', { method: 'POST', body: payload });
       },
       async adminExportReading(dateFrom, dateTo) {
         let qs = [];
