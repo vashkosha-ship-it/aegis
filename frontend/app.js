@@ -1364,6 +1364,19 @@ function arLayoutSheet(panel) {
   panel.style.borderRadius = '20px 20px 0 0';
   panel.style.borderTop = '1px solid rgba(255,255,255,0.2)';
   panel.style.borderLeft = 'none';
+  // Поднимаем шторку ВЫШЕ остальных AR-контролов (тумблер «АТАКА/ЗАЩИТА» и т.п.).
+  // Иначе в свёрнутом виде её шапка со стрелкой опускается под нижний контрол,
+  // и клик по стрелке «развернуть» не доходит до неё.
+  panel.style.setProperty('z-index', '1200', 'important');
+  panel.style.pointerEvents = 'auto';
+  // Кнопка-стрелка: выше панели, увеличенная зона нажатия, гарантированный клик.
+  const btn = document.getElementById('arStageToggleBtn');
+  if (btn) {
+    btn.style.setProperty('z-index', '1201', 'important');
+    btn.style.pointerEvents = 'auto';
+    btn.style.width = '40px';
+    btn.style.height = '40px';
+  }
   if (window.innerWidth >= AR_SHEET_WIDE) {
     // ПК / планшет: центрированная шторка с ограниченной шириной
     panel.style.left = '50%';
@@ -1458,7 +1471,10 @@ function onDetailsMouseDown(e) {
   if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
   detailsPanelStartY = e.clientY;
   detailsPanelIsDragging = true;
+  detailsPanelDidDrag = false;                         // новый жест — сбрасываем флаг
   const panel = document.getElementById('arStageDetails');
+  // стартовая позиция = текущее состояние (чтобы тап без движения ничего не «доводил»)
+  detailsPanelCurrentY = detailsPanelOpen ? 0 : (panel ? arCollapsedY(panel) : 0);
   if (panel) panel.style.transition = 'none';
   const onMove = (ev) => {
     if (!detailsPanelIsDragging) return;
@@ -1484,7 +1500,9 @@ function onDetailsMouseDown(e) {
 function onDetailsTouchStart(e) {
   detailsPanelStartY = e.touches[0].clientY;
   detailsPanelIsDragging = true;
+  detailsPanelDidDrag = false;                         // новый жест — сбрасываем флаг
   const panel = document.getElementById('arStageDetails');
+  detailsPanelCurrentY = detailsPanelOpen ? 0 : (panel ? arCollapsedY(panel) : 0);
   if (panel) {
     panel.style.transition = 'none';
   }
@@ -1516,6 +1534,12 @@ function onDetailsTouchEnd(e) {
   
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;
+
+  // Это был тап, а не перетаскивание — позицию не трогаем, переключит onDetailsClick.
+  if (!detailsPanelDidDrag) {
+    arSetPanelOpen(panel, detailsPanelOpen, true);
+    return;
+  }
   
   const panelHeight = panel.offsetHeight;
   const threshold = panelHeight * 0.3;
