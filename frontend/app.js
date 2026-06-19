@@ -910,13 +910,12 @@ function renderARScheme(schemeCode) {
   else if (schemeCode === 'mitre')    renderMitreScheme();
 }
 // ─── OWASP: вертикальный стек с цветовой шкалой опасности ───────────────────
-// 3D-фигуры (CSS) для каждой схемы — декоративный фон, добавляет «вау»-эффект
+// 3D-фигуры на фоне AR-схем отключены — отвлекали от контента
 const AR_3D = {
-  cube: '<div class="ar-shield-scene"><div class="ar-shield"><svg viewBox="0 0 24 28" fill="none" stroke="rgba(0,212,255,0.9)" stroke-width="1.5"><path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z" fill="rgba(0,212,255,0.08)"/><path d="M9 13l2 2 4-4" stroke="rgba(0,212,255,0.9)" stroke-width="2"/></svg></div>'
-    + '<span class="ar-digit d1">1010</span><span class="ar-digit d2">0x4F</span><span class="ar-digit d3">1101</span><span class="ar-digit d4">00111</span><span class="ar-digit d5">0xA2</span></div>',
-  pyramid: '<div class="ar-3d-stage"><div class="ar-3d-obj ar-pyramid"><div class="ar-3d-face p1"></div><div class="ar-3d-face p2"></div><div class="ar-3d-face p3"></div><div class="ar-3d-face p4"></div></div></div>',
-  layers: '<div class="ar-3d-stage"><div class="ar-3d-obj ar-layers"><div class="ar-3d-face ly1"></div><div class="ar-3d-face ly2"></div><div class="ar-3d-face ly3"></div><div class="ar-3d-face ly4"></div></div></div>',
-  octa: '<div class="ar-3d-stage"><div class="ar-3d-obj ar-octa"><div class="ar-3d-face o1"></div><div class="ar-3d-face o2"></div><div class="ar-3d-face o3"></div><div class="ar-3d-face o4"></div><div class="ar-3d-face o5"></div><div class="ar-3d-face o6"></div></div></div>',
+  cube: '',
+  pyramid: '',
+  layers: '',
+  octa: '',
 };
 
 function renderOwaspScheme() {

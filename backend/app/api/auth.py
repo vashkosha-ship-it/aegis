@@ -104,6 +104,10 @@ async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(g
     user.is_verified = True
     user.verify_code = None
     user.verify_expires = None
+    # Сотрудники с корпоративной почтой @sberbank.ru не требуют одобрения админом
+    auto_approved = bool(user.email and user.email.lower().strip().endswith("@sberbank.ru"))
+    if auto_approved:
+        user.is_approved = True
     await db.commit()
 
     # Уведомляем администратора, что появилась новая заявка на одобрение

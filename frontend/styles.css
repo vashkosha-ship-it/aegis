@@ -2190,7 +2190,7 @@ select[multiple] option:hover {
 
 /* Раскладка экрана ассистента: чат занимает доступную высоту, ввод закреплён снизу */
 #assistantScreen.active { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
-#assistantScreen .top-header { flex-shrink: 0; }
+#assistantScreen .top-header { flex-shrink: 0; position: sticky; top: 0; z-index: 20; background: var(--bg-primary); }
 #assistantScreen .assistant-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 #assistantScreen #assistantMessages { flex: 1; min-height: 0; overflow-y: auto; justify-content: flex-end; }
 /* Когда сообщений мало — прижаты к низу (к полю ввода); когда много — нормальный скролл */

@@ -1859,7 +1859,7 @@
     height: 100dvh !important;
     overflow: hidden !important;
   }
-  #assistantScreen .top-header { flex-shrink: 0 !important; }
+  #assistantScreen .top-header { flex-shrink: 0 !important; position: sticky !important; top: 0 !important; z-index: 20 !important; background: var(--bg-primary) !important; }
   #assistantScreen .assistant-body {
     display: flex !important;
     flex-direction: column !important;

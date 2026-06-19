@@ -420,6 +420,9 @@ async def export_reading_xlsx(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/leaderboard", response_model=list[LeaderboardEntry])
 async def leaderboard(
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
