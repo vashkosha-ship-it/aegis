@@ -960,6 +960,9 @@ function renderOwaspScheme() {
       <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
         <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
           <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
           <div style="font-size:10px;color:#ef4444;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УЯЗВИМОСТЬ</div>
         </div>
         <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
@@ -1030,6 +1033,9 @@ function renderOsiScheme() {
       <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
         <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
           <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
           <div style="font-size:10px;color:#3b82f6;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УРОВЕНЬ</div>
         </div>
         <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
@@ -1125,6 +1131,9 @@ function renderMitreScheme() {
       <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
         <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
           <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
           <div style="font-size:10px;color:#a855f7;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ТАКТИКУ</div>
         </div>
         <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
@@ -1237,6 +1246,9 @@ function renderKillChainScheme() {
       <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);border-radius:20px 20px 0 0;">
         <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);cursor:grab;touch-action:pan-y;">
           <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
           <div style="font-size:10px;color:var(--accent);font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
         </div>
         <div id="arStageDetailContent" style="padding:16px 20px 24px;">
@@ -1360,6 +1372,24 @@ function initStageDetailsSwipe() {
   // Игнорируем клики по кнопкам и случаи, когда было перетаскивание.
   panel.removeEventListener('click', onDetailsClick);
   panel.addEventListener('click', onDetailsClick);
+}
+
+function toggleStageDetailsPanel(e) {
+  if (e) { e.stopPropagation(); e.preventDefault(); }
+  const panel = document.getElementById('arStageDetails');
+  if (!panel) return;
+  panel.style.transition = 'transform 0.3s ease';
+  const arrow = document.getElementById('arStageToggleBtn');
+  if (detailsPanelOpen) {
+    const ph = panel.offsetHeight;
+    panel.style.transform = `translateY(${ph - 60}px)`;
+    detailsPanelOpen = false;
+    if (arrow) arrow.querySelector('svg').style.transform = 'rotate(0deg)';
+  } else {
+    panel.style.transform = 'translateY(0)';
+    detailsPanelOpen = true;
+    if (arrow) arrow.querySelector('svg').style.transform = 'rotate(180deg)';
+  }
 }
 
 function onDetailsClick(e) {
@@ -11227,3 +11257,4 @@ window.closeKillChainStage = closeKillChainStage;
 window.prevKillChainStage = prevKillChainStage;
 window.nextKillChainStage = nextKillChainStage;
 window.openBookFromAR = openBookFromAR;
+window.toggleStageDetailsPanel = toggleStageDetailsPanel;
