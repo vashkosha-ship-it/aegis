@@ -315,6 +315,10 @@ async function openARWithScheme(schemeCode, initialStageId = null) {
     owasp: 'OWASP Top 10',
     osi: 'Модель OSI',
     mitre: 'MITRE ATT&CK',
+    nist: 'NIST CSF',
+    ir: 'Реагирование на инциденты',
+    did: 'Эшелонированная защита',
+    stride: 'STRIDE',
   };
   document.getElementById('arSchemeTitle').textContent = titles[schemeCode] || 'Схема';
 
@@ -880,11 +884,232 @@ const AR_MITRE = {
 };
 
 // Реестр всех схем. Активная схема выбирается в openARWithScheme.
+
+// ─── NIST Cybersecurity Framework ──────────────────────────────────────────
+const AR_NIST = {
+  title: 'NIST Cybersecurity Framework',
+  subtitle: '5 функций управления киберрисками',
+  stages: [
+    { id: 1, code: 'ID', name: 'Identify', nameRu: 'Идентификация',
+      description: 'Понимание контекста: какие активы, данные, системы и риски есть в организации. Без полной инвентаризации невозможно защищаться.',
+      attacker: ['Использование неучтённых активов', 'Атака на забытые системы', 'Эксплуатация теневого ИТ'],
+      defender: ['Инвентаризация активов', 'Оценка рисков', 'Управление уязвимостями', 'Классификация данных'],
+      metaphor: 'Карта владений: нельзя охранять то, о существовании чего не знаешь',
+      defenseMethod: { code: 'Inventory', nameRu: 'Учёт активов', color: '#3b82f6' },
+      defenseTools: ['CMDB', 'Asset discovery', 'Risk register', 'Data classification'],
+      relatedCategory: 'Управление, риски и соответствие (GRC)' },
+    { id: 2, code: 'PR', name: 'Protect', nameRu: 'Защита',
+      description: 'Внедрение защитных мер для ограничения воздействия инцидентов: контроль доступа, обучение, защита данных, обслуживание.',
+      attacker: ['Обход слабых средств защиты', 'Эксплуатация необученных сотрудников', 'Атака на незащищённые данные'],
+      defender: ['Контроль доступа и MFA', 'Шифрование данных', 'Обучение персонала', 'Защита и обслуживание систем'],
+      metaphor: 'Стены, замки и охрана крепости',
+      defenseMethod: { code: 'Defend', nameRu: 'Защита', color: '#10b981' },
+      defenseTools: ['IAM/MFA', 'Шифрование', 'Awareness training', 'Hardening'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 3, code: 'DE', name: 'Detect', nameRu: 'Обнаружение',
+      description: 'Своевременное выявление событий безопасности: мониторинг, обнаружение аномалий, непрерывный анализ.',
+      attacker: ['Действия под радаром', 'Медленные атаки', 'Сокрытие следов'],
+      defender: ['Непрерывный мониторинг (SIEM)', 'Обнаружение аномалий', 'Анализ событий', 'Threat hunting'],
+      metaphor: 'Сигнализация и камеры наблюдения',
+      defenseMethod: { code: 'Monitor', nameRu: 'Мониторинг', color: '#f59e0b' },
+      defenseTools: ['SIEM', 'IDS/IPS', 'EDR', 'Anomaly detection'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 4, code: 'RS', name: 'Respond', nameRu: 'Реагирование',
+      description: 'Действия при обнаружении инцидента: план реагирования, коммуникация, анализ, сдерживание и смягчение.',
+      attacker: ['Использование медленной реакции', 'Эскалация во время хаоса', 'Уничтожение улик'],
+      defender: ['План реагирования (IR plan)', 'Сдерживание угрозы', 'Коммуникация и эскалация', 'Анализ инцидента'],
+      metaphor: 'Пожарная команда, прибывшая по тревоге',
+      defenseMethod: { code: 'Respond', nameRu: 'Реагирование', color: '#ef4444' },
+      defenseTools: ['IR playbooks', 'SOAR', 'Forensics', 'Crisis comms'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 5, code: 'RC', name: 'Recover', nameRu: 'Восстановление',
+      description: 'Возврат к нормальной работе после инцидента: восстановление систем и данных, улучшения, коммуникация.',
+      attacker: ['Атака на бэкапы', 'Повторное проникновение', 'Срыв восстановления'],
+      defender: ['Резервное копирование', 'План восстановления (DRP)', 'Тестирование бэкапов', 'Уроки и улучшения'],
+      metaphor: 'Восстановление дома после пожара — крепче прежнего',
+      defenseMethod: { code: 'Restore', nameRu: 'Восстановление', color: '#a855f7' },
+      defenseTools: ['Backup/DRP', 'BCP', 'Immutable backups', 'Post-mortem'],
+      relatedCategory: 'Управление, риски и соответствие (GRC)' },
+  ],
+};
+
+// ─── Incident Response (реагирование на инциденты) ─────────────────────────
+const AR_IR = {
+  title: 'Реагирование на инциденты',
+  subtitle: '6 этапов обработки инцидента (SANS/NIST)',
+  stages: [
+    { id: 1, code: 'prep', name: 'Preparation', nameRu: 'Подготовка',
+      description: 'Готовность к инцидентам заранее: политики, инструменты, обученная команда, плейбуки, резервные копии.',
+      attacker: ['Атака на неготовую организацию', 'Использование отсутствия плана'],
+      defender: ['IR-план и плейбуки', 'Обучение команды', 'Готовые инструменты', 'Резервные копии'],
+      metaphor: 'Учения и огнетушители до пожара, а не во время',
+      defenseMethod: { code: 'Prepare', nameRu: 'Подготовка', color: '#3b82f6' },
+      defenseTools: ['IR plan', 'Playbooks', 'Tabletop exercises', 'Backups'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 2, code: 'ident', name: 'Identification', nameRu: 'Обнаружение',
+      description: 'Выявление и подтверждение инцидента: анализ сигналов, определение масштаба и типа угрозы.',
+      attacker: ['Сокрытие активности', 'Ложные следы', 'Маскировка под легитимный трафик'],
+      defender: ['Анализ алертов SIEM', 'Триаж событий', 'Определение масштаба', 'Классификация инцидента'],
+      metaphor: 'Постановка диагноза по симптомам',
+      defenseMethod: { code: 'Detect', nameRu: 'Обнаружение', color: '#f59e0b' },
+      defenseTools: ['SIEM', 'EDR', 'Log analysis', 'Threat intel'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 3, code: 'contain', name: 'Containment', nameRu: 'Сдерживание',
+      description: 'Ограничение распространения угрозы: изоляция систем, блокировка учёток, краткосрочные и долгосрочные меры.',
+      attacker: ['Боковое перемещение', 'Быстрое распространение', 'Закрепление до изоляции'],
+      defender: ['Изоляция заражённых хостов', 'Блокировка учётных данных', 'Сегментация', 'Сохранение улик'],
+      metaphor: 'Возведение стен вокруг очага возгорания',
+      defenseMethod: { code: 'Isolate', nameRu: 'Изоляция', color: '#ef4444' },
+      defenseTools: ['Network isolation', 'EDR containment', 'Firewall rules', 'Account lockout'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 4, code: 'erad', name: 'Eradication', nameRu: 'Устранение',
+      description: 'Удаление причины инцидента: вредоносного ПО, бэкдоров, скомпрометированных учёток, закрытие уязвимостей.',
+      attacker: ['Скрытые бэкдоры', 'Повторное заражение', 'Резервные точки доступа'],
+      defender: ['Удаление ВПО', 'Закрытие уязвимостей', 'Сброс учётных данных', 'Проверка чистоты'],
+      metaphor: 'Полное тушение, чтобы не осталось тлеющих углей',
+      defenseMethod: { code: 'Remove', nameRu: 'Устранение', color: '#a855f7' },
+      defenseTools: ['Malware removal', 'Patching', 'Credential reset', 'Re-imaging'],
+      relatedCategory: 'Реверс-инжиниринг и анализ вредоносного ПО' },
+    { id: 5, code: 'recov', name: 'Recovery', nameRu: 'Восстановление',
+      description: 'Возврат систем в работу: восстановление из чистых бэкапов, проверка, усиленный мониторинг.',
+      attacker: ['Атака на этапе восстановления', 'Заражённые бэкапы'],
+      defender: ['Восстановление из чистых копий', 'Проверка целостности', 'Усиленный мониторинг', 'Поэтапный возврат'],
+      metaphor: 'Возвращение жильцов в отремонтированный дом',
+      defenseMethod: { code: 'Restore', nameRu: 'Восстановление', color: '#10b981' },
+      defenseTools: ['Clean backups', 'Validation', 'Enhanced monitoring'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 6, code: 'lessons', name: 'Lessons Learned', nameRu: 'Выводы',
+      description: 'Разбор инцидента: что произошло, как реагировали, что улучшить. Обновление плейбуков и защит.',
+      attacker: ['Повторение успешной атаки', 'Эксплуатация неисправленных причин'],
+      defender: ['Пост-мортем', 'Обновление плейбуков', 'Устранение коренных причин', 'Метрики реагирования'],
+      metaphor: 'Разбор полётов, чтобы не повторить ошибок',
+      defenseMethod: { code: 'Improve', nameRu: 'Улучшение', color: '#3b82f6' },
+      defenseTools: ['Post-mortem', 'Root cause analysis', 'Playbook update'],
+      relatedCategory: 'Управление, риски и соответствие (GRC)' },
+  ],
+};
+
+// ─── Defense in Depth (эшелонированная защита) ─────────────────────────────
+const AR_DID = {
+  title: 'Эшелонированная защита',
+  subtitle: 'Слои защиты Defense in Depth',
+  stages: [
+    { id: 1, code: 'phys', name: 'Physical', nameRu: 'Физический',
+      description: 'Физическая безопасность: контроль доступа в помещения, охрана, видеонаблюдение, защита оборудования.',
+      attacker: ['Проникновение в здание', 'Кража оборудования', 'Tailgating (проход за сотрудником)'],
+      defender: ['Контроль доступа (СКУД)', 'Видеонаблюдение', 'Охрана', 'Защита серверных'],
+      metaphor: 'Забор и ворота вокруг территории',
+      defenseMethod: { code: 'Physical', nameRu: 'Физзащита', color: '#ef4444' },
+      defenseTools: ['СКУД', 'CCTV', 'Биометрия', 'Замки'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 2, code: 'perim', name: 'Perimeter', nameRu: 'Периметр',
+      description: 'Защита границы сети: межсетевые экраны, IPS, VPN, фильтрация трафика на входе и выходе.',
+      attacker: ['Сканирование периметра', 'Эксплуатация открытых портов', 'Обход firewall'],
+      defender: ['Firewall', 'IPS/IDS', 'VPN', 'Egress-фильтрация'],
+      metaphor: 'Крепостная стена со рвом и стражей у ворот',
+      defenseMethod: { code: 'Filter', nameRu: 'Фильтрация', color: '#f59e0b' },
+      defenseTools: ['NGFW', 'IPS', 'WAF', 'VPN'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 3, code: 'net', name: 'Network', nameRu: 'Сеть',
+      description: 'Защита внутренней сети: сегментация, микросегментация, мониторинг трафика, NAC.',
+      attacker: ['Боковое перемещение', 'Сниффинг трафика', 'ARP-спуфинг'],
+      defender: ['Сегментация сети (VLAN)', 'Микросегментация', 'NAC', 'Мониторинг трафика'],
+      metaphor: 'Внутренние перегородки и двери между залами',
+      defenseMethod: { code: 'Segment', nameRu: 'Сегментация', color: '#eab308' },
+      defenseTools: ['VLAN', 'NAC', 'Zero Trust', 'NDR'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 4, code: 'host', name: 'Host', nameRu: 'Хост',
+      description: 'Защита конечных устройств: антивирус, EDR, патчи, hardening, контроль приложений.',
+      attacker: ['Эксплойты ОС', 'Вредоносное ПО', 'Эксплуатация непропатченных систем'],
+      defender: ['EDR/антивирус', 'Патч-менеджмент', 'Hardening', 'Application control'],
+      metaphor: 'Личный сейф в каждой комнате',
+      defenseMethod: { code: 'Harden', nameRu: 'Усиление', color: '#84cc16' },
+      defenseTools: ['EDR', 'Patch mgmt', 'CIS Benchmarks', 'AppLocker'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 5, code: 'app', name: 'Application', nameRu: 'Приложение',
+      description: 'Защита приложений: безопасная разработка, проверка ввода, аутентификация, тестирование безопасности.',
+      attacker: ['Инъекции', 'XSS', 'Обход аутентификации', 'Логические уязвимости'],
+      defender: ['Безопасная разработка (SSDLC)', 'Валидация ввода', 'SAST/DAST', 'WAF'],
+      metaphor: 'Защищённый замок на каждом ящике стола',
+      defenseMethod: { code: 'SecDev', nameRu: 'Безопасная разработка', color: '#10b981' },
+      defenseTools: ['SAST/DAST', 'WAF', 'OWASP ASVS', 'Code review'],
+      relatedCategory: 'Разработка безопасного ПО (AppSec)' },
+    { id: 6, code: 'data', name: 'Data', nameRu: 'Данные',
+      description: 'Защита самих данных: шифрование, контроль доступа, DLP, резервное копирование, классификация.',
+      attacker: ['Кража данных', 'Несанкционированный доступ', 'Утечки через инсайдеров'],
+      defender: ['Шифрование (at rest/in transit)', 'DLP', 'Контроль доступа', 'Резервное копирование'],
+      metaphor: 'Драгоценность в сейфе внутри сейфа',
+      defenseMethod: { code: 'Encrypt', nameRu: 'Шифрование', color: '#3b82f6' },
+      defenseTools: ['Шифрование', 'DLP', 'IAM', 'Backup'],
+      relatedCategory: 'Управление безопасностью данных' },
+  ],
+};
+
+// ─── STRIDE (модель угроз) ─────────────────────────────────────────────────
+const AR_STRIDE = {
+  title: 'STRIDE',
+  subtitle: 'Модель угроз для разработчиков',
+  stages: [
+    { id: 1, code: 'S', name: 'Spoofing', nameRu: 'Подмена личности',
+      description: 'Выдача себя за другого пользователя или систему. Нарушает свойство аутентичности.',
+      attacker: ['Кража учётных данных', 'Подмена токенов', 'Фишинг', 'Подделка идентификаторов'],
+      defender: ['Сильная аутентификация (MFA)', 'Цифровые подписи', 'Защита сессий', 'Взаимная аутентификация (mTLS)'],
+      metaphor: 'Самозванец в чужой форме и с чужим пропуском',
+      defenseMethod: { code: 'Authn', nameRu: 'Аутентификация', color: '#ef4444' },
+      defenseTools: ['MFA', 'mTLS', 'JWT-подписи', 'OAuth/OIDC'],
+      relatedCategory: 'Криптография' },
+    { id: 2, code: 'T', name: 'Tampering', nameRu: 'Изменение данных',
+      description: 'Несанкционированное изменение данных или кода. Нарушает целостность.',
+      attacker: ['Подмена данных в запросах', 'Изменение файлов', 'MITM-модификация трафика'],
+      defender: ['Контроль целостности (хеши)', 'Цифровые подписи', 'TLS', 'Валидация ввода'],
+      metaphor: 'Подделка цифр в подписанном договоре',
+      defenseMethod: { code: 'Integrity', nameRu: 'Целостность', color: '#f59e0b' },
+      defenseTools: ['HMAC', 'Цифровые подписи', 'TLS', 'Контроль целостности файлов'],
+      relatedCategory: 'Разработка безопасного ПО (AppSec)' },
+    { id: 3, code: 'R', name: 'Repudiation', nameRu: 'Отказ от действий',
+      description: 'Пользователь отрицает совершённое действие, и нет доказательств обратного. Нарушает неотказуемость.',
+      attacker: ['Удаление логов', 'Действия без аудита', 'Отрицание транзакций'],
+      defender: ['Защищённый аудит-лог', 'Цифровые подписи действий', 'Неизменяемые логи', 'Таймстемпы'],
+      metaphor: '«Это не я!» — а доказать нечем',
+      defenseMethod: { code: 'Audit', nameRu: 'Аудит', color: '#eab308' },
+      defenseTools: ['Audit logs', 'Цифровые подписи', 'WORM-хранилище', 'SIEM'],
+      relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)' },
+    { id: 4, code: 'I', name: 'Information Disclosure', nameRu: 'Раскрытие информации',
+      description: 'Утечка конфиденциальной информации тем, кому она не предназначена. Нарушает конфиденциальность.',
+      attacker: ['Перехват трафика', 'Доступ к чужим данным', 'Утечки через ошибки', 'Эксфильтрация'],
+      defender: ['Шифрование', 'Контроль доступа', 'Минимизация данных в ответах', 'DLP'],
+      metaphor: 'Секретные документы, оставленные на виду',
+      defenseMethod: { code: 'Confid', nameRu: 'Конфиденциальность', color: '#10b981' },
+      defenseTools: ['Шифрование', 'RBAC', 'DLP', 'Маскирование данных'],
+      relatedCategory: 'Управление безопасностью данных' },
+    { id: 5, code: 'D', name: 'Denial of Service', nameRu: 'Отказ в обслуживании',
+      description: 'Нарушение доступности сервиса для легитимных пользователей. Нарушает доступность.',
+      attacker: ['DDoS-атаки', 'Исчерпание ресурсов', 'Логические бомбы', 'Amplification'],
+      defender: ['Rate limiting', 'Anti-DDoS защита', 'Масштабирование', 'Лимиты ресурсов'],
+      metaphor: 'Толпа, заблокировавшая вход в магазин',
+      defenseMethod: { code: 'Availab', nameRu: 'Доступность', color: '#3b82f6' },
+      defenseTools: ['CDN/Anti-DDoS', 'Rate limiting', 'Auto-scaling', 'Load balancer'],
+      relatedCategory: 'Сетевая архитектура и защита периметра (Defensive Blue Team)' },
+    { id: 6, code: 'E', name: 'Elevation of Privilege', nameRu: 'Повышение привилегий',
+      description: 'Получение прав выше положенных. Нарушает авторизацию.',
+      attacker: ['Эксплойты для root/admin', 'Обход проверок прав', 'Манипуляция токенами'],
+      defender: ['Принцип наименьших привилегий', 'Серверная проверка прав', 'Патчи', 'Sandbox'],
+      metaphor: 'Рядовой, надевший генеральские погоны',
+      defenseMethod: { code: 'Authz', nameRu: 'Авторизация', color: '#a855f7' },
+      defenseTools: ['RBAC/ABAC', 'PoLP', 'Sandboxing', 'Patch mgmt'],
+      relatedCategory: 'Разработка безопасного ПО (AppSec)' },
+  ],
+};
+
 const AR_SCHEMES = {
   killchain: AR_KILL_CHAIN,
   owasp: AR_OWASP,
   osi: AR_OSI,
   mitre: AR_MITRE,
+  nist: AR_NIST,
+  ir: AR_IR,
+  did: AR_DID,
+  stride: AR_STRIDE,
 };
 let arActiveSchemeCode = 'killchain';
 function activeScheme() { return AR_SCHEMES[arActiveSchemeCode] || AR_KILL_CHAIN; }
@@ -908,6 +1133,7 @@ function renderARScheme(schemeCode) {
   else if (schemeCode === 'owasp')    renderOwaspScheme();
   else if (schemeCode === 'osi')      renderOsiScheme();
   else if (schemeCode === 'mitre')    renderMitreScheme();
+  else                                 renderGenericScheme(AR_SCHEMES[schemeCode]);
 }
 // ─── OWASP: вертикальный стек с цветовой шкалой опасности ───────────────────
 // 3D-фигуры на фоне AR-схем отключены — отвлекали от контента
@@ -989,6 +1215,74 @@ function renderOwaspScheme() {
 }
 
 // ─── OSI: горизонтальные слои-плашки (L7 сверху, L1 снизу) ──────────────────
+// ─── Универсальный рендер для линейных схем (NIST, IR, Defense in Depth, STRIDE) ───
+function renderGenericScheme(scheme) {
+  const container = document.getElementById('arSchemeContainer');
+  if (!container || !scheme) return;
+  const stages = scheme.stages;
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 100px;-webkit-overflow-scrolling:touch;">
+        <div id="killChainWrapper" style="display:flex;justify-content:safe center;min-width:min-content;margin:auto;">
+          <div id="killChainNodes" style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:380px;transition:transform 0.2s ease;transform-origin:top center;">
+            ${stages.map((s) => {
+              const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
+              const badge = (s.code || String(s.id)).toUpperCase().slice(0, 4);
+              return `<button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
+                style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;
+                       background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
+                       border:1px solid ${color}44;border-left:4px solid ${color};
+                       border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;
+                       transition:all 0.2s;pointer-events:auto;">
+                <div style="width:40px;height:36px;border-radius:8px;background:${color}22;
+                            border:1px solid ${color};color:${color};display:flex;align-items:center;
+                            justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;">${badge}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:700;font-size:13px;">${s.nameRu}</div>
+                  <div style="font-size:11px;color:rgba(255,255,255,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
+                </div>
+                <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
+        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на этап, чтобы узнать подробнее</div>
+    </div>`;
+  initStageDetailsSwipe();
+  initARPan();
+
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const node = document.getElementById('arNode' + s.id);
+      if (!node) return;
+      node.style.opacity = '0';
+      node.style.transform = 'translateX(-32px)';
+      setTimeout(() => {
+        node.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1), border-color 0.2s';
+        node.style.opacity = '1';
+        node.style.transform = 'translateX(0)';
+      }, i * 60);
+    });
+  }, 50);
+}
+
 function renderOsiScheme() {
   const container = document.getElementById('arSchemeContainer');
   const stages = [...AR_OSI.stages].reverse(); // L7 вверху
@@ -1319,79 +1613,6 @@ let detailsPanelIsDragging = false;
 let detailsPanelOpen = false;
 let detailsPanelDidDrag = false;
 
-// ───────────────────────────────────────────────────────────────────────────
-// Единая модель «нижней шторки» для AR-панели деталей этапа.
-// Раньше стрелка, перетаскивание и автооткрытие использовали РАЗНЫЕ transform-ы
-// и разные брейкпоинты (768 / 900 / 1024), из-за чего на ПК панель уезжала за
-// край (translateX(-50%) на полноширинной панели) и «не поднималась».
-// Теперь все пути идут через эти хелперы: на ПК шторка центрируется и
-// ограничивается по ширине, на мобиле — на всю ширину. Transform ставится с
-// !important, чтобы не конфликтовать с CSS.
-// ───────────────────────────────────────────────────────────────────────────
-const AR_SHEET_WIDE = 768; // с этой ширины шторку центрируем и ограничиваем
-
-function arPanelIsCentered(panel) {
-  return !!(panel && panel.dataset.arCentered === '1');
-}
-function arPanelXPart(panel) {
-  return arPanelIsCentered(panel) ? 'translateX(-50%) ' : '';
-}
-function arCollapsedY(panel) {
-  // насколько опустить шторку в свёрнутом виде (видна только шапка ~60px)
-  return Math.max(0, (panel.offsetHeight || 300) - 60);
-}
-function arSetPanelY(panel, y, animate) {
-  if (!panel) return;
-  panel.style.transition = animate ? 'transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1)' : 'none';
-  panel.style.setProperty('transform', arPanelXPart(panel) + 'translateY(' + y + 'px)', 'important');
-}
-function arSetPanelOpen(panel, open, animate) {
-  if (!panel) return;
-  arSetPanelY(panel, open ? 0 : arCollapsedY(panel), animate !== false);
-  detailsPanelOpen = open;
-  const arrow = document.getElementById('arStageToggleBtn');
-  const svg = arrow ? arrow.querySelector('svg') : null;
-  if (svg) svg.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
-}
-// Приводит позиционирование панели к «нижней шторке» (общей для мобилы и ПК).
-function arLayoutSheet(panel) {
-  if (!panel) return;
-  panel.classList.remove('open');
-  panel.style.top = 'auto';
-  panel.style.bottom = '0';
-  panel.style.height = 'auto';
-  panel.style.maxHeight = '78%';
-  panel.style.borderRadius = '20px 20px 0 0';
-  panel.style.borderTop = '1px solid rgba(255,255,255,0.2)';
-  panel.style.borderLeft = 'none';
-  // Поднимаем шторку ВЫШЕ остальных AR-контролов (тумблер «АТАКА/ЗАЩИТА» и т.п.).
-  // Иначе в свёрнутом виде её шапка со стрелкой опускается под нижний контрол,
-  // и клик по стрелке «развернуть» не доходит до неё.
-  panel.style.setProperty('z-index', '1200', 'important');
-  panel.style.pointerEvents = 'auto';
-  // Кнопка-стрелка: выше панели, увеличенная зона нажатия, гарантированный клик.
-  const btn = document.getElementById('arStageToggleBtn');
-  if (btn) {
-    btn.style.setProperty('z-index', '1201', 'important');
-    btn.style.pointerEvents = 'auto';
-    btn.style.width = '40px';
-    btn.style.height = '40px';
-  }
-  if (window.innerWidth >= AR_SHEET_WIDE) {
-    // ПК / планшет: центрированная шторка с ограниченной шириной
-    panel.style.left = '50%';
-    panel.style.right = 'auto';
-    panel.style.width = 'min(560px, 94vw)';
-    panel.dataset.arCentered = '1';
-  } else {
-    // Телефон: на всю ширину
-    panel.style.left = '0';
-    panel.style.right = '0';
-    panel.style.width = '100%';
-    panel.dataset.arCentered = '';
-  }
-}
-
 // Панорамирование схемы: нативный скролл (тачпад/колесо) + drag мышью
 function initARPan() {
   const sc = document.getElementById('killChainScrollContainer');
@@ -1452,10 +1673,26 @@ function toggleStageDetailsPanel(e) {
   const panel = document.getElementById('arStageDetails');
   if (!panel) { console.warn('AR: панель arStageDetails не найдена'); return; }
   if (getComputedStyle(panel).display === 'none') panel.style.display = 'block';
-  // Гарантируем «нижнюю» модель позиционирования (важно для ПК).
-  if (!arPanelIsCentered(panel) && window.innerWidth >= AR_SHEET_WIDE) arLayoutSheet(panel);
-  // Инвертируем текущее состояние — единый путь и для мыши, и для тача.
-  arSetPanelOpen(panel, !detailsPanelOpen, true);
+  panel.style.transition = 'transform 0.3s ease';
+  const arrow = document.getElementById('arStageToggleBtn');
+  const svg = arrow ? arrow.querySelector('svg') : null;
+
+  const isDesktop = window.innerWidth >= 768;
+  const xPart = isDesktop ? 'translateX(-50%) ' : '';
+
+  // Переключаем по флагу detailsPanelOpen (инвертируем текущее состояние)
+  const willOpen = !detailsPanelOpen;
+
+  if (willOpen) {
+    // Открыть полностью — поднять до самого верха
+    panel.style.setProperty('transform', xPart + 'translateY(0px)', 'important');
+  } else {
+    // Закрыть — опустить, оставив видимой только шапку (~60px)
+    const ph = panel.offsetHeight || 300;
+    panel.style.setProperty('transform', xPart + `translateY(${ph - 60}px)`, 'important');
+  }
+  detailsPanelOpen = willOpen;
+  if (svg) svg.style.transform = willOpen ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
 function onDetailsClick(e) {
@@ -1463,7 +1700,15 @@ function onDetailsClick(e) {
   if (detailsPanelDidDrag) { detailsPanelDidDrag = false; return; } // это было перетаскивание
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;
-  arSetPanelOpen(panel, !detailsPanelOpen, true);
+  panel.style.transition = 'transform 0.3s ease';
+  if (detailsPanelOpen) {
+    const ph = panel.offsetHeight;
+    panel.style.transform = `translateY(${ph - 60}px)`;
+    detailsPanelOpen = false;
+  } else {
+    panel.style.transform = 'translateY(0)';
+    detailsPanelOpen = true;
+  }
 }
 
 function onDetailsMouseDown(e) {
@@ -1471,10 +1716,7 @@ function onDetailsMouseDown(e) {
   if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
   detailsPanelStartY = e.clientY;
   detailsPanelIsDragging = true;
-  detailsPanelDidDrag = false;                         // новый жест — сбрасываем флаг
   const panel = document.getElementById('arStageDetails');
-  // стартовая позиция = текущее состояние (чтобы тап без движения ничего не «доводил»)
-  detailsPanelCurrentY = detailsPanelOpen ? 0 : (panel ? arCollapsedY(panel) : 0);
   if (panel) panel.style.transition = 'none';
   const onMove = (ev) => {
     if (!detailsPanelIsDragging) return;
@@ -1485,7 +1727,7 @@ function onDetailsMouseDown(e) {
     const ph = p.offsetHeight;
     const base = detailsPanelOpen ? 0 : ph - 60;
     const nt = Math.max(0, Math.min(base + delta, ph - 60));
-    arSetPanelY(p, nt, false);          // ← единый transform с центрированием
+    p.style.transform = `translateY(${nt}px)`;
     detailsPanelCurrentY = nt;
   };
   const onUp = () => {
@@ -1500,9 +1742,7 @@ function onDetailsMouseDown(e) {
 function onDetailsTouchStart(e) {
   detailsPanelStartY = e.touches[0].clientY;
   detailsPanelIsDragging = true;
-  detailsPanelDidDrag = false;                         // новый жест — сбрасываем флаг
   const panel = document.getElementById('arStageDetails');
-  detailsPanelCurrentY = detailsPanelOpen ? 0 : (panel ? arCollapsedY(panel) : 0);
   if (panel) {
     panel.style.transition = 'none';
   }
@@ -1524,7 +1764,7 @@ function onDetailsTouchMove(e) {
   // Ограничиваем диапазон
   newTransform = Math.max(0, Math.min(newTransform, panelHeight - 60));
   
-  arSetPanelY(panel, newTransform, false);   // ← единый transform с центрированием
+  panel.style.transform = `translateY(${newTransform}px)`;
   detailsPanelCurrentY = newTransform;
 }
 
@@ -1534,25 +1774,29 @@ function onDetailsTouchEnd(e) {
   
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;
-
-  // Это был тап, а не перетаскивание — позицию не трогаем, переключит onDetailsClick.
-  if (!detailsPanelDidDrag) {
-    arSetPanelOpen(panel, detailsPanelOpen, true);
-    return;
-  }
   
   const panelHeight = panel.offsetHeight;
   const threshold = panelHeight * 0.3;
   
-  // Решаем, открыть или закрыть (всё через единый хелпер — корректно и на ПК)
+  // Решаем, открыть или закрыть
   if (detailsPanelCurrentY < threshold) {
-    arSetPanelOpen(panel, true, true);
+    // Открыть полностью
+    panel.style.transform = 'translateY(0)';
+    detailsPanelOpen = true;
   } else if (detailsPanelCurrentY > panelHeight - 60 - threshold) {
-    arSetPanelOpen(panel, false, true);
+    // Закрыть до минимального размера
+    panel.style.transform = `translateY(${panelHeight - 60}px)`;
+    detailsPanelOpen = false;
   } else {
-    // Недотянули — возвращаемся к текущему состоянию
-    arSetPanelOpen(panel, detailsPanelOpen, true);
+    // Вернуться к предыдущему состоянию
+    if (detailsPanelOpen) {
+      panel.style.transform = 'translateY(0)';
+    } else {
+      panel.style.transform = `translateY(${panelHeight - 60}px)`;
+    }
   }
+  
+  panel.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1)';
 }
 let currentARSchemeZoom = 1;
 const AR_ZOOM_MIN = 0.5;
@@ -1815,13 +2059,42 @@ function selectKillChainStage(stageId) {
     `;
   }
 
-  // Показываем панель и СРАЗУ открываем полностью (единая «нижняя шторка»)
+  // Показываем панель и СРАЗУ открываем полностью (без свайпа)
   const panel = document.getElementById('arStageDetails');
   if (panel) {
     panel.style.display = 'block';
-    arLayoutSheet(panel);           // позиционируем как шторку (ПК — по центру, моб — на всю ширину)
-    void panel.offsetHeight;        // reflow, чтобы offsetHeight посчитался до открытия
-    arSetPanelOpen(panel, true, false);  // открыта полностью, без анимации появления
+    const isWide = window.innerWidth >= 900;
+    void panel.offsetHeight; // reflow для transition
+    if (isWide) {
+      // Правый сайдбар
+      panel.style.top = '0';
+      panel.style.bottom = '0';
+      panel.style.left = 'auto';
+      panel.style.right = '0';
+      panel.style.width = 'min(420px, 42vw)';
+      panel.style.maxHeight = '100%';
+      panel.style.height = '100%';
+      panel.style.borderRadius = '0';
+      panel.style.borderTop = 'none';
+      panel.style.borderLeft = '1px solid rgba(255,255,255,0.2)';
+      panel.style.transform = 'translateX(0)';
+      panel.classList.add('open');
+    } else {
+      // Узкий экран: нижняя шторка, СРАЗУ открыта полностью
+      panel.classList.remove('open');
+      panel.style.top = 'auto';
+      panel.style.bottom = '0';
+      panel.style.left = '0';
+      panel.style.right = '0';
+      panel.style.width = '100%';
+      panel.style.height = 'auto';
+      panel.style.maxHeight = '78%';
+      panel.style.borderRadius = '20px 20px 0 0';
+      panel.style.borderTop = '1px solid rgba(255,255,255,0.2)';
+      panel.style.borderLeft = 'none';
+      panel.style.transform = 'translateY(0)';
+    }
+    detailsPanelOpen = true;
 
     // Кнопка закрытия (добавляем один раз)
     if (!document.getElementById('arПанельCloseBtn')) {
@@ -2065,11 +2338,9 @@ function closeKillChainStage() {
   if (detailPanel) {
     detailPanel.classList.remove('open');
     detailPanel.style.display = 'none';
-    // полный сброс инлайнов сайдбара/шторки
+    // полный сброс инлайнов сайдбара
     ['top','bottom','left','right','width','maxHeight','height','borderRadius','borderTop','borderLeft','transform'].forEach(p => detailPanel.style[p] = '');
-    detailPanel.dataset.arCentered = '';
   }
-  detailsPanelOpen = false;
   const root = document.getElementById('arSchemeRoot');
   if (root) root.classList.remove('panel-visible');
 }
