@@ -1377,18 +1377,28 @@ function initStageDetailsSwipe() {
 function toggleStageDetailsPanel(e) {
   if (e) { e.stopPropagation(); e.preventDefault(); }
   const panel = document.getElementById('arStageDetails');
-  if (!panel) return;
+  if (!panel) { console.warn('AR: панель arStageDetails не найдена'); return; }
+  // гарантируем, что панель видима
+  if (getComputedStyle(panel).display === 'none') panel.style.display = 'block';
   panel.style.transition = 'transform 0.3s ease';
   const arrow = document.getElementById('arStageToggleBtn');
-  if (detailsPanelOpen) {
-    const ph = panel.offsetHeight;
+  const svg = arrow ? arrow.querySelector('svg') : null;
+
+  // Определяем текущее состояние по фактическому transform
+  const tr = panel.style.transform || '';
+  const m = tr.match(/translateY\(([-0-9.]+)px\)/);
+  const currentY = m ? parseFloat(m[1]) : (panel.offsetHeight - 60);
+  const shouldOpen = currentY > 5; // если опущена (Y>5) — открываем
+
+  if (shouldOpen) {
+    panel.style.transform = 'translateY(0px)';
+    detailsPanelOpen = true;
+    if (svg) svg.style.transform = 'rotate(180deg)';
+  } else {
+    const ph = panel.offsetHeight || 300;
     panel.style.transform = `translateY(${ph - 60}px)`;
     detailsPanelOpen = false;
-    if (arrow) arrow.querySelector('svg').style.transform = 'rotate(0deg)';
-  } else {
-    panel.style.transform = 'translateY(0)';
-    detailsPanelOpen = true;
-    if (arrow) arrow.querySelector('svg').style.transform = 'rotate(180deg)';
+    if (svg) svg.style.transform = 'rotate(0deg)';
   }
 }
 
