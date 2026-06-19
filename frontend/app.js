@@ -1383,23 +1383,22 @@ function toggleStageDetailsPanel(e) {
   const arrow = document.getElementById('arStageToggleBtn');
   const svg = arrow ? arrow.querySelector('svg') : null;
 
-  // На десктопе панель центрируется через translateX(-50%) с !important в CSS,
-  // поэтому нужно сохранять X и применять transform через setProperty с important.
   const isDesktop = window.innerWidth >= 768;
   const xPart = isDesktop ? 'translateX(-50%) ' : '';
 
-  // Текущее состояние — по вычисленному смещению Y
-  const tr = panel.style.transform || '';
-  const m = tr.match(/translateY\(([-0-9.]+)px\)/);
-  const currentY = m ? parseFloat(m[1]) : (panel.offsetHeight - 60);
-  const shouldOpen = currentY > 5;
+  // Переключаем по флагу detailsPanelOpen (инвертируем текущее состояние)
+  const willOpen = !detailsPanelOpen;
 
-  const ph = panel.offsetHeight || 300;
-  const yPart = shouldOpen ? 'translateY(0px)' : `translateY(${ph - 60}px)`;
-  // setProperty с 'important' перебивает CSS-правило desktop.css
-  panel.style.setProperty('transform', xPart + yPart, 'important');
-  detailsPanelOpen = shouldOpen;
-  if (svg) svg.style.transform = shouldOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  if (willOpen) {
+    // Открыть полностью — поднять до самого верха
+    panel.style.setProperty('transform', xPart + 'translateY(0px)', 'important');
+  } else {
+    // Закрыть — опустить, оставив видимой только шапку (~60px)
+    const ph = panel.offsetHeight || 300;
+    panel.style.setProperty('transform', xPart + `translateY(${ph - 60}px)`, 'important');
+  }
+  detailsPanelOpen = willOpen;
+  if (svg) svg.style.transform = willOpen ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
 function onDetailsClick(e) {
