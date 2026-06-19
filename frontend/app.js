@@ -1378,28 +1378,28 @@ function toggleStageDetailsPanel(e) {
   if (e) { e.stopPropagation(); e.preventDefault(); }
   const panel = document.getElementById('arStageDetails');
   if (!panel) { console.warn('AR: панель arStageDetails не найдена'); return; }
-  // гарантируем, что панель видима
   if (getComputedStyle(panel).display === 'none') panel.style.display = 'block';
   panel.style.transition = 'transform 0.3s ease';
   const arrow = document.getElementById('arStageToggleBtn');
   const svg = arrow ? arrow.querySelector('svg') : null;
 
-  // Определяем текущее состояние по фактическому transform
+  // На десктопе панель центрируется через translateX(-50%) с !important в CSS,
+  // поэтому нужно сохранять X и применять transform через setProperty с important.
+  const isDesktop = window.innerWidth >= 768;
+  const xPart = isDesktop ? 'translateX(-50%) ' : '';
+
+  // Текущее состояние — по вычисленному смещению Y
   const tr = panel.style.transform || '';
   const m = tr.match(/translateY\(([-0-9.]+)px\)/);
   const currentY = m ? parseFloat(m[1]) : (panel.offsetHeight - 60);
-  const shouldOpen = currentY > 5; // если опущена (Y>5) — открываем
+  const shouldOpen = currentY > 5;
 
-  if (shouldOpen) {
-    panel.style.transform = 'translateY(0px)';
-    detailsPanelOpen = true;
-    if (svg) svg.style.transform = 'rotate(180deg)';
-  } else {
-    const ph = panel.offsetHeight || 300;
-    panel.style.transform = `translateY(${ph - 60}px)`;
-    detailsPanelOpen = false;
-    if (svg) svg.style.transform = 'rotate(0deg)';
-  }
+  const ph = panel.offsetHeight || 300;
+  const yPart = shouldOpen ? 'translateY(0px)' : `translateY(${ph - 60}px)`;
+  // setProperty с 'important' перебивает CSS-правило desktop.css
+  panel.style.setProperty('transform', xPart + yPart, 'important');
+  detailsPanelOpen = shouldOpen;
+  if (svg) svg.style.transform = shouldOpen ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
 function onDetailsClick(e) {
