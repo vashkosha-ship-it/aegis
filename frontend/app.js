@@ -1319,6 +1319,66 @@ let detailsPanelIsDragging = false;
 let detailsPanelOpen = false;
 let detailsPanelDidDrag = false;
 
+// ───────────────────────────────────────────────────────────────────────────
+// Единая модель «нижней шторки» для AR-панели деталей этапа.
+// Раньше стрелка, перетаскивание и автооткрытие использовали РАЗНЫЕ transform-ы
+// и разные брейкпоинты (768 / 900 / 1024), из-за чего на ПК панель уезжала за
+// край (translateX(-50%) на полноширинной панели) и «не поднималась».
+// Теперь все пути идут через эти хелперы: на ПК шторка центрируется и
+// ограничивается по ширине, на мобиле — на всю ширину. Transform ставится с
+// !important, чтобы не конфликтовать с CSS.
+// ───────────────────────────────────────────────────────────────────────────
+const AR_SHEET_WIDE = 768; // с этой ширины шторку центрируем и ограничиваем
+
+function arPanelIsCentered(panel) {
+  return !!(panel && panel.dataset.arCentered === '1');
+}
+function arPanelXPart(panel) {
+  return arPanelIsCentered(panel) ? 'translateX(-50%) ' : '';
+}
+function arCollapsedY(panel) {
+  // насколько опустить шторку в свёрнутом виде (видна только шапка ~60px)
+  return Math.max(0, (panel.offsetHeight || 300) - 60);
+}
+function arSetPanelY(panel, y, animate) {
+  if (!panel) return;
+  panel.style.transition = animate ? 'transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1)' : 'none';
+  panel.style.setProperty('transform', arPanelXPart(panel) + 'translateY(' + y + 'px)', 'important');
+}
+function arSetPanelOpen(panel, open, animate) {
+  if (!panel) return;
+  arSetPanelY(panel, open ? 0 : arCollapsedY(panel), animate !== false);
+  detailsPanelOpen = open;
+  const arrow = document.getElementById('arStageToggleBtn');
+  const svg = arrow ? arrow.querySelector('svg') : null;
+  if (svg) svg.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+// Приводит позиционирование панели к «нижней шторке» (общей для мобилы и ПК).
+function arLayoutSheet(panel) {
+  if (!panel) return;
+  panel.classList.remove('open');
+  panel.style.top = 'auto';
+  panel.style.bottom = '0';
+  panel.style.height = 'auto';
+  panel.style.maxHeight = '78%';
+  panel.style.borderRadius = '20px 20px 0 0';
+  panel.style.borderTop = '1px solid rgba(255,255,255,0.2)';
+  panel.style.borderLeft = 'none';
+  if (window.innerWidth >= AR_SHEET_WIDE) {
+    // ПК / планшет: центрированная шторка с ограниченной шириной
+    panel.style.left = '50%';
+    panel.style.right = 'auto';
+    panel.style.width = 'min(560px, 94vw)';
+    panel.dataset.arCentered = '1';
+  } else {
+    // Телефон: на всю ширину
+    panel.style.left = '0';
+    panel.style.right = '0';
+    panel.style.width = '100%';
+    panel.dataset.arCentered = '';
+  }
+}
+
 // Панорамирование схемы: нативный скролл (тачпад/колесо) + drag мышью
 function initARPan() {
   const sc = document.getElementById('killChainScrollContainer');
@@ -1379,26 +1439,10 @@ function toggleStageDetailsPanel(e) {
   const panel = document.getElementById('arStageDetails');
   if (!panel) { console.warn('AR: панель arStageDetails не найдена'); return; }
   if (getComputedStyle(panel).display === 'none') panel.style.display = 'block';
-  panel.style.transition = 'transform 0.3s ease';
-  const arrow = document.getElementById('arStageToggleBtn');
-  const svg = arrow ? arrow.querySelector('svg') : null;
-
-  const isDesktop = window.innerWidth >= 768;
-  const xPart = isDesktop ? 'translateX(-50%) ' : '';
-
-  // Переключаем по флагу detailsPanelOpen (инвертируем текущее состояние)
-  const willOpen = !detailsPanelOpen;
-
-  if (willOpen) {
-    // Открыть полностью — поднять до самого верха
-    panel.style.setProperty('transform', xPart + 'translateY(0px)', 'important');
-  } else {
-    // Закрыть — опустить, оставив видимой только шапку (~60px)
-    const ph = panel.offsetHeight || 300;
-    panel.style.setProperty('transform', xPart + `translateY(${ph - 60}px)`, 'important');
-  }
-  detailsPanelOpen = willOpen;
-  if (svg) svg.style.transform = willOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  // Гарантируем «нижнюю» модель позиционирования (важно для ПК).
+  if (!arPanelIsCentered(panel) && window.innerWidth >= AR_SHEET_WIDE) arLayoutSheet(panel);
+  // Инвертируем текущее состояние — единый путь и для мыши, и для тача.
+  arSetPanelOpen(panel, !detailsPanelOpen, true);
 }
 
 function onDetailsClick(e) {
@@ -1406,15 +1450,7 @@ function onDetailsClick(e) {
   if (detailsPanelDidDrag) { detailsPanelDidDrag = false; return; } // это было перетаскивание
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;
-  panel.style.transition = 'transform 0.3s ease';
-  if (detailsPanelOpen) {
-    const ph = panel.offsetHeight;
-    panel.style.transform = `translateY(${ph - 60}px)`;
-    detailsPanelOpen = false;
-  } else {
-    panel.style.transform = 'translateY(0)';
-    detailsPanelOpen = true;
-  }
+  arSetPanelOpen(panel, !detailsPanelOpen, true);
 }
 
 function onDetailsMouseDown(e) {
@@ -1433,7 +1469,7 @@ function onDetailsMouseDown(e) {
     const ph = p.offsetHeight;
     const base = detailsPanelOpen ? 0 : ph - 60;
     const nt = Math.max(0, Math.min(base + delta, ph - 60));
-    p.style.transform = `translateY(${nt}px)`;
+    arSetPanelY(p, nt, false);          // ← единый transform с центрированием
     detailsPanelCurrentY = nt;
   };
   const onUp = () => {
@@ -1470,7 +1506,7 @@ function onDetailsTouchMove(e) {
   // Ограничиваем диапазон
   newTransform = Math.max(0, Math.min(newTransform, panelHeight - 60));
   
-  panel.style.transform = `translateY(${newTransform}px)`;
+  arSetPanelY(panel, newTransform, false);   // ← единый transform с центрированием
   detailsPanelCurrentY = newTransform;
 }
 
@@ -1484,25 +1520,15 @@ function onDetailsTouchEnd(e) {
   const panelHeight = panel.offsetHeight;
   const threshold = panelHeight * 0.3;
   
-  // Решаем, открыть или закрыть
+  // Решаем, открыть или закрыть (всё через единый хелпер — корректно и на ПК)
   if (detailsPanelCurrentY < threshold) {
-    // Открыть полностью
-    panel.style.transform = 'translateY(0)';
-    detailsPanelOpen = true;
+    arSetPanelOpen(panel, true, true);
   } else if (detailsPanelCurrentY > panelHeight - 60 - threshold) {
-    // Закрыть до минимального размера
-    panel.style.transform = `translateY(${panelHeight - 60}px)`;
-    detailsPanelOpen = false;
+    arSetPanelOpen(panel, false, true);
   } else {
-    // Вернуться к предыдущему состоянию
-    if (detailsPanelOpen) {
-      panel.style.transform = 'translateY(0)';
-    } else {
-      panel.style.transform = `translateY(${panelHeight - 60}px)`;
-    }
+    // Недотянули — возвращаемся к текущему состоянию
+    arSetPanelOpen(panel, detailsPanelOpen, true);
   }
-  
-  panel.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1)';
 }
 let currentARSchemeZoom = 1;
 const AR_ZOOM_MIN = 0.5;
@@ -1765,42 +1791,13 @@ function selectKillChainStage(stageId) {
     `;
   }
 
-  // Показываем панель и СРАЗУ открываем полностью (без свайпа)
+  // Показываем панель и СРАЗУ открываем полностью (единая «нижняя шторка»)
   const panel = document.getElementById('arStageDetails');
   if (panel) {
     panel.style.display = 'block';
-    const isWide = window.innerWidth >= 900;
-    void panel.offsetHeight; // reflow для transition
-    if (isWide) {
-      // Правый сайдбар
-      panel.style.top = '0';
-      panel.style.bottom = '0';
-      panel.style.left = 'auto';
-      panel.style.right = '0';
-      panel.style.width = 'min(420px, 42vw)';
-      panel.style.maxHeight = '100%';
-      panel.style.height = '100%';
-      panel.style.borderRadius = '0';
-      panel.style.borderTop = 'none';
-      panel.style.borderLeft = '1px solid rgba(255,255,255,0.2)';
-      panel.style.transform = 'translateX(0)';
-      panel.classList.add('open');
-    } else {
-      // Узкий экран: нижняя шторка, СРАЗУ открыта полностью
-      panel.classList.remove('open');
-      panel.style.top = 'auto';
-      panel.style.bottom = '0';
-      panel.style.left = '0';
-      panel.style.right = '0';
-      panel.style.width = '100%';
-      panel.style.height = 'auto';
-      panel.style.maxHeight = '78%';
-      panel.style.borderRadius = '20px 20px 0 0';
-      panel.style.borderTop = '1px solid rgba(255,255,255,0.2)';
-      panel.style.borderLeft = 'none';
-      panel.style.transform = 'translateY(0)';
-    }
-    detailsPanelOpen = true;
+    arLayoutSheet(panel);           // позиционируем как шторку (ПК — по центру, моб — на всю ширину)
+    void panel.offsetHeight;        // reflow, чтобы offsetHeight посчитался до открытия
+    arSetPanelOpen(panel, true, false);  // открыта полностью, без анимации появления
 
     // Кнопка закрытия (добавляем один раз)
     if (!document.getElementById('arПанельCloseBtn')) {
@@ -2044,9 +2041,11 @@ function closeKillChainStage() {
   if (detailPanel) {
     detailPanel.classList.remove('open');
     detailPanel.style.display = 'none';
-    // полный сброс инлайнов сайдбара
+    // полный сброс инлайнов сайдбара/шторки
     ['top','bottom','left','right','width','maxHeight','height','borderRadius','borderTop','borderLeft','transform'].forEach(p => detailPanel.style[p] = '');
+    detailPanel.dataset.arCentered = '';
   }
+  detailsPanelOpen = false;
   const root = document.getElementById('arSchemeRoot');
   if (root) root.classList.remove('panel-visible');
 }
