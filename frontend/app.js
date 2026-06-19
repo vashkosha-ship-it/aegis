@@ -1305,6 +1305,7 @@ let detailsPanelStartY = 0;
 let detailsPanelCurrentY = 0;
 let detailsPanelIsDragging = false;
 let detailsPanelOpen = false;
+let detailsPanelDidDrag = false;
 
 // Панорамирование схемы: нативный скролл (тачпад/колесо) + drag мышью
 function initARPan() {
@@ -1354,6 +1355,27 @@ function initStageDetailsSwipe() {
   panel.addEventListener('touchmove', onDetailsTouchMove, { passive: false });
   panel.addEventListener('touchend', onDetailsTouchEnd);
   panel.addEventListener('mousedown', onDetailsMouseDown);
+
+  // Клик по панели (для ПК/тачпада): переключает открыто/закрыто.
+  // Игнорируем клики по кнопкам и случаи, когда было перетаскивание.
+  panel.removeEventListener('click', onDetailsClick);
+  panel.addEventListener('click', onDetailsClick);
+}
+
+function onDetailsClick(e) {
+  if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+  if (detailsPanelDidDrag) { detailsPanelDidDrag = false; return; } // это было перетаскивание
+  const panel = document.getElementById('arStageDetails');
+  if (!panel) return;
+  panel.style.transition = 'transform 0.3s ease';
+  if (detailsPanelOpen) {
+    const ph = panel.offsetHeight;
+    panel.style.transform = `translateY(${ph - 60}px)`;
+    detailsPanelOpen = false;
+  } else {
+    panel.style.transform = 'translateY(0)';
+    detailsPanelOpen = true;
+  }
 }
 
 function onDetailsMouseDown(e) {
@@ -1368,6 +1390,7 @@ function onDetailsMouseDown(e) {
     const p = document.getElementById('arStageDetails');
     if (!p) return;
     const delta = ev.clientY - detailsPanelStartY;
+    if (Math.abs(delta) > 5) detailsPanelDidDrag = true;
     const ph = p.offsetHeight;
     const base = detailsPanelOpen ? 0 : ph - 60;
     const nt = Math.max(0, Math.min(base + delta, ph - 60));
@@ -2876,6 +2899,34 @@ async function refreshPendingBadge() {
     const users = await api.library.adminPendingUsers();
     updatePendingBadge(users.length);
   } catch (_) {}
+}
+
+function collectArTopics() {
+  // Собираем уникальные relatedCategory из всех AR-схем
+  const topics = new Set();
+  try {
+    Object.values(AR_SCHEMES || {}).forEach(scheme => {
+      const stages = (scheme && scheme.stages) || [];
+      stages.forEach(st => { if (st.relatedCategory) topics.add(st.relatedCategory); });
+    });
+  } catch (_) {}
+  return Array.from(topics);
+}
+
+async function aiMatchArBooksUI() {
+  const topics = collectArTopics();
+  if (!topics.length) { showToast('Не удалось собрать темы AR-схем'); return; }
+  if (!confirm(`ИИ проанализирует книги и подберёт подходящие к ${topics.length} темам AR-схем. Это может занять пару минут. Продолжить?`)) return;
+  showToast('ИИ подбирает книги для AR-тем, подождите…');
+  try {
+    const res = await api.library.aiMatchArTopics(topics);
+    showToast(`Готово: обновлено книг ${res.updated} из ${res.total}`);
+    // обновим книги в состоянии, чтобы рекомендации в AR появились
+    try { await loadBooksFromApi(); } catch (_) {}
+  } catch (e) {
+    const msg = (e && (e.detail || (e.body && e.body.detail))) || 'Не удалось подобрать книги';
+    showToast(msg);
+  }
 }
 
 async function generateMissingCoversUI() {
@@ -9820,6 +9871,10 @@ function renderAdminBooks() {
       <button onclick="generateMissingCoversUI()" title="Создать обложки для книг без обложки" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         Обложки
+      </button>
+      <button onclick="aiMatchArBooksUI()" title="ИИ подберёт книги к темам AR-схем" style="background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.4);color:#7b61ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+        Подобрать книги для AR
       </button>
     </div>
     <div class="table-wrap">

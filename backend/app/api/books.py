@@ -536,6 +536,104 @@ async def reindex_all_books(
     }
 
 
+class MatchArTopicsRequest(_BaseModel):
+    topics: list[str]
+
+
+@router.post("/ai-match-ar-topics")
+async def ai_match_ar_topics(
+    payload: MatchArTopicsRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Admin only: ИИ сопоставляет книги с темами AR-схем и добавляет книгам
+    соответствующие категории, чтобы книги появлялись в рекомендациях AR-режима."""
+    from app.services.deepseek_client import chat_completion, DeepSeekError
+    import json as _json
+
+    topics = [t.strip() for t in payload.topics if t and t.strip()]
+    if not topics:
+        raise HTTPException(status_code=400, detail="Список тем пуст")
+
+    books = (await db.scalars(select(Book))).all()
+    if not books:
+        return {"updated": 0, "total": 0}
+
+    updated = 0
+    processed = 0
+    # Обрабатываем партиями по 15 книг, чтобы уложиться в лимиты модели
+    batch = 15
+    topics_list = "\n".join(f"- {t}" for t in topics)
+
+    for i in range(0, len(books), batch):
+        chunk = books[i:i + batch]
+        books_desc = []
+        for b in chunk:
+            cats = ", ".join(c.name for c in b.categories) if b.categories else "нет"
+            desc = (b.description or "")[:300]
+            books_desc.append(f'ID {b.id}: "{b.title}" | категории: {cats} | описание: {desc}')
+        books_block = "\n".join(books_desc)
+
+        prompt = (
+            "Есть список тем кибербезопасности (темы AR-схем):\n"
+            f"{topics_list}\n\n"
+            "И список книг:\n"
+            f"{books_block}\n\n"
+            "Для каждой книги определи, к каким из перечисленных тем она относится "
+            "(0, 1 или несколько — только из списка тем, точные формулировки). "
+            "Верни СТРОГО JSON без markdown:\n"
+            '{"matches":[{"id":123,"topics":["Тема1","Тема2"]}]}'
+        )
+        try:
+            raw = await chat_completion(
+                [{"role": "user", "content": prompt}],
+                system_prompt="Ты классифицируешь книги по темам. Отвечаешь строго JSON.",
+                max_tokens=2000,
+                timeout=120.0,
+            )
+        except DeepSeekError:
+            continue
+
+        t = raw.strip()
+        if t.startswith("```"):
+            t = t.strip("`")
+            if t.startswith("json"):
+                t = t[4:]
+        s, e = t.find("{"), t.rfind("}")
+        if s == -1 or e == -1:
+            continue
+        try:
+            data = _json.loads(t[s:e + 1])
+            matches = data.get("matches", [])
+        except (ValueError, TypeError):
+            continue
+
+        by_id = {b.id: b for b in chunk}
+        for m in matches:
+            try:
+                bid = int(m["id"])
+                matched_topics = [str(x).strip() for x in m.get("topics", [])]
+            except (KeyError, TypeError, ValueError):
+                continue
+            # оставляем только валидные темы из списка
+            matched_topics = [t for t in matched_topics if t in topics]
+            if not matched_topics:
+                continue
+            book = by_id.get(bid)
+            if not book:
+                continue
+            existing_names = {c.name for c in book.categories}
+            new_names = [t for t in matched_topics if t not in existing_names]
+            if new_names:
+                added = await _get_or_create_categories(db, list(existing_names) + matched_topics)
+                book.categories = added
+                updated += 1
+        processed += len(chunk)
+        await db.commit()
+
+    return {"updated": updated, "total": len(books)}
+
+
 @router.get("/reindex/status")
 async def reindex_status(
     db: AsyncSession = Depends(get_db),

@@ -408,6 +408,9 @@
       adminCreateUser(payload) {
         return request('/admin/users/create', { method: 'POST', body: payload });
       },
+      aiMatchArTopics(topics) {
+        return request('/books/ai-match-ar-topics', { method: 'POST', body: { topics } });
+      },
       async adminExportReading(dateFrom, dateTo) {
         let qs = [];
         if (dateFrom) qs.push('date_from=' + encodeURIComponent(dateFrom));
