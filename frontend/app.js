@@ -1133,6 +1133,7 @@ function renderARScheme(schemeCode) {
   else if (schemeCode === 'owasp')    renderOwaspScheme();
   else if (schemeCode === 'osi')      renderOsiScheme();
   else if (schemeCode === 'mitre')    renderMitreScheme();
+  else if (schemeCode === 'nist')     renderNistScheme();
   else                                 renderGenericScheme(AR_SCHEMES[schemeCode]);
 }
 // ─── OWASP: вертикальный стек с цветовой шкалой опасности ───────────────────
@@ -1216,6 +1217,112 @@ function renderOwaspScheme() {
 
 // ─── OSI: горизонтальные слои-плашки (L7 сверху, L1 снизу) ──────────────────
 // ─── Универсальный рендер для линейных схем (NIST, IR, Defense in Depth, STRIDE) ───
+// ─── NIST CSF: круговой цикл из 5 функций (SVG-кольцо) ──────────────────────
+function renderNistScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  if (!container) return;
+  const scheme = AR_NIST;
+  const stages = scheme.stages;
+  const n = stages.length; // 5
+
+  // Геометрия кольца
+  const cx = 150, cy = 150, rOuter = 130, rInner = 70;
+  const gap = 0.04; // зазор между сегментами (рад)
+  const seg = (Math.PI * 2) / n;
+
+  function polar(r, a) {
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  }
+  // Дуга-сегмент (кольцевой сектор) как SVG path
+  function segmentPath(i) {
+    const a0 = -Math.PI / 2 + i * seg + gap / 2;
+    const a1 = -Math.PI / 2 + (i + 1) * seg - gap / 2;
+    const [x0o, y0o] = polar(rOuter, a0);
+    const [x1o, y1o] = polar(rOuter, a1);
+    const [x1i, y1i] = polar(rInner, a1);
+    const [x0i, y0i] = polar(rInner, a0);
+    const large = (a1 - a0) > Math.PI ? 1 : 0;
+    return `M ${x0o} ${y0o} A ${rOuter} ${rOuter} 0 ${large} 1 ${x1o} ${y1o} L ${x1i} ${y1i} A ${rInner} ${rInner} 0 ${large} 0 ${x0i} ${y0i} Z`;
+  }
+  // Позиция подписи (середина сегмента)
+  function labelPos(i) {
+    const am = -Math.PI / 2 + (i + 0.5) * seg;
+    return polar((rOuter + rInner) / 2, am);
+  }
+
+  const segs = stages.map((s, i) => {
+    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
+    const [lx, ly] = labelPos(i);
+    return `
+      <path id="nistSeg${s.id}" d="${segmentPath(i)}" fill="${color}" fill-opacity="0.22"
+            stroke="${color}" stroke-width="2"
+            style="cursor:pointer;transition:fill-opacity 0.25s, transform 0.4s cubic-bezier(0.22,1,0.36,1);transform-origin:${cx}px ${cy}px;opacity:0;"
+            onclick="selectKillChainStage(${s.id})"></path>
+      <text x="${lx}" y="${ly - 4}" text-anchor="middle" fill="#fff" font-size="13" font-weight="800"
+            style="pointer-events:none;font-family:inherit;">${s.code}</text>
+      <text x="${lx}" y="${ly + 11}" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="8.5"
+            style="pointer-events:none;font-family:inherit;">${s.nameRu}</text>`;
+  }).join('');
+
+  // Стрелки направления цикла (по часовой) — маленькие треугольники между сегментами
+  const arrows = stages.map((s, i) => {
+    const aEnd = -Math.PI / 2 + (i + 1) * seg;
+    const [ax, ay] = polar(rOuter + 12, aEnd);
+    const rot = (aEnd * 180 / Math.PI) + 90;
+    return `<text x="${ax}" y="${ay}" text-anchor="middle" fill="rgba(0,212,255,0.6)" font-size="12"
+              style="pointer-events:none;" transform="rotate(${rot} ${ax} ${ay})">▶</text>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;display:flex;align-items:center;justify-content:center;padding:60px 16px 110px;">
+        <div id="killChainNodes" style="transition:transform 0.2s ease;transform-origin:center center;">
+          <svg width="300" height="300" viewBox="0 0 300 300" style="max-width:88vw;max-height:60vh;">
+            <circle cx="${cx}" cy="${cy}" r="${rInner - 6}" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+            <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="#00d4ff" font-size="20" font-weight="800" style="font-family:inherit;">NIST</text>
+            <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" style="font-family:inherit;">CSF</text>
+            <g id="nistArrows" style="opacity:0;transition:opacity 0.5s;">${arrows}</g>
+            ${segs}
+          </svg>
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
+        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ФУНКЦИЮ</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на функцию цикла, чтобы узнать подробнее</div>
+    </div>`;
+
+  initStageDetailsSwipe();
+  initARPan();
+
+  // Анимация: сегменты «раскрываются» по очереди (масштаб + прозрачность), затем появляются стрелки цикла
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const el = document.getElementById('nistSeg' + s.id);
+      if (!el) return;
+      el.style.transform = 'scale(0.6)';
+      setTimeout(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'scale(1)';
+      }, i * 130);
+    });
+    const arrowsEl = document.getElementById('nistArrows');
+    if (arrowsEl) setTimeout(() => { arrowsEl.style.opacity = '1'; }, n * 130 + 200);
+  }, 60);
+}
+
 function renderGenericScheme(scheme) {
   const container = document.getElementById('arSchemeContainer');
   if (!container || !scheme) return;
@@ -1497,7 +1604,7 @@ function renderKillChainScheme() {
   // Определяем ориентацию
   const isMobile = window.innerWidth < 768;
   const isPortrait = window.innerHeight > window.innerWidth;
-  const isVertical = window.innerWidth < 1400;
+  const isVertical = true; // Kill Chain всегда вертикальный (по запросу)
   
   // Сбрасываем зум при открытии
   currentARSchemeZoom = 1;
