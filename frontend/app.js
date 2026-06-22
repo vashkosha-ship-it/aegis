@@ -1219,6 +1219,7 @@ function renderOwaspScheme() {
 // ─── Универсальный рендер для линейных схем (NIST, IR, Defense in Depth, STRIDE) ───
 // ─── NIST CSF: круговой цикл из 5 функций (SVG-кольцо) ──────────────────────
 function renderNistScheme() {
+  console.log('[AR] renderNistScheme вызвана');
   const container = document.getElementById('arSchemeContainer');
   if (!container) return;
   const scheme = AR_NIST;
