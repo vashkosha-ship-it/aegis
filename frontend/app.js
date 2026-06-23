@@ -6532,10 +6532,34 @@ function renderSettingsHelpTab(c) {
 
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;">
         <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Пользовательское соглашение</div>
-        <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;max-height:340px;overflow-y:auto;padding-right:6px;">
-          ${USER_AGREEMENT_HTML}
-        </div>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+          Условия использования платформы Aegis.
+        </p>
+        <button onclick="openUserAgreement()" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+          Открыть соглашение
+        </button>
       </div>
+    </div>`;
+}
+
+function openUserAgreement() {
+  let m = document.getElementById('userAgreementModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'userAgreementModal';
+    m.style.cssText = 'position:fixed;inset:0;background:var(--bg-primary);z-index:4000;display:flex;flex-direction:column;';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary);">Пользовательское соглашение</div>
+      <button onclick="document.getElementById('userAgreementModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px;font-size:14px;color:var(--text-secondary);line-height:1.7;max-width:680px;margin:0 auto;width:100%;-webkit-overflow-scrolling:touch;">
+      ${USER_AGREEMENT_HTML}
+    </div>
+    <div style="padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0;">
+      <button onclick="document.getElementById('userAgreementModal').remove()" style="width:100%;max-width:680px;margin:0 auto;display:block;background:var(--accent);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Закрыть</button>
     </div>`;
 }
 
