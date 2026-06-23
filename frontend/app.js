@@ -1134,6 +1134,8 @@ function renderARScheme(schemeCode) {
   else if (schemeCode === 'osi')      renderOsiScheme();
   else if (schemeCode === 'mitre')    renderMitreScheme();
   else if (schemeCode === 'nist')     renderNistScheme();
+  else if (schemeCode === 'did')      renderDidScheme();
+  else if (schemeCode === 'ir')       renderIrScheme();
   else                                 renderGenericScheme(AR_SCHEMES[schemeCode]);
 }
 // ─── OWASP: вертикальный стек с цветовой шкалой опасности ───────────────────
@@ -1219,7 +1221,6 @@ function renderOwaspScheme() {
 // ─── Универсальный рендер для линейных схем (NIST, IR, Defense in Depth, STRIDE) ───
 // ─── NIST CSF: круговой цикл из 5 функций (SVG-кольцо) ──────────────────────
 function renderNistScheme() {
-  console.log('[AR] renderNistScheme вызвана');
   const container = document.getElementById('arSchemeContainer');
   if (!container) return;
   const scheme = AR_NIST;
@@ -1321,6 +1322,168 @@ function renderNistScheme() {
     });
     const arrowsEl = document.getElementById('nistArrows');
     if (arrowsEl) setTimeout(() => { arrowsEl.style.opacity = '1'; }, n * 130 + 200);
+  }, 60);
+}
+
+// ─── Defense in Depth: концентрические кольца (эшелоны вокруг данных) ───────
+function renderDidScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  if (!container) return;
+  const scheme = AR_DID;
+  const stages = scheme.stages; // 6: phys, perim, net, host, app, data
+  const n = stages.length;
+  const cx = 160, cy = 160;
+  const rMax = 150, rMin = 34;
+  // равномерные кольца от внешнего к внутреннему
+  const step = (rMax - rMin) / n;
+
+  // Внешний слой (stages[0]) — самое большое кольцо, данные (последний) — центр
+  const rings = stages.map((s, i) => {
+    const rOuter = rMax - i * step;
+    const rInner = rMax - (i + 1) * step;
+    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
+    const isCenter = i === n - 1;
+    const labelR = isCenter ? 0 : (rOuter + rInner) / 2;
+    return { s, i, rOuter, rInner, color, isCenter, labelR };
+  });
+
+  // Рисуем от внешнего к внутреннему (большие сзади)
+  const circles = rings.map(({ s, rOuter, color, isCenter }) => {
+    if (isCenter) {
+      return `<circle id="didRing${s.id}" cx="${cx}" cy="${cy}" r="${rOuter}"
+        fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="2"
+        style="cursor:pointer;transition:fill-opacity 0.25s, r 0.4s cubic-bezier(0.22,1,0.36,1);opacity:0;"
+        onclick="selectKillChainStage(${s.id})"></circle>`;
+    }
+    return `<circle id="didRing${s.id}" cx="${cx}" cy="${cy}" r="${rOuter}"
+      fill="${color}" fill-opacity="0.10" stroke="${color}" stroke-width="2"
+      style="cursor:pointer;transition:fill-opacity 0.25s, r 0.4s cubic-bezier(0.22,1,0.36,1);opacity:0;"
+      onclick="selectKillChainStage(${s.id})"></circle>`;
+  }).join('');
+
+  // Подписи слоёв — по верхней части каждого кольца
+  const labels = rings.map(({ s, rOuter, rInner, color, isCenter }) => {
+    if (isCenter) {
+      return `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="12" font-weight="800"
+        style="pointer-events:none;font-family:inherit;">${s.nameRu}</text>`;
+    }
+    const ly = cy - (rOuter + rInner) / 2 + 4;
+    return `<text x="${cx}" y="${ly}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700"
+      style="pointer-events:none;font-family:inherit;">${s.nameRu}</text>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;display:flex;align-items:center;justify-content:center;padding:60px 16px 110px;">
+        <div id="killChainNodes" style="transition:transform 0.2s ease;transform-origin:center center;">
+          <svg width="320" height="320" viewBox="0 0 320 320" style="max-width:90vw;max-height:62vh;">
+            ${circles}
+            ${labels}
+          </svg>
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
+        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА СЛОЙ</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на слой защиты, чтобы узнать подробнее</div>
+    </div>`;
+
+  initStageDetailsSwipe();
+  initARPan();
+
+  // Анимация: кольца появляются от внешнего к внутреннему
+  setTimeout(() => {
+    rings.forEach(({ s }, idx) => {
+      const el = document.getElementById('didRing' + s.id);
+      if (!el) return;
+      setTimeout(() => { el.style.opacity = '1'; }, idx * 120);
+    });
+  }, 60);
+}
+
+// ─── Incident Response: вертикальный таймлайн вех ──────────────────────────
+function renderIrScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  if (!container) return;
+  const scheme = AR_IR;
+  const stages = scheme.stages; // 6 этапов
+
+  const items = stages.map((s, i) => {
+    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
+    const isLast = i === stages.length - 1;
+    return `
+      <div style="display:flex;gap:14px;align-items:stretch;pointer-events:auto;">
+        <!-- Колонка таймлайна: точка + линия -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0;">
+          <div id="arNode${s.id}" onclick="selectKillChainStage(${s.id})"
+               style="width:36px;height:36px;border-radius:50%;background:${color}22;border:2px solid ${color};
+                      color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;
+                      font-size:13px;cursor:pointer;flex-shrink:0;transition:all 0.25s;z-index:2;">${i + 1}</div>
+          ${isLast ? '' : `<div style="flex:1;width:2px;background:linear-gradient(${color},${(stages[i+1].defenseMethod&&stages[i+1].defenseMethod.color)||color});min-height:24px;opacity:0.5;"></div>`}
+        </div>
+        <!-- Карточка этапа -->
+        <button onclick="selectKillChainStage(${s.id})"
+                style="flex:1;text-align:left;margin-bottom:14px;padding:12px 14px;background:rgba(0,0,0,0.6);
+                       backdrop-filter:blur(10px);border:1px solid ${color}44;border-left:3px solid ${color};
+                       border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;transition:all 0.2s;
+                       opacity:0;transform:translateX(20px);" id="arCard${s.id}">
+          <div style="font-weight:700;font-size:14px;">${s.nameRu}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px;">${s.name}</div>
+        </button>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 110px;">
+        <div id="killChainNodes" style="max-width:420px;margin:auto;transition:transform 0.2s ease;transform-origin:top center;">
+          ${items}
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
+        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на этап реагирования, чтобы узнать подробнее</div>
+    </div>`;
+
+  initStageDetailsSwipe();
+  initARPan();
+
+  // Анимация: карточки выезжают по очереди сверху вниз
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const card = document.getElementById('arCard' + s.id);
+      if (!card) return;
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1)';
+        card.style.opacity = '1';
+        card.style.transform = 'translateX(0)';
+      }, i * 90);
+    });
   }, 60);
 }
 
@@ -1788,14 +1951,18 @@ function toggleStageDetailsPanel(e) {
   const isDesktop = window.innerWidth >= 768;
   const xPart = isDesktop ? 'translateX(-50%) ' : '';
 
-  // Переключаем по флагу detailsPanelOpen (инвертируем текущее состояние)
-  const willOpen = !detailsPanelOpen;
+  // Определяем реальное состояние по положению панели на экране,
+  // а не по флагу (флаг рассинхронизируется при выборе этапа).
+  const rect = panel.getBoundingClientRect();
+  const winH = window.innerHeight;
+  // Если видимая часть панели меньше ~40% её высоты — считаем закрытой → открываем
+  const visibleHeight = winH - rect.top;
+  const isCurrentlyOpen = visibleHeight > rect.height * 0.55;
+  const willOpen = !isCurrentlyOpen;
 
   if (willOpen) {
-    // Открыть полностью — поднять до самого верха
     panel.style.setProperty('transform', xPart + 'translateY(0px)', 'important');
   } else {
-    // Закрыть — опустить, оставив видимой только шапку (~60px)
     const ph = panel.offsetHeight || 300;
     panel.style.setProperty('transform', xPart + `translateY(${ph - 60}px)`, 'important');
   }

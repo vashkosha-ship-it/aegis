@@ -2426,6 +2426,12 @@ select[multiple] option:hover {
   html { font-size: 16px !important; }
   body { font-size: 1rem !important; }
 
+  /* В sidebar-режиме (≥512px) нижнее меню не нужно — скрываем, чтобы не было двух меню */
+  .bottom-nav { display: none !important; }
+  body { padding-bottom: 0 !important; }
+  /* Sidebar фиксируем слева, чтобы не уезжал в поток контента */
+  .sidebar-nav { position: fixed !important; top: 0 !important; left: 0 !important; height: 100vh !important; z-index: 900 !important; }
+
   /* === БОКОВОЕ МЕНЮ === */
   .sidebar-nav { width: 150px !important; padding: 16px 10px !important; }
   .sidebar-logo { padding: 4px 6px 14px !important; margin-bottom: 12px !important; gap: 8px !important; }
