@@ -6309,21 +6309,88 @@ async function renderOfflineBooks() {
 // ========== ЭКРАН НАСТРОЕК ==========
 
 const USER_AGREEMENT_HTML = `
-  <p style="margin-bottom:10px;">Используя платформу Aegis («Сервис»), вы соглашаетесь с условиями настоящего пользовательского соглашения.</p>
-  <p style="margin-bottom:6px;"><strong>1. Назначение</strong></p>
-  <p style="margin-bottom:10px;">Сервис предоставляет доступ к материалам по информационной безопасности в образовательных целях. Доступ предоставляется зарегистрированным и одобренным пользователям.</p>
-  <p style="margin-bottom:6px;"><strong>2. Учётная запись</strong></p>
-  <p style="margin-bottom:10px;">Вы обязуетесь предоставлять достоверные данные при регистрации и не передавать доступ к учётной записи третьим лицам. Вы несёте ответственность за сохранность своих учётных данных.</p>
-  <p style="margin-bottom:6px;"><strong>3. Использование материалов</strong></p>
-  <p style="margin-bottom:10px;">Материалы Сервиса предназначены для личного образовательного использования. Запрещается копирование, распространение или коммерческое использование материалов без разрешения правообладателей.</p>
-  <p style="margin-bottom:6px;"><strong>4. Допустимое поведение</strong></p>
-  <p style="margin-bottom:10px;">Запрещается использовать Сервис для незаконной деятельности, попыток нарушения его работы или несанкционированного доступа к данным других пользователей.</p>
-  <p style="margin-bottom:6px;"><strong>5. Конфиденциальность</strong></p>
-  <p style="margin-bottom:10px;">Сервис обрабатывает персональные данные в объёме, необходимом для предоставления доступа. Личные заметки шифруются на стороне пользователя.</p>
-  <p style="margin-bottom:6px;"><strong>6. Ответственность</strong></p>
-  <p style="margin-bottom:10px;">Сервис предоставляется «как есть». Администрация не несёт ответственности за возможные перерывы в работе и за применение полученных знаний пользователем.</p>
-  <p style="margin-bottom:6px;"><strong>7. Контакты</strong></p>
-  <p style="margin-bottom:0;">По всем вопросам: support@aegis-sec-library.ru</p>
+  <h2 style="font-size:17px;font-weight:800;color:var(--text-primary);margin:0 0 12px;">Пользовательское соглашение (EULA)</h2>
+  <p style="margin-bottom:14px;">Пользовательское соглашение (далее — «Соглашение») регулирует отношения между Владельцем сервиса (далее — «Администрация») и физическим лицом (далее — «Пользователь») по использованию прогрессивного веб-приложения «Aegis» (далее — «Сервис»), представляющего собой библиотеку материалов по кибербезопасности.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">1. Общие положения</h3>
+  <p style="margin-bottom:8px;">1.1. <strong>Aegis</strong> — это PWA-сервис, предоставляющий доступ к структурированной библиотеке книг, статей, гайдов и исследовательских материалов в области информационной безопасности.</p>
+  <p style="margin-bottom:8px;">1.2. Использование Сервиса регулируется настоящим Соглашением, а также Политикой конфиденциальности.</p>
+  <p style="margin-bottom:8px;">1.3. Начиная использовать Сервис (установка PWA на устройство, авторизация или просмотр контента), Пользователь считается безоговорочно принявшим условия настоящего Соглашения. Если вы не согласны с условиями, вы обязаны прекратить использование Сервиса.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">2. Предмет соглашения и статус контента</h3>
+  <p style="margin-bottom:8px;">2.1. <strong>Образовательная цель:</strong> Сервис предоставляет материалы исключительно в образовательных, исследовательских и ознакомительных целях для специалистов и энтузиастов сферы кибербезопасности.</p>
+  <p style="margin-bottom:8px;">2.2. <strong>Авторские права:</strong> Весь контент, размещенный в библиотеке (тексты, обложки, дизайн, программный код PWA), является объектом интеллектуальной собственности Администрации или используется на основании лицензионных договоров с правообладателями.</p>
+  <p style="margin-bottom:8px;">2.3. <strong>Ограничения использования контента:</strong></p>
+  <p style="margin-bottom:8px;padding-left:12px;">— Пользователь вправе читать и цитировать материалы в личных образовательных целях в объемах, оправданных целью цитирования.<br>— <strong>Строго запрещается:</strong> воспроизведение, копирование, распространение, сдача в прокат, публичное воспроизведение материалов Сервиса или их фрагментов без письменного разрешения Администрации.</p>
+  <p style="margin-bottom:8px;">2.4. <strong>Пользовательский контент:</strong> Если функционал Сервиса позволяет оставлять комментарии или заметки (Пользовательский контент), Пользователь гарантирует, что этот контент не нарушает законодательство и права третьих лиц.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">3. Функциональность PWA и офлайн-доступ</h3>
+  <p style="margin-bottom:8px;">3.1. Сервис использует технологии Progressive Web App (Service Workers, Cache API) для обеспечения офлайн-доступа к ранее открытым материалам.</p>
+  <p style="margin-bottom:8px;">3.2. Пользователь уведомлен, что:</p>
+  <p style="margin-bottom:8px;padding-left:12px;">— Офлайн-режим работает исключительно с кэшированными данными.<br>— Для синхронизации прогресса чтения и получения обновлений библиотеки требуется активное подключение к сети Интернет.<br>— Администрация не несет ответственности за потерю кэшированных данных при очистке памяти браузера Пользователем или сбое файловой системы устройства.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">4. Права и обязанности сторон</h3>
+  <p style="margin-bottom:8px;"><strong>Пользователь обязуется:</strong></p>
+  <p style="margin-bottom:8px;">4.1. Использовать полученные знания исключительно в законных целях. <strong>Пользователь осознает, что применение техник и инструментов, описанных в материалах библиотеки, для несанкционированного доступа к чужим информационным системам является уголовно наказуемым деянием.</strong></p>
+  <p style="margin-bottom:8px;">4.2. Не предпринимать действий, направленных на взлом, реверс-инжиниринг кода Сервиса, обход ограничений доступа (DRM/Tests) или нарушение нормальной работы PWA.</p>
+  <p style="margin-bottom:8px;">4.3. Не использовать автоматизированные скрипты (парсинг, граббинг) для массовой загрузки материалов библиотеки.</p>
+  <p style="margin-bottom:8px;"><strong>Администрация имеет право:</strong></p>
+  <p style="margin-bottom:8px;">4.4. Модерировать и удалять Пользовательский контент без объяснения причин.</p>
+  <p style="margin-bottom:8px;">4.5. Вносить изменения в каталог библиотеки, удалять или добавлять книги без предварительного уведомления Пользователя.</p>
+  <p style="margin-bottom:8px;">4.6. Ограничить доступ к Сервису для Пользователя в случае нарушения условий настоящего Соглашения.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">5. Отказ от ответственности</h3>
+  <p style="margin-bottom:8px;">5.1. <strong>«Как есть»:</strong> Сервис предоставляется на условиях «как есть» (as is). Администрация не предоставляет гарантий безошибочной и бесперебойной работы PWA.</p>
+  <p style="margin-bottom:8px;">5.2. <strong>Не гарантируется:</strong> Администрация не гарантирует, что материалы библиотеки подходят для достижения конкретных практических целей Пользователя. Техническая информация может устаревать ввиду быстрого развития технологий.</p>
+  <p style="margin-bottom:8px;">5.3. <strong>Ограничение ответственности:</strong> Администрация ни при каких обстоятельствах не несет ответственности за прямой или косвенный ущерб, причиненный Пользователю или третьим лицам в результате:</p>
+  <p style="margin-bottom:8px;padding-left:12px;">— Незаконного использования Пользователем информации, полученной в Сервисе (включая уголовное преследование за хакерскую деятельность);<br>— Ошибок и уязвимостей в программном обеспечении, описанном в книгах библиотеки.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">6. Заключительные положения</h3>
+  <p style="margin-bottom:8px;">6.1. Администрация оставляет за собой право в одностороннем порядке изменять текст настоящего Соглашения. Изменения вступают в силу с момента их публикации в Сервисе.</p>
+  <p style="margin-bottom:0;">6.2. Продолжение использования Сервиса после внесения изменений означает согласие Пользователя с новой редакцией Соглашения.</p>
+`;
+
+const PRIVACY_POLICY_HTML = `
+  <h2 style="font-size:17px;font-weight:800;color:var(--text-primary);margin:0 0 12px;">Политика конфиденциальности</h2>
+  <p style="margin-bottom:8px;"><strong>Прогрессивное веб-приложение «Aegis»</strong></p>
+  <p style="margin-bottom:8px;">Настоящая Политика конфиденциальности (далее — «Политика») определяет, какие данные собирает и обрабатывает сервис «Aegis» (далее — «Сервис» или «PWA»), как они используются и защищаются.</p>
+  <p style="margin-bottom:14px;">Мы серьезно относимся к конфиденциальности, особенно с учетом образовательной направленности нашего продукта в сфере кибербезопасности.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">1. Основные понятия</h3>
+  <p style="margin-bottom:8px;">1.1. <strong>PWA (Progressive Web App)</strong> — веб-приложение, которое работает в браузере Пользователя и может быть установлено на устройство для офлайн-доступа.</p>
+  <p style="margin-bottom:8px;">1.2. <strong>Персональные данные</strong> — любая информация, относящаяся к прямо или косвенно определенному или определяемому физическому лицу.</p>
+  <p style="margin-bottom:8px;">1.3. <strong>Обезличенные данные</strong> — данные, которые не могут быть использованы для идентификации конкретного Пользователя без дополнительной информации.</p>
+  <p style="margin-bottom:8px;">1.4. <strong>Service Worker</strong> — программный скрипт, работающий в фоновом режиме браузера и отвечающий за кэширование контента для офлайн-доступа.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">2. Какие данные мы собираем и зачем</h3>
+  <p style="margin-bottom:8px;">2.1. <strong>Данные для работы аккаунта (опционально):</strong> адрес электронной почты, никнейм, хэшированный пароль. Цель — идентификация Пользователя, синхронизация прогресса чтения и закладок между устройствами. Основание — исполнение договора.</p>
+  <p style="margin-bottom:8px;">2.2. <strong>Данные о прогрессе чтения:</strong> список прочитанных книг, страницы, закладки и текстовые заметки. Цель — продолжить чтение с того же места. Хранение — локально на устройстве (IndexedDB / LocalStorage); при использовании аккаунта — на сервере в зашифрованном виде.</p>
+  <p style="margin-bottom:8px;">2.3. <strong>Данные, собираемые автоматически (обезличенные):</strong> логи сервера (IP-адрес, тип браузера, дата и время запроса, HTTP-статус, объем данных) хранятся до 14 дней; данные PWA-кэша (манифест, иконки, шрифты). Аналитика: мы не используем Google Analytics или Яндекс.Метрику, не используем cookie слежения и не создаём цифровой отпечаток.</p>
+  <p style="margin-bottom:8px;">2.4. <strong>Данные для офлайн-доступа:</strong> текст, разметка и изображения открытых книг сохраняются в Cache API. Это техническая основа работы PWA. Вы можете очистить кэш через настройки браузера.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">3. Правовые основания обработки (GDPR / 152-ФЗ)</h3>
+  <p style="margin-bottom:8px;padding-left:12px;">— <strong>Согласие:</strong> при первой установке PWA или первом открытии книги.<br>— <strong>Исполнение договора:</strong> для сохранения закладок и прогресса.<br>— <strong>Законный интерес:</strong> базовая безопасность и обезличенная статистика.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">4. Cookie и Web Storage</h3>
+  <p style="margin-bottom:8px;">4.1. Сервис использует технические сессионные данные, необходимые для работы интерфейса.</p>
+  <p style="margin-bottom:8px;">4.2. <strong>Мы принципиально не используем:</strong> сторонние рекламные и трекинговые cookie; скрытый майнинг; сбор данных из буфера обмена без вашего действия.</p>
+  <p style="margin-bottom:8px;">4.3. Вы можете запретить Local Storage в настройках браузера, но это нарушит работу приложения (офлайн-чтение и сохранение прогресса).</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">5. Передача данных третьим лицам</h3>
+  <p style="margin-bottom:8px;">5.1. Мы не продаем, не передаем и не раскрываем информацию о том, какие книги вы читаете и какие заметки оставляете.</p>
+  <p style="margin-bottom:8px;">5.2. <strong>Исключения:</strong> по законному запросу государственных органов РФ; хостинг- и CDN-провайдеру (исключительно для доставки файлов на ваше устройство).</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">6. Безопасность данных</h3>
+  <p style="margin-bottom:8px;">6.1. Обмен данными по HTTPS (TLS 1.3); внедрены заголовки безопасности (CSP, HSTS); инфраструктура регулярно сканируется на уязвимости.</p>
+  <p style="margin-bottom:8px;">6.2. 100% безопасности в сети не существует. Рекомендуем использовать сложные пароли и не хранить чувствительную информацию в публичных заметках.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">7. Права Пользователя</h3>
+  <p style="margin-bottom:8px;padding-left:12px;">1. <strong>На доступ:</strong> запросить перечень хранимых данных.<br>2. <strong>На удаление:</strong> потребовать удалить аккаунт и связанные данные.<br>3. <strong>На возражение:</strong> отказаться от уведомлений.<br>4. <strong>На локальное удаление:</strong> стереть данные PWA через «Очистить историю» → «Данные сайтов».</p>
+  <p style="margin-bottom:8px;">Для реализации прав напишите на <strong>support@aegis-sec-library.ru</strong> с темой «Запрос конфиденциальности». Мы ответим в течение 10 рабочих дней. Возможно, потребуется подтвердить вашу личность.</p>
+
+  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">8. Изменения Политики</h3>
+  <p style="margin-bottom:8px;">8.1. Мы можем вносить изменения. При существенных изменениях уведомим через интерфейс приложения.</p>
+  <p style="margin-bottom:0;">8.2. Новая редакция вступает в силу с момента публикации.</p>
 `;
 
 const SETTINGS_TABS = [
@@ -6531,36 +6598,49 @@ function renderSettingsHelpTab(c) {
       </div>
 
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;">
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Пользовательское соглашение</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Правовые документы</div>
         <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
-          Условия использования платформы Aegis.
+          Условия использования платформы Aegis и порядок обработки данных.
         </p>
-        <button onclick="openUserAgreement()" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
-          Открыть соглашение
-        </button>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button onclick="openUserAgreement()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+            Пользовательское соглашение
+          </button>
+          <button onclick="openPrivacyPolicy()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+            Политика конфиденциальности
+          </button>
+        </div>
       </div>
     </div>`;
 }
 
-function openUserAgreement() {
-  let m = document.getElementById('userAgreementModal');
+function _openLegalModal(titleText, html) {
+  let m = document.getElementById('legalDocModal');
   if (!m) {
     m = document.createElement('div');
-    m.id = 'userAgreementModal';
+    m.id = 'legalDocModal';
     m.style.cssText = 'position:fixed;inset:0;background:var(--bg-primary);z-index:4000;display:flex;flex-direction:column;';
     document.body.appendChild(m);
   }
   m.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <div style="font-size:16px;font-weight:700;color:var(--text-primary);">Пользовательское соглашение</div>
-      <button onclick="document.getElementById('userAgreementModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary);">${titleText}</div>
+      <button onclick="document.getElementById('legalDocModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:20px;font-size:14px;color:var(--text-secondary);line-height:1.7;max-width:680px;margin:0 auto;width:100%;-webkit-overflow-scrolling:touch;">
-      ${USER_AGREEMENT_HTML}
+      ${html}
     </div>
     <div style="padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0;">
-      <button onclick="document.getElementById('userAgreementModal').remove()" style="width:100%;max-width:680px;margin:0 auto;display:block;background:var(--accent);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Закрыть</button>
+      <button onclick="document.getElementById('legalDocModal').remove()" style="width:100%;max-width:680px;margin:0 auto;display:block;background:var(--accent);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Закрыть</button>
     </div>`;
+}
+
+function openUserAgreement() {
+  _openLegalModal('Пользовательское соглашение', USER_AGREEMENT_HTML);
+}
+
+function openPrivacyPolicy() {
+  _openLegalModal('Политика конфиденциальности', PRIVACY_POLICY_HTML);
 }
 
 function renderSettingsPrivacyTab(c) {
