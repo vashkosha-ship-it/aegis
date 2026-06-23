@@ -231,3 +231,80 @@ async def login_form(
         access_token=create_access_token(user.id, user.role.value),
         refresh_token=create_refresh_token(user.id),
     )
+
+
+# ============================================================================
+# Восстановление пароля («забыли пароль»)
+# ============================================================================
+from pydantic import BaseModel, EmailStr, field_validator
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _min_len(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Пароль должен содержать минимум 8 символов")
+        return v
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Запросить код восстановления пароля. Код отправляется на email.
+
+    Из соображений безопасности всегда возвращаем успех, даже если email не найден
+    (чтобы нельзя было перебором узнать, какие адреса зарегистрированы).
+    """
+    user = await db.scalar(select(User).where(User.email == payload.email))
+    if user:
+        code = _gen_code()
+        user.reset_code = code
+        user.reset_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+        await db.commit()
+        try:
+            from app.services.email_service import send_password_reset_code
+            await send_password_reset_code(user.email, code)
+        except EmailError:
+            pass
+    return {"detail": "Если такой email зарегистрирован, на него отправлен код восстановления"}
+
+
+@router.post("/reset-password", response_model=TokenPair)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> TokenPair:
+    """Сбросить пароль по коду из письма. При успехе сразу выдаём токены (вход)."""
+    user = await db.scalar(select(User).where(User.email == payload.email))
+    if not user or not user.reset_code or not user.reset_expires:
+        raise HTTPException(status_code=400, detail="Неверный код или email")
+
+    now = datetime.now(timezone.utc)
+    expires = user.reset_expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if now > expires:
+        raise HTTPException(status_code=400, detail="Код истёк, запросите новый")
+    if payload.code.strip() != user.reset_code:
+        raise HTTPException(status_code=400, detail="Неверный код")
+
+    user.password_hash = hash_password(payload.new_password)
+    user.reset_code = None
+    user.reset_expires = None
+    await db.commit()
+
+    return TokenPair(
+        access_token=create_access_token(user.id, user.role.value),
+        refresh_token=create_refresh_token(user.id),
+    )

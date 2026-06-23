@@ -4698,6 +4698,73 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   if (forgotHint) forgotHint.style.display = isRegister ? 'none' : '';
 }));
 
+function openForgotPassword() {
+  let m = document.getElementById('forgotPasswordModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'forgotPasswordModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:flex;align-items:center;justify-content:center;padding:18px;';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <h3 style="font-size:17px;font-weight:800;color:var(--text-primary);">ÐÐ¾ÑÑÑÐ°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð°ÑÐ¾Ð»Ñ</h3>
+        <button onclick="document.getElementById('forgotPasswordModal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <div id="fpStep1">
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">Введите email, указанный при регистрации. Мы отправим код для сброса пароля.</p>
+        <input type="email" id="fpEmail" placeholder="Email" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:inherit;margin-bottom:14px;">
+        <button id="fpSendBtn" onclick="forgotPasswordSendCode()" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Отправить код</button>
+      </div>
+      <div id="fpStep2" style="display:none;">
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">Введите код из письма и новый пароль.</p>
+        <input type="text" id="fpCode" placeholder="Код из письма" inputmode="numeric" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:inherit;margin-bottom:10px;">
+        <input type="password" id="fpNewPass" placeholder="Новый пароль (мин. 8 символов)" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:inherit;margin-bottom:14px;">
+        <button id="fpResetBtn" onclick="forgotPasswordReset()" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Сбросить пароль</button>
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:14px;line-height:1.4;">При потере пароля доступ к ранее зашифрованным заметкам не восстанавливается.</p>
+    </div>`;
+}
+
+async function forgotPasswordSendCode() {
+  const email = document.getElementById('fpEmail').value.trim();
+  if (!email || !email.includes('@')) { showToast('Введите корректный email'); return; }
+  const btn = document.getElementById('fpSendBtn');
+  btn.disabled = true; btn.textContent = 'Отправляю…';
+  try {
+    await api.forgotPassword(email);
+    window._fpEmail = email;
+    document.getElementById('fpStep1').style.display = 'none';
+    document.getElementById('fpStep2').style.display = 'block';
+    showToast('Если email зарегистрирован, код отправлен');
+  } catch (e) {
+    showToast('Не удалось отправить код, попробуйте позже');
+    btn.disabled = false; btn.textContent = 'Отправить код';
+  }
+}
+
+async function forgotPasswordReset() {
+  const code = document.getElementById('fpCode').value.trim();
+  const newPass = document.getElementById('fpNewPass').value;
+  if (!code) { showToast('Введите код из письма'); return; }
+  if (newPass.length < 8) { showToast('Пароль: минимум 8 символов'); return; }
+  const btn = document.getElementById('fpResetBtn');
+  btn.disabled = true; btn.textContent = 'Сбрасываю…';
+  try {
+    await api.resetPassword(window._fpEmail, code, newPass);
+    showToast('Пароль изменён, выполняется вход…');
+    document.getElementById('forgotPasswordModal').remove();
+    const user = await api.me();
+    if (typeof deriveNoteKey === 'function') await deriveNoteKey(newPass, user.username);
+    location.reload();
+  } catch (e) {
+    const msg = (e && (e.detail || (e.body && e.body.detail))) || 'Неверный код или истёк срок';
+    showToast(msg);
+    btn.disabled = false; btn.textContent = 'Сбросить пароль';
+  }
+}
+
 function togglePasswordVisibility() {
   const input = document.getElementById('authPass');
   const icon = document.getElementById('eyeIcon');
@@ -5703,7 +5770,7 @@ window._catCache = cats;
   document.getElementById('filterSort').value = state.filters.sort;
 }
 function toggleCategoryFilter(c) { const idx = state.filters.categories.indexOf(c); if (idx === -1) state.filters.categories.push(c); else state.filters.categories.splice(idx, 1); populateCatalog(); applyFilters(); }
-function applyFilters() { state.filters.sort = document.getElementById('filterSort').value; renderHome(); showToast('Применено'); }
+function applyFilters() { state.booksPage = 1; state.filters.sort = document.getElementById('filterSort').value; renderHome(); showToast('Применено'); }
 function resetFilters() { state.filters = { categories: [], sort: 'default' }; populateCatalog(); renderHome(); showToast('Сброшено'); }
 function getFilteredBooks() {
   let books = [...state.books]; const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
@@ -5769,7 +5836,7 @@ function renderHome() {
   const sorted = getFilteredBooks(), q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   renderBookScroll('scrollContinue', sorted.filter(b => state.readingProgress[b.id]?.started), q);
   renderBookScroll('scrollPopular', [...sorted].sort((a, b) => b.popularity - a.popularity).slice(0, 5), q);
-  renderBookScroll('scrollAll', sorted, q);
+  renderPaginatedBooks('scrollAll', sorted, q);
   setHomeBooksTab(state.homeBooksTab || 'popular');
   renderResumeReading();
   renderBooksGoalWidget();
@@ -5922,6 +5989,65 @@ function highlightText(text, query) {
 
 function renderBookScroll(id, books, query) {
   document.getElementById(id).innerHTML = books.map(b => cardHTML(b, query)).join('');
+}
+
+const BOOKS_PER_PAGE = 24;
+function renderPaginatedBooks(id, books, query) {
+  const container = document.getElementById(id);
+  if (!container) return;
+  const total = books.length;
+  const totalPages = Math.max(1, Math.ceil(total / BOOKS_PER_PAGE));
+  let page = state.booksPage || 1;
+  if (page > totalPages) page = totalPages;
+  if (page < 1) page = 1;
+  state.booksPage = page;
+
+  const start = (page - 1) * BOOKS_PER_PAGE;
+  const pageBooks = books.slice(start, start + BOOKS_PER_PAGE);
+  const gridHtml = `<div class="books-grid-inner">${pageBooks.map(b => cardHTML(b, query)).join('')}</div>`;
+
+  // Панель пагинации (показываем только если страниц больше одной)
+  let pagerHtml = '';
+  if (totalPages > 1) {
+    const btn = (p, label, active, disabled) =>
+      `<button onclick="goToBooksPage(${p})" ${disabled ? 'disabled' : ''}
+        style="min-width:36px;height:36px;padding:0 8px;border-radius:9px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};
+               background:${active ? 'var(--accent)' : 'var(--bg-card)'};color:${active ? '#fff' : 'var(--text-primary)'};
+               font-family:inherit;font-size:13px;font-weight:${active ? '700' : '500'};cursor:${disabled ? 'default' : 'pointer'};
+               opacity:${disabled ? '0.4' : '1'};">${label}</button>`;
+    // Номера страниц с многоточием
+    const nums = [];
+    const around = 1;
+    for (let p = 1; p <= totalPages; p++) {
+      if (p === 1 || p === totalPages || (p >= page - around && p <= page + around)) {
+        nums.push(p);
+      } else if (nums[nums.length - 1] !== '...') {
+        nums.push('...');
+      }
+    }
+    const numsHtml = nums.map(p =>
+      p === '...' ? `<span style="color:var(--text-muted);padding:0 2px;">…</span>` : btn(p, p, p === page, false)
+    ).join('');
+    pagerHtml = `
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:18px;">
+        ${btn(page - 1, '‹', false, page === 1)}
+        ${numsHtml}
+        ${btn(page + 1, '›', false, page === totalPages)}
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px;">
+        Страница ${page} из ${totalPages} · всего книг: ${total}
+      </div>`;
+  }
+  container.innerHTML = gridHtml + pagerHtml;
+}
+
+function goToBooksPage(p) {
+  state.booksPage = p;
+  const sorted = getFilteredBooks();
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  renderPaginatedBooks('scrollAll', sorted, q);
+  const all = document.getElementById('scrollAll');
+  if (all) all.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function extractBookYear(datePublished) {

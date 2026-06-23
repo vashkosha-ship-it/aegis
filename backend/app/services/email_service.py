@@ -102,3 +102,30 @@ async def send_admin_new_registration(username: str, email: str, full_name: str 
         "Зайдите в админ-панель → вкладка «Пользователи» → «Заявки», чтобы одобрить или отклонить."
     )
     await send_email(admin_to, subject, body)
+
+
+async def send_approval_notification(to: str, full_name: str | None) -> None:
+    """Уведомить пользователя, что его регистрация одобрена и доступ открыт."""
+    name = full_name or "пользователь"
+    subject = "Aegis — доступ к библиотеке открыт"
+    body = (
+        f"Здравствуйте, {name}!\n\n"
+        "Ваша регистрация в Aegis одобрена администратором. "
+        "Теперь вам доступна вся библиотека материалов по кибербезопасности.\n\n"
+        f"Войти: {settings.FRONTEND_BASE_URL}\n\n"
+        "Приятного обучения!\n"
+        "Команда Aegis"
+    )
+    await send_email(to, subject, body)
+
+
+async def send_password_reset_code(to: str, code: str) -> None:
+    """Отправить код для восстановления пароля."""
+    subject = "Aegis — восстановление пароля"
+    body = (
+        "Вы запросили восстановление пароля в Aegis.\n\n"
+        f"Ваш код для сброса пароля: {code}\n\n"
+        "Код действителен 30 минут. Если вы не запрашивали сброс пароля, "
+        "просто проигнорируйте это письмо — ваш пароль останется прежним."
+    )
+    await send_email(to, subject, body)

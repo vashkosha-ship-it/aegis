@@ -251,6 +251,15 @@ async def approve_user(
         raise HTTPException(status_code=404, detail="User not found")
     user.is_approved = True
     await db.commit()
+
+    # Уведомляем пользователя, что доступ открыт (письмо не критично — не ломаем одобрение)
+    if user.email:
+        try:
+            from app.services.email_service import send_approval_notification, EmailError
+            await send_approval_notification(user.email, user.full_name)
+        except EmailError:
+            pass
+
     return {"detail": "approved", "user_id": user_id}
 
 

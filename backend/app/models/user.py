@@ -55,6 +55,9 @@ class User(Base):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     verify_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
     verify_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Сброс пароля («забыли пароль»)
+    reset_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    reset_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Одобрение аккаунта администратором (второй этап после подтверждения email)
     is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")

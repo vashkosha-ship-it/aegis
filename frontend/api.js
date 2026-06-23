@@ -143,6 +143,24 @@
       });
     },
 
+    async forgotPassword(email) {
+      return await request('/auth/forgot-password', {
+        method: 'POST',
+        body: { email },
+        auth: false,
+      });
+    },
+
+    async resetPassword(email, code, newPassword) {
+      const data = await request('/auth/reset-password', {
+        method: 'POST',
+        body: { email, code, new_password: newPassword },
+        auth: false,
+      });
+      if (data.access_token) tokens.set(data.access_token, data.refresh_token);
+      return data;
+    },
+
     logout() {
       tokens.clear();
     },
