@@ -1,7 +1,10 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v162';
+const CACHE_NAME = 'aegis-cache-v163';
 
-// Ресурсы для предварительного кэширования
+// Ресурсы для предварительного кэширования.
+// Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
+// (pdf.worker, epub, chart) НЕ прекэшируем — они кэшируются лениво при первом
+// использовании, чтобы не замедлять первую загрузку приложения.
 const PRECACHE_URLS = [
   '/',
   '/index.html',
@@ -10,11 +13,6 @@ const PRECACHE_URLS = [
   '/api.js',
   '/app.js',
   '/manifest.json',
-  '/vendor/pdf.min.js',
-  '/vendor/pdf.worker.min.js',
-  '/vendor/pdf_viewer.min.css',
-  '/vendor/epub.min.js',
-  '/vendor/chart.umd.min.js',
 ];
 
 // Установка: кэшируем статику
@@ -32,8 +30,9 @@ self.addEventListener('install', (event) => {
       );
     })
   );
-  // НЕ вызываем skipWaiting() здесь — ждём явного согласия пользователя
-  // (кнопка «Обновить» шлёт SKIP_WAITING). Так обновление не прерывает чтение.
+  // Применяем новый SW сразу — иначе обновления app.js/стилей «зависают»
+  // до полного закрытия всех вкладок. Баннер «Обновить» остаётся как доп. сигнал.
+  self.skipWaiting();
 });
 
 // Сообщение от страницы: применить обновление сейчас
@@ -71,11 +70,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Локальные vendor-библиотеки (/vendor/) — неизменны, поэтому CACHE FIRST:
+  // первый раз из сети + в кэш, далее мгновенно из кэша (быстрое открытие книг).
+  const isSameOrigin = url.origin === self.location.origin;
+  if (isSameOrigin && url.pathname.startsWith('/vendor/')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
   // Собственные файлы приложения (свой origin) — NETWORK FIRST.
   // Иначе обновлённые app.js/styles.css/index.html не подхватываются:
   // SW отдаёт старую закэшированную версию навсегда. Теперь всегда берём
   // свежую версию из сети, а кэш используем только как офлайн-фолбэк.
-  const isSameOrigin = url.origin === self.location.origin;
   if (isSameOrigin) {
     event.respondWith(
       fetch(event.request).then((response) => {
