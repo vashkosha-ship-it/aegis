@@ -86,6 +86,7 @@ const ICONS = {
   iconEye: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
   iconDatabase: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
   iconPalette: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+  iconHelp: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
   iconSave: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
   iconLogout: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   sparkles: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
@@ -1136,6 +1137,7 @@ function renderARScheme(schemeCode) {
   else if (schemeCode === 'nist')     renderNistScheme();
   else if (schemeCode === 'did')      renderDidScheme();
   else if (schemeCode === 'ir')       renderIrScheme();
+  else if (schemeCode === 'stride')   renderStrideScheme();
   else                                 renderGenericScheme(AR_SCHEMES[schemeCode]);
 }
 // ─── OWASP: вертикальный стек с цветовой шкалой опасности ───────────────────
@@ -1483,6 +1485,71 @@ function renderIrScheme() {
         card.style.opacity = '1';
         card.style.transform = 'translateX(0)';
       }, i * 90);
+    });
+  }, 60);
+}
+
+// ─── STRIDE: сетка 2×3 карточек категорий угроз ────────────────────────────
+function renderStrideScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  if (!container) return;
+  const scheme = AR_STRIDE;
+  const stages = scheme.stages; // 6
+
+  const cards = stages.map((s) => {
+    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
+    return `
+      <button onclick="selectKillChainStage(${s.id})" id="arCard${s.id}"
+        style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+               aspect-ratio:1;padding:12px 8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);
+               border:1px solid ${color}55;border-radius:14px;color:#fff;font-family:inherit;cursor:pointer;
+               transition:all 0.25s;overflow:hidden;opacity:0;transform:scale(0.8);" id="arNode${s.id}">
+        <div style="position:absolute;top:-10px;right:-6px;font-size:64px;font-weight:900;color:${color};opacity:0.13;line-height:1;">${s.code}</div>
+        <div style="width:42px;height:42px;border-radius:12px;background:${color}22;border:1.5px solid ${color};
+                    color:${color};display:flex;align-items:center;justify-content:center;font-weight:900;
+                    font-size:20px;margin-bottom:8px;z-index:1;">${s.code}</div>
+        <div style="font-size:12px;font-weight:700;text-align:center;line-height:1.2;z-index:1;">${s.nameRu}</div>
+        <div style="font-size:9.5px;color:rgba(255,255,255,0.55);text-align:center;margin-top:2px;z-index:1;">${s.name}</div>
+      </button>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 110px;display:flex;align-items:center;">
+        <div id="killChainNodes" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:380px;margin:auto;transition:transform 0.2s ease;transform-origin:center center;">
+          ${cards}
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
+        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА КАТЕГОРИЮ</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на категорию угроз, чтобы узнать подробнее</div>
+    </div>`;
+
+  initStageDetailsSwipe();
+  initARPan();
+
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const card = document.getElementById('arCard' + s.id);
+      if (!card) return;
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.22,1,0.36,1)';
+        card.style.opacity = '1';
+        card.style.transform = 'scale(1)';
+      }, i * 80);
     });
   }, 60);
 }
@@ -4803,6 +4870,10 @@ function showPendingApprovalScreen() {
       `}
       <button id="pendingRefreshBtn" style="width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;margin-bottom:10px;">Проверить статус одобрения</button>
       <button id="pendingLogoutBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px;">Выйти</button>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);line-height:1.5;">
+        При возникновении вопросов или проблем пишите на почту
+        <a href="mailto:support@aegis-sec-library.ru" style="color:var(--accent);text-decoration:none;">support@aegis-sec-library.ru</a>
+      </div>
     </div>`;
 
   const startBtn = document.getElementById('pendingStartTestBtn');
@@ -6237,12 +6308,31 @@ async function renderOfflineBooks() {
 
 // ========== ЭКРАН НАСТРОЕК ==========
 
+const USER_AGREEMENT_HTML = `
+  <p style="margin-bottom:10px;">Используя платформу Aegis («Сервис»), вы соглашаетесь с условиями настоящего пользовательского соглашения.</p>
+  <p style="margin-bottom:6px;"><strong>1. Назначение</strong></p>
+  <p style="margin-bottom:10px;">Сервис предоставляет доступ к материалам по информационной безопасности в образовательных целях. Доступ предоставляется зарегистрированным и одобренным пользователям.</p>
+  <p style="margin-bottom:6px;"><strong>2. Учётная запись</strong></p>
+  <p style="margin-bottom:10px;">Вы обязуетесь предоставлять достоверные данные при регистрации и не передавать доступ к учётной записи третьим лицам. Вы несёте ответственность за сохранность своих учётных данных.</p>
+  <p style="margin-bottom:6px;"><strong>3. Использование материалов</strong></p>
+  <p style="margin-bottom:10px;">Материалы Сервиса предназначены для личного образовательного использования. Запрещается копирование, распространение или коммерческое использование материалов без разрешения правообладателей.</p>
+  <p style="margin-bottom:6px;"><strong>4. Допустимое поведение</strong></p>
+  <p style="margin-bottom:10px;">Запрещается использовать Сервис для незаконной деятельности, попыток нарушения его работы или несанкционированного доступа к данным других пользователей.</p>
+  <p style="margin-bottom:6px;"><strong>5. Конфиденциальность</strong></p>
+  <p style="margin-bottom:10px;">Сервис обрабатывает персональные данные в объёме, необходимом для предоставления доступа. Личные заметки шифруются на стороне пользователя.</p>
+  <p style="margin-bottom:6px;"><strong>6. Ответственность</strong></p>
+  <p style="margin-bottom:10px;">Сервис предоставляется «как есть». Администрация не несёт ответственности за возможные перерывы в работе и за применение полученных знаний пользователем.</p>
+  <p style="margin-bottom:6px;"><strong>7. Контакты</strong></p>
+  <p style="margin-bottom:0;">По всем вопросам: support@aegis-sec-library.ru</p>
+`;
+
 const SETTINGS_TABS = [
   { id: 'info',            label: 'Информация',     icon: 'iconUser' },
   { id: 'security',        label: 'Безопасность',   icon: 'iconLock' },
   { id: 'privacy',         label: 'Приватность',    icon: 'iconEye' },
   { id: 'storage',         label: 'Данные и память', icon: 'iconDatabase' },
   { id: 'personalization', label: 'Персонализация', icon: 'iconPalette' },
+  { id: 'help',            label: 'Помощь',          icon: 'iconHelp' },
 ];
 
 let settingsCurrentTab = 'info';
@@ -6404,6 +6494,8 @@ function renderSettingsTabContent() {
     renderSettingsPrivacyTab(c);
   } else if (settingsCurrentTab === 'storage') {
     renderSettingsStorageTab(c);
+  } else if (settingsCurrentTab === 'help') {
+    renderSettingsHelpTab(c);
   }else {
     const tab = SETTINGS_TABS.find(t => t.id === settingsCurrentTab);
     c.innerHTML = `
@@ -6413,6 +6505,38 @@ function renderSettingsTabContent() {
       </div>
     `;
   }
+}
+
+function renderSettingsHelpTab(c) {
+  c.innerHTML = `
+    <div style="max-width:560px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Установка приложения</div>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+          Установите Aegis на телефон или планшет для быстрого доступа с домашнего экрана.
+        </p>
+        <button onclick="triggerInstall()" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;border-radius:10px;padding:11px 16px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
+          Установить приложение
+        </button>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Связь с поддержкой</div>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+          При возникновении вопросов или проблем пишите на почту:
+        </p>
+        <a href="mailto:support@aegis-sec-library.ru" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--accent);text-decoration:none;font-size:13px;font-weight:600;">
+          support@aegis-sec-library.ru
+        </a>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Пользовательское соглашение</div>
+        <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;max-height:340px;overflow-y:auto;padding-right:6px;">
+          ${USER_AGREEMENT_HTML}
+        </div>
+      </div>
+    </div>`;
 }
 
 function renderSettingsPrivacyTab(c) {
@@ -9200,6 +9324,92 @@ function highlightPdfMatchOnPage(result) {
 }
 
 // Привязываем обработчики ввода и горячих клавиш
+// ========== УСТАНОВКА PWA НА УСТРОЙСТВО ==========
+let _deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  showInstallBanner();
+});
+
+window.addEventListener('appinstalled', () => {
+  _deferredInstallPrompt = null;
+  const b = document.getElementById('installBanner');
+  if (b) b.remove();
+  showToast('Приложение установлено');
+});
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isMobile() {
+  return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+}
+
+function showInstallBanner() {
+  if (isStandalone() || document.getElementById('installBanner')) return;
+  if (!isMobile()) return; // баннер только на мобильных
+  if (localStorage.getItem('aegis_install_dismissed') === '1') return;
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:88px;z-index:2500;background:var(--bg-elevated);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+  banner.innerHTML = `
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Установить Aegis</div>
+      <div style="font-size:11px;color:var(--text-secondary);">Добавьте приложение на телефон для быстрого доступа</div>
+    </div>
+    <button id="installBannerBtn" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:9px 14px;border-radius:9px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Установить</button>
+    <button id="installBannerClose" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px;">✕</button>`;
+  document.body.appendChild(banner);
+  document.getElementById('installBannerBtn').onclick = triggerInstall;
+  document.getElementById('installBannerClose').onclick = () => {
+    banner.remove();
+    localStorage.setItem('aegis_install_dismissed', '1');
+  };
+}
+
+async function triggerInstall() {
+  if (isIOS()) {
+    // iOS Safari не поддерживает beforeinstallprompt — показываем инструкцию
+    showIOSInstallInstructions();
+    return;
+  }
+  if (!_deferredInstallPrompt) {
+    showToast('Установка недоступна в этом браузере');
+    return;
+  }
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  _deferredInstallPrompt = null;
+  const b = document.getElementById('installBanner');
+  if (b) b.remove();
+  if (outcome === 'accepted') showToast('Устанавливаем приложение…');
+}
+
+function showIOSInstallInstructions() {
+  let m = document.getElementById('iosInstallModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'iosInstallModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:340px;width:100%;border:1px solid var(--border);text-align:center;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px;color:var(--text-primary);">Установка на iPhone/iPad</div>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;text-align:left;">
+        1. Нажмите кнопку «Поделиться» <span style="display:inline-block;">⬆️</span> внизу Safari<br>
+        2. Выберите «На экран Домой»<br>
+        3. Нажмите «Добавить»
+      </p>
+      <button onclick="document.getElementById('iosInstallModal').remove()" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
+    </div>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('readerSearchInput');
   if (!input) return;
