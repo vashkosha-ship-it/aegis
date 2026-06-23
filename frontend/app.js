@@ -1621,177 +1621,161 @@ function renderGenericScheme(scheme) {
   }, 50);
 }
 
+// ─── OSI: стопка из 7 слоёв (уровень 7 сверху, уровень 1 снизу) ────────────
 function renderOsiScheme() {
   const container = document.getElementById('arSchemeContainer');
-  const stages = [...AR_OSI.stages].reverse(); // L7 вверху
-  const layerColors = ['#f59e0b','#10b981','#3b82f6','#a855f7','#ef4444','#64748b','#0ea5e9'];
-  // Обращаем — L7=idx0 самый яркий, L1=idx6
-  const colorMap = { 7:'#f59e0b', 6:'#10b981', 5:'#3b82f6', 4:'#a855f7', 3:'#8b5cf6', 2:'#6366f1', 1:'#64748b' };
+  if (!container) return;
+  const scheme = AR_OSI;
+  // Отображаем сверху вниз: L7 (Приложение) наверху → L1 (Физический) внизу
+  const stages = scheme.stages.slice().reverse();
 
-  container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.35);">
-      ${AR_3D.layers}
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;font-size:14px;cursor:pointer;">⟳</button>
-      </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 100px;-webkit-overflow-scrolling:touch;">
-        <div id="killChainWrapper" style="display:flex;justify-content:center;">
-          <div id="killChainNodes" style="display:flex;flex-direction:column;gap:3px;width:100%;max-width:400px;transition:transform 0.2s ease;transform-origin:top center;">
-            ${stages.map(s => {
-              const color = colorMap[s.id] || '#3b82f6';
-              const w = 60 + (s.id / 7) * 40; // L7=100%, L1=60% ширина для пирамиды
-              return `<button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
-                style="display:flex;align-items:center;gap:0;width:${w}%;align-self:center;
-                       padding:0;background:transparent;border:none;cursor:pointer;pointer-events:auto;transition:all 0.2s;">
-                <div style="flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;
-                            background:${color}20;border:1px solid ${color}55;border-radius:8px;
-                            backdrop-filter:blur(8px);">
-                  <div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;
-                              display:flex;align-items:center;justify-content:center;
-                              font-weight:800;font-size:12px;flex-shrink:0;">L${s.id}</div>
-                  <div style="flex:1;text-align:left;">
-                    <div style="font-size:12px;font-weight:700;color:#fff;">${eh(s.nameRu)}</div>
-                    <div style="font-size:10px;color:rgba(255,255,255,0.5);">${eh(s.name)}</div>
-                  </div>
-                </div>
-              </button>`;
-            }).join('')}
-            <div style="text-align:center;margin-top:8px;font-size:10px;color:rgba(255,255,255,0.4);">▼ Физический уровень (снизу) → Прикладной (сверху) ▲</div>
-          </div>
+  const layers = stages.map((s, idx) => {
+    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
+    const num = s.id; // оригинальный номер уровня
+    return `
+      <button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
+        style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;
+               background:linear-gradient(135deg, ${color}33, ${color}11);
+               backdrop-filter:blur(10px);border:1px solid ${color}66;border-radius:10px;
+               color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.25s;
+               box-shadow:0 4px 14px ${color}22;opacity:0;transform:translateY(-16px);" id="arLayer${s.id}">
+        <div style="width:44px;height:44px;border-radius:10px;background:${color}33;border:1.5px solid ${color};
+                    color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    flex-shrink:0;line-height:1;">
+          <div style="font-size:9px;opacity:0.8;">LVL</div>
+          <div style="font-size:18px;font-weight:900;">${num}</div>
         </div>
-      </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
-        <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <div style="font-size:10px;color:#3b82f6;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УРОВЕНЬ</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;">${s.nameRu}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.6);">${s.name}</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
-      </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на уровень для подробностей</div>
-    </div>`;
-  initStageDetailsSwipe();
-  initARPan();
-
-  // Анимация: слои раскрываются от середины наружу
-  const mid = Math.floor(stages.length / 2);
-  setTimeout(() => {
-    stages.forEach((s, i) => {
-      const node = document.getElementById('arNode' + s.id);
-      if (!node) return;
-      const delay = Math.abs(i - mid) * 70;
-      node.style.opacity = '0';
-      node.style.transform = 'scaleX(0.3)';
-      node.style.transformOrigin = 'center';
-      setTimeout(() => {
-        node.style.transition = 'opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)';
-        node.style.opacity = '1';
-        node.style.transform = 'scaleX(1)';
-      }, delay);
-    });
-  }, 50);
-}
-
-// ─── MITRE: матрица тактик 2 колонки с цветовой кодировкой фаз ───────────────
-function renderMitreScheme() {
-  const container = document.getElementById('arSchemeContainer');
-  const stages = AR_MITRE.stages;
-  // Цвет фазы по id: 1-2 разведка/подготовка, 3-5 вход, 6-9 действия внутри, 10-12 С2/сбор, 13-14 вывод/удар
-  const phaseColor = (id) => {
-    if (id <= 2) return '#a855f7';
-    if (id <= 5) return '#ef4444';
-    if (id <= 9) return '#f97316';
-    if (id <= 12) return '#3b82f6';
-    return '#10b981';
-  };
-
-  // Разбиваем на 2 колонки
-  const left = stages.filter((_, i) => i % 2 === 0);
-  const right = stages.filter((_, i) => i % 2 === 1);
-  const maxRows = Math.max(left.length, right.length);
-
-  const cardHtml = (s) => {
-    if (!s) return '<div></div>';
-    const color = phaseColor(s.id);
-    return `<button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
-      style="display:flex;flex-direction:column;align-items:flex-start;padding:8px 10px;
-             background:${color}15;border:1px solid ${color}44;border-top:3px solid ${color};
-             border-radius:8px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;
-             width:100%;transition:all 0.2s;pointer-events:auto;min-height:60px;">
-      <div style="font-size:9px;color:${color};font-weight:700;letter-spacing:0.5px;margin-bottom:3px;">TA${String(s.id).padStart(4,'0')}</div>
-      <div style="font-size:11px;font-weight:700;line-height:1.2;">${eh(s.nameRu)}</div>
-    </button>`;
-  };
-
-  const rows = Array.from({length: maxRows}, (_, i) =>
-    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-      ${cardHtml(left[i])}${cardHtml(right[i])}
-    </div>`
-  ).join('');
-
-  // Легенда фаз
-  const legend = [
-    {label:'Подготовка', color:'#a855f7'},
-    {label:'Вход', color:'#ef4444'},
-    {label:'Внутри', color:'#f97316'},
-    {label:'C2/Сбор', color:'#3b82f6'},
-    {label:'Финал', color:'#10b981'},
-  ].map(l => `<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:rgba(255,255,255,0.7);">
-    <div style="width:10px;height:10px;border-radius:2px;background:${l.color};"></div>${l.label}
-  </div>`).join('');
+        <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 8px ${color};"></div>
+      </button>`;
+  }).join('');
 
   container.innerHTML = `
     <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      ${AR_3D.octa}
       <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(168,85,247,0.5);color:#a855f7;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(168,85,247,0.5);color:#a855f7;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(168,85,247,0.5);color:#a855f7;font-size:14px;cursor:pointer;">⟳</button>
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:56px 12px 100px;-webkit-overflow-scrolling:touch;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;pointer-events:none;">${legend}</div>
-        <div id="killChainWrapper" style="width:100%;">
-          <div id="killChainNodes" style="width:100%;transition:transform 0.2s ease;transform-origin:top center;">
-            ${rows}
-          </div>
+      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 110px;">
+        <div id="killChainNodes" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:400px;margin:auto;transition:transform 0.2s ease;transform-origin:top center;">
+          <div style="text-align:center;color:rgba(255,255,255,0.5);font-size:10px;margin-bottom:4px;letter-spacing:1px;">▲ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ</div>
+          ${layers}
+          <div style="text-align:center;color:rgba(255,255,255,0.5);font-size:10px;margin-top:4px;letter-spacing:1px;">ФИЗИЧЕСКАЯ СРЕДА ▼</div>
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
-        <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
+      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
+        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
           <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
           <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#a855f7;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ТАКТИКУ</div>
+          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УРОВЕНЬ</div>
         </div>
         <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на тактику для подробностей</div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на уровень модели, чтобы узнать подробнее</div>
     </div>`;
+
   initStageDetailsSwipe();
   initARPan();
 
-  // Анимация: карточки матрицы всплывают по колонкам
+  // Анимация: слои «складываются» сверху вниз
   setTimeout(() => {
     stages.forEach((s, i) => {
-      const node = document.getElementById('arNode' + s.id);
-      if (!node) return;
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const delay = row * 50 + col * 25;
-      node.style.opacity = '0';
-      node.style.transform = 'scale(0.7) translateY(10px)';
+      const el = document.getElementById('arLayer' + s.id);
+      if (!el) return;
       setTimeout(() => {
-        node.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.34,1.4,0.64,1)';
-        node.style.opacity = '1';
-        node.style.transform = 'scale(1) translateY(0)';
-      }, delay);
+        el.style.transition = 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.22,1,0.36,1)';
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, i * 80);
     });
-  }, 50);
+  }, 60);
+}
+
+// ─── MITRE: матрица тактик 2 колонки с цветовой кодировкой фаз ───────────────
+// ─── MITRE ATT&CK: горизонтальная лента тактик (путь атаки) ────────────────
+function renderMitreScheme() {
+  const container = document.getElementById('arSchemeContainer');
+  if (!container) return;
+  const scheme = AR_MITRE;
+  const stages = scheme.stages; // 14 тактик
+
+  // Градиент опасности: от синего (разведка) к красному (воздействие)
+  function dangerColor(i, total) {
+    const t = i / (total - 1);
+    const hue = 200 - t * 200; // 200 (синий) → 0 (красный)
+    return `hsl(${hue}, 70%, 55%)`;
+  }
+
+  const cards = stages.map((s, i) => {
+    const color = dangerColor(i, stages.length);
+    const isLast = i === stages.length - 1;
+    return `
+      <div style="display:flex;align-items:center;flex-shrink:0;">
+        <button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
+          style="width:130px;min-height:120px;display:flex;flex-direction:column;align-items:flex-start;
+                 padding:12px;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);
+                 border:1px solid ${color}66;border-top:3px solid ${color};border-radius:12px;
+                 color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.25s;
+                 flex-shrink:0;opacity:0;transform:translateY(16px);" id="arMitre${s.id}">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <div style="width:26px;height:26px;border-radius:7px;background:${color}33;border:1px solid ${color};
+                        color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${i + 1}</div>
+            <div style="font-size:8.5px;color:rgba(255,255,255,0.4);font-family:monospace;text-transform:uppercase;">${s.code}</div>
+          </div>
+          <div style="font-weight:700;font-size:13px;line-height:1.2;margin-bottom:3px;">${s.nameRu}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.55);line-height:1.2;">${s.name}</div>
+        </button>
+        ${isLast ? '' : `<div style="color:${color};font-size:18px;margin:0 4px;flex-shrink:0;opacity:0.7;">→</div>`}
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
+        <button onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
+        <button onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
+        <button onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+      </div>
+      <div style="position:absolute;top:64px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.6);font-size:10px;letter-spacing:1px;pointer-events:none;z-index:6;">РАЗВЕДКА ──────▶ ВОЗДЕЙСТВИЕ (листай вбок)</div>
+      <div id="killChainScrollContainer" style="flex:1;overflow-x:auto;overflow-y:auto;pointer-events:auto;padding:96px 16px 110px;display:flex;align-items:center;-webkit-overflow-scrolling:touch;">
+        <div id="killChainNodes" style="display:flex;align-items:center;gap:0;min-width:min-content;margin:auto;transition:transform 0.2s ease;transform-origin:left center;">
+          ${cards}
+        </div>
+      </div>
+      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
+        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
+          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
+          <button onclick="toggleStageDetailsPanel(event)" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ТАКТИКУ</div>
+        </div>
+        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+      </div>
+      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на тактику атаки, чтобы узнать подробнее</div>
+    </div>`;
+
+  initStageDetailsSwipe();
+  initARPan();
+
+  // Анимация: карточки появляются слева направо
+  setTimeout(() => {
+    stages.forEach((s, i) => {
+      const el = document.getElementById('arMitre' + s.id);
+      if (!el) return;
+      setTimeout(() => {
+        el.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1)';
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, i * 55);
+    });
+  }, 60);
 }
 function findKillChainStageForBook(book) {
   // Ищем первую категорию книги, которая привязана к этапу Kill Chain
@@ -1856,15 +1840,15 @@ function renderKillChainScheme() {
         <div id="killChainWrapper" style="display:flex;justify-content:safe center;min-width:min-content;margin:auto;">
           <div id="killChainNodes" style="display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;">
             ${stages.map((s, i) => `
-              ${i > 0 ? `<div class="ar-flow-line${isVertical ? ' vertical' : ''}" style="width:${isVertical ? '2px' : '24px'};height:${isVertical ? '24px' : '2px'};background:linear-gradient(${isVertical ? '180deg' : '90deg'},rgba(0,212,255,0.3),rgba(124,58,237,0.3));flex-shrink:0;"></div>` : ''}
+              ${i > 0 ? `<div class="ar-chain-link${isVertical ? ' vertical' : ''}" style="width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(0,212,255,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(0,212,255,0.2),inset 0 0 4px rgba(0,0,0,0.4);"></div>` : ''}
               ${(() => {
                 const studied = isKillChainStageStudied(s);
                 const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
                 const checkmark = studied ? `<div style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.3);">✓</div>` : '';
                 return `
-                <button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" style="position:relative;width:${isVertical ? '80px' : '64px'};height:${isVertical ? '80px' : '64px'};border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:2px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0' : '0'};">
-                  <div style="font-size:${isVertical ? '22px' : '18px'};font-weight:800;line-height:1;">${s.id}</div>
-                  <div style="font-size:${isVertical ? '9px' : '7px'};opacity:0.8;margin-top:${isVertical ? '6px' : '2px'};text-align:center;line-height:1.2;padding:0 6px;">${s.nameRu}</div>
+                <button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" style="position:relative;width:${isVertical ? '84px' : '64px'};height:${isVertical ? '84px' : '64px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);">
+                  <div style="font-size:${isVertical ? '24px' : '18px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);">${s.id}</div>
+                  <div style="font-size:${isVertical ? '9px' : '7px'};opacity:0.85;margin-top:${isVertical ? '5px' : '2px'};text-align:center;line-height:1.2;padding:0 6px;">${s.nameRu}</div>
                   ${checkmark}
                 </button>
                 `;
