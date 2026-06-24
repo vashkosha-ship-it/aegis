@@ -5851,6 +5851,9 @@ function setHomeBooksTab(tab) {
   const all = document.getElementById('scrollAll');
   if (pop) pop.classList.toggle('hidden', tab !== 'popular');
   if (all) all.classList.toggle('hidden', tab !== 'all');
+  // Пагинатор показываем только на вкладке «Все книги»
+  const pager = document.getElementById('booksPager');
+  if (pager) pager.style.display = (tab === 'all') ? 'block' : 'none';
 }
 
 // ===== D: Виджет цели по книгам =====
@@ -5995,6 +5998,7 @@ const BOOKS_PER_PAGE = 24;
 function renderPaginatedBooks(id, books, query) {
   const container = document.getElementById(id);
   if (!container) return;
+  const pager = document.getElementById('booksPager');
   const total = books.length;
   const totalPages = Math.max(1, Math.ceil(total / BOOKS_PER_PAGE));
   let page = state.booksPage || 1;
@@ -6004,41 +6008,43 @@ function renderPaginatedBooks(id, books, query) {
 
   const start = (page - 1) * BOOKS_PER_PAGE;
   const pageBooks = books.slice(start, start + BOOKS_PER_PAGE);
-  const gridHtml = `<div class="books-grid-inner">${pageBooks.map(b => cardHTML(b, query)).join('')}</div>`;
+  // Книги — напрямую в grid-контейнер (как карточки), без обёртки,
+  // иначе grid раскладывает обёртку и пагинатор по ячейкам.
+  container.innerHTML = pageBooks.map(b => cardHTML(b, query)).join('');
 
-  // Панель пагинации (показываем только если страниц больше одной)
-  let pagerHtml = '';
-  if (totalPages > 1) {
-    const btn = (p, label, active, disabled) =>
-      `<button onclick="goToBooksPage(${p})" ${disabled ? 'disabled' : ''}
-        style="min-width:36px;height:36px;padding:0 8px;border-radius:9px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};
-               background:${active ? 'var(--accent)' : 'var(--bg-card)'};color:${active ? '#fff' : 'var(--text-primary)'};
-               font-family:inherit;font-size:13px;font-weight:${active ? '700' : '500'};cursor:${disabled ? 'default' : 'pointer'};
-               opacity:${disabled ? '0.4' : '1'};">${label}</button>`;
-    // Номера страниц с многоточием
-    const nums = [];
-    const around = 1;
-    for (let p = 1; p <= totalPages; p++) {
-      if (p === 1 || p === totalPages || (p >= page - around && p <= page + around)) {
-        nums.push(p);
-      } else if (nums[nums.length - 1] !== '...') {
-        nums.push('...');
-      }
+  // Панель пагинации — в отдельный контейнер под сеткой (вне grid)
+  if (!pager) return;
+  // Показываем пагинатор только когда открыта вкладка «Все книги»
+  const allVisible = !container.classList.contains('hidden');
+  if (totalPages <= 1 || !allVisible) { pager.innerHTML = ''; return; }
+
+  const btn = (p, label, active, disabled) =>
+    `<button onclick="goToBooksPage(${p})" ${disabled ? 'disabled' : ''}
+      style="min-width:38px;height:38px;padding:0 8px;border-radius:9px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};
+             background:${active ? 'var(--accent)' : 'var(--bg-card)'};color:${active ? '#fff' : 'var(--text-primary)'};
+             font-family:inherit;font-size:13px;font-weight:${active ? '700' : '500'};cursor:${disabled ? 'default' : 'pointer'};
+             opacity:${disabled ? '0.4' : '1'};">${label}</button>`;
+  const nums = [];
+  const around = 1;
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || (p >= page - around && p <= page + around)) {
+      nums.push(p);
+    } else if (nums[nums.length - 1] !== '...') {
+      nums.push('...');
     }
-    const numsHtml = nums.map(p =>
-      p === '...' ? `<span style="color:var(--text-muted);padding:0 2px;">…</span>` : btn(p, p, p === page, false)
-    ).join('');
-    pagerHtml = `
-      <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:18px;">
-        ${btn(page - 1, '‹', false, page === 1)}
-        ${numsHtml}
-        ${btn(page + 1, '›', false, page === totalPages)}
-      </div>
-      <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px;">
-        Страница ${page} из ${totalPages} · всего книг: ${total}
-      </div>`;
   }
-  container.innerHTML = gridHtml + pagerHtml;
+  const numsHtml = nums.map(p =>
+    p === '...' ? `<span style="color:var(--text-muted);padding:0 2px;">…</span>` : btn(p, p, p === page, false)
+  ).join('');
+  pager.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:18px;">
+      ${btn(page - 1, '‹', false, page === 1)}
+      ${numsHtml}
+      ${btn(page + 1, '›', false, page === totalPages)}
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px;">
+      Страница ${page} из ${totalPages} · всего книг: ${total}
+    </div>`;
 }
 
 function goToBooksPage(p) {
@@ -9587,13 +9593,18 @@ function showInstallBanner() {
 }
 
 async function triggerInstall() {
+  if (isStandalone()) {
+    showToast('Приложение уже установлено');
+    return;
+  }
   if (isIOS()) {
-    // iOS Safari не поддерживает beforeinstallprompt — показываем инструкцию
     showIOSInstallInstructions();
     return;
   }
   if (!_deferredInstallPrompt) {
-    showToast('Установка недоступна в этом браузере');
+    // Событие beforeinstallprompt не пришло (уже установлено, не Chrome,
+    // или критерии ещё не выполнены) — показываем ручную инструкцию.
+    showAndroidInstallInstructions();
     return;
   }
   _deferredInstallPrompt.prompt();
@@ -9602,6 +9613,33 @@ async function triggerInstall() {
   const b = document.getElementById('installBanner');
   if (b) b.remove();
   if (outcome === 'accepted') showToast('Устанавливаем приложение…');
+}
+
+function showAndroidInstallInstructions() {
+  let m = document.getElementById('androidInstallModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'androidInstallModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:360px;width:100%;border:1px solid var(--border);">
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px;color:var(--text-primary);text-align:center;">Установка приложения</div>
+      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">
+        Если кнопка установки не сработала автоматически, установите вручную:
+      </p>
+      <ol style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin:0 0 16px;padding-left:20px;">
+        <li>Откройте сайт в браузере <strong>Chrome</strong> (не в Mi Браузере)</li>
+        <li>Нажмите меню <strong>⋮</strong> в правом верхнем углу</li>
+        <li>Выберите <strong>«Установить приложение»</strong> или <strong>«Добавить на главный экран»</strong></li>
+        <li>Подтвердите установку</li>
+      </ol>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;">
+        Если приложение не появилось на рабочем столе — проверьте список всех приложений (свайп вверх). В настройках Xiaomi включите «Добавлять значки на рабочий стол».
+      </p>
+      <button onclick="document.getElementById('androidInstallModal').remove()" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
+    </div>`;
 }
 
 function showIOSInstallInstructions() {
