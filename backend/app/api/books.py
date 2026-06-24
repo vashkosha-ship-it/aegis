@@ -868,20 +868,36 @@ async def download_book_cover(
         raise HTTPException(status_code=404, detail="Book has no cover")
 
     key = book.cover_storage_key
+
+    # MIME выводим из расширения ключа — оно проставлено при загрузке.
+    ext_to_mime = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+    media_type = "application/octet-stream"
+    for ext, mime in ext_to_mime.items():
+        if key.endswith(ext):
+            media_type = mime
+            break
+
+    # --- Быстрая отдача через nginx (X-Accel-Redirect) ---
+    # Обложек на странице много (десятки одновременных запросов). Если стримить
+    # их через Python, воркеры захлёбываются и соединения рвутся (ERR_CONNECTION_RESET).
+    # nginx отдаёт файлы напрямую с диска, не нагружая backend.
+    from app.core.config import settings as _settings
+    local_path = getattr(_settings, "STORAGE_LOCAL_PATH", None)
+    storage_backend = getattr(_settings, "STORAGE_BACKEND", "local")
+    if storage_backend == "local" and local_path:
+        accel_path = "/_protected_pdf/" + key.lstrip("/")
+        return Response(status_code=200, headers={
+            "X-Accel-Redirect": accel_path,
+            "Content-Type": media_type,
+            "Cache-Control": "public, max-age=86400",
+        })
+
     try:
         size = await storage.size(key)
         chunks = await storage.open_stream(key)
     except StorageNotFound:
         logger.error("Cover missing for book %s (key=%s)", book_id, key)
         raise HTTPException(status_code=404, detail="Cover file is missing") from None
-
-    # MIME выводим из расширения ключа — оно проставлено при загрузке.
-    ext_to_mime = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
-    media_type = "application/octet-stream"
-    for ext, mime in ext_to_mime.items():
-        if key.endswith(ext):
-            media_type = mime
-            break
 
     return StreamingResponse(
         chunks,
