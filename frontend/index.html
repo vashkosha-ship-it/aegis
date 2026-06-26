@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#0a0e17">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Aegis">
@@ -17,7 +18,6 @@
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="desktop.css">
-  <link rel="stylesheet" href="vendor/pdf_viewer.min.css">
 </head>
 <body>
 
@@ -1027,10 +1027,9 @@
 </div>
 
 <!-- ========== СКРИПТЫ ========== -->
-<script defer src="vendor/pdf.min.js"></script>
-<script defer src="vendor/pdf.worker.min.js"></script>
-<script defer src="vendor/epub.min.js"></script>
-<script defer src="vendor/chart.umd.min.js"></script>
+<!-- Тяжёлые vendor-библиотеки (pdf, epub, chart) грузятся ЛЕНИВО при первом
+     открытии книги/графика — см. ensureVendorLoaded() в app.js. Это убирает
+     их из критического пути первой загрузки и ускоряет старт. -->
 <script defer src="offline-storage.js"></script>
 <script defer src="api.js"></script>
 <script defer src="app.js"></script>

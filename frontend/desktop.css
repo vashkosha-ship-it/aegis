@@ -1926,7 +1926,11 @@
    центрированным контентом без бокового меню. Этот блок идёт последним
    в desktop.css, поэтому перебивает более ранние sidebar-правила. */
 @media (max-width: 1279px) {
-  .bottom-nav { display: flex !important; }
+  .bottom-nav:not(.hidden) { display: flex !important; }
+  .bottom-nav.hidden { display: none !important; }
+  body:has(#authScreen.active) .bottom-nav,
+  body:has(#onboardingScreen.active) .bottom-nav,
+  body.reader-active .bottom-nav { display: none !important; }
   .sidebar-nav { display: none !important; }
   #app {
     margin-left: 0 !important;

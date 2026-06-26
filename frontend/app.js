@@ -1,10 +1,50 @@
+// ========== ЛЕНИВАЯ ЗАГРУЗКА ТЯЖЁЛЫХ VENDOR-БИБЛИОТЕК ==========
+// pdf.js / epub.js / chart.js не грузятся при старте (ускоряет первую загрузку).
+// Подгружаем их по требованию — при первом открытии книги или графика.
+const _vendorLoaded = {};
+function _loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (_vendorLoaded[src]) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => { _vendorLoaded[src] = true; resolve(); };
+    s.onerror = () => reject(new Error('Не удалось загрузить ' + src));
+    document.head.appendChild(s);
+  });
+}
+function _loadCss(href) {
+  if (document.querySelector(`link[href="${href}"]`)) return;
+  const l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = href;
+  document.head.appendChild(l);
+}
+
+async function ensurePdfLoaded() {
+  if (typeof pdfjsLib === 'undefined') {
+    await _loadScript('vendor/pdf.min.js');
+  }
+  _loadCss('vendor/pdf_viewer.min.css');
+  if (typeof pdfjsLib !== 'undefined' && pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+  }
+}
+async function ensureEpubLoaded() {
+  if (typeof ePub === 'undefined') {
+    await _loadScript('vendor/epub.min.js');
+  }
+}
+async function ensureChartLoaded() {
+  if (typeof Chart === 'undefined') {
+    await _loadScript('vendor/chart.umd.min.js');
+  }
+}
+
 // ========== НАСТРОЙКА PDF.JS ==========
-// Защита: если CDN с pdf.js не загрузился (ERR_TIMED_OUT/блокировка),
-// не роняем весь app.js — приложение работает, недоступна только PDF-читалка.
+// pdf.js теперь грузится лениво (ensurePdfLoaded). Этот блок оставлен на случай,
+// если библиотека уже присутствует (например, закэширована).
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
-} else {
-  console.warn('[Aegis] pdf.js не загрузился (CDN недоступен). PDF-читалка будет недоступна, остальное приложение работает.');
 }
 
 // ========== EPUB RENDITION ==========
@@ -1722,7 +1762,7 @@ function renderMitreScheme() {
                  padding:12px;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);
                  border:1px solid ${color}66;border-top:3px solid ${color};border-radius:12px;
                  color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.25s;
-                 flex-shrink:0;opacity:0;transform:translateY(16px);" id="arMitre${s.id}">
+                 flex-shrink:0;opacity:0;transform:translateY(16px);">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
             <div style="width:26px;height:26px;border-radius:7px;background:${color}33;border:1px solid ${color};
                         color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${i + 1}</div>
@@ -1767,7 +1807,7 @@ function renderMitreScheme() {
   // Анимация: карточки появляются слева направо
   setTimeout(() => {
     stages.forEach((s, i) => {
-      const el = document.getElementById('arMitre' + s.id);
+      const el = document.getElementById('arNode' + s.id);
       if (!el) return;
       setTimeout(() => {
         el.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1)';
@@ -7577,10 +7617,16 @@ function computeSkillScores() {
 }
 
 let _skillsRadarChart = null;
-function renderSkillsRadar() {
+async function renderSkillsRadar() {
   const canvas = document.getElementById('skillsRadarCanvas');
   const empty = document.getElementById('skillsRadarEmpty');
-  if (!canvas || typeof Chart === 'undefined') return;
+  if (!canvas) return;
+
+  // Лениво подгружаем chart.js при первом построении графика
+  if (typeof Chart === 'undefined') {
+    try { await ensureChartLoaded(); } catch (e) { return; }
+  }
+  if (typeof Chart === 'undefined') return;
 
   const { raw, normalized } = computeSkillScores();
   const total = Object.values(raw).reduce((a, b) => a + b, 0);
@@ -8894,6 +8940,14 @@ async function loadEpub(b) {
   const container = document.getElementById('epubContainer');
   container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Загрузка EPUB...</div>';
 
+  // Лениво подгружаем epub.js при первом открытии EPUB
+  try {
+    await ensureEpubLoaded();
+  } catch (e) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Не удалось загрузить EPUB-движок. Проверьте соединение.</div>';
+    return;
+  }
+
   try {
     let epubData = null;
     let fromOffline = false;
@@ -8999,6 +9053,14 @@ async function loadPdf(b) {
   pl.classList.remove('hidden');
   pl.innerHTML = 'Загрузка PDF...';
   c.classList.add('hidden');
+
+  // Лениво подгружаем pdf.js при первом открытии PDF
+  try {
+    await ensurePdfLoaded();
+  } catch (e) {
+    pl.innerHTML = 'Не удалось загрузить PDF-движок. Проверьте соединение.';
+    return;
+  }
 
   // Сначала пробуем IndexedDB (оффлайн-книги — читаем из байтов)
   let bytes = null;
