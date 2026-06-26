@@ -2643,3 +2643,26 @@ select[multiple] option:hover {
   body:has(#onboardingScreen.active) #app { margin-left: 0 !important; padding: 0 !important; }
   body.reader-active #app { margin-left: 0 !important; padding: 0 !important; max-width: 100% !important; }
 }
+
+/* === ВРЕМЕННО: читаемость на складных/узких экранах (≤1023px) ===
+   Увеличивает текст там, где жалуются на мелкоту (рекомендации, карточки книг,
+   поиск, вкладки, нижнее меню). ПК (≥1024px) не затрагивается.
+   Примечание: часть текста в «Рекомендациях» и «Возобновить чтение» задаётся
+   инлайн-стилями из JS — туда CSS не достаёт, бьём по структуре карточки. */
+@media (max-width: 1023px) {
+  .section-title { font-size: 20px !important; }
+  .search-bar input { font-size: 15px !important; }
+  .btn-catalog-toggle { font-size: 13px !important; }
+
+  /* Рекомендации (текст частично инлайновый — бьём по структуре) */
+  .recommendation-card > div:last-child > div:first-child { font-size: 15px !important; line-height: 1.35 !important; }
+  .recommendation-card > div:last-child > div:last-child { font-size: 12px !important; }
+
+  /* Карточки книг */
+  .book-card-title, .book-card-compact .book-title-text { font-size: 14px !important; line-height: 1.35 !important; }
+  .book-card-year, .book-card-compact .book-author-text { font-size: 12px !important; }
+
+  /* Нижнее меню и вкладки */
+  .nav-item .nav-label { font-size: 11px !important; }
+  .books-tab { font-size: 14px !important; padding: 9px 18px !important; }
+}
