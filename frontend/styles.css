@@ -2622,7 +2622,7 @@ select[multiple] option:hover {
    Складные телефоны (Xiaomi Mix Fold и т.п.) рапортуют ширину 512-900px —
    они остаются в мобильном режиме: нижнее меню + центрированный контент.
    Боковое меню включается только на по-настоящему широких экранах. */
-@media (min-width: 900px) {
+@media (min-width: 1280px) {
   .bottom-nav { display: none !important; }
   body { padding-bottom: 0 !important; }
   .sidebar-nav { position: fixed !important; top: 0 !important; left: 0 !important; height: 100vh !important; z-index: 900 !important; width: 150px !important; padding: 16px 10px !important; }

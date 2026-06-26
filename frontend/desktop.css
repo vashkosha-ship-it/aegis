@@ -1,4 +1,4 @@
-/* DESKTOP-CSS-VERSION-109 */
+/* DESKTOP-CSS-VERSION-110 */
 /* =====================================================================
    AEGIS — DESKTOP / TABLET LANDSCAPE RESPONSIVE LAYER
    Подключается после styles.css. Брейкпоинты:
@@ -1918,4 +1918,25 @@
     max-height: 280px;
     max-width: 280px;
   }
+}
+
+/* ===== ПРИОРИТЕТНОЕ ПРАВИЛО: мобильный режим до 1280px =====
+   Нижнее меню показывается ВСЕГДА, кроме настоящего ПК (≥1280px).
+   Складные телефоны и планшеты (до 1280px) остаются с нижним меню и
+   центрированным контентом без бокового меню. Этот блок идёт последним
+   в desktop.css, поэтому перебивает более ранние sidebar-правила. */
+@media (max-width: 1279px) {
+  .bottom-nav { display: flex !important; }
+  .sidebar-nav { display: none !important; }
+  #app {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 760px !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  body { padding-bottom: 72px !important; }
+  body.reader-active #app { max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
 }

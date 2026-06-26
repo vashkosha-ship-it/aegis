@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v177';
+const CACHE_NAME = 'aegis-cache-v178';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -86,6 +86,31 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         });
+      })
+    );
+    return;
+  }
+
+  // Навигационные запросы (запуск PWA, переход на страницу) — отдельная обработка
+  // с таймаутом: если сеть «висит», не ждём бесконечно, а отдаём кэш, чтобы
+  // установленное приложение не зависало на загрузочном экране.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      Promise.race([
+        fetch(event.request).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        }),
+        new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+      ]).then((response) => {
+        if (response) return response;
+        // таймаут или нет ответа — берём из кэша index.html
+        return caches.match('/index.html').then((c) => c || caches.match('/') || fetch(event.request));
+      }).catch(() => {
+        return caches.match('/index.html').then((c) => c || caches.match('/offline.html'));
       })
     );
     return;
