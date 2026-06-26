@@ -1,4 +1,4 @@
-/* DESKTOP-CSS-VERSION-110 */
+/* DESKTOP-CSS-VERSION-111 */
 /* =====================================================================
    AEGIS — DESKTOP / TABLET LANDSCAPE RESPONSIVE LAYER
    Подключается после styles.css. Брейкпоинты:
@@ -1939,4 +1939,23 @@
   }
   body { padding-bottom: 72px !important; }
   body.reader-active #app { max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
+
+  /* Нижнее меню — нормальный «телефонный» размер на всех экранах до ПК.
+     Иначе складные (Fold, шире 768px) ловят узкий планшетный стиль fit-content. */
+  .bottom-nav {
+    width: calc(100% - 16px) !important;
+    max-width: 500px !important;
+    gap: 0 !important;
+    padding: 0 8px !important;
+    border-radius: 20px !important;
+  }
+  .nav-item {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 8px 6px !important;
+    gap: 2px !important;
+  }
+  .nav-item .nav-icon { width: 24px !important; height: 24px !important; }
+  .nav-item .nav-icon svg { width: 22px !important; height: 22px !important; }
+  .nav-item .nav-label { font-size: 10px !important; font-weight: 500 !important; }
 }
