@@ -1,4 +1,4 @@
-/* DESKTOP-CSS-VERSION-107 */
+/* DESKTOP-CSS-VERSION-108 */
 /* =====================================================================
    AEGIS — DESKTOP / TABLET LANDSCAPE RESPONSIVE LAYER
    Подключается после styles.css. Брейкпоинты:
@@ -1181,7 +1181,23 @@
    ===================================================================== */
 
 .sidebar-nav {
-  display: none; /* скрыт по умолчанию (мобильные) */
+  display: none; /* скрыт по умолчанию (узкие мобильные) */
+}
+
+/* Sidebar показывается с 512px — синхронно с sidebar-layout в styles.css
+   (#app margin-left и скрытие .bottom-nav тоже включаются с 512px).
+   Иначе на промежуточных широких экранах (складные Xiaomi и т.п.) контент
+   сдвигается, но боковое меню не появляется. */
+@media (min-width: 512px) {
+  .sidebar-nav {
+    display: flex;
+  }
+  .sidebar-nav.hidden-on-auth {
+    display: none !important;
+  }
+  body.reader-active .sidebar-nav {
+    display: none;
+  }
 }
 
 @media (min-width: 1024px) {
