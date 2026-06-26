@@ -5854,6 +5854,13 @@ function setHomeBooksTab(tab) {
   // Пагинатор показываем только на вкладке «Все книги»
   const pager = document.getElementById('booksPager');
   if (pager) pager.style.display = (tab === 'all') ? 'block' : 'none';
+  // При переходе на «Все книги» сразу перерисовываем книги и пагинатор,
+  // иначе панель страниц появляется с задержкой (scrollAll был hidden при первом рендере).
+  if (tab === 'all') {
+    const sorted = getFilteredBooks();
+    const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+    renderPaginatedBooks('scrollAll', sorted, q);
+  }
 }
 
 // ===== D: Виджет цели по книгам =====
@@ -6014,9 +6021,7 @@ function renderPaginatedBooks(id, books, query) {
 
   // Панель пагинации — в отдельный контейнер под сеткой (вне grid)
   if (!pager) return;
-  // Показываем пагинатор только когда открыта вкладка «Все книги»
-  const allVisible = !container.classList.contains('hidden');
-  if (totalPages <= 1 || !allVisible) { pager.innerHTML = ''; return; }
+  if (totalPages <= 1) { pager.innerHTML = ''; return; }
 
   const btn = (p, label, active, disabled) =>
     `<button onclick="goToBooksPage(${p})" ${disabled ? 'disabled' : ''}
