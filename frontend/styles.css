@@ -876,9 +876,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   pointer-events: auto;
 }
 /* ========== AI ПАНЕЛЬ ========== */
-.ai-panel { position: fixed; top: 0; right: -100%; width: 100%; max-width: 100vw; height: 100%; background: var(--bg-elevated); border-left: 1px solid var(--border); z-index: 2000; transition: right var(--transition-slow); padding: 18px; overflow-y: auto; box-shadow: 0 0 60px rgba(0,0,0,0.6); }
-@media(min-width: 480px) { .ai-panel { right: calc(var(--ai-panel-width) * -1); width: var(--ai-panel-width); max-width: 90vw; } }
-.ai-panel.show { right: 0; }
+.ai-panel { position: fixed; top: 0; right: 0; width: 100%; max-width: 100vw; height: 100%; background: var(--bg-elevated); border-left: 1px solid var(--border); z-index: 2000; transition: transform var(--transition-slow), visibility var(--transition-slow); padding: 18px; overflow-y: auto; box-shadow: 0 0 60px rgba(0,0,0,0.6); transform: translateX(100%); visibility: hidden; }
+@media(min-width: 480px) { .ai-panel { width: var(--ai-panel-width); max-width: 90vw; } }
+.ai-panel.show { transform: translateX(0); visibility: visible; }
 .ai-chat { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; max-height: 50vh; overflow-y: auto; }
 .ai-msg { padding: 10px 12px; border-radius: 14px; font-size: 12px; line-height: 1.5; max-width: 88%; animation: msgIn 0.3s ease; }
 @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
