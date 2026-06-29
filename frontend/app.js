@@ -3753,10 +3753,28 @@ async function generateMissingCoversUI() {
   });
 }
 
+async function regenerateAllQuizzesUI() {
+  showConfirmModal({
+    title: 'Перегенерировать все тесты?',
+    message: 'Тесты всех книг будут сброшены и пересозданы заново (по 15 вопросов) при следующем открытии теста. Прежние вопросы удаляются, но пройденные попытки сохраняются.',
+    confirmText: 'Перегенерировать',
+    cancelText: 'Отмена',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const res = await api.library.regenerateAllQuizzes();
+        const n = res && typeof res.books_cleared === 'number' ? ` (${res.books_cleared} кн.)` : '';
+        showToast('Тесты сброшены' + n + '. Новые соберутся при открытии.');
+      } catch (e) {
+        showToast(e && e.detail ? e.detail : 'Ошибка перегенерации тестов');
+      }
+    },
+  });
+}
+
 async function reindexAllBooksUI() {
   showConfirmModal({
-    title: 'Переиндексировать все книги?',
-    message: 'Будет извлечён текст из всех PDF для полнотекстового поиска. Индексация идёт в фоне — можно продолжать работу.',
+    title: 'Переиндексировать все книги?',    message: 'Будет извлечён текст из всех PDF для полнотекстового поиска. Индексация идёт в фоне — можно продолжать работу.',
     confirmText: 'Запустить',
     cancelText: 'Отмена',
     onConfirm: async () => {
@@ -11391,7 +11409,7 @@ async function renderDashboard() {
 
 function renderAdminBooks() {
   document.getElementById('adBooks').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;gap:10px;">
+    <div style="display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;margin-bottom:10px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;gap:10px;">
       <div style="display:flex;align-items:baseline;gap:8px;">
         <div style="font-size:12px;color:var(--text-secondary);">Всего книг:</div>
         <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${state.books.length}</div>
@@ -11400,21 +11418,25 @@ function renderAdminBooks() {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/><path d="M12 5v8"/><path d="M8 9l4-4 4 4"/></svg>
         Массовая загрузка
       </button>
-      <button onclick="reindexAllBooksUI()" title="Переиндексировать текст всех книг для поиска" style="background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.4);color:var(--accent);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+      <button onclick="reindexAllBooksUI()" title="Переиндексировать текст всех книг для поиска" style="background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.4);color:var(--accent);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
         Индексировать поиск
       </button>
-      <button onclick="openAdminLogs()" title="Журнал действий администраторов" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+      <button onclick="openAdminLogs()" title="Журнал действий администраторов" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Журнал
       </button>
-      <button onclick="generateMissingCoversUI()" title="Создать обложки для книг без обложки" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+      <button onclick="generateMissingCoversUI()" title="Создать обложки для книг без обложки" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         Обложки
       </button>
-      <button onclick="aiMatchArBooksUI()" title="ИИ подберёт книги к темам AR-схем" style="background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.4);color:#7b61ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;margin-left:8px;">
+      <button onclick="aiMatchArBooksUI()" title="ИИ подберёт книги к темам AR-схем" style="background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.4);color:#7b61ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
         Подобрать книги для AR
+      </button>
+      <button onclick="regenerateAllQuizzesUI()" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+        Перегенерировать тесты
       </button>
     </div>
     <div class="table-wrap">
