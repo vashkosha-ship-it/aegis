@@ -1,6 +1,6 @@
 /* Шрифты: системный стек, без внешних CDN (надёжно работает офлайн и при блокировке) */
 
-/* CSS-VERSION-30 — если видите этот комментарий в DevTools и рамку ниже, файл свежий */
+/* CSS-VERSION-29 — если видите этот комментарий в DevTools и рамку ниже, файл свежий */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
@@ -2189,7 +2189,7 @@ select[multiple] option:hover {
 }
 
 /* Раскладка экрана ассистента: чат занимает доступную высоту, ввод закреплён снизу */
-#assistantScreen.active { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+#assistantScreen.active { display: flex; flex-direction: column; min-height: 100vh; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; overflow: hidden; }
 #assistantScreen .top-header { flex-shrink: 0; position: sticky; top: 0; z-index: 20; background: var(--bg-primary); }
 #assistantScreen .assistant-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 #assistantScreen #assistantMessages { flex: 1; min-height: 0; overflow-y: auto; justify-content: flex-end; }
@@ -2418,15 +2418,9 @@ select[multiple] option:hover {
 /* =====================================================================
    ============ AEGIS DESKTOP — КРУПНОЕ ОФОРМЛЕНИЕ ДЛЯ ПК ============
    Финальный блок. Идёт последним, перебивает всё. Размеры крупные.
-
-   ВАЖНО (fix складных телефонов): порог поднят с 512px до 1280px.
-   Раньше этот блок включал плотную «десктопную» типографику уже с 512px,
-   из-за чего сложенный Xiaomi Mix Fold 4 (ширина 512–900px) получал мелкие
-   шрифты/отступы, впихнутые в узкий экран. Теперь десктопное оформление
-   включается только на настоящем ПК (≥1280px), синхронно с sidebar-режимом.
    ===================================================================== */
 
-@media (min-width: 1280px) {
+@media (min-width: 512px) {
 
   /* === БАЗОВЫЙ ШРИФТ === */
   html { font-size: 16px !important; }
@@ -2642,27 +2636,4 @@ select[multiple] option:hover {
   body:has(#authScreen.active) #app,
   body:has(#onboardingScreen.active) #app { margin-left: 0 !important; padding: 0 !important; }
   body.reader-active #app { margin-left: 0 !important; padding: 0 !important; max-width: 100% !important; }
-}
-
-/* === ВРЕМЕННО: читаемость на складных/узких экранах (≤1023px) ===
-   Увеличивает текст там, где жалуются на мелкоту (рекомендации, карточки книг,
-   поиск, вкладки, нижнее меню). ПК (≥1024px) не затрагивается.
-   Примечание: часть текста в «Рекомендациях» и «Возобновить чтение» задаётся
-   инлайн-стилями из JS — туда CSS не достаёт, бьём по структуре карточки. */
-@media (max-width: 1023px) {
-  .section-title { font-size: 20px !important; }
-  .search-bar input { font-size: 15px !important; }
-  .btn-catalog-toggle { font-size: 13px !important; }
-
-  /* Рекомендации (текст частично инлайновый — бьём по структуре) */
-  .recommendation-card > div:last-child > div:first-child { font-size: 15px !important; line-height: 1.35 !important; }
-  .recommendation-card > div:last-child > div:last-child { font-size: 12px !important; }
-
-  /* Карточки книг */
-  .book-card-title, .book-card-compact .book-title-text { font-size: 14px !important; line-height: 1.35 !important; }
-  .book-card-year, .book-card-compact .book-author-text { font-size: 12px !important; }
-
-  /* Нижнее меню и вкладки */
-  .nav-item .nav-label { font-size: 11px !important; }
-  .books-tab { font-size: 14px !important; padding: 9px 18px !important; }
 }

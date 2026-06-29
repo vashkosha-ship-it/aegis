@@ -366,12 +366,13 @@ async function openARWithScheme(schemeCode, initialStageId = null) {
   document.getElementById('arSchemeContainer').innerHTML = '';
   document.getElementById('arModal').classList.add('active');
 
-  await startARCamera();
+  // Сначала рендерим схему (она не зависит от камеры), потом запускаем камеру
+  // в фоне. На iOS await getUserMedia мог зависать и схема не появлялась.
   renderARScheme(schemeCode);
+  startARCamera().catch(e => console.warn('AR-камера недоступна:', e));
 
   // Если передали этап — сразу его подсветить и открыть детали
   if (initialStageId && schemeCode === 'killchain') {
-    // Дать DOM-у отрендериться, прежде чем выделять ноду
     setTimeout(() => selectKillChainStage(initialStageId), 100);
   }
 }
@@ -4708,7 +4709,40 @@ function navigateTo(s) {
   if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'assistant') { renderAssistantScreen(); }
   if (s === 'admin') { renderAdminPanel(); refreshPendingBadge(); }
+  if (s === 'reader') { ensureReaderHasBook(); }
   updateFabVisibility();
+}
+
+// Если пользователь зашёл в «Читаю», но ещё не открыл ни одной книги —
+// показываем заглушку с кнопкой перехода в каталог, чтобы он не застрял.
+function ensureReaderHasBook() {
+  if (currentBookId) return; // книга открыта — ничего не делаем
+  const screen = document.getElementById('readerScreen');
+  if (!screen) return;
+  // убираем режим читалки, чтобы было видно меню и можно было выйти
+  document.body.classList.remove('reader-active');
+  let stub = document.getElementById('readerEmptyStub');
+  if (!stub) {
+    stub = document.createElement('div');
+    stub.id = 'readerEmptyStub';
+    stub.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px;text-align:center;background:var(--bg-primary);z-index:5;';
+    screen.appendChild(stub);
+  }
+  stub.style.display = 'flex';
+  stub.innerHTML = `
+    <div style="font-size:48px;opacity:0.5;">📖</div>
+    <div style="font-size:16px;color:var(--text-secondary);line-height:1.5;max-width:320px;">
+      Вы ещё не начали читать ни одну книгу.
+    </div>
+    <button onclick="navigateTo('home')" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px 24px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">
+      Выбрать книгу
+    </button>`;
+}
+
+// Прячем заглушку, когда книга открывается
+function hideReaderEmptyStub() {
+  const stub = document.getElementById('readerEmptyStub');
+  if (stub) stub.style.display = 'none';
 }
 
 function updateFabVisibility() {
@@ -5874,6 +5908,36 @@ function renderHome() {
   document.getElementById('btnAdminGo').classList.toggle('hidden', !isAdmin);
   updateFabVisibility();
   const sorted = getFilteredBooks(), q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const isSearching = q.trim().length > 0;
+
+  const sectionResume = document.getElementById('sectionResume');
+  const sectionContinue = document.getElementById('sectionContinue');
+  const sectionFavCats = document.getElementById('sectionFavCategories');
+  const sectionRecommend = document.getElementById('sectionRecommendations');
+  const sectionGoal = document.getElementById('sectionBooksGoal');
+  const booksTabs = document.querySelector('#sectionBooks .books-tabs');
+
+  if (isSearching) {
+    // Режим поиска: прячем рекомендации/продолжить/возобновить/цели/табы,
+    // показываем только результаты поиска единым списком.
+    if (sectionContinue) sectionContinue.style.display = 'none';
+    if (sectionFavCats) sectionFavCats.style.display = 'none';
+    if (sectionRecommend) sectionRecommend.style.display = 'none';
+    if (sectionResume) sectionResume.style.display = 'none';
+    if (sectionGoal) sectionGoal.style.display = 'none';
+    if (booksTabs) booksTabs.style.display = 'none';
+    const pop = document.getElementById('scrollPopular');
+    const all = document.getElementById('scrollAll');
+    if (pop) { pop.classList.add('hidden'); pop.innerHTML = ''; }
+    if (all) all.classList.remove('hidden');
+    renderPaginatedBooks('scrollAll', sorted, q);
+    return;
+  }
+
+  // Обычный режим — возвращаем секции и табы
+  if (sectionContinue) sectionContinue.style.display = '';
+  if (booksTabs) booksTabs.style.display = '';
+
   renderBookScroll('scrollContinue', sorted.filter(b => state.readingProgress[b.id]?.started), q);
   renderBookScroll('scrollPopular', [...sorted].sort((a, b) => b.popularity - a.popularity).slice(0, 5), q);
   renderPaginatedBooks('scrollAll', sorted, q);
@@ -8309,6 +8373,7 @@ function openReader(id) {
   if (!b) return;
   currentBookId = id;
   state.currentBook = b;
+  hideReaderEmptyStub();
   if (!state.readingProgress[id]) state.readingProgress[id] = { currentPage: 1, totalPages: 10, started: false };
   state.readingProgress[id].started = true;
   if (!state.mylist[id]) state.mylist[id] = 'reading';
