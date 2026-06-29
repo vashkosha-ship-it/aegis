@@ -709,6 +709,27 @@ async def regenerate_quiz(
     return [QuizQuestionPublic.model_validate(q) for q in questions]
 
 
+@router.post("/books/quiz/regenerate-all")
+async def regenerate_all_quizzes(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Сбросить тесты у всех книг.
+
+    Удаляем все сохранённые вопросы — они пересоздадутся автоматически при
+    следующем открытии теста (lazy), уже по новой логике (пул, 15 вопросов).
+    Так избегаем долгой синхронной AI-генерации и таймаутов при большом числе
+    книг. Пройденные попытки (QuizAttempt) сохраняются — они ссылаются на
+    book_id, а не на конкретные вопросы.
+    """
+    book_ids = (await db.scalars(select(QuizQuestion.book_id).distinct())).all()
+    affected = len(set(book_ids))
+    await db.execute(sa_delete(QuizQuestion))
+    await db.commit()
+    logger.info("All quizzes reset by admin (%d books affected)", affected)
+    return {"status": "ok", "books_cleared": affected}
+
+
 class QuizSubmitIn(BaseModel):
     """Ответы пользователя.
 

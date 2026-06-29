@@ -2194,8 +2194,8 @@ select[multiple] option:hover {
 #assistantScreen.active { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; padding-top: env(safe-area-inset-top, 0px); box-sizing: border-box; }
 #assistantScreen .top-header { flex-shrink: 0; position: sticky; top: 0; z-index: 20; background: var(--bg-primary); }
 #assistantScreen .assistant-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-#assistantScreen #assistantMessages { flex: 1; min-height: 0; overflow-y: auto; justify-content: flex-end; }
-/* Когда сообщений мало — прижаты к низу (к полю ввода); когда много — нормальный скролл */
+#assistantScreen #assistantMessages { flex: 1; min-height: 0; overflow-y: auto; justify-content: flex-start; }
+/* Сообщения идут сверху вниз; при переполнении — обычный скролл (на iOS flex-end ломал прокрутку и оставлял пустоту сверху) */
 #assistantScreen #assistantMessages > * { flex-shrink: 0; }
 #assistantScreen #assistantInputBar { flex-shrink: 0; }
 .ai-typing { display: inline-flex; gap: 4px; align-items: center; }

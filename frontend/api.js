@@ -355,6 +355,7 @@
       // Quizzes
       quiz(bookId) { return request('/books/' + bookId + '/quiz'); },
       regenerateQuiz(bookId) { return request('/books/' + bookId + '/quiz/regenerate', { method: 'POST' }); },
+      regenerateAllQuizzes() { return request('/books/quiz/regenerate-all', { method: 'POST' }); },
       // Collaborative filtering: «также читают»
       alsoRead(bookId, limit = 8) { return request('/books/' + bookId + '/also-read?limit=' + limit); },
       // Кастомные коллекции
