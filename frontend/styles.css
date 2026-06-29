@@ -2637,3 +2637,17 @@ select[multiple] option:hover {
   body:has(#onboardingScreen.active) #app { margin-left: 0 !important; padding: 0 !important; }
   body.reader-active #app { margin-left: 0 !important; padding: 0 !important; max-width: 100% !important; }
 }
+
+/* ===== Фирменный спиннер загрузки (градиент голубой→синий) ===== */
+.aegis-spinner {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0%, #00d4ff 40%, #7b61ff 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+  animation: aegisSpin 0.85s linear infinite;
+}
+@keyframes aegisSpin {
+  to { transform: rotate(360deg); }
+}

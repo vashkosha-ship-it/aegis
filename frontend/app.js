@@ -303,6 +303,14 @@ function bookCategoriesText(book) {
 }
 
 // ========== SKELETON LOADING ==========
+function loadingSpinnerHTML(text) {
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:48px 20px;">
+      <div class="aegis-spinner"></div>
+      <div style="font-size:14px;color:var(--text-secondary);font-weight:500;letter-spacing:0.3px;">${text || 'Загрузка…'}</div>
+    </div>`;
+}
+
 function showSkeleton(containerId, count = 4) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -9008,7 +9016,7 @@ async function loadEpub(b) {
   document.getElementById('annotationLayer').innerHTML = '';
 
   const container = document.getElementById('epubContainer');
-  container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Загрузка EPUB...</div>';
+  container.innerHTML = loadingSpinnerHTML('Загрузка книги…');
 
   // Лениво подгружаем epub.js при первом открытии EPUB
   try {
@@ -9121,7 +9129,7 @@ async function loadPdf(b) {
   const pl = document.getElementById('pdfPlaceholder');
 
   pl.classList.remove('hidden');
-  pl.innerHTML = 'Загрузка PDF...';
+  pl.innerHTML = loadingSpinnerHTML('Загрузка книги…');
   c.classList.add('hidden');
 
   // Лениво подгружаем pdf.js при первом открытии PDF
