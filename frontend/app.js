@@ -4704,7 +4704,7 @@ function generateAIResponse(msg) {
 
   if (state.pendingAiAction === 'quiz_context' && (m === '1' || m.includes('текущ') || m.includes('эта'))) {
     state.pendingAiAction = null;
-    return `Тест по "${state.currentBook.title}" готов! Перейдите на вкладку "Обучение" для прохождения.`;
+    return `Тест по "${state.currentBook.title}" готов! Перейдите на вкладку "Тестирование" для прохождения.`;
   }
 
   if (state.pendingAiAction === 'quiz_context' && (m === '2' || m.includes('все') || m.includes('прочитан'))) {
@@ -4712,7 +4712,7 @@ function generateAIResponse(msg) {
     const completedBooks = Object.entries(state.mylist || {}).filter(([, s]) => s === 'completed').map(([id]) => parseInt(id));
     if (completedBooks.length > 0) {
       startCombinedQuiz(completedBooks);
-      return `Комбинированный тест по ${completedBooks.length} книгам готов! Перейдите на вкладку "Обучение".`;
+      return `Комбинированный тест по ${completedBooks.length} книгам готов! Перейдите на вкладку "Тестирование".`;
     }
     return 'Нет прочитанных книг для комбинированного теста.';
   }
@@ -4722,7 +4722,7 @@ function generateAIResponse(msg) {
     const completedBooks = Object.entries(state.mylist || {}).filter(([, s]) => s === 'completed').map(([id]) => parseInt(id));
     if (completedBooks.length > 0) {
       startCombinedQuiz(completedBooks);
-      return `Комбинированный тест готов! Перейдите на вкладку "Обучение".`;
+      return `Комбинированный тест готов! Перейдите на вкладку "Тестирование".`;
     }
     return 'Нет прочитанных книг.';
   }
