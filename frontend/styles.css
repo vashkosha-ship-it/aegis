@@ -2651,3 +2651,17 @@ select[multiple] option:hover {
 @keyframes aegisSpin {
   to { transform: rotate(360deg); }
 }
+
+/* Плейсхолдер/спиннер загрузки книги — по центру вьюпорта */
+#pdfPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-secondary);
+  z-index: 2;
+}
+#pdfPlaceholder:empty { display: none; }
