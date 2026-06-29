@@ -1303,10 +1303,8 @@ function renderNistScheme() {
             stroke="${color}" stroke-width="2"
             style="cursor:pointer;transition:fill-opacity 0.25s, transform 0.4s cubic-bezier(0.22,1,0.36,1);transform-origin:${cx}px ${cy}px;opacity:0;"
             onclick="selectKillChainStage(${s.id})"></path>
-      <text x="${lx}" y="${ly - 4}" text-anchor="middle" fill="#fff" font-size="13" font-weight="800"
-            style="pointer-events:none;font-family:inherit;">${s.code}</text>
-      <text x="${lx}" y="${ly + 11}" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="8.5"
-            style="pointer-events:none;font-family:inherit;">${s.nameRu}</text>`;
+      <text x="${lx}" y="${ly + 5}" text-anchor="middle" fill="#fff" font-size="15" font-weight="800"
+            style="pointer-events:none;font-family:inherit;">${s.code}</text>`;
   }).join('');
 
   // Стрелки направления цикла (по часовой) — маленькие треугольники между сегментами
@@ -1679,7 +1677,7 @@ function renderOsiScheme() {
                background:linear-gradient(135deg, ${color}33, ${color}11);
                backdrop-filter:blur(10px);border:1px solid ${color}66;border-radius:10px;
                color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.25s;
-               box-shadow:0 4px 14px ${color}22;opacity:0;transform:translateY(-16px);" id="arLayer${s.id}">
+               box-shadow:0 4px 14px ${color}22;opacity:0;transform:translateY(-16px);">
         <div style="width:44px;height:44px;border-radius:10px;background:${color}33;border:1.5px solid ${color};
                     color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
                     flex-shrink:0;line-height:1;">
@@ -1727,7 +1725,7 @@ function renderOsiScheme() {
   // Анимация: слои «складываются» сверху вниз
   setTimeout(() => {
     stages.forEach((s, i) => {
-      const el = document.getElementById('arLayer' + s.id);
+      const el = document.getElementById('arNode' + s.id);
       if (!el) return;
       setTimeout(() => {
         el.style.transition = 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.22,1,0.36,1)';
@@ -1887,11 +1885,13 @@ function renderKillChainScheme() {
                 const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
                 const checkmark = studied ? `<div style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.3);">✓</div>` : '';
                 return `
-                <button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" style="position:relative;width:${isVertical ? '84px' : '64px'};height:${isVertical ? '84px' : '64px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);">
-                  <div style="font-size:${isVertical ? '24px' : '18px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);">${s.id}</div>
-                  <div style="font-size:${isVertical ? '9px' : '7px'};opacity:0.85;margin-top:${isVertical ? '5px' : '2px'};text-align:center;line-height:1.2;padding:0 6px;">${s.nameRu}</div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
+                <button onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" style="position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);">
+                  <div style="font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);">${s.id}</div>
                   ${checkmark}
                 </button>
+                <div style="font-size:11px;font-weight:600;color:#fff;text-align:center;line-height:1.2;max-width:96px;text-shadow:0 1px 3px rgba(0,0,0,0.8);">${s.nameRu}</div>
+                </div>
                 `;
               })()}
             `).join('')}
@@ -4914,6 +4914,11 @@ function ensureProgress(book) {
 }
 
 async function loadBooksFromApi() {
+  // Показываем скелетон-заглушки, пока книги грузятся (вместо пустого экрана)
+  if (!state.books || state.books.length === 0) {
+    showSkeleton('scrollPopular', 6);
+    showSkeleton('scrollAll', 6);
+  }
   try {
     const perPage = 100;
     let page = 1;
