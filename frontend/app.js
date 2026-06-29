@@ -3308,7 +3308,7 @@ async function openCertificationModal() {
 
 async function startCertExam() {
   const category = document.getElementById('certCategorySelect').value;
-  certModalShell(`<div style="text-align:center;padding:40px;color:var(--text-secondary);"><div style="font-size:32px;margin-bottom:12px;">⏳</div>Генерируем тест по теме<br><b style="color:var(--text-primary);">${eh(category)}</b><br><span style="font-size:12px;color:var(--text-muted);">Это может занять до минуты…</span></div>`);
+  certModalShell(`<div style="text-align:center;padding:40px;color:var(--text-secondary);">${loadingSpinnerHTML('')}<div style="margin-top:-12px;">Генерируем тест по теме<br><b style="color:var(--text-primary);">${eh(category)}</b><br><span style="font-size:12px;color:var(--text-muted);">Это может занять до минуты…</span></div></div>`);
   try {
     const data = await api.library.certStartExam(category);
     _certExam = { token: data.exam_token, category: data.category, questions: data.questions, answers: new Array(data.questions.length).fill(-1), index: 0 };
@@ -4489,6 +4489,9 @@ async function fetchQuizForBook(bookId) {
 }
 
 async function startQuiz(bookId) {
+  // Показываем спиннер, пока грузятся/генерируются вопросы (может быть долго при AI-генерации)
+  const c = document.getElementById('detailTabTraining');
+  if (c) c.innerHTML = loadingSpinnerHTML('Готовим тест…');
   const questions = await fetchQuizForBook(bookId);
   if (!questions.length) return showToast('Нет вопросов теста');
 
