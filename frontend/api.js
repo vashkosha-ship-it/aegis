@@ -389,10 +389,12 @@
       bookComments(bookId) { return request('/books/' + bookId + '/comments'); },
       addBookComment(bookId, text, parentId) { return request('/books/' + bookId + '/comments', { method: 'POST', body: { text, parent_id: parentId || null } }); },
       deleteBookComment(bookId, commentId) { return request('/books/' + bookId + '/comments/' + commentId, { method: 'DELETE' }); },
-      submitQuiz(bookId, answers) {
+      submitQuiz(bookId, answers, questionIds) {
+        const body = { answers };
+        if (questionIds) body.question_ids = questionIds;
         return request('/books/' + bookId + '/quiz/submit', {
           method: 'POST',
-          body: { answers },
+          body,
         });
       },
       myQuizAttempts() { return request('/me/quiz-attempts'); },

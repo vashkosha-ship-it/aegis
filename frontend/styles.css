@@ -37,6 +37,7 @@
   --bottom-nav-h: 72px;
   --ai-panel-width: 420px;
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --books-grid-columns: 2;
 }
 
@@ -116,6 +117,7 @@ body.reader-active .epub-viewport {
 body.reader-active .reader-toolbar {
   padding-left: 16px;
   padding-right: 16px;
+  padding-top: calc(10px + var(--safe-area-inset-top));
 }
 @media(min-width: 600px) { #app { padding: 0 24px; } }
 @media(min-width: 900px) { #app { padding: 0 32px; } }
@@ -167,7 +169,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 }
 
 /* ========== ХЕДЕР ========== */
-.top-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; gap: 8px; background: linear-gradient(to bottom, var(--bg-primary), transparent); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); flex-wrap: nowrap; }
+.top-header { display: flex; align-items: center; justify-content: space-between; padding: calc(12px + var(--safe-area-inset-top)) 0 12px; gap: 8px; background: linear-gradient(to bottom, var(--bg-primary), transparent); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); flex-wrap: nowrap; }
 .header-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .logo-sm { width: 34px; height: 34px; background: var(--accent-gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; box-shadow: var(--shadow-glow); flex-shrink: 0; }
 .logo-sm svg { width: 18px; height: 22px; display: block; }

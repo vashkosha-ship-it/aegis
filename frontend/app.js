@@ -3110,6 +3110,85 @@ function renderStarSVG(filled) {
   return filled ? ICONS.star : ICONS.starEmpty;
 }
 
+// ===== Предложение оценить книгу после её дочитывания =====
+const REVIEW_PROMPT_KEY = 'aegis_review_prompted';
+let _finishReviewRating = 0;
+
+function _getReviewPrompted() {
+  try { return JSON.parse(localStorage.getItem(REVIEW_PROMPT_KEY) || '{}'); }
+  catch (_) { return {}; }
+}
+function _markReviewPrompted(bookId) {
+  const o = _getReviewPrompted();
+  o[bookId] = 1;
+  try { localStorage.setItem(REVIEW_PROMPT_KEY, JSON.stringify(o)); } catch (_) {}
+}
+
+// Вызывается из updatePageIndicator при каждом переходе по страницам.
+// Если читатель дошёл до последней страницы — один раз предлагаем оценить книгу.
+function maybeShowFinishReviewPrompt() {
+  if (!currentBookId || !state.currentUser) return;
+  const total = isEpubMode ? (epubTotalPages || 1) : pdfTotalPages;
+  const current = isEpubMode ? (epubCurrentPage || 1) : pdfCurrentPage;
+  if (!total || total < 2) return;            // одностраничные/неинициализированные — пропускаем
+  if (current < total) return;                // ещё не конец книги
+  if (_getReviewPrompted()[currentBookId]) return;   // уже предлагали для этой книги
+  // Если пользователь уже оставлял свой отзыв — не предлагаем
+  const cached = reviewsCache[currentBookId];
+  if (Array.isArray(cached) && cached.some(r => r.is_mine || r.user === state.currentUser.name)) {
+    _markReviewPrompted(currentBookId);
+    return;
+  }
+  _markReviewPrompted(currentBookId);
+  // Небольшая задержка, чтобы не перебивать анимацию перелистывания
+  setTimeout(() => showFinishReviewModal(currentBookId), 600);
+}
+
+function setFinishReviewStar(n) {
+  _finishReviewRating = n;
+  document.querySelectorAll('#finishReviewModal .star').forEach((el, i) => {
+    el.classList.toggle('filled', i < n);
+    el.innerHTML = renderStarSVG(i < n);
+  });
+}
+
+function closeFinishReviewModal() {
+  const m = document.getElementById('finishReviewModal');
+  if (m) m.remove();
+}
+
+function submitFinishReview(bookId) {
+  if (_finishReviewRating < 1) return showToast('Поставьте оценку от 1 до 5 звёзд');
+  const ta = document.getElementById('finishReviewText');
+  const text = ta ? ta.value.trim() : '';
+  addReview(bookId, _finishReviewRating, text);
+  closeFinishReviewModal();
+}
+
+function showFinishReviewModal(bookId) {
+  const book = (state.books || []).find(b => b.id === bookId);
+  if (document.getElementById('finishReviewModal')) return;
+  _finishReviewRating = 0;
+  const m = document.createElement('div');
+  m.id = 'finishReviewModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6500;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:18px;padding:24px 20px;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow-card);">
+      <div style="font-size:40px;margin-bottom:8px;">${ICONS.check || '✓'}</div>
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:6px;">Книга прочитана!</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${book ? eh(book.title) : 'Эта книга'} — поделитесь оценкой, это поможет другим читателям.</p>
+      <div class="star-input" style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
+        ${[1,2,3,4,5].map(i => `<span class="star" style="cursor:pointer;font-size:30px;line-height:1;" onclick="setFinishReviewStar(${i})">${renderStarSVG(false)}</span>`).join('')}
+      </div>
+      <textarea id="finishReviewText" rows="2" placeholder="Пара слов о книге (необязательно)" style="width:100%;margin-bottom:14px;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="closeFinishReviewModal()" style="flex:1;padding:11px;font-size:13px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);">Позже</button>
+        <button class="btn btn-primary" onclick="submitFinishReview(${bookId})" style="flex:1;padding:11px;font-size:13px;">Оценить</button>
+      </div>
+    </div>`;
+  m.addEventListener('click', (e) => { if (e.target === m) closeFinishReviewModal(); });
+  document.body.appendChild(m);
+}
+
 // ===== Полнотекстовый поиск по содержимому книг (H) =====
 async function runFullTextSearch() {
   const input = document.getElementById('searchInput');
@@ -4514,6 +4593,15 @@ function startCombinedQuiz(bookIds) {
   showToast('Комбо-тест будет доступен после миграции AI-чата (Этап 3)');
 }
 
+// Пройти тест заново: сбрасываем кэш и заново запрашиваем тест.
+// Бэк отдаёт случайную выборку вопросов, поэтому каждый повтор — новый набор.
+async function retakeQuiz(bookId) {
+  const c = document.getElementById('detailTabTraining');
+  if (c) c.innerHTML = loadingSpinnerHTML('Готовим новый тест…');
+  delete quizCache[bookId];
+  return startQuiz(bookId);
+}
+
 function answerQuiz(i) {
   if (currentQuiz.answers[currentQuiz.currentIndex] !== -1) return;
   currentQuiz.answers[currentQuiz.currentIndex] = i;
@@ -4526,7 +4614,8 @@ async function finishQuiz() {
 
   let result;
   try {
-    result = await api.library.submitQuiz(currentQuiz.bookId, cleanAnswers);
+    const questionIds = currentQuiz.questions.map(q => q._id);
+    result = await api.library.submitQuiz(currentQuiz.bookId, cleanAnswers, questionIds);
   } catch (err) {
     if (err instanceof api.ApiError) showToast('Ошибка: ' + (err.detail || err.status));
     else showToast('Сервер недоступен');
@@ -4574,7 +4663,7 @@ async function finishQuiz() {
       <div style="font-size:64px;margin-bottom:16px;">${p >= 80 ? ICONS.shield : ICONS.education}</div>
       <div style="font-size:28px;font-weight:700;">${p}%</div>
       <div style="font-size:14px;margin:8px 0;">${s}/${t}</div>
-      <button class="btn-quiz primary" onclick="startQuiz(${currentQuiz.bookId})" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px;">
+      <button class="btn-quiz primary" onclick="retakeQuiz(${currentQuiz.bookId})" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px;">
       <span style="display: inline-flex; align-items: center; line-height: 1;">${ICONS.refresh}</span>
       <span style="display: inline-block; line-height: 1;">Заново</span>
     </button>
@@ -4950,6 +5039,11 @@ async function loadBooksFromApi() {
     return true;
   } catch (err) {
     console.error('Не удалось загрузить книги с API:', err);
+    // Нет сети — показываем скачанные книги из оффлайн-хранилища вместо пустого экрана
+    if (!navigator.onLine) {
+      const ok = await loadBooksFromOffline();
+      if (ok) { showToast('Офлайн-режим: показаны скачанные книги'); return true; }
+    }
     showToast('Не удаётся загрузить книги с сервера');
     state.books = [];
     return false;
@@ -5237,6 +5331,7 @@ document.getElementById('authForm').addEventListener('submit', async e => {
         navigateTo('onboarding');
       } else {
         navigateTo('home');
+        setTimeout(maybeOfferBiometric, 800);
       }
   } catch (err) {
     // Если вход заблокирован из-за неподтверждённого email — показываем экран кода
@@ -5281,6 +5376,7 @@ function logout() {
     danger: true,
     onConfirm: () => {
       api.logout();      clearNoteKey(); stopSyncPolling();
+      clearCachedUser();
       state.currentUser = null;
       navigateTo('auth');
       showToast('Вы вышли из аккаунта');
@@ -5318,9 +5414,181 @@ async function tryAutoLogin() {
     saveState();
     return true;
   } catch (err) {
+    // Различаем «протухший токен» и «нет сети».
+    // 401 → токен недействителен, разлогиниваем как раньше.
+    // Сетевая ошибка/офлайн + есть кэш пользователя → НЕ разлогиниваем,
+    // восстанавливаем сессию из кэша и показываем скачанные книги.
+    const isAuthError = (err instanceof api.ApiError) && err.status === 401;
+    const cached = getCachedUser();
+    if (!isAuthError && cached && api.isAuthenticated()) {
+      state.currentUser = cached;
+      await loadOfflineBookIds();
+      await loadBooksFromOffline();
+      try { loadProgressFromApi(); } catch (_) {}  // прогресс берётся локально, сетевой вызов молча упадёт
+      showToast('Офлайн-режим: вход по сохранённой сессии');
+      return true;
+    }
     api.logout();    clearNoteKey(); stopSyncPolling();
+    clearCachedUser();
     return false;
   }
+}
+
+// ===== Биометрический вход (Face ID / отпечаток) — локальная блокировка через WebAuthn =====
+// Это локальная блокировка приложения: после успешного входа пользователь может
+// включить разблокировку по биометрии. Учётные данные (credential) хранятся только
+// на устройстве, на сервер ничего не отправляется. При включении и при разблокировке
+// система сама показывает системный запрос Face ID / отпечатка (это и есть запрос
+// разрешения на использование биометрии).
+const BIO_ENABLED_KEY = 'aegis_biometric_enabled';
+const BIO_CRED_KEY = 'aegis_biometric_cred';
+const BIO_DECLINED_KEY = 'aegis_biometric_declined';
+
+const biometricAuth = {
+  supported() {
+    return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
+  },
+  async available() {
+    if (!this.supported()) return false;
+    try {
+      if (PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      }
+    } catch (_) {}
+    return true;
+  },
+  isEnabled() {
+    return localStorage.getItem(BIO_ENABLED_KEY) === '1' && !!localStorage.getItem(BIO_CRED_KEY);
+  },
+  _rand(n) { const a = new Uint8Array(n); crypto.getRandomValues(a); return a; },
+  _b64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); },
+  _unb64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); },
+  async enable() {
+    if (!this.supported()) { showToast('Биометрия не поддерживается на этом устройстве'); return false; }
+    try {
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge: this._rand(32),
+          rp: { name: 'Aegis' },
+          user: {
+            id: this._rand(16),
+            name: (state.currentUser && state.currentUser.name) || 'user',
+            displayName: (state.currentUser && (state.currentUser.full_name || state.currentUser.name)) || 'Aegis',
+          },
+          pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required',
+            residentKey: 'discouraged',
+          },
+          timeout: 60000,
+          attestation: 'none',
+        },
+      });
+      if (!cred) return false;
+      localStorage.setItem(BIO_CRED_KEY, this._b64(cred.rawId));
+      localStorage.setItem(BIO_ENABLED_KEY, '1');
+      localStorage.removeItem(BIO_DECLINED_KEY);
+      showToast('Вход по биометрии включён');
+      return true;
+    } catch (e) {
+      console.warn('Биометрия: не удалось включить', e);
+      showToast('Не удалось включить биометрию');
+      return false;
+    }
+  },
+  async verify() {
+    const raw = localStorage.getItem(BIO_CRED_KEY);
+    if (!raw) return false;
+    try {
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: this._rand(32),
+          allowCredentials: [{ type: 'public-key', id: this._unb64(raw) }],
+          userVerification: 'required',
+          timeout: 60000,
+        },
+      });
+      return !!assertion;
+    } catch (e) {
+      console.warn('Биометрия: проверка не пройдена', e);
+      return false;
+    }
+  },
+  disable() {
+    localStorage.removeItem(BIO_ENABLED_KEY);
+    localStorage.removeItem(BIO_CRED_KEY);
+  },
+};
+
+// Предложить включить биометрию после первого входа (один раз, с запросом разрешения)
+async function maybeOfferBiometric() {
+  try {
+    if (biometricAuth.isEnabled()) return;
+    if (localStorage.getItem(BIO_DECLINED_KEY) === '1') return;
+    if (!(await biometricAuth.available())) return;
+    // Помечаем как «предложено», чтобы не спрашивать на каждом входе.
+    // При успешном включении enable() снимет этот флаг. Включить позже
+    // всегда можно в Настройках → Безопасность.
+    try { localStorage.setItem(BIO_DECLINED_KEY, '1'); } catch (_) {}
+    showConfirmModal({
+      title: 'Быстрый вход по биометрии',
+      message: 'Включить вход по Face ID или отпечатку пальца? Приложение запросит у системы разрешение на использование биометрии. Данные остаются только на этом устройстве.',
+      confirmText: 'Включить',
+      cancelText: 'Не сейчас',
+      onConfirm: () => { biometricAuth.enable(); },
+    });
+  } catch (_) {}
+}
+
+// Экран-замок при запуске, если биометрия включена
+function showBiometricGate() {
+  navigateTo('home');
+  const ex = document.getElementById('biometricGate');
+  if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'biometricGate';
+  m.style.cssText = 'position:fixed;inset:0;z-index:7000;background:var(--bg-primary);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;';
+  m.innerHTML = `
+    <div style="font-size:48px;margin-bottom:14px;">${ICONS.shield || '🛡️'}</div>
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Разблокировка</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:22px;max-width:300px;">Подтвердите вход по Face ID или отпечатку пальца.</p>
+    <button class="btn btn-primary" id="bioUnlockBtn" onclick="runBiometricUnlock()" style="padding:12px 28px;font-size:14px;margin-bottom:12px;">Разблокировать</button>
+    <button onclick="biometricGateFallback()" style="background:transparent;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-decoration:underline;">Войти паролем</button>
+  `;
+  document.body.appendChild(m);
+  setTimeout(runBiometricUnlock, 350);
+}
+
+async function runBiometricUnlock() {
+  const ok = await biometricAuth.verify();
+  if (ok) {
+    const m = document.getElementById('biometricGate');
+    if (m) m.remove();
+  } else {
+    showToast('Не распознано. Повторите или войдите паролем.');
+  }
+}
+
+function biometricGateFallback() {
+  const m = document.getElementById('biometricGate');
+  if (m) m.remove();
+  biometricAuth.disable();
+  api.logout(); clearNoteKey(); stopSyncPolling(); clearCachedUser();
+  state.currentUser = null;
+  navigateTo('auth');
+}
+
+// Переключатель в настройках (вкладка «Безопасность»)
+async function toggleBiometricFromSettings() {
+  if (biometricAuth.isEnabled()) {
+    biometricAuth.disable();
+    showToast('Вход по биометрии отключён');
+  } else {
+    await biometricAuth.enable();
+  }
+  const c = document.getElementById('settingsContent');
+  if (c) renderSettingsSecurityTab(c);
 }
 
 // ========== AI АССИСТЕНТ ==========
@@ -7206,6 +7474,16 @@ function renderSettingsSecurityTab(c) {
         <button class="set-save-btn" onclick="renderSettingsSecurityTab(document.getElementById('settingsContent'))" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);margin-top:8px;">Отмена</button>
       </div>
     </div>
+
+    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--accent);">Вход по биометрии</h3>
+      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
+        Быстрая разблокировка приложения по Face ID или отпечатку пальца. При включении система запросит разрешение на использование биометрии. Данные хранятся только на этом устройстве.
+      </div>
+      ${biometricAuth.supported()
+        ? `<button class="set-save-btn" onclick="toggleBiometricFromSettings()" ${biometricAuth.isEnabled() ? 'style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);"' : ''}>${biometricAuth.isEnabled() ? 'Отключить биометрию' : 'Включить вход по биометрии'}</button>`
+        : `<div style="font-size:11px;color:var(--text-muted);">Биометрия не поддерживается этим устройством или браузером.</div>`}
+    </div>
   `;
 }
 
@@ -8271,8 +8549,51 @@ window.addEventListener('beforeunload', () => {
 // Используется для быстрого рендеринга индикатора на карточке.
 const offlineBookIds = new Set();
 
+// ===== Офлайн-сессия: кэш пользователя для входа без интернета =====
+const CACHED_USER_KEY = 'aegis_cached_user';
+function cacheUserForOffline(u) {
+  if (!u) return;
+  try { localStorage.setItem(CACHED_USER_KEY, JSON.stringify(u)); } catch (_) {}
+}
+function getCachedUser() {
+  try { return JSON.parse(localStorage.getItem(CACHED_USER_KEY) || 'null'); }
+  catch (_) { return null; }
+}
+function clearCachedUser() {
+  try { localStorage.removeItem(CACHED_USER_KEY); } catch (_) {}
+}
+
+// Собрать список книг из оффлайн-хранилища (IndexedDB) — чтобы показать
+// скачанные книги, когда сервер недоступен.
+async function loadBooksFromOffline() {
+  try {
+    const saved = (await offlineStorage.listAll()) || [];
+    state.books = saved.map(m => adaptBookFromApi({
+      id: m.id,
+      title: m.title,
+      author: m.author,
+      file_format: m.file_format,
+      has_file: true,
+      has_cover: m.has_cover,
+      total_pages: m.total_pages,
+      icon: m.icon,
+      rating: 0,
+      categories: [],
+    }));
+    state.books.forEach(b => ensureProgress(b));
+    return state.books.length > 0;
+  } catch (e) {
+    console.error('Не удалось собрать книги из оффлайн-хранилища:', e);
+    if (!state.books) state.books = [];
+    return false;
+  }
+}
+
 // При логине проверяем, какие книги уже в IndexedDB
 async function loadOfflineBookIds() {
+  // Кэшируем текущего пользователя — пригодится для входа без интернета.
+  // К этому моменту state.currentUser уже выставлен во всех потоках авторизации.
+  if (state.currentUser) cacheUserForOffline(state.currentUser);
   try {
     const ids = await offlineStorage.listIds();
     offlineBookIds.clear();
@@ -8683,6 +9004,7 @@ function updatePageIndicator() {
   if (overlayTotal) overlayTotal.textContent = total;
 
   flashPageIndicator();
+  try { maybeShowFinishReviewPrompt(); } catch (_) {}
 }
 
 // ===== D: Закладки страниц (быстрый переход, отдельно от аннотаций) =====
@@ -12336,7 +12658,11 @@ function onAnalyticsBookSelected() {
   if (onbTarget) onbTarget.innerHTML = ICONS.target;
 })();
 tryAutoLogin().then(ok => {
-  navigateTo(ok ? 'home' : 'auth');
+  if (ok && biometricAuth.isEnabled()) {
+    showBiometricGate();
+  } else {
+    navigateTo(ok ? 'home' : 'auth');
+  }
 });
 
 

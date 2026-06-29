@@ -1,9 +1,11 @@
 """Quiz endpoints: get questions, submit answers, list attempts."""
 import json
 import logging
+import random
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from pydantic import BaseModel
+from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -65,6 +67,51 @@ CATEGORY_QUIZZES: dict[str, list[dict]] = {
             ],
             "correct_index": 0,
         },
+        {
+            "question": "Что лучше всего защищает от SQL-инъекций?",
+            "options": [
+                "Параметризованные (подготовленные) запросы",
+                "Конкатенация строк в запросе",
+                "Отключение логирования",
+                "Увеличение таймаута запроса",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое SSRF?",
+            "options": [
+                "Подделка запросов на стороне сервера (Server-Side Request Forgery)",
+                "Клиентский скрипт в браузере",
+                "Переполнение буфера",
+                "Атака на DNS-кэш",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Для чего нужен флаг HttpOnly у cookie?",
+            "options": [
+                "Запретить доступ к cookie из JavaScript",
+                "Зашифровать содержимое cookie",
+                "Ускорить загрузку страницы",
+                "Продлить срок жизни cookie",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Какой риск в первую очередь снижает атрибут cookie SameSite?",
+            "options": ["CSRF", "XSS", "SQL-инъекции", "DoS"],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что описывает OWASP Top 10?",
+            "options": [
+                "Наиболее критичные риски веб-приложений",
+                "Уязвимости только мобильных приложений",
+                "Список сетевых протоколов",
+                "Аппаратные закладки",
+            ],
+            "correct_index": 0,
+        },
     ],
     "Анализ ВПО": [
         {
@@ -107,6 +154,56 @@ CATEGORY_QUIZZES: dict[str, list[dict]] = {
             ],
             "correct_index": 0,
         },
+        {
+            "question": "Что такое IOC (Indicator of Compromise)?",
+            "options": [
+                "Признак компрометации: хеши, IP, домены, артефакты",
+                "Тип антивирусной лицензии",
+                "Модель процессора",
+                "Версия операционной системы",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что делает обфускация кода?",
+            "options": [
+                "Затрудняет анализ, усложняя восприятие кода",
+                "Ускоряет выполнение программы",
+                "Шифрует жёсткий диск",
+                "Сжимает сетевой трафик",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое persistence (закрепление) у ВПО?",
+            "options": [
+                "Механизм автозапуска после перезагрузки системы",
+                "Удаление следов присутствия",
+                "Сканирование сети",
+                "Подбор пароля",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое C2 (Command and Control)?",
+            "options": [
+                "Сервер управления заражёнными хостами",
+                "Антивирусное облако",
+                "Среда разработки",
+                "Менеджер обновлений ОС",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое реверс-инжиниринг ВПО?",
+            "options": [
+                "Анализ логики вредоноса без исходного кода",
+                "Написание антивируса с нуля",
+                "Шифрование образца",
+                "Резервное копирование системы",
+            ],
+            "correct_index": 0,
+        },
     ],
     "Пентест": [
         {
@@ -142,6 +239,51 @@ CATEGORY_QUIZZES: dict[str, list[dict]] = {
         {
             "question": "Какой фреймворк используется для разработки и запуска эксплойтов?",
             "options": ["Metasploit", "Wireshark", "Nessus", "Splunk"],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое OSINT?",
+            "options": [
+                "Разведка по открытым источникам",
+                "Сканер уязвимостей",
+                "Эксплойт-фреймворк",
+                "Тип межсетевого экрана",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое privilege escalation?",
+            "options": [
+                "Повышение собственных прав в системе",
+                "Сканирование портов",
+                "Сбор журналов событий",
+                "Шифрование данных",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Чем black-box отличается от white-box тестирования?",
+            "options": [
+                "В black-box нет сведений о внутреннем устройстве системы",
+                "Это полностью одно и то же",
+                "White-box не требует согласия владельца",
+                "Black-box всегда быстрее white-box",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Какой инструмент применяют для перехвата и анализа HTTP-трафика веб-приложения?",
+            "options": ["Burp Suite", "nmap", "John the Ripper", "Hashcat"],
+            "correct_index": 0,
+        },
+        {
+            "question": "Зачем нужен этап «Отчёт» в пентесте?",
+            "options": [
+                "Зафиксировать находки и дать рекомендации по устранению",
+                "Удалить все логи в системе",
+                "Запустить дополнительные эксплойты",
+                "Просканировать соседние сети",
+            ],
             "correct_index": 0,
         },
     ],
@@ -183,6 +325,56 @@ CATEGORY_QUIZZES: dict[str, list[dict]] = {
                 "Ускорение передачи данных",
                 "Сжатие файлов",
                 "Шифрование трафика в реальном времени",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое соль (salt) при хешировании паролей?",
+            "options": [
+                "Случайные данные, добавляемые к паролю перед хешированием",
+                "Алгоритм симметричного шифрования",
+                "Тип цифрового сертификата",
+                "Сетевой протокол обмена ключами",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Чем хеширование отличается от шифрования?",
+            "options": [
+                "Хеширование необратимо, шифрование обратимо при наличии ключа",
+                "Это полные синонимы",
+                "Хеширование всегда требует пары ключей",
+                "Шифрование всегда необратимо",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что обеспечивает протокол Диффи–Хеллмана?",
+            "options": [
+                "Согласование общего секрета по небезопасному каналу",
+                "Подписание документов",
+                "Сжатие данных",
+                "Хеширование паролей",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Что такое PKI?",
+            "options": [
+                "Инфраструктура открытых ключей",
+                "Протокол маршрутизации",
+                "Менеджер паролей",
+                "Журналируемая файловая система",
+            ],
+            "correct_index": 0,
+        },
+        {
+            "question": "Почему MD5 не рекомендуется для защиты паролей?",
+            "options": [
+                "Уязвим к коллизиям и слишком быстр для перебора",
+                "Слишком медленный для любых задач",
+                "Требует платной лицензии",
+                "Не поддерживает кириллицу",
             ],
             "correct_index": 0,
         },
@@ -241,22 +433,103 @@ GENERIC_QUIZ: list[dict] = [
         ],
         "correct_index": 0,
     },
+    {
+        "question": "Что такое социальная инженерия?",
+        "options": [
+            "Манипуляция людьми ради доступа или данных",
+            "Проектирование компьютерных сетей",
+            "Методология разработки ПО",
+            "Настройка серверного оборудования",
+        ],
+        "correct_index": 0,
+    },
+    {
+        "question": "Что такое DDoS-атака?",
+        "options": [
+            "Отказ в обслуживании за счёт множества источников",
+            "Кража паролей через фишинг",
+            "Внедрение SQL-запросов",
+            "Перехват электронной почты",
+        ],
+        "correct_index": 0,
+    },
+    {
+        "question": "Для чего нужны резервные копии (backup)?",
+        "options": [
+            "Восстановление данных после сбоя или атаки",
+            "Ускорение работы приложения",
+            "Шифрование сетевого трафика",
+            "Сканирование открытых портов",
+        ],
+        "correct_index": 0,
+    },
+    {
+        "question": "Что обеспечивает VPN?",
+        "options": [
+            "Защищённый туннель для передачи данных",
+            "Антивирусную защиту файлов",
+            "Ускорение работы браузера",
+            "Хранение паролей",
+        ],
+        "correct_index": 0,
+    },
+    {
+        "question": "Что описывает модель угроз STRIDE?",
+        "options": [
+            "Категории угроз: спуфинг, подмена, отказ и др.",
+            "Этапы пентеста по фазам",
+            "Уровни модели OSI",
+            "Список алгоритмов шифрования",
+        ],
+        "correct_index": 0,
+    },
 ]
 
 
 _AI_QUIZ_PROMPT = (
-    "Ты — методист по информационной безопасности. Составь тест из 5 вопросов "
+    "Ты — методист по информационной безопасности. Составь тест из 15 вопросов "
     "с вариантами ответа по книге. Тема книги: «{title}»"
     "{author}{cats}{desc}.\n\n"
     "Требования:\n"
-    "- ровно 5 вопросов;\n"
+    "- ровно 15 вопросов;\n"
     "- у каждого 4 варианта ответа;\n"
     "- только один правильный;\n"
     "- вопросы по сути темы книги (кибербезопасность), разной сложности;\n"
+    "- не повторяй вопросы, формулируй их по-разному;\n"
     "- на русском языке.\n\n"
     "Верни СТРОГО валидный JSON без markdown и пояснений, в формате:\n"
     '{{"questions":[{{"question":"...","options":["A","B","C","D"],"correct_index":0}}]}}'
 )
+
+
+# Сколько вопросов отдаём пользователю за одну попытку.
+QUIZ_SERVE_COUNT = 15
+
+
+def _shuffle_options(item: dict) -> dict:
+    """Перемешать варианты ответа, скорректировав correct_index.
+
+    Иначе правильный ответ всегда стоит первым ('A') — его легко угадать.
+    """
+    opts = list(item["options"])
+    correct_text = opts[item["correct_index"]]
+    random.shuffle(opts)
+    return {
+        "question": item["question"],
+        "options": opts,
+        "correct_index": opts.index(correct_text),
+    }
+
+
+def _select_questions(questions: list) -> list:
+    """Случайная выборка до QUIZ_SERVE_COUNT вопросов в перемешанном порядке.
+
+    За счёт случайной выборки каждый повторный запрос теста («Пройти заново»)
+    даёт новый набор/порядок вопросов, пока пул в БД больше QUIZ_SERVE_COUNT.
+    """
+    pool = list(questions)
+    random.shuffle(pool)
+    return pool[:QUIZ_SERVE_COUNT]
 
 
 async def _generate_ai_quiz(book: Book) -> list[dict] | None:
@@ -312,10 +585,10 @@ async def _generate_ai_quiz(book: Book) -> list[dict] | None:
         if qt and len(opts) >= 2 and 0 <= ci < len(opts):
             cleaned.append({"question": qt, "options": opts, "correct_index": ci})
 
-    if len(cleaned) < 3:
+    if len(cleaned) < 5:
         logger.warning("AI quiz: too few valid questions (%d) for book %s", len(cleaned), book.id)
         return None
-    return cleaned[:5]
+    return cleaned[:18]
 
 
 async def _ensure_quiz_for_book(db: AsyncSession, book: Book) -> list[QuizQuestion]:
@@ -332,12 +605,12 @@ async def _ensure_quiz_for_book(db: AsyncSession, book: Book) -> list[QuizQuesti
         new_questions = [
             QuizQuestion(
                 book_id=book.id,
-                question=t["question"],
-                options=t["options"],
-                correct_index=t["correct_index"],
+                question=s["question"],
+                options=s["options"],
+                correct_index=s["correct_index"],
                 source="ai",
             )
-            for t in ai_questions
+            for s in (_shuffle_options(t) for t in ai_questions)
         ]
         db.add_all(new_questions)
         await db.commit()
@@ -346,7 +619,8 @@ async def _ensure_quiz_for_book(db: AsyncSession, book: Book) -> list[QuizQuesti
         logger.info("AI quiz created for book %s (%d questions)", book.id, len(new_questions))
         return new_questions
 
-    # 2) Fallback: статический шаблон по категории, иначе общий
+    # 2) Fallback: пул из шаблона по категории + общих вопросов (чтобы было >15
+    #    и выборка/перемешивание давали разнообразие). Дедуп по тексту вопроса.
     template: list[dict] = []
     try:
         book_cat_names = [c.name for c in (book.categories or [])]
@@ -354,21 +628,33 @@ async def _ensure_quiz_for_book(db: AsyncSession, book: Book) -> list[QuizQuesti
         book_cat_names = []
     for name in book_cat_names:
         if name in CATEGORY_QUIZZES:
-            template = CATEGORY_QUIZZES[name]
+            template = list(CATEGORY_QUIZZES[name])
             break
 
-    if not template:
-        template = GENERIC_QUIZ
+    pool: list[dict] = list(template) + list(GENERIC_QUIZ)
+    # Если книга без совпавшей категории — добираем вопросы из других банков,
+    # чтобы пул был заметно больше QUIZ_SERVE_COUNT и выборка давала разнообразие.
+    if len(pool) < QUIZ_SERVE_COUNT + 3:
+        for _name, _bank in CATEGORY_QUIZZES.items():
+            pool += list(_bank)
+    seen: set[str] = set()
+    unique_pool: list[dict] = []
+    for t in pool:
+        key = t["question"].strip().lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_pool.append(t)
 
     new_questions = [
         QuizQuestion(
             book_id=book.id,
-            question=t["question"],
-            options=t["options"],
-            correct_index=t["correct_index"],
+            question=s["question"],
+            options=s["options"],
+            correct_index=s["correct_index"],
             source="static",
         )
-        for t in template
+        for s in (_shuffle_options(t) for t in unique_pool)
     ]
     db.add_all(new_questions)
     await db.commit()
@@ -392,10 +678,7 @@ async def get_quiz(
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     questions = await _ensure_quiz_for_book(db, book)
-    return [QuizQuestionPublic.model_validate(q) for q in questions]
-
-
-from sqlalchemy import delete as sa_delete
+    return [QuizQuestionPublic.model_validate(q) for q in _select_questions(questions)]
 
 
 @router.post("/books/{book_id}/quiz/regenerate", response_model=list[QuizQuestionPublic])
@@ -426,6 +709,18 @@ async def regenerate_quiz(
     return [QuizQuestionPublic.model_validate(q) for q in questions]
 
 
+class QuizSubmitIn(BaseModel):
+    """Ответы пользователя.
+
+    answers — выбранные индексы вариантов в том же порядке, в котором
+    вопросы пришли с GET /quiz. question_ids — id этих вопросов в том же
+    порядке (нужно, т.к. тест отдаётся случайной выборкой/перемешиванием).
+    question_ids опционален ради обратной совместимости со старым клиентом.
+    """
+    answers: list[int]
+    question_ids: list[int] | None = None
+
+
 @router.post(
     "/books/{book_id}/quiz/submit",
     response_model=QuizResult,
@@ -433,7 +728,7 @@ async def regenerate_quiz(
 )
 async def submit_quiz(
     book_id: int,
-    payload: QuizSubmit,
+    payload: QuizSubmitIn,
     db: AsyncSession = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> QuizResult:
@@ -446,16 +741,36 @@ async def submit_quiz(
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    questions = await _ensure_quiz_for_book(db, book)
-    if len(payload.answers) != len(questions):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Expected {len(questions)} answers, got {len(payload.answers)}",
-        )
+    all_questions = await _ensure_quiz_for_book(db, book)
 
-    correct_indices = [q.correct_index for q in questions]
+    if payload.question_ids:
+        # Скоринг по конкретным вопросам, которые видел пользователь
+        if len(payload.answers) != len(payload.question_ids):
+            raise HTTPException(
+                status_code=400,
+                detail="answers and question_ids length mismatch",
+            )
+        by_id = {q.id: q for q in all_questions}
+        graded = []
+        for qid in payload.question_ids:
+            q = by_id.get(qid)
+            if q is None:
+                raise HTTPException(
+                    status_code=400, detail=f"Unknown question id {qid}"
+                )
+            graded.append(q)
+    else:
+        # Старый клиент: ответы по всем вопросам в порядке хранения
+        graded = all_questions
+        if len(payload.answers) != len(graded):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Expected {len(graded)} answers, got {len(payload.answers)}",
+            )
+
+    correct_indices = [q.correct_index for q in graded]
     score = sum(1 for i, ans in enumerate(payload.answers) if ans == correct_indices[i])
-    total = len(questions)
+    total = len(graded)
     percentage = round(score / total * 100) if total else 0
 
     attempt = QuizAttempt(
