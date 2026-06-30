@@ -4793,6 +4793,116 @@ const screens = new Proxy({}, {
   },
 });
 
+// ========== ОНБОРДИНГ-ТУР (первый вход) ==========
+// Показывает 4 всплывающие подсказки по ключевым разделам. Один раз на устройство.
+const ONBOARDING_TOUR_STEPS = [
+  {
+    sel: '.nav-item[data-screen="home"], .sidebar-item[data-screen="home"]',
+    title: 'Библиотека',
+    text: 'Здесь вся библиотека по кибербезопасности. Ищите книги, читайте онлайн и сохраняйте прогресс — он не потеряется.',
+    emoji: '📚',
+  },
+  {
+    sel: '.nav-item[data-screen="training"], .sidebar-item[data-screen="training"]',
+    title: 'Тестирование',
+    text: 'Проверяйте знания тестами по книгам и получайте сертификаты. Вопросы генерирует ИИ под каждую тему.',
+    emoji: '🎓',
+  },
+  {
+    sel: '#btnOpenAssistant, .sidebar-item[data-screen="assistant"]',
+    title: 'AI-ассистент',
+    text: 'Личный помощник по кибербезопасности: объяснит сложное простыми словами, сделает саммари книги, посоветует материалы.',
+    emoji: '✨',
+  },
+  {
+    sel: '.nav-item[data-screen="profile"], .sidebar-item[data-screen="profile"]',
+    title: 'Профиль и AR-схемы',
+    text: 'В профиле — ваш прогресс и достижения. А ещё в приложении есть интерактивные AR-схемы атак (Kill Chain, MITRE и др.) — нажимайте на этапы и изучайте.',
+    emoji: '🛡️',
+  },
+];
+
+function replayOnboardingTour() {
+  // Переходим на главную (флаг НЕ сбрасываем заранее, чтобы авто-тур из
+  // navigateTo не сработал параллельно), затем запускаем тур вручную.
+  navigateTo('home');
+  try { localStorage.removeItem('aegis_tour_done'); } catch (e) {}
+  setTimeout(() => startOnboardingTour(), 600);
+}
+
+function maybeStartOnboardingTour() {
+  try {
+    if (localStorage.getItem('aegis_tour_done') === '1') return;
+  } catch (e) { return; }
+  // Запускаем только на главной и только если навигация видна
+  if (state.currentScreen !== 'home') return;
+  setTimeout(() => startOnboardingTour(), 700);
+}
+
+function startOnboardingTour() {
+  let idx = 0;
+  // Оверлей-затемнение
+  let overlay = document.getElementById('tourOverlay');
+  if (overlay) overlay.remove();
+  overlay = document.createElement('div');
+  overlay.id = 'tourOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,0.7);transition:opacity 0.2s;';
+  document.body.appendChild(overlay);
+
+  function finish() {
+    try { localStorage.setItem('aegis_tour_done', '1'); } catch (e) {}
+    overlay.remove();
+  }
+
+  function showStep() {
+    const step = ONBOARDING_TOUR_STEPS[idx];
+    const el = document.querySelector(step.sel);
+    // Если элемент не найден (например, скрыт на этом экране) — пропускаем
+    if (!el) {
+      idx++;
+      if (idx >= ONBOARDING_TOUR_STEPS.length) return finish();
+      return showStep();
+    }
+    const r = el.getBoundingClientRect();
+    // «Прорезаем» подсветку вокруг элемента через box-shadow
+    const pad = 6;
+    overlay.innerHTML = `
+      <div style="position:absolute;top:${r.top - pad}px;left:${r.left - pad}px;
+                  width:${r.width + pad * 2}px;height:${r.height + pad * 2}px;
+                  border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,0.7), 0 0 0 2px var(--accent);
+                  transition:all 0.25s;pointer-events:none;"></div>`;
+    // Карточка с текстом — сверху или снизу от элемента
+    const card = document.createElement('div');
+    const showAbove = r.top > window.innerHeight / 2;
+    card.style.cssText = `position:absolute;left:50%;transform:translateX(-50%);
+      ${showAbove ? `bottom:${window.innerHeight - r.top + 16}px` : `top:${r.bottom + 16}px`};
+      width:min(340px, calc(100vw - 32px));background:var(--bg-elevated);border:1px solid var(--border);
+      border-radius:16px;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,0.5);`;
+    card.innerHTML = `
+      <div style="font-size:32px;margin-bottom:10px;">${step.emoji}</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text-primary);margin-bottom:8px;">${step.title}</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.55;margin-bottom:18px;">${step.text}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="display:flex;gap:6px;">
+          ${ONBOARDING_TOUR_STEPS.map((_, i) => `<div style="width:7px;height:7px;border-radius:50%;background:${i === idx ? 'var(--accent)' : 'var(--border)'};"></div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="tourSkip" style="background:none;border:none;color:var(--text-muted);font-family:inherit;font-size:13px;cursor:pointer;padding:8px;">Пропустить</button>
+          <button id="tourNext" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:9px 18px;border-radius:10px;">${idx === ONBOARDING_TOUR_STEPS.length - 1 ? 'Понятно!' : 'Далее'}</button>
+        </div>
+      </div>`;
+    overlay.appendChild(card);
+    document.getElementById('tourSkip').onclick = finish;
+    document.getElementById('tourNext').onclick = () => {
+      idx++;
+      if (idx >= ONBOARDING_TOUR_STEPS.length) return finish();
+      showStep();
+    };
+  }
+  showStep();
+}
+
+
 function navigateTo(s) {
   // Привратник: неодобрённый пользователь не попадает в библиотеку.
   // Разрешены только онбординг (тест уровня) и экран авторизации.
@@ -4825,7 +4935,7 @@ function navigateTo(s) {
   document.body.classList.toggle('reader-active', s === 'reader');
   document.querySelectorAll('.nav-item, .sidebar-item').forEach(i => i.classList.toggle('active', i.dataset.screen === s));
   closeAIPanel();
-  if (s === 'home') { renderHome(); renderRecommendations(); }
+  if (s === 'home') { renderHome(); renderRecommendations(); maybeStartOnboardingTour(); }
   if (s === 'mylist') { renderMyList(); initDragAndDrop(); }
   if (s === 'training') renderTrainingScreen();
   if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); renderSkillsRadar(); renderMyCertificates(); }
@@ -5114,8 +5224,9 @@ function showPendingApprovalScreen() {
       <div style="font-size:44px;margin-bottom:14px;">⏳</div>
       <h2 style="font-size:20px;font-weight:800;margin-bottom:10px;color:var(--text-primary);">Заявка на рассмотрении</h2>
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">
-        Ваш email подтверждён. Теперь администратор должен одобрить доступ к библиотеке.
-        Это обычно занимает немного времени.
+        Ваш email подтверждён. Теперь администратор должен одобрить доступ к библиотеке —
+        обычно это занимает до 24 часов. Мы пришлём письмо на вашу почту, как только откроем доступ,
+        так что эту страницу можно закрыть.
       </p>
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:22px;line-height:1.5;">
         А пока вы можете пройти тест на уровень знаний — результат сохранится в вашем профиле.
@@ -6237,7 +6348,19 @@ function renderHome() {
     const all = document.getElementById('scrollAll');
     if (pop) { pop.classList.add('hidden'); pop.innerHTML = ''; }
     if (all) all.classList.remove('hidden');
-    renderPaginatedBooks('scrollAll', sorted, q);
+    const pager = document.getElementById('booksPager');
+    if (sorted.length === 0) {
+      // Ничего не найдено — дружелюбное сообщение вместо пустоты
+      if (all) all.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-muted);">
+          <div style="font-size:44px;margin-bottom:14px;opacity:0.6;">🔍</div>
+          <div style="font-size:15px;color:var(--text-secondary);margin-bottom:6px;">По запросу «${eh(q)}» ничего не найдено</div>
+          <div style="font-size:13px;">Попробуйте другие слова или проверьте раскладку клавиатуры</div>
+        </div>`;
+      if (pager) pager.innerHTML = '';
+    } else {
+      renderPaginatedBooks('scrollAll', sorted, q);
+    }
     return;
   }
 
@@ -7109,6 +7232,16 @@ function renderSettingsTabContent() {
 function renderSettingsHelpTab(c) {
   c.innerHTML = `
     <div style="max-width:560px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Знакомство с приложением</div>
+        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+          Короткий тур по основным разделам: библиотека, тестирование, AI-ассистент и схемы атак.
+        </p>
+        <button onclick="replayOnboardingTour()" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+          Пройти обучение заново
+        </button>
+      </div>
+
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
         <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Установка приложения</div>
         <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
@@ -9480,6 +9613,16 @@ async function loadPdf(b) {
   pl.innerHTML = loadingSpinnerHTML('Загрузка книги…');
   c.classList.add('hidden');
 
+  // Если загрузка затянулась (большой PDF) — обновляем подпись, чтобы человек
+  // понимал, что всё идёт штатно, просто книга большая.
+  if (window._bookLoadHintTimer) clearTimeout(window._bookLoadHintTimer);
+  window._bookLoadHintTimer = setTimeout(() => {
+    const sp = document.getElementById('pdfPlaceholder');
+    if (sp && sp.querySelector('.aegis-spinner')) {
+      sp.innerHTML = loadingSpinnerHTML('Загружаем большую книгу, ещё несколько секунд…');
+    }
+  }, 3000);
+
   // Лениво подгружаем pdf.js при первом открытии PDF
   try {
     await ensurePdfLoaded();
@@ -9541,6 +9684,7 @@ async function loadPdf(b) {
     }
     pdfCurrentPage = Math.min(state.readingProgress[b.id].currentPage || 1, pdfTotalPages);
 
+    if (window._bookLoadHintTimer) { clearTimeout(window._bookLoadHintTimer); window._bookLoadHintTimer = null; }
     pl.classList.add('hidden');
     c.classList.remove('hidden');
     updatePageIndicator();
