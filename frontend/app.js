@@ -2751,6 +2751,11 @@ const state = {
   analyticsCache: null,
 };
 let pdfDoc = null, pdfCurrentPage = 1, pdfTotalPages = 0, currentBookId = null, lastSelection = null;
+// Контроль параллельного рендера PDF: отменяем предыдущий рендер при быстром
+// листании, иначе два page.render() в один canvas накладываются и страница
+// получается перевёрнутой/искажённой (race condition).
+let _pdfRenderTask = null;     // текущая задача pdf.js render()
+let _pdfRenderToken = 0;       // токен последнего запроса рендера
 let readerCurrentPageText = '';  // текст текущей страницы для AI-ассистента
 let epubCurrentPage = 1, epubTotalPages = 0;
 let currentQuiz = { bookId: null, questions: [], currentIndex: 0, score: 0, answers: [] };
@@ -9563,10 +9568,22 @@ function generateDemoPdf(b) {
 
 async function renderPdfPage(pn) {
   if (!pdfDoc) return;
+
+  // Защита от гонки при быстром листании: помечаем этот запрос токеном и
+  // отменяем предыдущий незавершённый рендер (иначе два рендера в один canvas
+  // накладываются → перевёрнутые/битые страницы).
+  const myToken = ++_pdfRenderToken;
+  if (_pdfRenderTask) {
+    try { _pdfRenderTask.cancel(); } catch (e) {}
+    _pdfRenderTask = null;
+  }
+
   // При перерисовке страницы — снимаем подсветку поиска
   clearReaderSearchHighlights();
 
   const page = await pdfDoc.getPage(pn);
+  // Если за время await пользователь пролистал дальше — прекращаем (наш рендер устарел)
+  if (myToken !== _pdfRenderToken) return;
   const viewport1 = page.getViewport({ scale: 1 });
 
   const container = document.getElementById('pdfViewport');
@@ -9614,10 +9631,23 @@ async function renderPdfPage(pn) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  await page.render({
+  // Запускаем рендер как отменяемую задачу. Если во время рендера пользователь
+  // пролистнёт дальше — задача будет отменена (cancel выше), и мы выйдем.
+  const renderTask = page.render({
     canvasContext: ctx,
     viewport: viewport,
-  }).promise;
+  });
+  _pdfRenderTask = renderTask;
+  try {
+    await renderTask.promise;
+  } catch (err) {
+    // RenderingCancelledException — это нормально (пользователь пролистнул дальше)
+    if (err && err.name === 'RenderingCancelledException') return;
+    throw err;
+  }
+  if (_pdfRenderTask === renderTask) _pdfRenderTask = null;
+  // Наш рендер устарел (пролистали дальше) — не трогаем text layer
+  if (myToken !== _pdfRenderToken) return;
 
   // Text layer для выделения (правильный API для PDF.js 3.x)
   const textLayerDiv = document.getElementById('pdfTextLayer');
