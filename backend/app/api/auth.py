@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request
 from app.core.rate_limit import login_limiter
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user_any
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -199,7 +199,7 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
 
 
 @router.get("/me", response_model=UserPublic)
-async def me(current: User = Depends(get_current_user)) -> UserPublic:
+async def me(current: User = Depends(get_current_user_any)) -> UserPublic:
     """Return the currently authenticated user."""
     return UserPublic.model_validate(current)
 
@@ -225,6 +225,8 @@ async def login_form(
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
+    if not user.is_verified:
+        raise HTTPException(status_code=403, detail="Email not verified")
 
     login_limiter.record_success(ip)
     return TokenPair(
@@ -289,6 +291,8 @@ async def reset_password(
     user = await db.scalar(select(User).where(User.email == payload.email))
     if not user or not user.reset_code or not user.reset_expires:
         raise HTTPException(status_code=400, detail="Неверный код или email")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
 
     now = datetime.now(timezone.utc)
     expires = user.reset_expires

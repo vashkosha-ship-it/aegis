@@ -13,12 +13,17 @@ bearer_scheme = HTTPBearer(auto_error=False, description="Вставь сюда 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
 
 
-async def get_current_user(
+async def get_current_user_any(
     token: str | None = Depends(oauth2_scheme),
     bearer = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Resolve the current user from JWT access token. Raises 401 on failure."""
+    """Resolve the current user from JWT access token. Raises 401 on failure.
+
+    НЕ проверяет одобрение админом. Использовать только для эндпоинтов, которые
+    обязаны работать до одобрения: собственный профиль и онбординг.
+    Для всего остального используйте get_current_user.
+    """
     credentials_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -47,6 +52,23 @@ async def get_current_user(
     return user
 
 
+async def get_current_user(current: User = Depends(get_current_user_any)) -> User:
+    """Текущий пользователь, одобренный администратором.
+
+    Это зависимость по умолчанию для всех защищённых эндпоинтов: доступ к
+    контенту библиотеки закрыт, пока админ не одобрил аккаунт. Админы одобрены
+    всегда.
+    """
+    if current.role == UserRole.ADMIN:
+        return current
+    if not current.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account pending admin approval",
+        )
+    return current
+
+
 async def get_current_admin(current: User = Depends(get_current_user)) -> User:
     """Like get_current_user but requires admin role."""
     if current.role != UserRole.ADMIN:
@@ -54,17 +76,8 @@ async def get_current_admin(current: User = Depends(get_current_user)) -> User:
     return current
 
 
-async def get_approved_user(current: User = Depends(get_current_user)) -> User:
-    """Like get_current_user but requires the account to be approved by an admin.
-    Admins are always considered approved. Used to gate library content."""
-    if current.role == UserRole.ADMIN:
-        return current
-    if not getattr(current, "is_approved", True):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account pending admin approval",
-        )
-    return current
+# Оставлено для обратной совместимости: теперь идентично get_current_user.
+get_approved_user = get_current_user
 
 
 async def get_current_user_optional(

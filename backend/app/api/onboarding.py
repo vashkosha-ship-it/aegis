@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_any
 from app.data.onboarding_questions import (
     ONBOARDING_QUESTIONS,
     TOPIC_NAMES,
@@ -67,7 +67,7 @@ class OnboardingResult(BaseModel):
 
 
 @router.get("", response_model=OnboardingQuiz)
-async def get_onboarding_quiz(_: User = Depends(get_current_user)) -> OnboardingQuiz:
+async def get_onboarding_quiz(_: User = Depends(get_current_user_any)) -> OnboardingQuiz:
     """Вернуть список вопросов БЕЗ правильных ответов (юзер не должен их видеть до отправки)."""
     public_questions = [
         OnboardingQuestion(
@@ -85,7 +85,7 @@ async def get_onboarding_quiz(_: User = Depends(get_current_user)) -> Onboarding
 @router.post("/submit", response_model=OnboardingResult)
 async def submit_onboarding(
     payload: OnboardingSubmit,
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> OnboardingResult:
     """Принять ответы юзера, посчитать результат, сохранить, вернуть разбор."""
@@ -171,7 +171,7 @@ async def submit_onboarding(
 
 @router.get("/result", response_model=OnboardingResult | None)
 async def get_my_result(
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
 ) -> OnboardingResult | None:
     """Вернуть последний результат теста, если есть. Иначе null.
 
@@ -266,7 +266,7 @@ class SelfAssessResponse(BaseModel):
 @router.post("/self-assess", response_model=SelfAssessResponse)
 async def submit_self_assessment(
     payload: SelfAssessRequest,
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> SelfAssessResponse:
     """Самооценка уровня — юзер сам выбрал, без прохождения теста.

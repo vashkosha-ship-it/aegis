@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_any
 from app.core.file_validation import (
     FileValidationError,
     detect_cover_ext,
@@ -54,7 +54,7 @@ async def _stream_remainder(
 @router.patch("/me", response_model=UserPublic)
 async def update_me(
     payload: UserUpdate,
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> UserPublic:
     """Изменить отображаемое имя и подразделение в профиле.
@@ -87,7 +87,7 @@ class PasswordChangeRequest(BaseModel):
 @router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
 async def change_my_password(
     payload: PasswordChangeRequest,
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Поменять свой пароль.
@@ -131,7 +131,7 @@ class EmailChangeConfirm(BaseModel):
 @router.post("/me/email/request", status_code=status.HTTP_202_ACCEPTED)
 async def request_email_change(
     payload: EmailChangeRequest,
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Запросить смену email. Отправляет код подтверждения на НОВЫЙ адрес."""
@@ -168,7 +168,7 @@ async def request_email_change(
 @router.post("/me/email/confirm", response_model=UserPublic)
 async def confirm_email_change(
     payload: EmailChangeConfirm,
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> UserPublic:
     """Подтвердить смену email кодом из письма."""
@@ -211,7 +211,7 @@ class AccountDeleteRequest(BaseModel):
 @router.post("/me/delete", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_my_account(
     payload: AccountDeleteRequest,
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> None:
@@ -254,7 +254,7 @@ async def delete_my_account(
 @router.post("/me/avatar", response_model=UserPublic, status_code=status.HTTP_200_OK)
 async def upload_my_avatar(
     file: UploadFile = File(..., description="Аватар (JPEG/PNG/WEBP, до 2 МБ)"),
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> UserPublic:
@@ -294,7 +294,7 @@ async def upload_my_avatar(
 
 @router.delete("/me/avatar", response_model=UserPublic)
 async def delete_my_avatar(
-    current: User = Depends(get_current_user),
+    current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> UserPublic:
