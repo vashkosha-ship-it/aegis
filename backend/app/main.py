@@ -65,12 +65,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
-# CORS — фронт может быть на localhost или на актуальном Cloudflare-URL.
-# При смене Cloudflare-туннеля обновляй ТОЛЬКО актуальный URL в списке.
-_FRONTEND_ORIGINS = [
-    "http://localhost:5173",
-    "https://recommends-facts-heel-profiles.trycloudflare.com",
-]
+# CORS — список разрешённых origin берём из настроек (переменная окружения
+# CORS_ORIGINS, значения через запятую). Хардкод в коде означал, что смена
+# домена требует правки исходников и деплоя.
+_raw_origins = getattr(settings, "CORS_ORIGINS", None) or ""
+if isinstance(_raw_origins, str):
+    _FRONTEND_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+else:
+    _FRONTEND_ORIGINS = [str(o).strip() for o in _raw_origins if str(o).strip()]
+
+if not _FRONTEND_ORIGINS:
+    # Безопасный дефолт для локальной разработки. В проде обязательно задать
+    # CORS_ORIGINS в .env, иначе фронт с боевого домена получит CORS-ошибку.
+    _FRONTEND_ORIGINS = ["http://localhost:5173"]
 
 app.add_middleware(
     CORSMiddleware,

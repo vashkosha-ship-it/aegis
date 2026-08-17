@@ -1,6 +1,7 @@
 """Book endpoints: catalog (list/CRUD) + Этап 2 (PDF & cover upload/download)."""
 
 import logging
+import posixpath
 from typing import Literal
 
 from fastapi import (
@@ -44,6 +45,22 @@ from app.schemas.book import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _accel_path_for_key(key: str) -> str:
+    """Собрать безопасный путь для X-Accel-Redirect.
+
+    Ключ хранения приходит из БД. Если в нём окажется '..' или ведущий слэш,
+    nginx выйдет за пределы каталога storage и отдаст произвольный файл сервера.
+    Разрешаем только «плоские» относительные пути и URL-экранируем сегменты.
+    """
+    from urllib.parse import quote
+
+    normalized = posixpath.normpath(key.replace("\\", "/").lstrip("/"))
+    if normalized.startswith("..") or normalized.startswith("/") or normalized == ".":
+        logger.error("Suspicious storage key rejected for X-Accel: %r", key)
+        raise HTTPException(status_code=500, detail="Invalid storage key")
+    return "/_protected_pdf/" + quote(normalized)
+
 router = APIRouter(prefix="/books", tags=["books"])
 
 
@@ -685,7 +702,7 @@ async def download_book_pdf(
     storage_backend = getattr(_settings, "STORAGE_BACKEND", "local")
     if storage_backend == "local" and local_path:
         # ключ хранения вида books/pdf/<file>.pdf -> internal location /_protected_pdf/
-        accel_path = "/_protected_pdf/" + book.pdf_storage_key.lstrip("/")
+        accel_path = _accel_path_for_key(book.pdf_storage_key)
         headers = {
             "X-Accel-Redirect": accel_path,
             "Content-Type": "application/pdf",
@@ -885,7 +902,7 @@ async def download_book_cover(
     local_path = getattr(_settings, "STORAGE_LOCAL_PATH", None)
     storage_backend = getattr(_settings, "STORAGE_BACKEND", "local")
     if storage_backend == "local" and local_path:
-        accel_path = "/_protected_pdf/" + key.lstrip("/")
+        accel_path = _accel_path_for_key(key)
         return Response(status_code=200, headers={
             "X-Accel-Redirect": accel_path,
             "Content-Type": media_type,

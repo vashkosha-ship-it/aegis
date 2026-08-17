@@ -378,6 +378,19 @@ async def export_reading_xlsx(
         )
         s["count"] += 1
 
+    def _xl_safe(value):
+        """Защита от formula injection в Excel/LibreOffice.
+
+        Ячейка, начинающаяся с =, +, -, @ или управляющих символов, исполняется
+        как формула при открытии файла. ФИО и названия книг вводят пользователи,
+        поэтому значение обезвреживаем префиксом апострофа.
+        """
+        if not isinstance(value, str):
+            return value
+        if value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
+            return "'" + value
+        return value
+
     wb = Workbook()
 
     # Лист 1: сводка по пользователям
@@ -391,8 +404,8 @@ async def export_reading_xlsx(
         c.fill = header_fill
         c.alignment = Alignment(horizontal="center")
     for i, s in enumerate(sorted(summary.values(), key=lambda x: -x["count"]), start=2):
-        ws1.cell(row=i, column=1, value=s["fio"])
-        ws1.cell(row=i, column=2, value=s["dept"])
+        ws1.cell(row=i, column=1, value=_xl_safe(s["fio"]))
+        ws1.cell(row=i, column=2, value=_xl_safe(s["dept"]))
         ws1.cell(row=i, column=3, value=s["count"])
     ws1.column_dimensions["A"].width = 30
     ws1.column_dimensions["B"].width = 22
@@ -406,9 +419,9 @@ async def export_reading_xlsx(
         c.fill = header_fill
         c.alignment = Alignment(horizontal="center")
     for i, (user, book, when) in enumerate(rows, start=2):
-        ws2.cell(row=i, column=1, value=user.full_name or user.username)
-        ws2.cell(row=i, column=2, value=user.department or "—")
-        ws2.cell(row=i, column=3, value=book.title)
+        ws2.cell(row=i, column=1, value=_xl_safe(user.full_name or user.username))
+        ws2.cell(row=i, column=2, value=_xl_safe(user.department or "—"))
+        ws2.cell(row=i, column=3, value=_xl_safe(book.title))
         ws2.cell(row=i, column=4, value=when.strftime("%Y-%m-%d %H:%M") if when else "")
     ws2.column_dimensions["A"].width = 30
     ws2.column_dimensions["B"].width = 22
