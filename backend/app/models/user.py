@@ -48,19 +48,25 @@ class User(Base):
 
     # Смена email с подтверждением (G/SMTP)
     pending_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    email_change_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    email_change_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     email_change_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Подтверждение email при регистрации
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
-    verify_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    verify_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     verify_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Сброс пароля («забыли пароль»)
-    reset_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    reset_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     reset_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Одобрение аккаунта администратором (второй этап после подтверждения email)
     is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+
+    # Версия токенов: инкремент делает недействительными все ранее выданные
+    # access/refresh токены (смена пароля, сброс пароля, выход со всех устройств).
+    token_version: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False, server_default="0"
+    )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

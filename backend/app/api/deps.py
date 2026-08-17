@@ -49,6 +49,9 @@ async def get_current_user_any(
     user = await db.get(User, user_id)
     if user is None or not user.is_active:
         raise credentials_exc
+    # Токены, выпущенные до смены пароля / выхода со всех устройств, отзываются
+    if int(payload.get("tv", 0)) != user.token_version:
+        raise credentials_exc
     return user
 
 
@@ -96,6 +99,10 @@ async def get_current_user_optional(
             return None
         user_id = int(payload.get("sub"))
         user = await db.get(User, user_id)
-        return user if (user and user.is_active) else None
+        if not user or not user.is_active:
+            return None
+        if int(payload.get("tv", 0)) != user.token_version:
+            return None
+        return user
     except (JWTError, ValueError, TypeError):
         return None

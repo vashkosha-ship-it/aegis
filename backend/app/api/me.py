@@ -4,9 +4,10 @@ from collections.abc import AsyncIterator
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
-from app.core.security import hash_password, verify_password
+from app.core.rate_limit import email_send_limiter, otp_attempt_limiter
+from app.core.security import hash_otp, hash_password, verify_otp, verify_password
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -109,6 +110,9 @@ async def change_my_password(
         raise HTTPException(status_code=400, detail="Пароль должен быть не короче 8 символов")
 
     current.password_hash = hash_password(payload.new_password)
+    # Смена пароля отзывает все ранее выданные токены (все другие устройства
+    # разлогиниваются). Текущему клиенту нужно перелогиниться.
+    current.token_version = (current.token_version or 0) + 1
     await db.commit()
 
     logger.info("User %s changed own password", current.id)
@@ -131,6 +135,7 @@ class EmailChangeConfirm(BaseModel):
 @router.post("/me/email/request", status_code=status.HTTP_202_ACCEPTED)
 async def request_email_change(
     payload: EmailChangeRequest,
+    request: Request,
     current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -145,6 +150,14 @@ async def request_email_change(
     if not verify_password(payload.password, current.password_hash):
         raise HTTPException(status_code=401, detail="Неверный пароль")
 
+    # Не даём заваливать чужой ящик письмами со сменой адреса
+    allowed, wait = email_send_limiter.check_allowed(f"emailchange:{current.id}")
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Слишком много запросов. Попробуйте через {wait} секунд.",
+        )
+
     new_email = payload.new_email.lower().strip()
     if new_email == (current.email or "").lower():
         raise HTTPException(status_code=400, detail="Это уже ваш текущий email")
@@ -156,11 +169,12 @@ async def request_email_change(
 
     code = f"{secrets.randbelow(1000000):06d}"  # 6-значный код
     current.pending_email = new_email
-    current.email_change_code = code
+    current.email_change_code = hash_otp(code)
     current.email_change_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
     await db.commit()
 
     await send_email_change_code(new_email, code)
+    email_send_limiter.record(f"emailchange:{current.id}")
     logger.info("User %s requested email change to %s", current.id, new_email)
     return {"status": "code_sent", "email": new_email}
 
@@ -168,11 +182,20 @@ async def request_email_change(
 @router.post("/me/email/confirm", response_model=UserPublic)
 async def confirm_email_change(
     payload: EmailChangeConfirm,
+    request: Request,
     current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
 ) -> UserPublic:
     """Подтвердить смену email кодом из письма."""
     from datetime import datetime, timezone
+
+    allowed, wait = otp_attempt_limiter.check_allowed(f"emailchange:{current.id}")
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Слишком много попыток ввода кода. Попробуйте через {wait} секунд.",
+        )
+    otp_attempt_limiter.record(f"emailchange:{current.id}")
 
     if not current.pending_email or not current.email_change_code:
         raise HTTPException(status_code=400, detail="Нет активного запроса на смену email")
@@ -184,9 +207,10 @@ async def confirm_email_change(
         await db.commit()
         raise HTTPException(status_code=400, detail="Срок действия кода истёк. Запросите новый.")
 
-    if payload.code.strip() != current.email_change_code:
+    if not verify_otp(payload.code, current.email_change_code):
         raise HTTPException(status_code=400, detail="Неверный код")
 
+    otp_attempt_limiter.reset(f"emailchange:{current.id}")
     current.email = current.pending_email
     current.pending_email = None
     current.email_change_code = None

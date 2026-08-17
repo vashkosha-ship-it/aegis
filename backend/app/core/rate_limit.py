@@ -109,3 +109,48 @@ class AssistantRateLimiter:
 
 
 assistant_limiter = AssistantRateLimiter(max_requests=20, window_seconds=3600)
+
+class ActionRateLimiter:
+    """Универсальный лимитер «не больше N действий за окно» по произвольному ключу.
+
+    Используется для отправки писем (verify/reset/смена email) и для попыток
+    ввода одноразового кода. В отличие от LoginRateLimiter считает ВСЕ попытки,
+    а не только неудачные.
+    """
+
+    def __init__(self, max_actions: int, window_seconds: int) -> None:
+        self.max_actions = max_actions
+        self.window_seconds = window_seconds
+        self._store: dict[str, list[float]] = {}
+        self._lock = Lock()
+
+    def check_allowed(self, key: str) -> tuple[bool, int]:
+        """(allowed, seconds_until_reset)."""
+        now = time.time()
+        with self._lock:
+            history = [t for t in self._store.get(key, []) if now - t < self.window_seconds]
+            self._store[key] = history
+            if len(history) >= self.max_actions:
+                wait = int(self.window_seconds - (now - history[0]))
+                return False, max(wait, 1)
+            return True, 0
+
+    def record(self, key: str) -> None:
+        now = time.time()
+        with self._lock:
+            history = [t for t in self._store.get(key, []) if now - t < self.window_seconds]
+            history.append(now)
+            self._store[key] = history
+
+    def reset(self, key: str) -> None:
+        with self._lock:
+            self._store.pop(key, None)
+
+
+# Отправка писем с кодом: не чаще 3 раз за 15 минут на адрес/IP —
+# иначе чужой почтовый ящик можно завалить письмами, а SMTP-счёт вырастет.
+email_send_limiter = ActionRateLimiter(max_actions=3, window_seconds=900)
+
+# Попытки ввода одноразового кода: 6-значный код перебирается за минуты,
+# поэтому жёстко ограничиваем число проверок.
+otp_attempt_limiter = ActionRateLimiter(max_actions=5, window_seconds=900)
