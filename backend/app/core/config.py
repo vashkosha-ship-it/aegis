@@ -2,7 +2,7 @@
 from functools import lru_cache
 from typing import List
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +26,23 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
 
     CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _split_origins(cls, v):
+        """Принимаем и JSON-массив, и обычную строку через запятую.
+
+        pydantic-settings для List[str] по умолчанию требует JSON, что легко
+        забыть при правке .env, поэтому поддерживаем оба формата:
+            CORS_ORIGINS=https://example.com,https://www.example.com
+            CORS_ORIGINS=["https://example.com"]
+        """
+        if isinstance(v, str):
+            raw = v.strip()
+            if raw.startswith("["):
+                return v  # оставляем стандартный JSON-разбор pydantic
+            return [o.strip() for o in raw.split(",") if o.strip()]
+        return v
 
     # --- Storage (Этап 2) ----------------------------------------------------
     # На Этапе 2 — "local". На Этапе 4 переключим на "s3".
