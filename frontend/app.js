@@ -3734,6 +3734,12 @@ async function generateMissingCoversUI() {
     cancelText: 'Отмена',
     onConfirm: async () => {
       let done = 0, failed = 0;
+      try {
+        await ensurePdfLoaded();
+      } catch (e) {
+        showToast('Не удалось загрузить PDF-движок');
+        return;
+      }
       showToast('Создание обложек запущено…');
       for (const b of candidates) {
         try {
@@ -11651,7 +11657,8 @@ let bulkUploadInProgress = false;
 
 // Рендер первой страницы PDF в JPEG-обложку (клиентская генерация)
 async function generateCoverFromPdf(file) {
-  if (typeof pdfjsLib === 'undefined') return null;
+  try { await ensurePdfLoaded(); } catch (e) { console.warn('pdf.js не загружен:', e); return null; }
+  if (typeof pdfjsLib === 'undefined') { console.warn('pdfjsLib недоступен после ensurePdfLoaded'); return null; }
   try {
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
