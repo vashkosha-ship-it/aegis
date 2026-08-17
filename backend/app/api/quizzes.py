@@ -764,12 +764,26 @@ async def submit_quiz(
 
     all_questions = await _ensure_quiz_for_book(db, book)
 
+    # Сколько вопросов обязан пройти пользователь за попытку. Клиент присылает
+    # question_ids сам, поэтому без этой проверки можно отправить один вопрос,
+    # ответить верно и получить 100% + XP.
+    required_count = min(QUIZ_SERVE_COUNT, len(all_questions))
+
     if payload.question_ids:
         # Скоринг по конкретным вопросам, которые видел пользователь
         if len(payload.answers) != len(payload.question_ids):
             raise HTTPException(
                 status_code=400,
                 detail="answers and question_ids length mismatch",
+            )
+        if len(set(payload.question_ids)) != len(payload.question_ids):
+            raise HTTPException(
+                status_code=400, detail="Duplicate question ids"
+            )
+        if len(payload.question_ids) < required_count:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Expected at least {required_count} questions, got {len(payload.question_ids)}",
             )
         by_id = {q.id: q for q in all_questions}
         graded = []
@@ -804,8 +818,20 @@ async def submit_quiz(
     )
     db.add(attempt)
 
+    # XP начисляем только за ПЕРВУЮ успешную сдачу теста по книге. Иначе тест
+    # можно проходить бесконечно и фармить опыт.
+    already_passed = await db.scalar(
+        select(QuizAttempt.id)
+        .where(
+            QuizAttempt.user_id == current.id,
+            QuizAttempt.book_id == book_id,
+            QuizAttempt.percentage >= 60,
+        )
+        .limit(1)
+    )
+
     # XP — как на фронте: passing 60% = 15 XP, ≥80% = 30 XP
-    if percentage >= 60:
+    if percentage >= 60 and not already_passed:
         await add_xp(db, current, 30 if percentage >= 80 else 15)
         await check_and_award_achievements(db, current, trigger="quiz_completed")
 
