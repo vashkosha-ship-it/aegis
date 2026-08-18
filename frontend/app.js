@@ -9607,7 +9607,17 @@ async function loadEpub(b) {
 }
 
 // ========== PDF READER ==========
+let _pdfLoadToken = 0;          // защита от параллельных/повторных загрузок книги
+let _pdfLoadingTask = null;     // текущая задача pdf.js, чтобы отменить прошлую
+
 async function loadPdf(b) {
+  // Повторный вызов (двойной тап, перерисовка) прерывал уже открытую книгу и
+  // начинал качать её заново — отсюда «вечный» спиннер поверх готовой страницы.
+  const myToken = ++_pdfLoadToken;
+  if (_pdfLoadingTask) {
+    try { _pdfLoadingTask.destroy(); } catch (_) {}
+    _pdfLoadingTask = null;
+  }
   isEpubMode = false;
   document.getElementById('epubViewport').classList.add('hidden');
   document.getElementById('pdfViewport').classList.remove('hidden');
@@ -9688,7 +9698,9 @@ async function loadPdf(b) {
 
     // Прогресс загрузки: на медленной сети показываем проценты вместо
     // бесконечного спиннера.
+    _pdfLoadingTask = loadingTask;
     loadingTask.onProgress = ({ loaded, total }) => {
+      if (myToken !== _pdfLoadToken) return;   // загрузка устарела
       const box = document.getElementById('pdfPlaceholder');
       if (!box || box.classList.contains('hidden')) return;
       if (total && total > 0) {
@@ -9697,7 +9709,9 @@ async function loadPdf(b) {
       }
     };
 
-    pdfDoc = await loadingTask.promise;
+    const loadedDoc = await loadingTask.promise;
+    if (myToken !== _pdfLoadToken) { try { loadedDoc.destroy(); } catch (_) {} return; }
+    pdfDoc = loadedDoc;
 
     pdfTotalPages = pdfDoc.numPages;
     if (!state.readingProgress[b.id]) {
