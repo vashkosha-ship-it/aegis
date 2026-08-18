@@ -9676,7 +9676,9 @@ async function loadPdf(b) {
         httpHeaders: cfg.httpHeaders,
         withCredentials: cfg.withCredentials,
         rangeChunkSize: 1048576,       // 1 МБ на чанк — меньше round-trip'ов
-        disableAutoFetch: false,      
+        // false — иначе pdf.js не может подтянуть нужные объекты через Range
+        // и сваливается в полную загрузку файла.
+        disableAutoFetch: false,
         // Ключевое для больших книг: без этого pdf.js открывает полный поток
         // и тянет весь файл (144 МБ), несмотря на Range-поддержку сервера.
         disableStream: true,
