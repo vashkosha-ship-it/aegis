@@ -9611,13 +9611,13 @@ let _pdfLoadToken = 0;          // защита от параллельных/п
 let _pdfLoadingTask = null;     // текущая задача pdf.js, чтобы отменить прошлую
 
 async function loadPdf(b) {
-  // Повторный вызов (двойной тап, перерисовка) прерывал уже открытую книгу и
-  // начинал качать её заново — отсюда «вечный» спиннер поверх готовой страницы.
+  // Повторный вызов (двойной тап, перерисовка) не должен перетирать уже
+  // открытую книгу — актуальность загрузки проверяем по токену.
+  //
+  // ВАЖНО: не вызывать destroy() у предыдущей задачи. pdf.js использует один
+  // общий worker на все документы, и destroy() убивает его целиком — следующая
+  // книга падает с «Worker was terminated» и висит на спиннере навсегда.
   const myToken = ++_pdfLoadToken;
-  if (_pdfLoadingTask) {
-    try { _pdfLoadingTask.destroy(); } catch (_) {}
-    _pdfLoadingTask = null;
-  }
   isEpubMode = false;
   document.getElementById('epubViewport').classList.add('hidden');
   document.getElementById('pdfViewport').classList.remove('hidden');
