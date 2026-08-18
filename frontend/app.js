@@ -9675,11 +9675,26 @@ async function loadPdf(b) {
         url: cfg.url,
         httpHeaders: cfg.httpHeaders,
         withCredentials: cfg.withCredentials,
-        rangeChunkSize: 262144,       // 256 КБ на чанк
+        rangeChunkSize: 1048576,       // 1 МБ на чанк — меньше round-trip'ов
         disableAutoFetch: true,        // не докачивать весь файл в фоне
-        disableStream: false,
+        // Ключевое для больших книг: без этого pdf.js открывает полный поток
+        // и тянет весь файл (144 МБ), несмотря на Range-поддержку сервера.
+        disableStream: true,
+        disableRange: false,
       });
     }
+
+    // Прогресс загрузки: на медленной сети показываем проценты вместо
+    // бесконечного спиннера.
+    loadingTask.onProgress = ({ loaded, total }) => {
+      const box = document.getElementById('pdfPlaceholder');
+      if (!box || box.classList.contains('hidden')) return;
+      if (total && total > 0) {
+        const pct = Math.min(99, Math.round(loaded / total * 100));
+        box.innerHTML = loadingSpinnerHTML(`Загрузка книги… ${pct}%`);
+      }
+    };
+
     pdfDoc = await loadingTask.promise;
 
     pdfTotalPages = pdfDoc.numPages;
