@@ -5,7 +5,8 @@ import io
 import json
 import logging
 import random
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -18,6 +19,7 @@ from app.db.session import get_db
 from app.models.book import Book, Category, book_categories
 from app.models.book_page import BookPage
 from app.models.certificate import Certificate
+from app.models.exam_session import ExamSession
 from app.models.user import User
 from app.services.deepseek_client import chat_completion, DeepSeekError
 
@@ -27,9 +29,7 @@ router = APIRouter(prefix="/certificates", tags=["certificates"])
 PASS_THRESHOLD = 85  # процент для прохождения
 NUM_QUESTIONS = 50
 
-# Кэш активных экзаменов в памяти: {token: {"category":..., "questions":[...], "correct":[...]}}
-# Простое решение без таблицы — экзамен живёт в рамках сессии процесса.
-_active_exams: dict[str, dict] = {}
+EXAM_TTL_MINUTES = 120  # столько живёт выданный экзамен
 
 
 class StartExamRequest(BaseModel):
@@ -204,17 +204,16 @@ async def start_exam(
     questions = questions[:NUM_QUESTIONS]
     correct = correct[:NUM_QUESTIONS]
 
-    import secrets
-    token = secrets.token_urlsafe(16)
-    _active_exams[token] = {
-        "user_id": current.id,
-        "category": payload.category,
-        "correct": correct,
-        "total": len(questions),
-    }
-    if len(_active_exams) > 500:
-        for k in list(_active_exams.keys())[:100]:
-            _active_exams.pop(k, None)
+    token = secrets.token_urlsafe(32)
+    db.add(ExamSession(
+        token=token,
+        user_id=current.id,
+        category=payload.category,
+        correct=correct,
+        total=len(questions),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=EXAM_TTL_MINUTES),
+    ))
+    await db.commit()
 
     return StartExamResponse(
         exam_token=token,
@@ -230,18 +229,46 @@ async def submit_exam(
     current: User = Depends(get_current_user),
 ) -> SubmitExamResponse:
     """Проверить ответы. При >=85% выдать сертификат (если ФИО заполнено)."""
-    exam = _active_exams.get(payload.exam_token)
-    if not exam or exam["user_id"] != current.id:
+    exam = await db.scalar(
+        select(ExamSession).where(ExamSession.token == payload.exam_token)
+    )
+    # Одинаковая ошибка для «не найден», «чужой» и «истёк» — не раскрываем,
+    # существует ли токен.
+    if not exam or exam.user_id != current.id:
         raise HTTPException(status_code=404, detail="Экзамен не найден или истёк")
 
-    correct = exam["correct"]
-    total = exam["total"]
-    answers = payload.answers
-    correct_count = sum(
-        1 for i, ci in enumerate(correct) if i < len(answers) and answers[i] == ci
-    )
-    score = round(correct_count / total * 100) if total else 0
-    passed = score >= PASS_THRESHOLD
+    expires = exam.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires:
+        raise HTTPException(status_code=404, detail="Экзамен не найден или истёк")
+
+    if exam.submitted_at is None:
+        # Первая (и единственная) проверка ответов. Результат фиксируем в БД:
+        # повторный submit вернёт его же и НЕ будет пересчитывать новые ответы —
+        # иначе по correct_count можно было бы подобрать правильные варианты.
+        answers = payload.answers
+        correct = exam.correct or []
+        total = exam.total
+        correct_count = sum(
+            1 for i, ci in enumerate(correct) if i < len(answers) and answers[i] == ci
+        )
+        score = round(correct_count / total * 100) if total else 0
+        passed = score >= PASS_THRESHOLD
+
+        exam.submitted_at = datetime.now(timezone.utc)
+        exam.score = score
+        exam.correct_count = correct_count
+        exam.passed = passed
+        await db.commit()
+    else:
+        # Повторный вызов — возвращаем зафиксированный результат. Легитимный
+        # сценарий: пользователь прошёл, но не было заполнено ФИО, заполнил и
+        # отправил форму ещё раз.
+        score = exam.score or 0
+        correct_count = exam.correct_count or 0
+        total = exam.total
+        passed = bool(exam.passed)
 
     if not passed:
         return SubmitExamResponse(
@@ -258,7 +285,7 @@ async def submit_exam(
     # Выдаём сертификат (или обновляем, если уже был по этой теме с меньшим баллом)
     existing = await db.scalar(
         select(Certificate).where(
-            Certificate.user_id == current.id, Certificate.category == exam["category"]
+            Certificate.user_id == current.id, Certificate.category == exam.category
         )
     )
     if existing:
@@ -268,12 +295,11 @@ async def submit_exam(
     else:
         db.add(Certificate(
             user_id=current.id,
-            category=exam["category"],
+            category=exam.category,
             score=score,
             full_name=current.full_name.strip(),
         ))
     await db.commit()
-    _active_exams.pop(payload.exam_token, None)
 
     return SubmitExamResponse(
         score=score, passed=True, correct_count=correct_count, total=total
