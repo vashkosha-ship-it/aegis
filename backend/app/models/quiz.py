@@ -1,50 +1,51 @@
-"""Сессия прохождения теста по книге.
-
-Раньше клиент сам присылал `question_ids` вместе с ответами, то есть сервер
-верил на слово, на какой набор вопросов отвечает пользователь. Проверки на
-количество и дубли закрывали грубые случаи, но подменить состав вопросов
-(например, выбрать 15 самых лёгких из пула) было по-прежнему можно.
-
-Теперь набор фиксируется на сервере при выдаче теста: GET /quiz создаёт
-сессию и возвращает её id, а POST /quiz/submit принимает только id сессии и
-ответы. Сама сессия одноразовая — повторная отправка вернёт зафиксированный
-результат, а не пересчитает новые ответы.
-"""
+"""Quiz questions and user attempts — replaces state.quizData / state.completedQuizzes."""
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.db.session import Base
 
 
-class QuizSession(Base):
-    __tablename__ = "quiz_sessions"
+class QuizQuestion(Base):
+    """A single quiz question for a book."""
+    __tablename__ = "quiz_questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    token: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
-    )
-    book_id: Mapped[int] = mapped_column(
-        ForeignKey("books.id", ondelete="CASCADE"), index=True, nullable=False
-    )
+    book_id: Mapped[int] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
 
-    # id вопросов в том порядке, в котором они были отданы клиенту
-    question_ids: Mapped[list] = mapped_column(JSON, nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    # хранится как JSON массив строк
+    options: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    correct_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 'static' — захардкожено, 'ai' — сгенерировано LLM (Этап 3)
+    source: Mapped[str] = mapped_column(Text, default="static", nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    # Результат первой отправки — фиксируется, чтобы повторный submit не
-    # позволял подбирать ответы по возвращаемому score.
-    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    score: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    percentage: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    xp_awarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    book: Mapped["Book"] = relationship(back_populates="quiz_questions")
 
-    def __repr__(self) -> str:
-        return f"<QuizSession book={self.book_id} user={self.user_id} used={bool(self.submitted_at)}>"
+
+class QuizAttempt(Base):
+    """Record of a user's quiz attempt."""
+    __tablename__ = "quiz_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    book_id: Mapped[int] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
+
+    score: Mapped[int] = mapped_column(Integer, nullable=False)
+    total: Mapped[int] = mapped_column(Integer, nullable=False)
+    percentage: Mapped[int] = mapped_column(Integer, nullable=False)
+    # массив выбранных индексов: [-1, 2, 0, ...]
+    answers: Mapped[list[int]] = mapped_column(JSON, default=list, nullable=False)
+
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    user: Mapped["User"] = relationship(back_populates="quiz_attempts")
+    book: Mapped["Book"] = relationship()
