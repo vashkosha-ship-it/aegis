@@ -353,7 +353,14 @@
         return request('/annotations/' + annotationId, { method: 'DELETE' });
       },
       // Quizzes
-      quiz(bookId) { return request('/books/' + bookId + '/quiz'); },
+      // Возвращает { questions, sessionToken }. Токен сессии сервер отдаёт
+      // заголовком X-Quiz-Session — он привязывает набор вопросов к попытке,
+      // чтобы клиент не мог подменить состав при отправке.
+      async quiz(bookId) {
+        const resp = await request('/books/' + bookId + '/quiz', { raw: true });
+        const questions = await resp.json();
+        return { questions, sessionToken: resp.headers.get('X-Quiz-Session') || null };
+      },
       regenerateQuiz(bookId) { return request('/books/' + bookId + '/quiz/regenerate', { method: 'POST' }); },
       regenerateAllQuizzes() { return request('/books/quiz/regenerate-all', { method: 'POST' }); },
       // Collaborative filtering: «также читают»
@@ -390,8 +397,9 @@
       bookComments(bookId) { return request('/books/' + bookId + '/comments'); },
       addBookComment(bookId, text, parentId) { return request('/books/' + bookId + '/comments', { method: 'POST', body: { text, parent_id: parentId || null } }); },
       deleteBookComment(bookId, commentId) { return request('/books/' + bookId + '/comments/' + commentId, { method: 'DELETE' }); },
-      submitQuiz(bookId, answers, questionIds) {
+      submitQuiz(bookId, answers, questionIds, sessionToken) {
         const body = { answers };
+        if (sessionToken) body.session_token = sessionToken;
         if (questionIds) body.question_ids = questionIds;
         return request('/books/' + bookId + '/quiz/submit', {
           method: 'POST',

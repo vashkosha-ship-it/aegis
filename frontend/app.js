@@ -4562,7 +4562,6 @@ function renderQuizQuestion() {
 function nextQuestion() { if (currentQuiz.currentIndex < currentQuiz.questions.length - 1) { currentQuiz.currentIndex++; renderQuizQuestion(); } }
 function prevQuestion() { if (currentQuiz.currentIndex > 0) { currentQuiz.currentIndex--; renderQuizQuestion(); } }
 
-const quizCache = {};
 
 async function loadCompletedQuizzesFromApi() {
   if (!state.currentUser) return false;
@@ -4581,18 +4580,18 @@ async function loadCompletedQuizzesFromApi() {
 }
 
 async function fetchQuizForBook(bookId) {
-  if (quizCache[bookId]) return quizCache[bookId];
+  // Кэш убран намеренно: каждый заход в тест должен открывать новую сессию на
+  // сервере, иначе повторная сдача упрётся в «сессия уже использована».
   try {
-    const questions = await api.library.quiz(bookId);
-    quizCache[bookId] = questions;
-    return questions;
+    const data = await api.library.quiz(bookId);
+    return data;
   } catch (err) {
     console.error('Не удалось загрузить тест для книги', bookId, err);
     const msg = (err && err.status)
       ? `Ошибка теста (${err.status}${err.detail ? ': ' + err.detail : ''})`
       : 'Не удалось загрузить тест';
     showToast(msg);
-    return [];
+    return { questions: [], sessionToken: null };
   }
 }
 
@@ -4600,11 +4599,12 @@ async function startQuiz(bookId) {
   // Показываем спиннер, пока грузятся/генерируются вопросы (может быть долго при AI-генерации)
   const c = document.getElementById('detailTabTraining');
   if (c) c.innerHTML = loadingSpinnerHTML('Готовим тест…');
-  const questions = await fetchQuizForBook(bookId);
+  const { questions, sessionToken } = await fetchQuizForBook(bookId);
   if (!questions.length) return showToast('Нет вопросов теста');
 
   currentQuiz = {
     bookId,
+    sessionToken,
     questions: questions.map(q => ({
       q: q.question,
       options: q.options,
@@ -4627,7 +4627,6 @@ function startCombinedQuiz(bookIds) {
 async function retakeQuiz(bookId) {
   const c = document.getElementById('detailTabTraining');
   if (c) c.innerHTML = loadingSpinnerHTML('Готовим новый тест…');
-  delete quizCache[bookId];
   return startQuiz(bookId);
 }
 
@@ -4644,7 +4643,9 @@ async function finishQuiz() {
   let result;
   try {
     const questionIds = currentQuiz.questions.map(q => q._id);
-    result = await api.library.submitQuiz(currentQuiz.bookId, cleanAnswers, questionIds);
+    result = await api.library.submitQuiz(
+      currentQuiz.bookId, cleanAnswers, questionIds, currentQuiz.sessionToken
+    );
   } catch (err) {
     if (err instanceof api.ApiError) showToast('Ошибка: ' + (err.detail || err.status));
     else showToast('Сервер недоступен');
@@ -8507,7 +8508,6 @@ async function regenerateBookQuiz(bookId) {
   if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Генерация…'; }
   try {
     const questions = await api.library.regenerateQuiz(bookId);
-    delete quizCache[bookId];
     showToast(`Тест пересоздан: ${questions.length} вопросов`);
     startQuiz(bookId);
   } catch (err) {
@@ -9710,7 +9710,7 @@ async function loadPdf(b) {
     };
 
     const loadedDoc = await loadingTask.promise;
-    if (myToken !== _pdfLoadToken) { try { loadedDoc.destroy(); } catch (_) {} return; }
+    if (myToken !== _pdfLoadToken) return;   // пока грузили, открыли другую книгу
     pdfDoc = loadedDoc;
 
     pdfTotalPages = pdfDoc.numPages;
