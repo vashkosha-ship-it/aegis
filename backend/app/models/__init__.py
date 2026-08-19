@@ -7,6 +7,7 @@ from app.models.book_page import BookPage
 from app.models.certificate import Certificate
 from app.models.chat import ChatMessage, ChatSession
 from app.models.collection import Collection, collection_books
+from app.models.exam_session import ExamSession   
 from app.models.library import (
     Annotation,
     AnnotationType,
@@ -32,6 +33,7 @@ __all__ = [
     "ChatSession",
     "Collection",
     "DailyPagesRead",
+    "ExamSession",
     "MyListEntry",
     "MyListStatus",
     "QuizAttempt",
