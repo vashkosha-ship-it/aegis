@@ -2,8 +2,10 @@
 import json
 import logging
 import random
+import secrets
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.orm import selectinload
@@ -13,6 +15,7 @@ from app.api.deps import get_current_admin, get_current_user
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.quiz import QuizAttempt, QuizQuestion
+from app.models.quiz_session import QuizSession
 from app.models.user import User
 from app.schemas.quiz import (
     QuizAttemptPublic,
@@ -663,13 +666,21 @@ async def _ensure_quiz_for_book(db: AsyncSession, book: Book) -> list[QuizQuesti
     return new_questions
 
 
+QUIZ_SESSION_TTL_MINUTES = 180  # столько живёт выданный набор вопросов
+
+
 @router.get("/books/{book_id}/quiz", response_model=list[QuizQuestionPublic])
 async def get_quiz(
     book_id: int,
+    response: Response,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ) -> list[QuizQuestionPublic]:
-    """Return quiz questions for a book (without correct answers)."""
+    """Выдать набор вопросов (без правильных ответов) и открыть сессию.
+
+    Состав вопросов запоминается на сервере — клиент при отправке присылает
+    только токен сессии, подменить набор нельзя.
+    """
     book = (
         await db.scalars(
             select(Book).options(selectinload(Book.categories)).where(Book.id == book_id)
@@ -678,7 +689,22 @@ async def get_quiz(
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     questions = await _ensure_quiz_for_book(db, book)
-    return [QuizQuestionPublic.model_validate(q) for q in _select_questions(questions)]
+    served = _select_questions(questions)
+
+    token = secrets.token_urlsafe(32)
+    db.add(QuizSession(
+        token=token,
+        user_id=current.id,
+        book_id=book_id,
+        question_ids=[q.id for q in served],
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=QUIZ_SESSION_TTL_MINUTES),
+    ))
+    await db.commit()
+
+    # Токен отдаём заголовком, а не в теле: так формат ответа не меняется и
+    # уже установленные PWA со старым app.js продолжают работать.
+    response.headers["X-Quiz-Session"] = token
+    return [QuizQuestionPublic.model_validate(q) for q in served]
 
 
 @router.post("/books/{book_id}/quiz/regenerate", response_model=list[QuizQuestionPublic])
@@ -733,12 +759,15 @@ async def regenerate_all_quizzes(
 class QuizSubmitIn(BaseModel):
     """Ответы пользователя.
 
-    answers — выбранные индексы вариантов в том же порядке, в котором
-    вопросы пришли с GET /quiz. question_ids — id этих вопросов в том же
-    порядке (нужно, т.к. тест отдаётся случайной выборкой/перемешиванием).
-    question_ids опционален ради обратной совместимости со старым клиентом.
+    answers — выбранные индексы вариантов в том же порядке, в котором вопросы
+    пришли с GET /quiz. session_token — токен сессии оттуда же: именно он
+    определяет, какие вопросы засчитываются.
+
+    question_ids оставлен только для обратной совместимости со старым клиентом
+    (кэш браузера, установленная PWA) и игнорируется, если есть session_token.
     """
     answers: list[int]
+    session_token: str | None = None
     question_ids: list[int] | None = None
 
 
@@ -764,12 +793,44 @@ async def submit_quiz(
 
     all_questions = await _ensure_quiz_for_book(db, book)
 
-    # Сколько вопросов обязан пройти пользователь за попытку. Клиент присылает
-    # question_ids сам, поэтому без этой проверки можно отправить один вопрос,
-    # ответить верно и получить 100% + XP.
+    # Сколько вопросов обязан пройти пользователь за попытку.
     required_count = min(QUIZ_SERVE_COUNT, len(all_questions))
 
-    if payload.question_ids:
+    session: QuizSession | None = None
+    if payload.session_token:
+        session = await db.scalar(
+            select(QuizSession).where(QuizSession.token == payload.session_token)
+        )
+        if not session or session.user_id != current.id or session.book_id != book_id:
+            raise HTTPException(status_code=404, detail="Quiz session not found")
+
+        expires = session.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires:
+            raise HTTPException(status_code=404, detail="Quiz session expired")
+
+        if session.submitted_at is not None:
+            # Повторная отправка: возвращаем зафиксированный результат, не
+            # пересчитывая ответы — иначе по score можно подбирать правильные.
+            raise HTTPException(
+                status_code=409,
+                detail="Quiz session already submitted",
+            )
+
+        by_id = {q.id: q for q in all_questions}
+        graded = []
+        for qid in session.question_ids:
+            q = by_id.get(qid)
+            if q is None:
+                raise HTTPException(status_code=409, detail="Quiz questions changed, restart the quiz")
+            graded.append(q)
+        if len(payload.answers) != len(graded):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Expected {len(graded)} answers, got {len(payload.answers)}",
+            )
+    elif payload.question_ids:
         # Скоринг по конкретным вопросам, которые видел пользователь
         if len(payload.answers) != len(payload.question_ids):
             raise HTTPException(
@@ -834,6 +895,14 @@ async def submit_quiz(
     if percentage >= 60 and not already_passed:
         await add_xp(db, current, 30 if percentage >= 80 else 15)
         await check_and_award_achievements(db, current, trigger="quiz_completed")
+        if session is not None:
+            session.xp_awarded = True
+
+    # Помечаем сессию использованной — второй раз этот набор не сдать.
+    if session is not None:
+        session.submitted_at = datetime.now(timezone.utc)
+        session.score = score
+        session.percentage = percentage
 
     await db.commit()
     await db.refresh(attempt)
