@@ -53,10 +53,32 @@ async def update_progress(
     db: AsyncSession = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> ReadingProgressPublic:
-    """Update or create reading progress for a book. Awards XP on first start."""
+    """Обновить прогресс чтения. Начисляет XP при первом открытии книги.
+
+    Значения страниц приходят от клиента, поэтому проверяются на сервере:
+    без этого можно было прислать current_page=999999 и накрутить дневную
+    статистику, стрик и достижения.
+    """
     book = await db.get(Book, book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
+
+    # Верхняя граница: сколько страниц в книге на самом деле. Если сервер не
+    # знает (PDF ещё не проиндексирован), доверяем присланному total_pages,
+    # но не даём выйти за разумный предел.
+    MAX_PAGES = 20000
+    known_total = book.total_pages or 0
+    claimed_total = payload.total_pages or known_total or 1
+
+    if claimed_total < 1 or claimed_total > MAX_PAGES:
+        raise HTTPException(status_code=400, detail="Некорректное число страниц")
+
+    total_pages = known_total if known_total > 0 else claimed_total
+    if payload.current_page < 1 or payload.current_page > total_pages:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Страница вне диапазона книги (1–{total_pages})",
+        )
 
     progress = await db.scalar(
         select(ReadingProgress).where(
@@ -70,7 +92,7 @@ async def update_progress(
             user_id=current.id,
             book_id=book_id,
             current_page=payload.current_page,
-            total_pages=payload.total_pages or book.total_pages or 1,
+            total_pages=total_pages,
             started=True,
         )
         db.add(progress)
@@ -78,8 +100,7 @@ async def update_progress(
     else:
         previous_page = progress.current_page
         progress.current_page = payload.current_page
-        if payload.total_pages:
-            progress.total_pages = payload.total_pages
+        progress.total_pages = total_pages
         if not progress.started:
             progress.started = True
             is_first_start = True
@@ -103,6 +124,36 @@ async def update_progress(
         await add_xp(db, current, 10)
         await update_streak(db, current)
         await check_and_award_achievements(db, current, trigger="reading_started")
+
+    # Книга считается дочитанной, когда пользователь дошёл до последней
+    # страницы. Раньше достижение «дочитал книгу» висело на отметке в списке
+    # («Прочитано»), которую можно поставить не открывая книгу.
+    just_finished = (
+        total_pages > 1
+        and payload.current_page >= total_pages
+        and not progress.finished_at
+    )
+    if just_finished:
+        progress.finished_at = datetime.now(timezone.utc)
+
+        # Синхронизируем со списком: если книга дочитана по страницам, она
+        # должна быть «Прочитано» и в списке пользователя. Иначе счётчики
+        # достижений и карточка книги расходятся.
+        entry = await db.scalar(
+            select(MyListEntry).where(
+                MyListEntry.user_id == current.id,
+                MyListEntry.book_id == book_id,
+            )
+        )
+        if entry:
+            entry.status = MyListStatus.COMPLETED
+        else:
+            db.add(MyListEntry(
+                user_id=current.id, book_id=book_id, status=MyListStatus.COMPLETED
+            ))
+
+        await add_xp(db, current, 25)
+        await check_and_award_achievements(db, current, trigger="book_completed")
 
     await db.commit()
     await db.refresh(progress)
