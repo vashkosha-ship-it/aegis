@@ -8762,20 +8762,25 @@ function clearCachedUser() {
 // Данные, привязанные к конкретному аккаунту. При выходе их нужно стереть:
 // иначе следующий пользователь на том же устройстве увидит чужой прогресс
 // чтения, закладки и заметки.
-const USER_SCOPED_KEYS = [
-  CACHED_USER_KEY,
-  SYNC_QUEUE_KEY,
-  PAGE_BOOKMARKS_KEY,
-  SRS_KEY,
-  TOC_READ_KEY,
-  FAV_CATS_KEY,
-  READING_GOAL_KEY,
-  BOOKS_GOAL_KEY,
-  REVIEW_PROMPT_KEY,
-];
+// Список собирается ВНУТРИ функции, а не на верхнем уровне: часть ключей
+// объявлена ниже по файлу, и обращение к ним при загрузке скрипта роняло
+// весь app.js («Cannot access before initialization»).
+function userScopedKeys() {
+  return [
+    CACHED_USER_KEY,
+    SYNC_QUEUE_KEY,
+    PAGE_BOOKMARKS_KEY,
+    SRS_KEY,
+    TOC_READ_KEY,
+    FAV_CATS_KEY,
+    READING_GOAL_KEY,
+    BOOKS_GOAL_KEY,
+    REVIEW_PROMPT_KEY,
+  ];
+}
 
 async function clearUserScopedData() {
-  for (const key of USER_SCOPED_KEYS) {
+  for (const key of userScopedKeys()) {
     lsRemove(key);
     try { localStorage.removeItem(key); } catch (_) {}  // и старый общий ключ
   }
