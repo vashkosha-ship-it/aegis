@@ -20,7 +20,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from app.api.deps import get_current_admin, get_current_user, get_current_user_optional, get_approved_user
+from app.api.deps import get_current_admin, get_current_user, get_approved_user
 from app.core.config import settings
 from app.core.file_validation import (
     FileValidationError,
@@ -55,7 +55,13 @@ def _accel_path_for_key(key: str) -> str:
     """
     from urllib.parse import quote
 
-    normalized = posixpath.normpath(key.replace("\\", "/").lstrip("/"))
+    raw = key.replace("\\", "/")
+    # Абсолютный путь в ключе — признак битых данных: молча превращать его в
+    # относительный опасно, лучше отказать.
+    if raw.startswith("/"):
+        logger.error("Suspicious storage key rejected for X-Accel: %r", key)
+        raise HTTPException(status_code=500, detail="Invalid storage key")
+    normalized = posixpath.normpath(raw)
     if normalized.startswith("..") or normalized.startswith("/") or normalized == ".":
         logger.error("Suspicious storage key rejected for X-Accel: %r", key)
         raise HTTPException(status_code=500, detail="Invalid storage key")
@@ -152,14 +158,14 @@ async def _stream_remainder(
 @router.get("", response_model=BookListResponse)
 async def list_books(
     db: AsyncSession = Depends(get_db),
-    _: User | None = Depends(get_current_user_optional),
+    _: User = Depends(get_current_user),
     q: str | None = Query(None, description="Search by title/author"),
      category: str | None = Query(None, description="Фильтр по имени категории"),
     sort: Literal["default", "rating", "title", "date_added", "date_published"] = "default",
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
 ) -> BookListResponse:
-    """List books with search, filter, sort, pagination. Public endpoint."""
+    """Каталог книг. Доступен только одобренным авторизованным пользователям."""
     stmt = select(Book).options(selectinload(Book.categories))
     count_stmt = select(func.count(Book.id))
 
@@ -198,11 +204,11 @@ async def list_books(
 async def get_book(
     book_id: int,
     db: AsyncSession = Depends(get_db),
-    current: User | None = Depends(get_current_user_optional),
+    current: User = Depends(get_current_user),
 ) -> BookPublic:
-    """Retrieve a book and increment view counter."""
+    """Карточка книги. Доступна только одобренным пользователям."""
     book = await _get_book_or_404(db, book_id)
-    if current and current.role.value != "admin":
+    if current.role.value != "admin":
         book.views += 1
         await db.commit()
         await db.refresh(book)

@@ -877,10 +877,9 @@ async def submit_quiz(
         percentage=percentage,
         answers=payload.answers,
     )
-    db.add(attempt)
-
-    # XP начисляем только за ПЕРВУЮ успешную сдачу теста по книге. Иначе тест
-    # можно проходить бесконечно и фармить опыт.
+    # ВАЖНО: проверяем ДО db.add(attempt). Иначе autoflush запишет текущую
+    # попытку раньше запроса, она сама попадёт в выборку — и XP не начислится
+    # никогда, даже за первую сдачу.
     already_passed = await db.scalar(
         select(QuizAttempt.id)
         .where(
@@ -890,6 +889,8 @@ async def submit_quiz(
         )
         .limit(1)
     )
+
+    db.add(attempt)
 
     # XP — как на фронте: passing 60% = 15 XP, ≥80% = 30 XP
     if percentage >= 60 and not already_passed:
