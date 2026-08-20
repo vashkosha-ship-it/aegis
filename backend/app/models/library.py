@@ -45,6 +45,11 @@ class ReadingProgress(Base):
     current_page: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     total_pages: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     started: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Момент реального дочитывания (дошёл до последней страницы).
+    # Отличается от статуса «Прочитано» в списке, который ставится вручную.
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     last_read_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
