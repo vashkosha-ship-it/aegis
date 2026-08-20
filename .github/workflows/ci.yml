@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    # Тесты работают с настоящей PostgreSQL: у нас JSON-колонки и enum,
+    # на SQLite они ведут себя иначе и тест может пройти там, где прод упадёт.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: neon
+          POSTGRES_PASSWORD: neon_password
+          POSTGRES_DB: neon_stack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://neon:neon_password@localhost:5432/neon_stack
+      DATABASE_URL_SYNC: postgresql+psycopg2://neon:neon_password@localhost:5432/neon_stack
+      SECRET_KEY: ci-test-secret-key-not-used-in-production
+      DEBUG: "false"
+      CORS_ORIGINS: http://localhost:5173
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Установить зависимости
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx ruff
+
+      - name: Ruff (линтер)
+        # Пока не блокирует сборку: в коде накопились замечания, которые
+        # разбираются отдельно. Убрать continue-on-error, когда почистим.
+        run: ruff check app tests
+        continue-on-error: true
+
+      - name: Тесты
+        run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Проверка синтаксиса JS
+        # Полноценного сборщика у фронта нет, но синтаксическую ошибку
+        # в app.js/api.js/sw.js поймать стоит — она кладёт весь интерфейс.
+        run: |
+          for f in app.js api.js sw.js offline-storage.js; do
+            if [ -f "$f" ]; then
+              echo "Проверяю $f"
+              node --check "$f"
+            fi
+          done
