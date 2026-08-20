@@ -3120,13 +3120,13 @@ const REVIEW_PROMPT_KEY = 'aegis_review_prompted';
 let _finishReviewRating = 0;
 
 function _getReviewPrompted() {
-  try { return JSON.parse(localStorage.getItem(REVIEW_PROMPT_KEY) || '{}'); }
+  try { return JSON.parse(lsGet(REVIEW_PROMPT_KEY) || '{}'); }
   catch (_) { return {}; }
 }
 function _markReviewPrompted(bookId) {
   const o = _getReviewPrompted();
   o[bookId] = 1;
-  try { localStorage.setItem(REVIEW_PROMPT_KEY, JSON.stringify(o)); } catch (_) {}
+  lsSet(REVIEW_PROMPT_KEY, JSON.stringify(o));
 }
 
 // Вызывается из updatePageIndicator при каждом переходе по страницам.
@@ -5515,9 +5515,9 @@ function logout() {
     confirmText: 'Выйти',
     cancelText: 'Отмена',
     danger: true,
-    onConfirm: () => {
+    onConfirm: async () => {
       api.logout();      clearNoteKey(); stopSyncPolling();
-      clearCachedUser();
+      await clearUserScopedData();
       state.currentUser = null;
       navigateTo('auth');
       showToast('Вы вышли из аккаунта');
@@ -6379,7 +6379,7 @@ function renderHome() {
   renderBookScroll('scrollPopular', [...sorted].sort((a, b) => b.popularity - a.popularity).slice(0, 5), q);
   renderPaginatedBooks('scrollAll', sorted, q);
   setHomeBooksTab(state.homeBooksTab || 'popular');
-  renderResumeReading();
+  // renderResumeReading() убран: дублировал секцию «Продолжить»
   renderBooksGoalWidget();
   renderFavCategories();
   renderRecommendations();
@@ -6466,9 +6466,9 @@ function renderResumeReading() {
 // ===== A3: Избранные категории =====
 const FAV_CATS_KEY = 'aegis_fav_categories';
 function getFavCategories() {
-  try { return JSON.parse(localStorage.getItem(FAV_CATS_KEY) || '[]'); } catch (_) { return []; }
+  try { return JSON.parse(lsGet(FAV_CATS_KEY) || '[]'); } catch (_) { return []; }
 }
-function saveFavCategories(arr) { localStorage.setItem(FAV_CATS_KEY, JSON.stringify(arr)); }
+function saveFavCategories(arr) { lsSet(FAV_CATS_KEY, JSON.stringify(arr)); }
 function toggleFavCategory(cat) {
   const favs = getFavCategories();
   const i = favs.indexOf(cat);
@@ -7419,7 +7419,7 @@ const READING_GOAL_KEY = 'aegis_reading_goal';
 // --- Цель по книгам за период (#10 целей) ---
 const BOOKS_GOAL_KEY = 'aegis_books_goal';
 function getBooksGoal() {
-  try { return JSON.parse(localStorage.getItem(BOOKS_GOAL_KEY) || 'null'); } catch (_) { return null; }
+  try { return JSON.parse(lsGet(BOOKS_GOAL_KEY) || 'null'); } catch (_) { return null; }
 }
 function saveBooksGoalFromUI() {
   const input = document.getElementById('booksGoalCount');
@@ -7430,8 +7430,8 @@ function saveBooksGoalFromUI() {
 }
 
 function setBooksGoal(count, period) {
-  if (!count) { localStorage.removeItem(BOOKS_GOAL_KEY); }
-  else { localStorage.setItem(BOOKS_GOAL_KEY, JSON.stringify({ count, period, since: new Date().toISOString() })); }
+  if (!count) { lsRemove(BOOKS_GOAL_KEY); }
+  else { lsSet(BOOKS_GOAL_KEY, JSON.stringify({ count, period, since: new Date().toISOString() })); }
   renderBooksGoalWidget();
   if (document.getElementById('settingsContent')) renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
   showToast(count ? `Цель: ${count} книг / ${period === 'month' ? 'месяц' : period === 'quarter' ? 'квартал' : 'год'}` : 'Цель снята');
@@ -7445,9 +7445,9 @@ function booksCompletedInPeriod() {
   return Object.values(state.mylist || {}).filter(s => s === 'completed').length;
 }
 
-function getReadingGoal() { return parseInt(localStorage.getItem(READING_GOAL_KEY) || '20', 10); }
+function getReadingGoal() { return parseInt(lsGet(READING_GOAL_KEY) || '20', 10); }
 function setReadingGoal(n) {
-  localStorage.setItem(READING_GOAL_KEY, String(n));
+  lsSet(READING_GOAL_KEY, String(n));
   renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
   showToast(`Цель: ${n} стр./день`);
 }
@@ -8537,11 +8537,11 @@ async function loadMyListFromApi() {
 const SYNC_QUEUE_KEY = 'aegis_sync_queue';
 
 function _loadSyncQueue() {
-  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '{}'); }
+  try { return JSON.parse(lsGet(SYNC_QUEUE_KEY) || '{}'); }
   catch (_) { return {}; }
 }
 function _saveSyncQueue(q) {
-  try { localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); } catch (_) {}
+  lsSet(SYNC_QUEUE_KEY, JSON.stringify(q));
 }
 
 // Поставить прогресс книги в очередь (перезаписывает прежний — нужен только последний)
@@ -8713,6 +8713,40 @@ const offlineBookIds = new Set();
 
 // ===== Офлайн-сессия: кэш пользователя для входа без интернета =====
 const CACHED_USER_KEY = 'aegis_cached_user';
+// --- localStorage с привязкой к аккаунту ------------------------------------
+// Раньше ключи были общими на устройство, поэтому следующий вошедший видел
+// закладки, цели и заметки предыдущего пользователя. Теперь к каждому ключу
+// добавляется id аккаунта.
+function uk(base) {
+  const id = (state.currentUser && state.currentUser.id) || 'anon';
+  return base + ':' + id;
+}
+
+function lsGet(base) {
+  const key = uk(base);
+  let v = null;
+  try { v = localStorage.getItem(key); } catch (_) { return null; }
+  if (v === null) {
+    // Разовый перенос данных со старого общего ключа
+    try {
+      const legacy = localStorage.getItem(base);
+      if (legacy !== null) {
+        localStorage.setItem(key, legacy);
+        localStorage.removeItem(base);
+        v = legacy;
+      }
+    } catch (_) {}
+  }
+  return v;
+}
+
+function lsSet(base, value) {
+  try { localStorage.setItem(uk(base), value); } catch (_) {}
+}
+
+function lsRemove(base) {
+  try { localStorage.removeItem(uk(base)); } catch (_) {}
+}
 function cacheUserForOffline(u) {
   if (!u) return;
   try { localStorage.setItem(CACHED_USER_KEY, JSON.stringify(u)); } catch (_) {}
@@ -8723,6 +8757,41 @@ function getCachedUser() {
 }
 function clearCachedUser() {
   try { localStorage.removeItem(CACHED_USER_KEY); } catch (_) {}
+}
+
+// Данные, привязанные к конкретному аккаунту. При выходе их нужно стереть:
+// иначе следующий пользователь на том же устройстве увидит чужой прогресс
+// чтения, закладки и заметки.
+const USER_SCOPED_KEYS = [
+  CACHED_USER_KEY,
+  SYNC_QUEUE_KEY,
+  PAGE_BOOKMARKS_KEY,
+  SRS_KEY,
+  TOC_READ_KEY,
+  FAV_CATS_KEY,
+  READING_GOAL_KEY,
+  BOOKS_GOAL_KEY,
+  REVIEW_PROMPT_KEY,
+];
+
+async function clearUserScopedData() {
+  for (const key of USER_SCOPED_KEYS) {
+    lsRemove(key);
+    try { localStorage.removeItem(key); } catch (_) {}  // и старый общий ключ
+  }
+
+  // Состояние в памяти
+  state.readingProgress = {};
+  state.mylist = {};
+  state.reviews = {};
+  state.completedQuizzes = {};
+  state.books = [];
+
+  // Скачанные книги в IndexedDB тоже принадлежат аккаунту
+  try {
+    const saved = (await offlineStorage.listAll()) || [];
+    for (const m of saved) await offlineStorage.remove(m.id);
+  } catch (e) { console.warn('Не удалось очистить офлайн-хранилище:', e); }
 }
 
 // Собрать список книг из оффлайн-хранилища (IndexedDB) — чтобы показать
@@ -9172,9 +9241,9 @@ function updatePageIndicator() {
 // ===== D: Закладки страниц (быстрый переход, отдельно от аннотаций) =====
 const PAGE_BOOKMARKS_KEY = 'aegis_page_bookmarks';
 function getPageBookmarks() {
-  try { return JSON.parse(localStorage.getItem(PAGE_BOOKMARKS_KEY) || '{}'); } catch (_) { return {}; }
+  try { return JSON.parse(lsGet(PAGE_BOOKMARKS_KEY) || '{}'); } catch (_) { return {}; }
 }
-function savePageBookmarks(obj) { localStorage.setItem(PAGE_BOOKMARKS_KEY, JSON.stringify(obj)); }
+function savePageBookmarks(obj) { lsSet(PAGE_BOOKMARKS_KEY, JSON.stringify(obj)); }
 function getBookBookmarks(bookId) {
   const all = getPageBookmarks();
   return all[bookId] || [];
@@ -9246,8 +9315,8 @@ let _currentTOC = null;
 const SRS_KEY = 'aegis_srs';            // {cardId: {box, due}}
 const SRS_BOXES = [1, 2, 4, 7, 14, 30]; // интервалы в днях по «коробкам» Лейтнера
 
-function getSRS() { try { return JSON.parse(localStorage.getItem(SRS_KEY) || '{}'); } catch (_) { return {}; } }
-function saveSRS(o) { localStorage.setItem(SRS_KEY, JSON.stringify(o)); }
+function getSRS() { try { return JSON.parse(lsGet(SRS_KEY) || '{}'); } catch (_) { return {}; } }
+function saveSRS(o) { lsSet(SRS_KEY, JSON.stringify(o)); }
 
 function _cardId(bookId, ann) { return `${bookId}:${ann.page}:${(ann.text || '').slice(0, 24)}`; }
 
@@ -9399,16 +9468,16 @@ async function buildTOC() {
 
 const TOC_READ_KEY = 'aegis_toc_read';
 function getTocRead(bookId) {
-  try { return JSON.parse(localStorage.getItem(TOC_READ_KEY) || '{}')[bookId] || []; } catch (_) { return []; }
+  try { return JSON.parse(lsGet(TOC_READ_KEY) || '{}')[bookId] || []; } catch (_) { return []; }
 }
 function toggleTocRead(bookId, idx) {
   let all = {};
-  try { all = JSON.parse(localStorage.getItem(TOC_READ_KEY) || '{}'); } catch (_) {}
+  try { all = JSON.parse(lsGet(TOC_READ_KEY) || '{}'); } catch (_) {}
   const list = all[bookId] || [];
   const i = list.indexOf(idx);
   if (i >= 0) list.splice(i, 1); else list.push(idx);
   all[bookId] = list;
-  localStorage.setItem(TOC_READ_KEY, JSON.stringify(all));
+  lsSet(TOC_READ_KEY, JSON.stringify(all));
   if (navigator.vibrate) navigator.vibrate(8);
   renderTocPanel();
 }
