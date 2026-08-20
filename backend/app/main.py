@@ -68,11 +68,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 # CORS — список разрешённых origin берём из настроек (переменная окружения
 # CORS_ORIGINS, значения через запятую). Хардкод в коде означал, что смена
 # домена требует правки исходников и деплоя.
-_raw_origins = getattr(settings, "CORS_ORIGINS", None) or ""
-if isinstance(_raw_origins, str):
-    _FRONTEND_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
-else:
-    _FRONTEND_ORIGINS = [str(o).strip() for o in _raw_origins if str(o).strip()]
+_FRONTEND_ORIGINS = settings.cors_origins_list
 
 if not _FRONTEND_ORIGINS:
     # Безопасный дефолт для локальной разработки. В проде обязательно задать

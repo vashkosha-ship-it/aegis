@@ -2,7 +2,7 @@
 from functools import lru_cache
 from typing import List
 
-from pydantic import Field, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,24 +25,25 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
 
-    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+    # Строка, а не List[str]: для сложных типов pydantic-settings пытается
+    # разобрать значение как JSON ДО валидаторов, поэтому обычная строка через
+    # запятую в .env роняла приложение на старте. Разбор — в cors_origins_list.
+    CORS_ORIGINS: str = "http://localhost:5173"
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def _split_origins(cls, v):
-        """Принимаем и JSON-массив, и обычную строку через запятую.
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Список разрешённых origin. Принимает и запятые, и JSON-массив."""
+        raw = (self.CORS_ORIGINS or "").strip()
+        if not raw:
+            return []
+        if raw.startswith("["):
+            import json
 
-        pydantic-settings для List[str] по умолчанию требует JSON, что легко
-        забыть при правке .env, поэтому поддерживаем оба формата:
-            CORS_ORIGINS=https://example.com,https://www.example.com
-            CORS_ORIGINS=["https://example.com"]
-        """
-        if isinstance(v, str):
-            raw = v.strip()
-            if raw.startswith("["):
-                return v  # оставляем стандартный JSON-разбор pydantic
-            return [o.strip() for o in raw.split(",") if o.strip()]
-        return v
+            try:
+                return [str(o).strip() for o in json.loads(raw) if str(o).strip()]
+            except (ValueError, TypeError):
+                return []
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
     # --- Storage (Этап 2) ----------------------------------------------------
     # На Этапе 2 — "local". На Этапе 4 переключим на "s3".
