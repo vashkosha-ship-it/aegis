@@ -1,15 +1,14 @@
 """FastAPI application entrypoint."""
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 from app.api import api_router
 from app.core.config import settings
 
-from fastapi import FastAPI, Request, HTTPException
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -90,11 +89,11 @@ app.include_router(api_router)
 # Подключаем напрямую, чтобы не зависеть от сборки api_router.
 # Префикс /api — как у остального API (api_router его уже добавляет своим роутерам,
 # поэтому здесь указываем явно).
-from app.api.collections import router as collections_router  # noqa: E402
+from app.api.certificates import router as certificates_router  # noqa: E402
 from app.api.chats import router as chats_router  # noqa: E402
+from app.api.collections import router as collections_router  # noqa: E402
 from app.api.discussions import router as discussions_router  # noqa: E402
 from app.api.search import router as search_router  # noqa: E402
-from app.api.certificates import router as certificates_router  # noqa: E402
 
 app.include_router(collections_router, prefix="/api")
 app.include_router(chats_router, prefix="/api")

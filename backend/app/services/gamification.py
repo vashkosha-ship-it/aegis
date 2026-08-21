@@ -1,5 +1,5 @@
 """XP, levels, streaks, achievements — server-side mirror of frontend logic."""
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,14 +34,14 @@ async def add_xp(db: AsyncSession, user: User, amount: int) -> None:
 
 async def update_streak(db: AsyncSession, user: User) -> None:
     """Update reading streak. Same logic as frontend updateStreak."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     last = user.streak_last_date.date() if user.streak_last_date else None
 
     if last == today:
         return  # уже отметились сегодня
     yesterday = today - timedelta(days=1)
     user.streak_count = user.streak_count + 1 if last == yesterday else 1
-    user.streak_last_date = datetime.now(timezone.utc)
+    user.streak_last_date = datetime.now(UTC)
     user.xp += 5  # бонус за стрик
 
 

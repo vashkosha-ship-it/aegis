@@ -57,7 +57,6 @@ jobs:
         # Пока не блокирует сборку: в коде накопились замечания, которые
         # разбираются отдельно. Убрать continue-on-error, когда почистим.
         run: ruff check app tests
-        continue-on-error: true
 
       - name: Тесты
         run: pytest -q

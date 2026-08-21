@@ -1,10 +1,7 @@
 """Aggregate all API routers under /api prefix."""
 from fastapi import APIRouter
 
-from app.api import achievements, admin, auth, books, library, quizzes
-from app.api import me
-from app.api import onboarding
-
+from app.api import achievements, admin, auth, books, library, me, onboarding, quizzes
 from app.api.assistant import router as assistant_router
 
 api_router = APIRouter(prefix="/api")

@@ -1,8 +1,6 @@
 """Application configuration loaded from environment variables."""
 from functools import lru_cache
-from typing import List
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,7 +29,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173"
 
     @property
-    def cors_origins_list(self) -> List[str]:
+    def cors_origins_list(self) -> list[str]:
         """Список разрешённых origin. Принимает и запятые, и JSON-массив."""
         raw = (self.CORS_ORIGINS or "").strip()
         if not raw:

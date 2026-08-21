@@ -6,7 +6,7 @@ import json
 import logging
 import random
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -16,12 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.book import Book, Category, book_categories
+from app.models.book import Category, book_categories
 from app.models.book_page import BookPage
 from app.models.certificate import Certificate
 from app.models.exam_session import ExamSession
 from app.models.user import User
-from app.services.deepseek_client import chat_completion, DeepSeekError
+from app.services.deepseek_client import DeepSeekError, chat_completion
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/certificates", tags=["certificates"])
@@ -211,7 +211,7 @@ async def start_exam(
         category=payload.category,
         correct=correct,
         total=len(questions),
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=EXAM_TTL_MINUTES),
+        expires_at=datetime.now(UTC) + timedelta(minutes=EXAM_TTL_MINUTES),
     ))
     await db.commit()
 
@@ -239,8 +239,8 @@ async def submit_exam(
 
     expires = exam.expires_at
     if expires.tzinfo is None:
-        expires = expires.replace(tzinfo=timezone.utc)
-    if datetime.now(timezone.utc) > expires:
+        expires = expires.replace(tzinfo=UTC)
+    if datetime.now(UTC) > expires:
         raise HTTPException(status_code=404, detail="Экзамен не найден или истёк")
 
     if exam.submitted_at is None:
@@ -256,7 +256,7 @@ async def submit_exam(
         score = round(correct_count / total * 100) if total else 0
         passed = score >= PASS_THRESHOLD
 
-        exam.submitted_at = datetime.now(timezone.utc)
+        exam.submitted_at = datetime.now(UTC)
         exam.score = score
         exam.correct_count = correct_count
         exam.passed = passed
@@ -291,7 +291,7 @@ async def submit_exam(
     if existing:
         if score > existing.score:
             existing.score = score
-            existing.issued_at = datetime.now(timezone.utc)
+            existing.issued_at = datetime.now(UTC)
     else:
         db.add(Certificate(
             user_id=current.id,
@@ -331,12 +331,13 @@ async def download_certificate(
 
 def _build_certificate_pdf(full_name: str, category: str, score: int, issued_at: datetime) -> bytes:
     """Генерирует PDF-сертификат с поддержкой кириллицы."""
+    import os
+
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.units import mm
-    from reportlab.pdfgen import canvas
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    import os
+    from reportlab.pdfgen import canvas
 
     # Регистрируем кириллический шрифт (DejaVuSans поставляется с системой)
     font_name = "Helvetica"

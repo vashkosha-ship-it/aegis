@@ -1,8 +1,9 @@
 """Pydantic schemas for authentication endpoints."""
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field
 
 from app.models.user import UserRole
-from datetime import datetime
 
 
 class UserRegister(BaseModel):
@@ -72,8 +73,6 @@ class UserPublic(BaseModel):
     class Config:
         from_attributes = True
 
-    class Config:
-        from_attributes = True
 
 class UserUpdate(BaseModel):
     """Поля, которые юзер может менять у себя сам.

@@ -1,14 +1,11 @@
 """User self-service endpoints: edit own profile, manage avatar."""
 import logging
 from collections.abc import AsyncIterator
-from typing import Optional
-
-from pydantic import BaseModel, EmailStr, Field
-from app.core.rate_limit import email_send_limiter, otp_attempt_limiter
-from app.core.security import hash_otp, hash_password, verify_otp, verify_password
+from datetime import UTC
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_current_user_any
@@ -16,6 +13,8 @@ from app.core.file_validation import (
     FileValidationError,
     detect_cover_ext,
 )
+from app.core.rate_limit import email_send_limiter, otp_attempt_limiter
+from app.core.security import hash_otp, hash_password, verify_otp, verify_password
 from app.core.storage import (
     StorageBackend,
     StorageError,
@@ -140,8 +139,8 @@ async def request_email_change(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Запросить смену email. Отправляет код подтверждения на НОВЫЙ адрес."""
-    from datetime import datetime, timedelta, timezone
     import secrets
+    from datetime import datetime, timedelta
 
     from sqlalchemy import select
 
@@ -170,7 +169,7 @@ async def request_email_change(
     code = f"{secrets.randbelow(1000000):06d}"  # 6-значный код
     current.pending_email = new_email
     current.email_change_code = hash_otp(code)
-    current.email_change_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+    current.email_change_expires = datetime.now(UTC) + timedelta(minutes=30)
     await db.commit()
 
     await send_email_change_code(new_email, code)
@@ -187,7 +186,7 @@ async def confirm_email_change(
     db: AsyncSession = Depends(get_db),
 ) -> UserPublic:
     """Подтвердить смену email кодом из письма."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     allowed, wait = otp_attempt_limiter.check_allowed(f"emailchange:{current.id}")
     if not allowed:
@@ -200,7 +199,7 @@ async def confirm_email_change(
     if not current.pending_email or not current.email_change_code:
         raise HTTPException(status_code=400, detail="Нет активного запроса на смену email")
 
-    if current.email_change_expires and datetime.now(timezone.utc) > current.email_change_expires:
+    if current.email_change_expires and datetime.now(UTC) > current.email_change_expires:
         current.pending_email = None
         current.email_change_code = None
         current.email_change_expires = None
@@ -391,6 +390,7 @@ async def download_user_avatar(
 # GET /api/users/{user_id}/profile — публичный профиль (#15 маскировка email)
 # ============================================================================
 from sqlalchemy import func, select  # noqa: E402
+
 from app.models.library import MyListEntry  # noqa: E402
 from app.models.quiz import QuizAttempt  # noqa: E402
 

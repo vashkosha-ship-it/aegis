@@ -15,12 +15,11 @@ from fastapi import (
     status,
 )
 from fastapi.responses import Response, StreamingResponse
-from sqlalchemy import select, func, or_, desc, asc
-from sqlalchemy.orm import selectinload
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-
-from app.api.deps import get_current_admin, get_current_user, get_approved_user
+from app.api.deps import get_approved_user, get_current_admin, get_current_user
 from app.core.config import settings
 from app.core.file_validation import (
     FileValidationError,
@@ -77,8 +76,10 @@ async def _get_or_create_categories(db, names: list[str]) -> list:
     
     Регистронезависимая дедупликация: «AppSec» и «appsec» считаются одним и тем же.
     """
+    from sqlalchemy import func as sqlfunc
+    from sqlalchemy import select
+
     from app.models.book import Category
-    from sqlalchemy import select, func as sqlfunc
     
     if not names:
         return []
@@ -412,8 +413,9 @@ async def delete_book(
 @router.get("/categories/all", response_model=list[str])
 async def list_categories(db: AsyncSession = Depends(get_db)) -> list[str]:
     """Список всех существующих категорий (для автодополнения)."""
-    from app.models.book import Category
     from sqlalchemy import select
+
+    from app.models.book import Category
     
     rows = await db.execute(select(Category.name).order_by(Category.name))
     return [r[0] for r in rows.all()]
@@ -571,8 +573,9 @@ async def ai_match_ar_topics(
 ) -> dict:
     """Admin only: ИИ сопоставляет книги с темами AR-схем и добавляет книгам
     соответствующие категории, чтобы книги появлялись в рекомендациях AR-режима."""
-    from app.services.deepseek_client import chat_completion, DeepSeekError
     import json as _json
+
+    from app.services.deepseek_client import DeepSeekError, chat_completion
 
     topics = [t.strip() for t in payload.topics if t and t.strip()]
     if not topics:
@@ -827,6 +830,7 @@ async def upload_book_cover(
     # сжимаем через Pillow: ресайз до 800px по большей стороне, JPEG q=85
     try:
         from io import BytesIO
+
         from PIL import Image
 
         img = Image.open(BytesIO(raw))

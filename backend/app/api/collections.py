@@ -4,13 +4,13 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.book import Book
-from app.models.collection import Collection, collection_books
+from app.models.collection import Collection
 from app.models.user import User
 
 logger = logging.getLogger(__name__)

@@ -9,8 +9,6 @@ from sqlalchemy.sql import func
 
 from app.db.session import Base
 
-from sqlalchemy import String
-
 
 class UserRole(str, Enum):
     READER = "reader"

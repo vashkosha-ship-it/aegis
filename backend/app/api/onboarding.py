@@ -1,12 +1,12 @@
 """Onboarding endpoints — определение уровня кибербезопасности юзера."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_current_user_any
+from app.api.deps import get_current_user_any
 from app.data.onboarding_questions import (
     ONBOARDING_QUESTIONS,
     TOPIC_NAMES,
@@ -150,7 +150,7 @@ async def submit_onboarding(
             weak_topics.append(topic)
 
     # Сохраняем результат у юзера
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     current.cyber_level = level_code
     current.topic_scores = topic_scores_dict
     current.level_assessed_at = now
@@ -209,7 +209,7 @@ async def get_my_result(
         topic_scores=topic_scores_list,
         weak_topics=weak_topics,
         questions_review=[],  # разбор только сразу после прохождения, не из истории
-        assessed_at=current.level_assessed_at or datetime.now(timezone.utc),
+        assessed_at=current.level_assessed_at or datetime.now(UTC),
     )
 
 # ============================================================================
@@ -281,7 +281,7 @@ async def submit_self_assessment(
         )
 
     name, desc = _LEVEL_META[payload.level]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     current.cyber_level = payload.level
     current.topic_scores = None  # самооценка — без разбивки по темам

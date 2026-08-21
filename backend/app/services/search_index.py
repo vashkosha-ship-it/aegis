@@ -8,7 +8,6 @@ import logging
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.book import Book
 from app.models.book_page import BookPage
 
 logger = logging.getLogger(__name__)

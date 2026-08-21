@@ -1,7 +1,7 @@
 """Тесты на накрутку результатов: квизы и экзамены на сертификат."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from sqlalchemy import select
 
@@ -175,7 +175,7 @@ class TestExamSession:
             category="Криптография",
             correct=correct,
             total=len(correct),
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=minutes),
+            expires_at=datetime.now(UTC) + timedelta(minutes=minutes),
         )
         db.add(exam)
         await db.commit()

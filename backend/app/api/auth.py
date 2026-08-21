@@ -1,14 +1,15 @@
 """Authentication endpoints: register, login, refresh, me."""
-from fastapi import APIRouter, Depends, HTTPException, status
+import secrets
+from datetime import UTC, datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import Request
-from app.core.rate_limit import email_send_limiter, login_limiter, otp_attempt_limiter
-
 from app.api.deps import get_current_user_any
+from app.core.rate_limit import email_send_limiter, login_limiter, otp_attempt_limiter
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -30,9 +31,7 @@ from app.schemas.auth import (
     UserRegister,
     VerifyEmailRequest,
 )
-from app.services.email_service import send_verification_code, EmailError
-import secrets
-from datetime import datetime, timedelta, timezone
+from app.services.email_service import EmailError, send_verification_code
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -103,7 +102,7 @@ async def register(
         role=UserRole.READER,
         is_verified=False,
         verify_code=hash_otp(code),
-        verify_expires=datetime.now(timezone.utc) + timedelta(minutes=30),
+        verify_expires=datetime.now(UTC) + timedelta(minutes=30),
     )
 
     db.add(user)
@@ -144,7 +143,7 @@ async def verify_email(
         )
     if not user.verify_code or not user.verify_expires:
         raise HTTPException(status_code=400, detail="No verification pending")
-    if datetime.now(timezone.utc) > user.verify_expires:
+    if datetime.now(UTC) > user.verify_expires:
         raise HTTPException(status_code=400, detail="Code expired. Request a new one.")
     if not verify_otp(payload.code, user.verify_code):
         raise HTTPException(status_code=400, detail="Invalid code")
@@ -189,13 +188,15 @@ async def resend_code(
 
     code = _gen_code()
     user.verify_code = hash_otp(code)
-    user.verify_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+    user.verify_expires = datetime.now(UTC) + timedelta(minutes=30)
     await db.commit()
     try:
         await send_verification_code(payload.email, code)
         _record_email_send(payload.email, request)
-    except EmailError:
-        raise HTTPException(status_code=502, detail="Failed to send email. Try later.")
+    except EmailError as e:
+        raise HTTPException(
+            status_code=502, detail="Failed to send email. Try later."
+        ) from e
     return {"detail": "Verification code sent."}
 
 
@@ -334,7 +335,7 @@ async def forgot_password(
     if user:
         code = _gen_code()
         user.reset_code = hash_otp(code)
-        user.reset_expires = datetime.now(timezone.utc) + timedelta(minutes=30)
+        user.reset_expires = datetime.now(UTC) + timedelta(minutes=30)
         await db.commit()
         try:
             from app.services.email_service import send_password_reset_code
@@ -360,10 +361,10 @@ async def reset_password(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expires = user.reset_expires
     if expires.tzinfo is None:
-        expires = expires.replace(tzinfo=timezone.utc)
+        expires = expires.replace(tzinfo=UTC)
     if now > expires:
         raise HTTPException(status_code=400, detail="Код истёк, запросите новый")
     if not verify_otp(payload.code, user.reset_code):

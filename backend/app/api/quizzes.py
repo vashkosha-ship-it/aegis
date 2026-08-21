@@ -3,13 +3,14 @@ import json
 import logging
 import random
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
-from sqlalchemy import delete as sa_delete, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_admin, get_current_user
 from app.db.session import get_db
@@ -21,10 +22,9 @@ from app.schemas.quiz import (
     QuizAttemptPublic,
     QuizQuestionPublic,
     QuizResult,
-    QuizSubmit,
 )
-from app.services.gamification import add_xp, check_and_award_achievements
 from app.services.deepseek_client import DeepSeekError, chat_completion
+from app.services.gamification import add_xp, check_and_award_achievements
 
 logger = logging.getLogger(__name__)
 
@@ -697,7 +697,7 @@ async def get_quiz(
         user_id=current.id,
         book_id=book_id,
         question_ids=[q.id for q in served],
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=QUIZ_SESSION_TTL_MINUTES),
+        expires_at=datetime.now(UTC) + timedelta(minutes=QUIZ_SESSION_TTL_MINUTES),
     ))
     await db.commit()
 
@@ -806,8 +806,8 @@ async def submit_quiz(
 
         expires = session.expires_at
         if expires.tzinfo is None:
-            expires = expires.replace(tzinfo=timezone.utc)
-        if datetime.now(timezone.utc) > expires:
+            expires = expires.replace(tzinfo=UTC)
+        if datetime.now(UTC) > expires:
             raise HTTPException(status_code=404, detail="Quiz session expired")
 
         if session.submitted_at is not None:
@@ -901,7 +901,7 @@ async def submit_quiz(
 
     # Помечаем сессию использованной — второй раз этот набор не сдать.
     if session is not None:
-        session.submitted_at = datetime.now(timezone.utc)
+        session.submitted_at = datetime.now(UTC)
         session.score = score
         session.percentage = percentage
 

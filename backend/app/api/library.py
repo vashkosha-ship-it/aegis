@@ -1,9 +1,6 @@
 """Library endpoints: reading progress, mylist, reviews, annotations, heatmap."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-
-from app.models.library import MyListStatus
-from app.models.quiz import QuizAttempt
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -16,9 +13,11 @@ from app.models.library import (
     Annotation,
     DailyPagesRead,
     MyListEntry,
+    MyListStatus,
     ReadingProgress,
     Review,
 )
+from app.models.quiz import QuizAttempt
 from app.models.user import User
 from app.schemas.library import (
     AnnotationCreate,
@@ -107,7 +106,7 @@ async def update_progress(
         # инкремент daily_pages если страница увеличилась
         delta = max(0, payload.current_page - previous_page)
         if delta > 0:
-            today = datetime.now(timezone.utc).date()
+            today = datetime.now(UTC).date()
             daily = await db.scalar(
                 select(DailyPagesRead).where(
                     DailyPagesRead.user_id == current.id,
@@ -134,7 +133,7 @@ async def update_progress(
         and not progress.finished_at
     )
     if just_finished:
-        progress.finished_at = datetime.now(timezone.utc)
+        progress.finished_at = datetime.now(UTC)
 
         # Синхронизируем со списком: если книга дочитана по страницам, она
         # должна быть «Прочитано» и в списке пользователя. Иначе счётчики
@@ -406,7 +405,7 @@ async def get_heatmap(
     current: User = Depends(get_current_user),
 ) -> HeatmapResponse:
     """Return reading activity for the last N days (default 90)."""
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     start = today - timedelta(days=days)
     rows = await db.scalars(
         select(DailyPagesRead)
@@ -475,7 +474,7 @@ async def get_day_stats(
     pages_read = daily.pages if daily else 0
 
     # 2. Книги — для которых обновлялся progress в этот день
-    day_start = datetime(target_date.year, target_date.month, target_date.day, tzinfo=timezone.utc)
+    day_start = datetime(target_date.year, target_date.month, target_date.day, tzinfo=UTC)
     day_end = day_start + timedelta(days=1)
 
     progress_rows = await db.execute(

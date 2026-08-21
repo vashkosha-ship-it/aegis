@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncGenerator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
@@ -28,7 +28,6 @@ from app.main import app
 from app.models.book import Book
 from app.models.quiz import QuizQuestion
 from app.models.user import User, UserRole
-
 
 TEST_SCHEMA = "aegis_test"
 
@@ -222,7 +221,7 @@ async def book_with_quiz(db) -> Book:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def in_minutes(minutes: int) -> datetime:

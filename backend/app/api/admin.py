@@ -1,6 +1,6 @@
 """Admin endpoints: dashboard stats, user management, leaderboard, book analytics."""
 import io
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -255,7 +255,7 @@ async def approve_user(
     # Уведомляем пользователя, что доступ открыт (письмо не критично — не ломаем одобрение)
     if user.email:
         try:
-            from app.services.email_service import send_approval_notification, EmailError
+            from app.services.email_service import EmailError, send_approval_notification
             await send_approval_notification(user.email, user.full_name)
         except EmailError:
             pass
@@ -336,22 +336,24 @@ async def export_reading_xlsx(
     Период по дате завершения чтения (updated_at записи со статусом completed)."""
     try:
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment
-    except ImportError:
+        from openpyxl.styles import Alignment, Font, PatternFill
+    except ImportError as e:
         raise HTTPException(
             status_code=500,
             detail="openpyxl не установлен на сервере",
-        )
+        ) from e
 
     # Разбор периода
     df = dt = None
     try:
         if date_from:
-            df = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+            df = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
         if date_to:
-            dt = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Неверный формат даты (нужен ГГГГ-ММ-ДД)")
+            dt = datetime.fromisoformat(date_to).replace(tzinfo=UTC)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400, detail="Неверный формат даты (нужен ГГГГ-ММ-ДД)"
+        ) from e
 
     # Завершённые книги с пользователем и книгой
     conds = [MyListEntry.status == MyListStatus.COMPLETED]
@@ -371,7 +373,7 @@ async def export_reading_xlsx(
 
     # Сводка: сколько книг прочёл каждый пользователь
     summary: dict[int, dict] = {}
-    for user, book, when in rows:
+    for user, _book, _when in rows:
         s = summary.setdefault(
             user.id,
             {"fio": user.full_name or user.username, "dept": user.department or "—", "count": 0},

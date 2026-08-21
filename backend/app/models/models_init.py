@@ -2,7 +2,7 @@
 from app.models.achievement import Achievement, UserAchievement
 from app.models.book import Book
 from app.models.chat import ChatMessage, ChatSession
-from app.models.collection import Collection, collection_books
+from app.models.collection import Collection
 from app.models.library import (
     Annotation,
     AnnotationType,

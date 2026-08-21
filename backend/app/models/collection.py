@@ -15,7 +15,6 @@ from sqlalchemy.sql import func
 
 from app.db.session import Base
 
-
 # Связующая таблица many-to-many между коллекциями и книгами
 collection_books = Table(
     "collection_books",
