@@ -1,0 +1,21 @@
+[Unit]
+Description=Aegis background worker (индексация PDF)
+After=network.target redis-server.service postgresql.service
+Requires=redis-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/aegis/backend
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/opt/aegis/backend/.venv/bin/arq app.worker.WorkerSettings
+Restart=always
+RestartSec=5
+
+# Извлечение текста идёт в дочернем процессе, который умирает после каждой
+# книги, поэтому память не накапливается. Лимит — страховка от одиночного
+# гигантского PDF; учитывается вся группа процессов юнита.
+MemoryMax=2G
+
+[Install]
+WantedBy=multi-user.target

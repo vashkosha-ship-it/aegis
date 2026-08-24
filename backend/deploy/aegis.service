@@ -1,0 +1,30 @@
+[Unit]
+Description=Aegis backend (gunicorn + uvicorn workers)
+After=network.target postgresql.service redis-server.service
+# Redis нужен для rate limiting и очереди фоновых задач. Без него лимиты
+# считаются в памяти каждого воркера отдельно, а индексация книг не работает.
+Wants=redis-server.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/aegis/backend
+
+# gunicorn пишет служебные файлы в домашний каталог пользователя. У www-data
+# это /var/www, куда нет прав на запись — без явного HOME в логах сыплется
+# "Permission denied: '/var/www/.gunicorn'".
+Environment="HOME=/opt/aegis/backend"
+EnvironmentFile=/opt/aegis/backend/.env
+
+# -w 2: по числу ядер. Учтите, что счётчики в памяти процесса при этом
+# дублируются на каждый воркер — поэтому rate limiting вынесен в Redis.
+ExecStart=/opt/aegis/backend/.venv/bin/gunicorn app.main:app \
+    -k uvicorn.workers.UvicornWorker \
+    -w 2 \
+    -b 127.0.0.1:8000
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
