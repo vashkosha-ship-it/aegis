@@ -10,6 +10,7 @@ import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Book
@@ -35,6 +36,11 @@ MAX_PAGES = 20000
 XP_FOR_STARTING_BOOK = 10
 XP_FOR_FINISHING_BOOK = 25
 
+# Какую долю книги нужно пройти, чтобы завершение засчиталось. Порог мягкий:
+# цель — отсечь перемотку в конец сразу после открытия, а не измерять
+# вовлечённость.
+MIN_PROGRESS_RATIO = 0.5
+
 
 class ProgressError(Exception):
     """Базовая ошибка обновления прогресса."""
@@ -53,18 +59,38 @@ class InvalidPageNumber(ProgressError):
 
 
 def resolve_total_pages(book: Book, claimed_total: int | None) -> int:
-    """Определить, сколько страниц в книге на самом деле.
+    """Определить, сколько страниц в книге.
 
-    Приоритет у значения из БД (его проставляет индексация PDF). Если сервер
-    ещё не знает — доверяем клиенту, но в разумных пределах.
+    Источник истины — значение из БД: его проставляет индексация PDF, то есть
+    оно получено из самого файла. Клиентскому числу верим только пока сервер
+    своего не знает, иначе достаточно прислать total_pages=1 и книга сразу
+    «дочитана».
     """
     known_total = book.total_pages or 0
-    claimed = claimed_total or known_total or 1
+    if known_total > 0:
+        return known_total
 
+    claimed = claimed_total or 1
     if claimed < 1 or claimed > MAX_PAGES:
         raise InvalidPageNumber("Некорректное число страниц")
+    return claimed
 
-    return known_total if known_total > 0 else claimed
+
+def _looks_like_real_reading(
+    progress: ReadingProgress, previous_page: int, total_pages: int
+) -> bool:
+    """Похоже ли это на настоящее чтение, а не на перемотку в конец.
+
+    Отдельного поля «когда начал» в модели нет, поэтому опираемся на то, что
+    известно: сколько страниц пользователь прошёл до этого обновления.
+    Требуем, чтобы он уже был хотя бы на половине книги. Это отсекает
+    «открыл и сразу пролистал в конец», но не мешает тем, кто дочитывает
+    начатое.
+    """
+    if previous_page <= 1:
+        # Первое же обновление ставит последнюю страницу — чтения не было
+        return False
+    return previous_page >= total_pages * MIN_PROGRESS_RATIO
 
 
 async def _bump_daily_pages(db: AsyncSession, user: User, delta: int) -> None:
@@ -79,9 +105,26 @@ async def _bump_daily_pages(db: AsyncSession, user: User, delta: int) -> None:
             DailyPagesRead.date == today,
         )
     )
-    if not daily:
-        db.add(DailyPagesRead(user_id=user.id, date=today, pages=delta))
-    else:
+    if daily:
+        daily.pages += delta
+        return
+
+    db.add(DailyPagesRead(user_id=user.id, date=today, pages=delta))
+    try:
+        await db.flush()
+    except IntegrityError:
+        # Запись за сегодня создал параллельный запрос — прибавляем к ней.
+        await db.rollback()
+        daily = await db.scalar(
+            select(DailyPagesRead)
+            .where(
+                DailyPagesRead.user_id == user.id,
+                DailyPagesRead.date == today,
+            )
+            .with_for_update()
+        )
+        if daily is None:
+            raise
         daily.pages += delta
 
 
@@ -126,14 +169,20 @@ async def update_reading_progress(
     if current_page < 1 or current_page > total_pages:
         raise InvalidPageNumber(f"Страница вне диапазона книги (1–{total_pages})")
 
+    # FOR UPDATE: параллельные обновления (две вкладки, синхронизация офлайна)
+    # иначе оба прочитают старую страницу, оба посчитают дельту от неё — и
+    # дневная статистика вырастет вдвое. Второй запрос теперь ждёт первый.
     progress = await db.scalar(
-        select(ReadingProgress).where(
+        select(ReadingProgress)
+        .where(
             ReadingProgress.user_id == user.id,
             ReadingProgress.book_id == book_id,
         )
+        .with_for_update()
     )
 
     is_first_start = False
+    previous_page = 0
     if not progress:
         progress = ReadingProgress(
             user_id=user.id,
@@ -143,7 +192,29 @@ async def update_reading_progress(
             started=True,
         )
         db.add(progress)
-        is_first_start = True
+        try:
+            # flush, а не commit: нужно поймать конфликт уникальности здесь,
+            # пока транзакцию ещё можно откатить и перечитать чужую запись.
+            await db.flush()
+        except IntegrityError:
+            # Параллельный запрос успел создать запись раньше — берём её.
+            await db.rollback()
+            progress = await db.scalar(
+                select(ReadingProgress)
+                .where(
+                    ReadingProgress.user_id == user.id,
+                    ReadingProgress.book_id == book_id,
+                )
+                .with_for_update()
+            )
+            if progress is None:
+                raise
+            previous_page = progress.current_page
+            progress.current_page = current_page
+            progress.total_pages = total_pages
+            await _bump_daily_pages(db, user, current_page - previous_page)
+        else:
+            is_first_start = True
     else:
         previous_page = progress.current_page
         progress.current_page = current_page
@@ -160,9 +231,22 @@ async def update_reading_progress(
 
     # Книга считается дочитанной по факту дохода до последней страницы, а не
     # по отметке в списке — её можно поставить не открывая книгу.
-    just_finished = (
-        total_pages > 1 and current_page >= total_pages and not progress.finished_at
-    )
+    #
+    # Но одного лишь попадания на последнюю страницу мало: открыть книгу и сразу
+    # перемотать в конец — не чтение. Требуем, чтобы между первым открытием и
+    # завершением прошло разумное время и чтобы прогресс шёл постепенно.
+    reached_end = total_pages > 1 and current_page >= total_pages
+    just_finished = reached_end and not progress.finished_at
+
+    if just_finished and not _looks_like_real_reading(
+        progress, previous_page, total_pages
+    ):
+        logger.info(
+            "Пользователь %s долистал книгу %s до конца слишком быстро — "
+            "не засчитываем завершение",
+            user.id, book_id,
+        )
+        just_finished = False
     if just_finished:
         progress.finished_at = datetime.now(UTC)
         await _mark_completed_in_list(db, user, book_id)
