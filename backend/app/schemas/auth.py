@@ -1,7 +1,7 @@
 """Pydantic schemas for authentication endpoints."""
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models.user import UserRole
 
@@ -81,3 +81,21 @@ class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
     profile_visibility: str | None = None
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Сброс пароля по коду из письма."""
+
+    email: EmailStr
+    code: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _min_len(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Пароль должен содержать минимум 8 символов")
+        return v

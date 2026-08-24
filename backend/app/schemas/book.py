@@ -116,3 +116,21 @@ class BookFileUploadResult(BaseModel):
     kind: str
     size_bytes: int
     replaced: bool
+
+class RequiredBookSet(BaseModel):
+    """Пометить книгу обязательной для подразделения. None — снять пометку."""
+
+    department: str | None = None
+
+
+class RequiredBookBrief(BaseModel):
+    id: int
+    title: str
+    author: str
+    required_for_department: str | None = None
+
+
+class MatchArTopicsRequest(BaseModel):
+    """Список тем AR-схем, к которым AI подбирает книги."""
+
+    topics: list[str]
