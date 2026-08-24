@@ -5525,7 +5525,12 @@ function logout() {
 }
 
 async function tryAutoLogin() {
-  if (!api.isAuthenticated()) return false;
+  // Access-токен живёт в памяти и после перезагрузки страницы пуст. Пробуем
+  // получить новый по httpOnly-cookie: если её нет или она протухла — гость.
+  if (!api.isAuthenticated()) {
+    const restored = await api.restoreSession();
+    if (!restored) return false;
+  }
   try {
     const user = await api.me();
    state.currentUser = {
