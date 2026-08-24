@@ -1,4 +1,5 @@
 """Authentication endpoints: register, login, refresh, me."""
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -9,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_any
+from app.core.config import settings
 from app.core.rate_limit import email_send_limiter, login_limiter, otp_attempt_limiter
 from app.core.security import (
     create_access_token,
@@ -20,6 +22,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
+from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserRole
 from app.schemas.auth import (
     RefreshRequest,
@@ -39,6 +42,37 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def _gen_code() -> str:
     """6-значный числовой код."""
     return f"{secrets.randbelow(1000000):06d}"
+
+
+logger = logging.getLogger(__name__)
+
+REFRESH_GRACE_SECONDS = 15
+"""Окно, в течение которого повторный обмен тем же токеном не считается кражей.
+
+Реальный сценарий: две вкладки одновременно заметили истёкший access-токен и
+пошли обновляться. Без окна одна из них «украла бы» сессию у другой и
+разлогинила пользователя.
+"""
+
+
+async def _issue_token_pair(db: AsyncSession, user: User) -> TokenPair:
+    """Выдать access+refresh и зарегистрировать refresh в БД."""
+    jti = secrets.token_urlsafe(32)
+    db.add(RefreshToken(
+        jti=jti,
+        user_id=user.id,
+        expires_at=datetime.now(UTC)
+        + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+    ))
+    await db.commit()
+    return TokenPair(
+        access_token=create_access_token(
+            user.id, user.role.value, token_version=user.token_version
+        ),
+        refresh_token=create_refresh_token(
+            user.id, token_version=user.token_version, jti=jti
+        ),
+    )
 
 
 def _client_ip(request: Request) -> str:
@@ -137,10 +171,7 @@ async def verify_email(
         raise HTTPException(status_code=404, detail="User not found")
     if user.is_verified:
         # Уже подтверждён — просто выдаём токены
-        return TokenPair(
-            access_token=create_access_token(user.id, user.role.value, token_version=user.token_version),
-            refresh_token=create_refresh_token(user.id, token_version=user.token_version),
-        )
+        return await _issue_token_pair(db, user)
     if not user.verify_code or not user.verify_expires:
         raise HTTPException(status_code=400, detail="No verification pending")
     if datetime.now(UTC) > user.verify_expires:
@@ -166,10 +197,7 @@ async def verify_email(
         except EmailError:
             pass  # письмо админу не критично — не ломаем регистрацию
 
-    return TokenPair(
-        access_token=create_access_token(user.id, user.role.value, token_version=user.token_version),
-        refresh_token=create_refresh_token(user.id, token_version=user.token_version),
-    )
+    return await _issue_token_pair(db, user)
 
 
 @router.post("/resend-code", status_code=status.HTTP_200_OK)
@@ -228,10 +256,7 @@ async def login(
         raise HTTPException(status_code=403, detail="Email not verified")
 
     login_limiter.record_success(ip)
-    return TokenPair(
-        access_token=create_access_token(user.id, user.role.value, token_version=user.token_version),
-        refresh_token=create_refresh_token(user.id, token_version=user.token_version),
-    )
+    return await _issue_token_pair(db, user)
 
 
 @router.post("/refresh", response_model=TokenPair)
@@ -252,10 +277,52 @@ async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_
     if int(decoded.get("tv", 0)) != user.token_version:
         raise HTTPException(status_code=401, detail="Refresh token revoked")
 
-    return TokenPair(
-        access_token=create_access_token(user.id, user.role.value, token_version=user.token_version),
-        refresh_token=create_refresh_token(user.id, token_version=user.token_version),
-    )
+    jti = decoded.get("jti")
+    if not jti:
+        # Токен выпущен до внедрения ротации. Принимаем один раз, чтобы выкатка
+        # не разлогинила всех, — в обмен пользователь получит уже учтённый.
+        logger.info("Refresh без jti (старый формат), user=%s", user.id)
+        return await _issue_token_pair(db, user)
+
+    record = await db.scalar(select(RefreshToken).where(RefreshToken.jti == jti))
+    if not record or record.user_id != user.id:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    expires = record.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
+    if datetime.now(UTC) > expires:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+
+    if record.used_at is not None:
+        used = record.used_at
+        if used.tzinfo is None:
+            used = used.replace(tzinfo=UTC)
+        age = (datetime.now(UTC) - used).total_seconds()
+
+        if age <= REFRESH_GRACE_SECONDS:
+            # Гонка двух вкладок — отдаём ту же новую пару, а не караем.
+            logger.info("Повторный обмен в окне благодати, user=%s", user.id)
+        else:
+            # Токен уже был потрачен. Легитимный клиент так не делает — значит
+            # копия утекла. Обрываем ВСЕ сессии пользователя.
+            logger.warning(
+                "Повторное использование refresh-токена (user=%s) — "
+                "отзываем все сессии", user.id
+            )
+            user.token_version = (user.token_version or 0) + 1
+            await db.commit()
+            raise HTTPException(
+                status_code=401,
+                detail="Refresh token reuse detected, all sessions revoked",
+            )
+
+    new_pair = await _issue_token_pair(db, user)
+    record.used_at = datetime.now(UTC)
+    new_jti = decode_token(new_pair.refresh_token).get("jti")
+    record.replaced_by = new_jti
+    await db.commit()
+    return new_pair
 
 
 @router.get("/me", response_model=UserPublic)
@@ -289,10 +356,7 @@ async def login_form(
         raise HTTPException(status_code=403, detail="Email not verified")
 
     login_limiter.record_success(ip)
-    return TokenPair(
-        access_token=create_access_token(user.id, user.role.value, token_version=user.token_version),
-        refresh_token=create_refresh_token(user.id, token_version=user.token_version),
-    )
+    return await _issue_token_pair(db, user)
 
 
 # ============================================================================
@@ -379,7 +443,4 @@ async def reset_password(
     user.token_version = (user.token_version or 0) + 1
     await db.commit()
 
-    return TokenPair(
-        access_token=create_access_token(user.id, user.role.value, token_version=user.token_version),
-        refresh_token=create_refresh_token(user.id, token_version=user.token_version),
-    )
+    return await _issue_token_pair(db, user)
