@@ -136,8 +136,12 @@ async def verify_email(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if user.is_verified:
-        # Уже подтверждён — просто выдаём токены
-        return await tokens_service.issue_token_pair(db, user)
+        # НЕ выдаём токены: код здесь не проверяется, поэтому любой, кто знает
+        # чужой email, получил бы полный доступ к аккаунту без пароля.
+        raise HTTPException(
+            status_code=400,
+            detail="Email уже подтверждён — войдите с паролем",
+        )
     if not user.verify_code or not user.verify_expires:
         raise HTTPException(status_code=400, detail="No verification pending")
     if datetime.now(UTC) > user.verify_expires:
