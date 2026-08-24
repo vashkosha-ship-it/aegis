@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_any
+from app.core.client_ip import get_client_ip
 from app.core.cookies import (
     clear_auth_cookies,
     csrf_is_valid,
@@ -62,7 +63,8 @@ async def _issue_with_cookie(
 
 
 def _client_ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    """Адрес клиента с учётом того, что запрос приходит через nginx."""
+    return get_client_ip(request)
 
 
 def _guard_email_send(email: str, request: Request) -> None:
@@ -227,7 +229,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ) -> TokenPair:
     """Authenticate by username + password and return JWT pair."""
-    ip = request.client.host if request.client else "unknown"
+    ip = _client_ip(request)
 
     # Проверка rate limit
     allowed, remaining = login_limiter.check_allowed(ip)
@@ -320,7 +322,7 @@ async def login_form(
     db: AsyncSession = Depends(get_db),
 ) -> TokenPair:
     """OAuth2-совместимый логин для Swagger UI и других OAuth2-клиентов."""
-    ip = request.client.host if request.client else "unknown"
+    ip = _client_ip(request)
 
     allowed, remaining = login_limiter.check_allowed(ip)
     if not allowed:
