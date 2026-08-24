@@ -1,0 +1,152 @@
+"""Выдача и ротация токенов доступа.
+
+Вынесено из роутера: логика обмена refresh-токена нетривиальна (одноразовость,
+детект утечки, окно благодати) и не зависит от HTTP. Отдельный модуль позволяет
+отзывать сессии из других мест — например, из админки — и тестировать ротацию
+без поднятия приложения.
+"""
+from __future__ import annotations
+
+import logging
+import secrets
+from datetime import UTC, datetime, timedelta
+
+from jose import JWTError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
+from app.models.refresh_token import RefreshToken
+from app.models.user import User
+from app.schemas.auth import TokenPair
+
+logger = logging.getLogger(__name__)
+
+REFRESH_GRACE_SECONDS = 15
+"""Окно, в течение которого повторный обмен тем же токеном не считается кражей.
+
+Реальный сценарий: две вкладки одновременно заметили истёкший access-токен и
+пошли обновляться. Без окна одна из них «украла бы» сессию у другой и
+разлогинила пользователя.
+"""
+
+
+class TokenError(Exception):
+    """Базовая ошибка работы с токенами."""
+
+
+class InvalidToken(TokenError):
+    """Токен не разобрался, не того типа или не найден."""
+
+
+class TokenRevoked(TokenError):
+    """Токен выпущен до смены пароля или выхода со всех устройств."""
+
+
+class TokenExpired(TokenError):
+    pass
+
+
+class TokenReuseDetected(TokenError):
+    """Refresh предъявлен повторно — значит копия у кого-то ещё."""
+
+
+class UserInactive(TokenError):
+    pass
+
+
+def _aware(dt: datetime) -> datetime:
+    """Привести время из БД к timezone-aware виду."""
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+async def issue_token_pair(db: AsyncSession, user: User) -> TokenPair:
+    """Выдать access+refresh и зарегистрировать refresh в БД.
+
+    jti нужен, чтобы отследить повторное использование: без записи в БД
+    украденный refresh работал бы до самого истечения срока.
+    """
+    jti = secrets.token_urlsafe(32)
+    db.add(
+        RefreshToken(
+            jti=jti,
+            user_id=user.id,
+            expires_at=datetime.now(UTC)
+            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+    )
+    await db.commit()
+    return TokenPair(
+        access_token=create_access_token(
+            user.id, user.role.value, token_version=user.token_version
+        ),
+        refresh_token=create_refresh_token(
+            user.id, token_version=user.token_version, jti=jti
+        ),
+    )
+
+
+async def revoke_all_sessions(db: AsyncSession, user: User) -> None:
+    """Сделать недействительными все выданные пользователю токены."""
+    user.token_version = (user.token_version or 0) + 1
+    await db.commit()
+
+
+async def rotate_refresh_token(db: AsyncSession, refresh_token: str) -> TokenPair:
+    """Обменять refresh-токен на новую пару.
+
+    Один токен — один обмен. Повторное предъявление означает, что копия
+    оказалась у кого-то ещё, и все сессии пользователя отзываются.
+    """
+    try:
+        decoded = decode_token(refresh_token)
+        if decoded.get("type") != "refresh":
+            raise InvalidToken("wrong token type")
+        user_id = int(decoded["sub"])
+    except (JWTError, KeyError, ValueError) as e:
+        raise InvalidToken("cannot decode") from e
+
+    user = await db.get(User, user_id)
+    if not user or not user.is_active:
+        raise UserInactive(user_id)
+
+    if int(decoded.get("tv", 0)) != user.token_version:
+        raise TokenRevoked(user_id)
+
+    jti = decoded.get("jti")
+    if not jti:
+        # Токен выпущен до внедрения ротации. Принимаем один раз, чтобы выкатка
+        # не разлогинила всех, — в обмен пользователь получит уже учтённый.
+        logger.info("Refresh без jti (старый формат), user=%s", user.id)
+        return await issue_token_pair(db, user)
+
+    record = await db.scalar(select(RefreshToken).where(RefreshToken.jti == jti))
+    if not record or record.user_id != user.id:
+        raise InvalidToken("unknown jti")
+
+    if datetime.now(UTC) > _aware(record.expires_at):
+        raise TokenExpired(jti)
+
+    if record.used_at is not None:
+        age = (datetime.now(UTC) - _aware(record.used_at)).total_seconds()
+        if age <= REFRESH_GRACE_SECONDS:
+            # Гонка двух вкладок — выдаём новую пару, а не караем.
+            logger.info("Повторный обмен в окне благодати, user=%s", user.id)
+        else:
+            logger.warning(
+                "Повторное использование refresh-токена (user=%s) — отзываем все сессии",
+                user.id,
+            )
+            await revoke_all_sessions(db, user)
+            raise TokenReuseDetected(user.id)
+
+    new_pair = await issue_token_pair(db, user)
+    record.used_at = datetime.now(UTC)
+    record.replaced_by = decode_token(new_pair.refresh_token).get("jti")
+    await db.commit()
+    return new_pair
