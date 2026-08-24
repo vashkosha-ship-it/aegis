@@ -43,6 +43,8 @@ async def get_queue() -> ArqRedis | None:
 
     rs = redis_settings()
     if rs is None:
+        # В production сюда не дойдём: приложение не стартует без Redis
+        # (см. app/core/rate_limit.py). Здесь — только режим разработки.
         logger.warning("REDIS_URL не задан — фоновые задачи недоступны")
         return None
 

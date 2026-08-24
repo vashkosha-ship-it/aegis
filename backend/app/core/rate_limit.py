@@ -27,16 +27,39 @@ logger = logging.getLogger(__name__)
 # Подключение к Redis
 # ---------------------------------------------------------------------------
 
+class RedisRequiredError(RuntimeError):
+    """В production Redis обязателен, а подключиться не удалось."""
+
+
 def _make_redis():
     """Синхронный клиент Redis или None, если он недоступен.
 
     Клиент синхронный намеренно: операции лимитера занимают доли миллисекунды
     на localhost, а асинхронный вариант потребовал бы делать async все вызовы
     в auth.py и me.py.
+
+    В production отсутствие Redis — фатальная ошибка. Иначе приложение молча
+    деградирует: лимиты считаются в памяти каждого воркера отдельно (то есть
+    фактически умножаются на их число), обнуляются при каждом рестарте, а
+    фоновые задачи некуда ставить. Заметить это можно только случайно, поэтому
+    лучше не запуститься вовсе.
     """
     url = getattr(settings, "REDIS_URL", "") or ""
+    production = not settings.DEBUG
+
     if not url:
+        if production:
+            raise RedisRequiredError(
+                "REDIS_URL не задан. В production Redis обязателен: без него "
+                "rate limiting работает в памяти каждого воркера отдельно, а "
+                "фоновые задачи не выполняются. Укажите REDIS_URL в .env."
+            )
+        logger.warning(
+            "REDIS_URL не задан — rate limiting работает в памяти процесса. "
+            "Допустимо только для локальной разработки."
+        )
         return None
+
     try:
         import redis
 
@@ -44,7 +67,12 @@ def _make_redis():
         client.ping()
         logger.info("Rate limiting: используется Redis (%s)", url)
         return client
-    except Exception as e:  # noqa: BLE001 — любая проблема = работаем без Redis
+    except Exception as e:  # noqa: BLE001
+        if production:
+            raise RedisRequiredError(
+                f"Redis недоступен по адресу {url}: {e}. "
+                "Проверьте, что сервис запущен: systemctl status redis-server"
+            ) from e
         logger.warning(
             "Redis недоступен (%s), rate limiting работает в памяти процесса. "
             "При нескольких воркерах лимиты будут мягче заявленных.", e
