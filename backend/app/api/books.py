@@ -499,6 +499,9 @@ async def _read_storage_bytes(storage, key: str) -> bytes:
     return bytes(buf)
 
 
+REINDEX_JOB_KEY = "aegis:reindex_all:job"
+
+
 @router.post("/{book_id}/reindex", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_book(
     book_id: int,
@@ -542,7 +545,13 @@ async def reindex_all_books(
         )
 
     job = await queue.enqueue_job("index_all_books")
-    return {"job_id": job.job_id, "status": "queued"}
+    # Кладём id в Redis: статус спрашивает другой запрос (и, возможно, другой
+    # воркер gunicorn), поэтому в памяти процесса его хранить нельзя.
+    try:
+        await queue.set(REINDEX_JOB_KEY, job.job_id, ex=86400)
+    except Exception:  # noqa: BLE001 — не критично, статус просто будет беднее
+        logger.warning("Не удалось сохранить id задачи индексации")
+    return {"job_id": job.job_id, "status": "queued", "started": True}
 
 
 @router.get("/reindex/job/{job_id}")
@@ -675,14 +684,56 @@ async def reindex_status(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ) -> dict:
-    """Admin only: сколько книг проиндексировано (есть текст в BookPage)."""
+    """Admin only: прогресс индексации.
+
+    Прогресс считаем по числу книг, у которых уже появился текст: воркер
+    обрабатывает книги по одной и коммитит каждую, поэтому счётчик растёт
+    в реальном времени и переживает перезапуск веб-приложения.
+    """
     from app.models.book_page import BookPage
 
-    total = await db.scalar(select(func.count()).select_from(Book).where(Book.pdf_storage_key.isnot(None)))
-    indexed = await db.scalar(
-        select(func.count(func.distinct(BookPage.book_id)))
-    )
-    return {"total_books": total or 0, "indexed_books": indexed or 0}
+    total = await db.scalar(
+        select(func.count()).select_from(Book).where(Book.pdf_storage_key.isnot(None))
+    ) or 0
+    done = await db.scalar(select(func.count(func.distinct(BookPage.book_id)))) or 0
+    pages = await db.scalar(select(func.count()).select_from(BookPage)) or 0
+
+    finished = False
+    errors = 0
+    from app.core.queue import get_queue
+
+    queue = await get_queue()
+    if queue is not None:
+        try:
+            job_id = await queue.get(REINDEX_JOB_KEY)
+            if job_id:
+                from arq.jobs import Job
+
+                job = Job(job_id, queue)
+                if await job.status() == "complete":
+                    finished = True
+                    try:
+                        result = await job.result(timeout=1)
+                        if isinstance(result, dict):
+                            errors = result.get("failed", 0)
+                            pages = result.get("indexed_pages", pages)
+                    except Exception:  # noqa: BLE001 — задача упала
+                        errors = 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Не удалось получить статус задачи индексации: %s", e)
+
+    percent = int(done / total * 100) if total else 0
+    return {
+        "total": total,
+        "done": done,
+        "percent": percent,
+        "finished": finished,
+        "indexed_pages": pages,
+        "errors": errors,
+        # старые поля — на случай, если их кто-то ещё читает
+        "total_books": total,
+        "indexed_books": done,
+    }
 
 
 
