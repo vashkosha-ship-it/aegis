@@ -67,6 +67,9 @@ def _extract_pages_worker(path: str) -> list[str]:
             txt = page.extract_text() or ""
         except Exception:  # noqa: BLE001 — битая страница не должна ронять всю книгу
             txt = ""
+        # PostgreSQL не принимает NUL-байт в text-колонке, а он встречается в
+        # PDF с битой кодировкой шрифтов и роняет вставку целой книги.
+        txt = txt.replace("\x00", "")
         out.append(" ".join(txt.split())[:MAX_PAGE_CHARS])
     return out
 
@@ -117,9 +120,18 @@ async def index_book_from_path(db: AsyncSession, book_id: int, pdf_path: str) ->
         )
         await db.commit()
 
-    logger.info(
-        "Книга %s: проиндексировано %d страниц из %d", book_id, saved, total
-    )
+    if total and saved / total < 0.1:
+        # Скан без текстового слоя: файл читается, но искать в нём нечего.
+        # Отдельный уровень лога, чтобы такие книги было видно в мониторинге.
+        logger.warning(
+            "Книга %s: текстовый слой почти отсутствует (%d из %d страниц) — "
+            "вероятно скан, поиск по книге работать не будет",
+            book_id, saved, total,
+        )
+    else:
+        logger.info(
+            "Книга %s: проиндексировано %d страниц из %d", book_id, saved, total
+        )
     return saved
 
 
