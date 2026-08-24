@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,96 +14,18 @@ from app.models.book import Book
 from app.models.library import MyListEntry, MyListStatus, ReadingProgress, Review
 from app.models.quiz import QuizAttempt
 from app.models.user import User, UserRole
+from app.schemas.admin import (
+    AdminUserView,
+    BookAnalytics,
+    BookReaderRow,
+    CreateUserRequest,
+    DashboardStats,
+    LeaderboardEntry,
+    MyListBreakdown,
+    PendingUserView,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-class DashboardStats(BaseModel):
-    total_books: int
-    total_users: int
-    total_reviews: int
-    total_quiz_attempts: int
-    total_views: int
-    total_downloads: int
-
-
-class LeaderboardEntry(BaseModel):
-    username: str
-    full_name: str | None
-    xp: int
-    streak_count: int
-
-
-class AdminUserView(BaseModel):
-    id: int
-    username: str
-    email: str | None
-    role: UserRole
-    full_name: str | None = None
-    department: str | None = None
-    xp: int
-    streak_count: int = 0
-    cyber_level: str | None = None
-    is_active: bool
-    created_at: str | None = None
-    # Статистика
-    completed_books: int = 0
-    quiz_attempts: int = 0
-    perfect_quizzes: int = 0
-    total_pages_read: int = 0
-
-
-# ============================================================================
-# Schemas: book analytics
-# ============================================================================
-
-
-class BookReaderRow(BaseModel):
-    """Запись в таблице «кто читает» в детальной аналитике книги."""
-    user_id: int
-    username: str
-    full_name: str | None
-    current_page: int
-    total_pages: int
-    progress_pct: int
-    started: bool
-    last_read_at: str | None  # ISO
-
-
-class MyListBreakdown(BaseModel):
-    reading: int
-    planned: int
-    dropped: int
-    completed: int
-    liked: int
-    total: int
-
-
-class BookAnalytics(BaseModel):
-    # Базовая
-    book_id: int
-    title: str
-    author: str
-    categories: list[str]
-    rating: float
-    views: int
-    downloads: int
-    reviews_count: int
-    has_file: bool
-
-    # MyList
-    mylist: MyListBreakdown
-
-    # Прогресс читателей
-    readers_started: int          # сколько начали (started=true)
-    readers_completed: int        # сколько с current_page == total_pages
-    avg_progress_pct: int         # средний % по всем started-юзерам
-    readers: list[BookReaderRow]  # детальный список
-
-    # Тесты по книге
-    quiz_attempts: int            # всего попыток
-    quiz_passed: int              # прошедшие (≥60%)
-    quiz_avg_percentage: int      # средний % по всем попыткам
 
 
 # ============================================================================
@@ -213,18 +134,6 @@ async def delete_user(
     await db.commit()
 
 
-class PendingUserView(BaseModel):
-    id: int
-    username: str
-    email: str | None
-    full_name: str | None
-    department: str | None
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
 @router.get("/users/pending", response_model=list[PendingUserView])
 async def list_pending_users(
     db: AsyncSession = Depends(get_db),
@@ -280,13 +189,6 @@ async def reject_user(
     await db.delete(user)
     await db.commit()
     return {"detail": "rejected", "user_id": user_id}
-
-
-class CreateUserRequest(BaseModel):
-    username: str
-    password: str
-    full_name: str | None = None
-    department: str | None = None
 
 
 @router.post("/users/create", status_code=status.HTTP_201_CREATED)

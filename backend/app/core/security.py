@@ -1,5 +1,5 @@
 """Password hashing (bcrypt) and JWT token utilities."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from jose import JWTError, jwt
@@ -32,7 +32,7 @@ def create_access_token(
     token_version попадает в claim "tv" и сверяется при каждом запросе:
     инкремент версии у пользователя мгновенно отзывает все выданные токены.
     """
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = datetime.now(UTC) + timedelta(
         minutes=expires_minutes or settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     payload: dict[str, Any] = {
@@ -41,7 +41,7 @@ def create_access_token(
         "type": "access",
         "tv": token_version,
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
@@ -54,13 +54,13 @@ def create_refresh_token(
     jti — идентификатор конкретного токена. По нему сервер отслеживает, был ли
     токен уже обменян: повторное предъявление означает утечку.
     """
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     payload: dict[str, Any] = {
         "sub": str(subject),
         "type": "refresh",
         "tv": token_version,
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
     }
     if jti:
         payload["jti"] = jti
@@ -82,8 +82,8 @@ def decode_token(token: str) -> dict[str, Any]:
 # подбирается перебором за минуты. Используем HMAC-SHA256 с серверным
 # секретом: без SECRET_KEY перебор по дампу БД невозможен.
 
-import hmac
 import hashlib
+import hmac
 
 
 def hash_otp(code: str) -> str:
