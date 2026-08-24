@@ -2,7 +2,6 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -11,51 +10,17 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.chat import ChatMessage, ChatSession
 from app.models.user import User
+from app.schemas.chats import (
+    ChatMessageIn,
+    ChatMessagePublic,
+    ChatSessionBrief,
+    ChatSessionCreate,
+    ChatSessionFull,
+    ChatSessionRename,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/me/chats", tags=["chats"])
-
-
-# ---- Schemas ----------------------------------------------------------------
-class ChatMessageIn(BaseModel):
-    role: str = Field(..., pattern=r"^(user|assistant)$")
-    content: str = Field(..., min_length=1, max_length=8000)
-
-
-class ChatMessagePublic(BaseModel):
-    id: int
-    role: str
-    content: str
-
-    class Config:
-        from_attributes = True
-
-
-class ChatSessionBrief(BaseModel):
-    id: int
-    title: str
-    message_count: int = 0
-
-    class Config:
-        from_attributes = True
-
-
-class ChatSessionFull(BaseModel):
-    id: int
-    title: str
-    messages: list[ChatMessagePublic] = Field(default_factory=list)
-
-    class Config:
-        from_attributes = True
-
-
-class ChatSessionCreate(BaseModel):
-    title: str = Field(default="Новый диалог", max_length=200)
-    messages: list[ChatMessageIn] = Field(default_factory=list)
-
-
-class ChatSessionRename(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200)
 
 
 # ---- Helpers ----------------------------------------------------------------

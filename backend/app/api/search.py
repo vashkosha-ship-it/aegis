@@ -2,7 +2,6 @@
 import logging
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,30 +9,10 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.user import User
+from app.schemas.search import SearchHit, SearchHitPage, SearchResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/search", tags=["search"])
-
-
-class SearchHitPage(BaseModel):
-    page: int
-    snippet: str
-
-
-class SearchHit(BaseModel):
-    book_id: int
-    title: str
-    author: str
-    has_cover: bool = False
-    rank: float = 0.0
-    matched_in: str = "meta"  # 'meta' | 'content' | 'both'
-    pages: list[SearchHitPage] = Field(default_factory=list)
-
-
-class SearchResponse(BaseModel):
-    query: str
-    total: int
-    hits: list[SearchHit]
 
 
 @router.get("", response_model=SearchResponse)

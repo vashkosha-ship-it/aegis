@@ -10,7 +10,6 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +20,13 @@ from app.models.book_page import BookPage
 from app.models.certificate import Certificate
 from app.models.exam_session import ExamSession
 from app.models.user import User
+from app.schemas.certificates import (
+    ExamQuestion,
+    StartExamRequest,
+    StartExamResponse,
+    SubmitExamRequest,
+    SubmitExamResponse,
+)
 from app.services.deepseek_client import DeepSeekError, chat_completion
 
 logger = logging.getLogger(__name__)
@@ -30,34 +36,6 @@ PASS_THRESHOLD = 85  # процент для прохождения
 NUM_QUESTIONS = 50
 
 EXAM_TTL_MINUTES = 120  # столько живёт выданный экзамен
-
-
-class StartExamRequest(BaseModel):
-    category: str
-
-
-class ExamQuestion(BaseModel):
-    question: str
-    options: list[str]
-
-
-class StartExamResponse(BaseModel):
-    exam_token: str
-    category: str
-    questions: list[ExamQuestion]
-
-
-class SubmitExamRequest(BaseModel):
-    exam_token: str
-    answers: list[int]  # индекс выбранного варианта на каждый вопрос
-
-
-class SubmitExamResponse(BaseModel):
-    score: int
-    passed: bool
-    correct_count: int
-    total: int
-    needs_full_name: bool = False
 
 
 @router.get("/categories")

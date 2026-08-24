@@ -2,7 +2,6 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,40 +11,15 @@ from app.db.session import get_db
 from app.models.book import Book
 from app.models.collection import Collection
 from app.models.user import User
+from app.schemas.collections import (
+    CollectionBookBrief,
+    CollectionCreate,
+    CollectionPublic,
+    CollectionUpdate,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/me/collections", tags=["collections"])
-
-
-# ---- Schemas ----------------------------------------------------------------
-class CollectionBookBrief(BaseModel):
-    id: int
-    title: str
-    author: str
-
-    class Config:
-        from_attributes = True
-
-
-class CollectionPublic(BaseModel):
-    id: int
-    name: str
-    icon: str
-    book_ids: list[int] = Field(default_factory=list)
-    books: list[CollectionBookBrief] = Field(default_factory=list)
-
-    class Config:
-        from_attributes = True
-
-
-class CollectionCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=120)
-    icon: str = Field(default="📁", max_length=8)
-
-
-class CollectionUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=120)
-    icon: str | None = Field(default=None, max_length=8)
 
 
 def _to_public(c: Collection) -> CollectionPublic:
