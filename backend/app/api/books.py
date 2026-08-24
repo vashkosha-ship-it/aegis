@@ -499,66 +499,76 @@ async def _read_storage_bytes(storage, key: str) -> bytes:
     return bytes(buf)
 
 
-@router.post("/{book_id}/reindex")
+@router.post("/{book_id}/reindex", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_book(
     book_id: int,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
-    storage: StorageBackend = Depends(get_storage),
 ) -> dict:
-    """Admin only: переиндексировать текст книги для полнотекстового поиска."""
-    from app.services.search_index import index_book_content
+    """Admin only: поставить книгу в очередь на переиндексацию.
+
+    Индексация идёт в фоновом воркере: на большой книге она занимает минуты,
+    и держать всё это время HTTP-соединение (и воркер gunicorn) нельзя.
+    """
+    from app.core.queue import get_queue
 
     book = await _get_book_or_404(db, book_id)
     if not book.pdf_storage_key:
         raise HTTPException(status_code=400, detail="У книги нет PDF для индексации")
 
-    try:
-        data = await _read_storage_bytes(storage, book.pdf_storage_key)
-    except StorageNotFound:
-        raise HTTPException(status_code=404, detail="PDF-файл не найден в хранилище") from None
+    queue = await get_queue()
+    if queue is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Очередь задач недоступна: не настроен REDIS_URL",
+        )
 
-    pages = await index_book_content(db, book_id, data)
-    return {"book_id": book_id, "indexed_pages": pages}
+    job = await queue.enqueue_job("index_book", book_id)
+    return {"book_id": book_id, "job_id": job.job_id, "status": "queued"}
 
 
-@router.post("/reindex-all")
+@router.post("/reindex-all", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_all_books(
-    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
-    storage: StorageBackend = Depends(get_storage),
 ) -> dict:
-    """Admin only: проиндексировать текст всех книг с PDF (для поиска и сертификации).
+    """Admin only: поставить в очередь индексацию всех книг с PDF."""
+    from app.core.queue import get_queue
 
-    Выполняется синхронно по всем книгам. На большом каталоге может занять время.
-    """
-    from app.services.search_index import index_book_content
+    queue = await get_queue()
+    if queue is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Очередь задач недоступна: не настроен REDIS_URL",
+        )
 
-    books = (await db.scalars(select(Book).where(Book.pdf_storage_key.isnot(None)))).all()
-    total = len(books)
-    indexed_books = 0
-    indexed_pages = 0
-    failed = 0
+    job = await queue.enqueue_job("index_all_books")
+    return {"job_id": job.job_id, "status": "queued"}
 
-    for book in books:
-        if not book.pdf_storage_key:
-            continue
+
+@router.get("/reindex/job/{job_id}")
+async def reindex_job_status(
+    job_id: str,
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Статус фоновой задачи индексации."""
+    from arq.jobs import Job
+
+    from app.core.queue import get_queue
+
+    queue = await get_queue()
+    if queue is None:
+        raise HTTPException(status_code=503, detail="Очередь задач недоступна")
+
+    job = Job(job_id, queue)
+    status_str = await job.status()
+    result = None
+    if status_str == "complete":
         try:
-            data = await _read_storage_bytes(storage, book.pdf_storage_key)
-            pages = await index_book_content(db, book.id, data)
-            indexed_pages += pages
-            indexed_books += 1
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Не удалось проиндексировать книгу %s: %s", book.id, e)
-            failed += 1
-            continue
+            result = await job.result(timeout=1)
+        except Exception:  # noqa: BLE001 — задача упала, детали в логах воркера
+            result = {"error": "Задача завершилась с ошибкой"}
 
-    return {
-        "total_books": total,
-        "indexed_books": indexed_books,
-        "indexed_pages": indexed_pages,
-        "failed": failed,
-    }
+    return {"job_id": job_id, "status": status_str, "result": result}
 
 
 class MatchArTopicsRequest(_BaseModel):
