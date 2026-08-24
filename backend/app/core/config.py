@@ -1,6 +1,8 @@
 """Application configuration loaded from environment variables."""
 from functools import lru_cache
+from typing import List
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,7 +31,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173"
 
     @property
-    def cors_origins_list(self) -> list[str]:
+    def cors_origins_list(self) -> List[str]:
         """Список разрешённых origin. Принимает и запятые, и JSON-массив."""
         raw = (self.CORS_ORIGINS or "").strip()
         if not raw:
@@ -42,6 +44,12 @@ class Settings(BaseSettings):
             except (ValueError, TypeError):
                 return []
         return [o.strip() for o in raw.split(",") if o.strip()]
+
+    # --- Rate limiting -------------------------------------------------------
+    # Redis для общих счётчиков. Пусто — счётчики живут в памяти процесса
+    # (годится для локальной разработки; в проде обязательно задать, иначе
+    # при нескольких воркерах gunicorn лимиты умножаются на их число).
+    REDIS_URL: str = ""
 
     # --- Storage (Этап 2) ----------------------------------------------------
     # На Этапе 2 — "local". На Этапе 4 переключим на "s3".
