@@ -142,76 +142,46 @@ async def submit_quiz(
 
     all_questions = await quizzes_service.ensure_quiz_for_book(db, book)
 
-    # Сколько вопросов обязан пройти пользователь за попытку.
-    required_count = min(quizzes_service.QUIZ_SERVE_COUNT, len(all_questions))
-
-    session: QuizSession | None = None
-    if payload.session_token:
-        session = await db.scalar(
-            select(QuizSession).where(QuizSession.token == payload.session_token)
+    # Набор вопросов определяет ТОЛЬКО серверная сессия. Раньше клиент мог
+    # прислать свои question_ids — то есть сам выбрать, что ему засчитают.
+    if not payload.session_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Не указан session_token. Откройте тест заново.",
         )
-        if not session or session.user_id != current.id or session.book_id != book_id:
-            raise HTTPException(status_code=404, detail="Quiz session not found")
 
-        expires = session.expires_at
-        if expires.tzinfo is None:
-            expires = expires.replace(tzinfo=UTC)
-        if datetime.now(UTC) > expires:
-            raise HTTPException(status_code=404, detail="Quiz session expired")
+    session = await db.scalar(
+        select(QuizSession).where(QuizSession.token == payload.session_token)
+    )
+    if not session or session.user_id != current.id or session.book_id != book_id:
+        raise HTTPException(status_code=404, detail="Quiz session not found")
 
-        if session.submitted_at is not None:
-            # Повторная отправка: возвращаем зафиксированный результат, не
-            # пересчитывая ответы — иначе по score можно подбирать правильные.
-            raise HTTPException(
-                status_code=409,
-                detail="Quiz session already submitted",
-            )
+    expires = session.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
+    if datetime.now(UTC) > expires:
+        raise HTTPException(status_code=404, detail="Quiz session expired")
 
-        by_id = {q.id: q for q in all_questions}
-        graded = []
-        for qid in session.question_ids:
-            q = by_id.get(qid)
-            if q is None:
-                raise HTTPException(status_code=409, detail="Quiz questions changed, restart the quiz")
-            graded.append(q)
-        if len(payload.answers) != len(graded):
+    if session.submitted_at is not None:
+        # Повторная отправка не пересчитывается: иначе по возвращаемому score
+        # можно подбирать правильные ответы.
+        raise HTTPException(status_code=409, detail="Quiz session already submitted")
+
+    by_id = {q.id: q for q in all_questions}
+    graded = []
+    for qid in session.question_ids:
+        q = by_id.get(qid)
+        if q is None:
             raise HTTPException(
-                status_code=400,
-                detail=f"Expected {len(graded)} answers, got {len(payload.answers)}",
+                status_code=409, detail="Quiz questions changed, restart the quiz"
             )
-    elif payload.question_ids:
-        # Скоринг по конкретным вопросам, которые видел пользователь
-        if len(payload.answers) != len(payload.question_ids):
-            raise HTTPException(
-                status_code=400,
-                detail="answers and question_ids length mismatch",
-            )
-        if len(set(payload.question_ids)) != len(payload.question_ids):
-            raise HTTPException(
-                status_code=400, detail="Duplicate question ids"
-            )
-        if len(payload.question_ids) < required_count:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Expected at least {required_count} questions, got {len(payload.question_ids)}",
-            )
-        by_id = {q.id: q for q in all_questions}
-        graded = []
-        for qid in payload.question_ids:
-            q = by_id.get(qid)
-            if q is None:
-                raise HTTPException(
-                    status_code=400, detail=f"Unknown question id {qid}"
-                )
-            graded.append(q)
-    else:
-        # Старый клиент: ответы по всем вопросам в порядке хранения
-        graded = all_questions
-        if len(payload.answers) != len(graded):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Expected {len(graded)} answers, got {len(payload.answers)}",
-            )
+        graded.append(q)
+
+    if len(payload.answers) != len(graded):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Expected {len(graded)} answers, got {len(payload.answers)}",
+        )
 
     correct_indices = [q.correct_index for q in graded]
     score = sum(1 for i, ans in enumerate(payload.answers) if ans == correct_indices[i])
@@ -245,14 +215,12 @@ async def submit_quiz(
     if percentage >= 60 and not already_passed:
         await add_xp(db, current, 30 if percentage >= 80 else 15)
         await check_and_award_achievements(db, current, trigger="quiz_completed")
-        if session is not None:
-            session.xp_awarded = True
+        session.xp_awarded = True
 
     # Помечаем сессию использованной — второй раз этот набор не сдать.
-    if session is not None:
-        session.submitted_at = datetime.now(UTC)
-        session.score = score
-        session.percentage = percentage
+    session.submitted_at = datetime.now(UTC)
+    session.score = score
+    session.percentage = percentage
 
     await db.commit()
     await db.refresh(attempt)

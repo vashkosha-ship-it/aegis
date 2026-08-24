@@ -4642,9 +4642,8 @@ async function finishQuiz() {
 
   let result;
   try {
-    const questionIds = currentQuiz.questions.map(q => q._id);
     result = await api.library.submitQuiz(
-      currentQuiz.bookId, cleanAnswers, questionIds, currentQuiz.sessionToken
+      currentQuiz.bookId, cleanAnswers, currentQuiz.sessionToken
     );
   } catch (err) {
     if (err instanceof api.ApiError) showToast('Ошибка: ' + (err.detail || err.status));

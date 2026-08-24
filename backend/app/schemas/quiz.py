@@ -45,10 +45,9 @@ class QuizSubmitIn(BaseModel):
     пришли с GET /quiz. session_token — токен сессии оттуда же: именно он
     определяет, какие вопросы засчитываются.
 
-    question_ids оставлен только для обратной совместимости со старым клиентом
-    (кэш браузера, установленная PWA) и игнорируется, если есть session_token.
+    Поле обязательное: раньше клиент мог прислать собственный список
+    question_ids и тем самым выбрать, что ему засчитают.
     """
 
     answers: list[int]
-    session_token: str | None = None
-    question_ids: list[int] | None = None
+    session_token: str

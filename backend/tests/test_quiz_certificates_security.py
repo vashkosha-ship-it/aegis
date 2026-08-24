@@ -95,20 +95,22 @@ class TestQuizXpFarming:
 class TestQuizSessionIntegrity:
     """Набор вопросов задаёт сервер, а не клиент."""
 
-    async def test_single_question_submit_rejected(
+    async def test_submit_without_session_rejected(
         self, client, approved_user, book_with_quiz
     ):
-        """Раньше можно было прислать один вопрос, ответить верно и получить 100%."""
+        """Без токена сессии засчитывать нечего — набор вопросов знает сервер."""
         r = await client.post(
             f"/books/{book_with_quiz.id}/quiz/submit",
             headers=auth_headers(approved_user),
-            json={"answers": [0], "question_ids": [1]},
+            json={"answers": [0] * 15},
         )
-        assert r.status_code == 400
+        # 422 — схема требует session_token, 400 — эндпоинт отверг пустой
+        assert r.status_code in (400, 422)
 
-    async def test_duplicate_question_ids_rejected(
+    async def test_client_question_ids_ignored(
         self, client, db, approved_user, book_with_quiz
     ):
+        """Старый путь закрыт: свои question_ids больше не принимаются."""
         from app.models.quiz import QuizQuestion
 
         rows = (await db.scalars(
@@ -118,9 +120,20 @@ class TestQuizSessionIntegrity:
         r = await client.post(
             f"/books/{book_with_quiz.id}/quiz/submit",
             headers=auth_headers(approved_user),
-            json={"answers": [0] * 15, "question_ids": [qid] * 15},
+            json={"answers": [0], "question_ids": [qid]},
         )
-        assert r.status_code == 400
+        assert r.status_code in (400, 422)
+
+    async def test_foreign_session_token_rejected_short(
+        self, client, approved_user, book_with_quiz
+    ):
+        """Выдуманный токен не должен подойти."""
+        r = await client.post(
+            f"/books/{book_with_quiz.id}/quiz/submit",
+            headers=auth_headers(approved_user),
+            json={"answers": [0] * 15, "session_token": "nonexistent-token"},
+        )
+        assert r.status_code == 404
 
     async def test_session_cannot_be_reused(
         self, client, db, approved_user, book_with_quiz

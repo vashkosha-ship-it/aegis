@@ -397,10 +397,9 @@
       bookComments(bookId) { return request('/books/' + bookId + '/comments'); },
       addBookComment(bookId, text, parentId) { return request('/books/' + bookId + '/comments', { method: 'POST', body: { text, parent_id: parentId || null } }); },
       deleteBookComment(bookId, commentId) { return request('/books/' + bookId + '/comments/' + commentId, { method: 'DELETE' }); },
-      submitQuiz(bookId, answers, questionIds, sessionToken) {
-        const body = { answers };
-        if (sessionToken) body.session_token = sessionToken;
-        if (questionIds) body.question_ids = questionIds;
+      // sessionToken обязателен: набор вопросов знает только сервер.
+      submitQuiz(bookId, answers, sessionToken) {
+        const body = { answers, session_token: sessionToken };
         return request('/books/' + bookId + '/quiz/submit', {
           method: 'POST',
           body,
