@@ -150,8 +150,12 @@ async def submit_quiz(
             detail="Не указан session_token. Откройте тест заново.",
         )
 
+    # FOR UPDATE: без блокировки два параллельных submit по одной сессии
+    # оба прошли бы проверку submitted_at и оба начислили XP.
     session = await db.scalar(
-        select(QuizSession).where(QuizSession.token == payload.session_token)
+        select(QuizSession)
+        .where(QuizSession.token == payload.session_token)
+        .with_for_update()
     )
     if not session or session.user_id != current.id or session.book_id != book_id:
         raise HTTPException(status_code=404, detail="Quiz session not found")

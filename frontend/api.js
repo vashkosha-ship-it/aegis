@@ -1,7 +1,8 @@
 // ============================================================================
 // API-слой: связь фронта с бэкендом NEON STACK.
 // Использование: api.login(...), api.books.list(), api.books.uploadPdf(...)
-// Токены хранятся в localStorage. При 401 пытаемся обновить refresh-токеном.
+// Access-токен хранится в памяти, refresh — в httpOnly-cookie.
+// При 401 пытаемся обновить пару через /auth/refresh.
 // ============================================================================
 (function () {
   // Умное определение адреса API:
@@ -18,20 +19,21 @@
   })();
 
   // --- хранение токенов ----------------------------------------------------
-  const TOKEN_KEY = 'neon_access_token';
-  const REFRESH_KEY = 'neon_refresh_token';
+  // Refresh-токен живёт в httpOnly-cookie: JavaScript его не видит, поэтому
+  // XSS не может его украсть. Access-токен держим только в памяти — при
+  // перезагрузке страницы он теряется, и приложение получает новый через
+  // /auth/refresh (cookie отправится сама).
+  let _accessToken = null;
+
+  function getCsrfToken() {
+    const m = document.cookie.match(/(?:^|;\s*)aegis_csrf=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
 
   const tokens = {
-    get access() { return localStorage.getItem(TOKEN_KEY); },
-    get refresh() { return localStorage.getItem(REFRESH_KEY); },
-    set(access, refresh) {
-      localStorage.setItem(TOKEN_KEY, access);
-      localStorage.setItem(REFRESH_KEY, refresh);
-    },
-    clear() {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(REFRESH_KEY);
-    },
+    get access() { return _accessToken; },
+    set(access) { _accessToken = access || null; },
+    clear() { _accessToken = null; },
   };
 
   // --- ошибка с кодом и деталями (удобно ловить в catch) -------------------
@@ -47,7 +49,8 @@
   // --- базовый fetch с авторизацией и автообновлением токена ---------------
   async function request(path, { method = 'GET', body, headers = {}, auth = true, raw = false } = {}) {
     const url = path.startsWith('http') ? path : BASE + path;
-    const opts = { method, headers: { ...headers } };
+    // credentials: cookie с refresh-токеном должна уходить на /auth/*
+    const opts = { method, headers: { ...headers }, credentials: 'include' };
 
     if (auth && tokens.access) {
       opts.headers['Authorization'] = 'Bearer ' + tokens.access;
@@ -64,7 +67,7 @@
     let response = await fetch(url, opts);
 
     // 401 + есть refresh — пробуем обновить токен и повторить запрос ровно один раз
-    if (response.status === 401 && auth && tokens.refresh && path !== '/auth/refresh') {
+    if (response.status === 401 && auth && path !== '/auth/refresh') {
       const refreshed = await tryRefresh();
       if (refreshed) {
         opts.headers['Authorization'] = 'Bearer ' + tokens.access;
@@ -84,13 +87,15 @@
   }
 
   async function tryRefresh() {
+    const csrf = getCsrfToken();
+    if (!csrf) { tokens.clear(); return false; }
     try {
       const data = await request('/auth/refresh', {
         method: 'POST',
-        body: { refresh_token: tokens.refresh },
+        headers: { 'X-CSRF-Token': csrf },
         auth: false,
       });
-      tokens.set(data.access_token, data.refresh_token);
+      tokens.set(data.access_token);
       return true;
     } catch (e) {
       tokens.clear();
@@ -101,6 +106,10 @@
   // --- публичный API -------------------------------------------------------
   const api = {
     isAuthenticated: () => !!tokens.access,
+
+    // Восстановить сессию после перезагрузки страницы: access-токен в памяти
+    // потерян, но refresh-cookie осталась.
+    restoreSession: () => tryRefresh(),
     baseUrl: BASE,
     tokens,
     ApiError,
@@ -112,7 +121,7 @@
         body: { username, password },
         auth: false,
       });
-      tokens.set(data.access_token, data.refresh_token);
+      tokens.set(data.access_token);
       return data;
     },
 
@@ -131,7 +140,7 @@
         body: { email, code },
         auth: false,
       });
-      tokens.set(data.access_token, data.refresh_token);
+      tokens.set(data.access_token);
       return data;
     },
 
@@ -157,11 +166,20 @@
         body: { email, code, new_password: newPassword },
         auth: false,
       });
-      if (data.access_token) tokens.set(data.access_token, data.refresh_token);
+      if (data.access_token) tokens.set(data.access_token);
       return data;
     },
 
-    logout() {
+    async logout() {
+      // Cookie удаляет сервер: из JS httpOnly-cookie не стереть.
+      const csrf = getCsrfToken();
+      try {
+        await request('/auth/logout', {
+          method: 'POST',
+          headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+          auth: false,
+        });
+      } catch (_) { /* даже если не вышло — локально разлогиниваемся */ }
       tokens.clear();
     },
 
@@ -190,7 +208,7 @@
         body: JSON.stringify({ messages, ...context }),
         signal,
       });
-      if (resp.status === 401 && tokens.refresh) {
+      if (resp.status === 401) {
         const ok = await tryRefresh();
         if (ok) return api.assistantChatStream(messages, context, onDelta, signal);
       }

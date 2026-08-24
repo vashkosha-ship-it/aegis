@@ -120,12 +120,18 @@ async def rotate_refresh_token(db: AsyncSession, refresh_token: str) -> TokenPai
 
     jti = decoded.get("jti")
     if not jti:
-        # Токен выпущен до внедрения ротации. Принимаем один раз, чтобы выкатка
-        # не разлогинила всех, — в обмен пользователь получит уже учтённый.
-        logger.info("Refresh без jti (старый формат), user=%s", user.id)
-        return await issue_token_pair(db, user)
+        # Токен выпущен до внедрения ротации. Отследить его нельзя: нет записи
+        # в БД, поэтому одноразовость и детект утечки на него не действуют —
+        # украденная копия работала бы до самого истечения срока.
+        # Отклоняем: пользователь просто войдёт заново.
+        logger.info("Отклонён refresh старого формата (без jti), user=%s", user.id)
+        raise InvalidToken("legacy token without jti")
 
-    record = await db.scalar(select(RefreshToken).where(RefreshToken.jti == jti))
+    # FOR UPDATE: два параллельных обмена одним токеном иначе оба увидят
+    # used_at = None и оба выдадут новые пары — одноразовость нарушается.
+    record = await db.scalar(
+        select(RefreshToken).where(RefreshToken.jti == jti).with_for_update()
+    )
     if not record or record.user_id != user.id:
         raise InvalidToken("unknown jti")
 
@@ -134,10 +140,7 @@ async def rotate_refresh_token(db: AsyncSession, refresh_token: str) -> TokenPai
 
     if record.used_at is not None:
         age = (datetime.now(UTC) - _aware(record.used_at)).total_seconds()
-        if age <= REFRESH_GRACE_SECONDS:
-            # Гонка двух вкладок — выдаём новую пару, а не караем.
-            logger.info("Повторный обмен в окне благодати, user=%s", user.id)
-        else:
+        if age > REFRESH_GRACE_SECONDS:
             logger.warning(
                 "Повторное использование refresh-токена (user=%s) — отзываем все сессии",
                 user.id,
@@ -145,8 +148,49 @@ async def rotate_refresh_token(db: AsyncSession, refresh_token: str) -> TokenPai
             await revoke_all_sessions(db, user)
             raise TokenReuseDetected(user.id)
 
-    new_pair = await issue_token_pair(db, user)
+        # Окно благодати: две вкладки одновременно пошли обновляться. Отдаём
+        # ту же пару, что выдали первой, а не плодим новые — иначе токен можно
+        # прокручивать бесконечно, каждый раз попадая в окно.
+        if record.replaced_by:
+            logger.info("Повторный обмен в окне благодати, user=%s", user.id)
+            successor = await db.scalar(
+                select(RefreshToken).where(RefreshToken.jti == record.replaced_by)
+            )
+            if successor and successor.used_at is None:
+                return TokenPair(
+                    access_token=create_access_token(
+                        user.id, user.role.value, token_version=user.token_version
+                    ),
+                    refresh_token=create_refresh_token(
+                        user.id,
+                        token_version=user.token_version,
+                        jti=successor.jti,
+                    ),
+                )
+        # Преемника нет или он уже потрачен — считаем это утечкой.
+        await revoke_all_sessions(db, user)
+        raise TokenReuseDetected(user.id)
+
+    # Помечаем ДО выдачи новой пары: issue_token_pair делает commit, а он
+    # снимает блокировку строки.
+    new_jti = secrets.token_urlsafe(32)
     record.used_at = datetime.now(UTC)
-    record.replaced_by = decode_token(new_pair.refresh_token).get("jti")
+    record.replaced_by = new_jti
+    db.add(
+        RefreshToken(
+            jti=new_jti,
+            user_id=user.id,
+            expires_at=datetime.now(UTC)
+            + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+    )
     await db.commit()
-    return new_pair
+
+    return TokenPair(
+        access_token=create_access_token(
+            user.id, user.role.value, token_version=user.token_version
+        ),
+        refresh_token=create_refresh_token(
+            user.id, token_version=user.token_version, jti=new_jti
+        ),
+    )

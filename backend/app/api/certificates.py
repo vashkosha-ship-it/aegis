@@ -123,8 +123,13 @@ async def submit_exam(
     current: User = Depends(get_current_user),
 ) -> SubmitExamResponse:
     """Проверить ответы. При >=85% выдать сертификат (если ФИО заполнено)."""
+    # FOR UPDATE: два одновременных submit с одним токеном иначе оба увидят
+    # submitted_at = None, оба посчитают результат и оба выдадут сертификат.
+    # Вторая транзакция теперь ждёт, пока первая зафиксирует результат.
     exam = await db.scalar(
-        select(ExamSession).where(ExamSession.token == payload.exam_token)
+        select(ExamSession)
+        .where(ExamSession.token == payload.exam_token)
+        .with_for_update()
     )
     # Одинаковая ошибка для «не найден», «чужой» и «истёк» — не раскрываем,
     # существует ли токен.

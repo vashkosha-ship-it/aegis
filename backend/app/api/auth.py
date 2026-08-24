@@ -3,12 +3,18 @@ import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_any
+from app.core.cookies import (
+    clear_auth_cookies,
+    csrf_is_valid,
+    get_refresh_from_cookie,
+    set_auth_cookies,
+)
 from app.core.rate_limit import email_send_limiter, login_limiter, otp_attempt_limiter
 from app.core.security import (
     hash_otp,
@@ -40,6 +46,20 @@ def _gen_code() -> str:
 
 
 logger = logging.getLogger(__name__)
+
+async def _issue_with_cookie(
+    db: AsyncSession, user: User, response: Response
+) -> TokenPair:
+    """Выдать пару и положить refresh в httpOnly-cookie.
+
+    В теле ответа refresh тоже возвращается — для обратной совместимости со
+    старым клиентом и мобильными обёртками, у которых нет cookie-хранилища.
+    Веб-клиент его игнорирует и полагается на cookie.
+    """
+    pair = await tokens_service.issue_token_pair(db, user)
+    set_auth_cookies(response, pair.refresh_token)
+    return pair
+
 
 def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
@@ -125,6 +145,7 @@ async def register(
 
 @router.post("/verify", response_model=TokenPair)
 async def verify_email(
+    response: Response,
     payload: VerifyEmailRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -167,7 +188,7 @@ async def verify_email(
         except EmailError:
             pass  # письмо админу не критично — не ломаем регистрацию
 
-    return await tokens_service.issue_token_pair(db, user)
+    return await _issue_with_cookie(db, user, response)
 
 
 @router.post("/resend-code", status_code=status.HTTP_200_OK)
@@ -200,6 +221,7 @@ async def resend_code(
 
 @router.post("/login", response_model=TokenPair)
 async def login(
+    response: Response,
     payload: UserLogin,
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -226,27 +248,63 @@ async def login(
         raise HTTPException(status_code=403, detail="Email not verified")
 
     login_limiter.record_success(ip)
-    return await tokens_service.issue_token_pair(db, user)
+    return await _issue_with_cookie(db, user, response)
 
 
 @router.post("/refresh", response_model=TokenPair)
-async def refresh_token(payload: RefreshRequest, db: AsyncSession = Depends(get_db)) -> TokenPair:
-    """Обменять refresh-токен на новую пару access+refresh."""
+async def refresh_token(
+    request: Request,
+    response: Response,
+    payload: RefreshRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> TokenPair:
+    """Обменять refresh-токен на новую пару access+refresh.
+
+    Токен берётся из httpOnly-cookie. Тело запроса поддерживается для клиентов
+    без cookie (мобильная обёртка), но для них CSRF-проверка не нужна: они не
+    подвержены ей, потому что браузер за них ничего не отправляет автоматически.
+    """
+    cookie_token = get_refresh_from_cookie(request)
+
+    if cookie_token:
+        # Запрос с cookie — браузер отправил её сам, значит нужен CSRF-контроль.
+        if not csrf_is_valid(request):
+            raise HTTPException(status_code=403, detail="CSRF token mismatch")
+        token = cookie_token
+    elif payload and payload.refresh_token:
+        token = payload.refresh_token
+    else:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+
     try:
-        return await tokens_service.rotate_refresh_token(db, payload.refresh_token)
+        pair = await tokens_service.rotate_refresh_token(db, token)
     except tokens_service.TokenReuseDetected:
+        clear_auth_cookies(response)
         raise HTTPException(
             status_code=401,
             detail="Refresh token reuse detected, all sessions revoked",
         ) from None
     except tokens_service.TokenRevoked:
+        clear_auth_cookies(response)
         raise HTTPException(status_code=401, detail="Refresh token revoked") from None
     except tokens_service.TokenExpired:
+        clear_auth_cookies(response)
         raise HTTPException(status_code=401, detail="Refresh token expired") from None
     except tokens_service.UserInactive:
+        clear_auth_cookies(response)
         raise HTTPException(status_code=401, detail="User not found") from None
     except tokens_service.InvalidToken:
+        clear_auth_cookies(response)
         raise HTTPException(status_code=401, detail="Invalid refresh token") from None
+
+    set_auth_cookies(response, pair.refresh_token)
+    return pair
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response) -> None:
+    """Выход: удаляем cookie. Access-токен клиент забывает сам."""
+    clear_auth_cookies(response)
 
 
 @router.get("/me", response_model=UserPublic)
@@ -256,6 +314,7 @@ async def me(current: User = Depends(get_current_user_any)) -> UserPublic:
 
 @router.post("/token", response_model=TokenPair)
 async def login_form(
+    response: Response,
     request: Request,
     form: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
@@ -280,7 +339,7 @@ async def login_form(
         raise HTTPException(status_code=403, detail="Email not verified")
 
     login_limiter.record_success(ip)
-    return await tokens_service.issue_token_pair(db, user)
+    return await _issue_with_cookie(db, user, response)
 
 
 # ============================================================================
@@ -336,6 +395,7 @@ async def forgot_password(
 
 @router.post("/reset-password", response_model=TokenPair)
 async def reset_password(
+    response: Response,
     payload: ResetPasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -367,4 +427,4 @@ async def reset_password(
     user.token_version = (user.token_version or 0) + 1
     await db.commit()
 
-    return await tokens_service.issue_token_pair(db, user)
+    return await _issue_with_cookie(db, user, response)

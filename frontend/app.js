@@ -8575,7 +8575,16 @@ async function flushSyncQueue() {
       delete q[key];
       sentAny = true;
     } catch (e) {
-      // не удалось — оставляем в очереди, прервёмся (сеть, видимо, снова пропала)
+      const status = e && e.status;
+      // 4xx (кроме 429) — сервер не примет эту запись никогда: книгу удалили,
+      // данные не проходят валидацию. Без выброса такая запись оставалась в
+      // очереди навсегда и долбила сервер при каждом опросе.
+      if (status && status >= 400 && status < 500 && status !== 429) {
+        console.warn('Отбрасываю невосстановимую запись очереди', key, status);
+        delete q[key];
+        continue;
+      }
+      // Сеть или сервер — оставляем в очереди и ждём следующего раза
       break;
     }
   }
@@ -9792,10 +9801,19 @@ async function loadPdf(b) {
     pdfDoc = loadedDoc;
 
     pdfTotalPages = pdfDoc.numPages;
-    if (!state.readingProgress[b.id]) {
+    const prevProgress = state.readingProgress[b.id];
+    if (!prevProgress) {
       state.readingProgress[b.id] = { currentPage: 1, totalPages: pdfTotalPages, started: false };
     } else {
-      state.readingProgress[b.id].totalPages = pdfTotalPages;
+      // Если в базе осталось неверное число страниц (например, 10 от старого
+      // аварийного фолбэка), чиним его: отправляем серверу реальное значение.
+      const wasWrong = prevProgress.totalPages !== pdfTotalPages;
+      prevProgress.totalPages = pdfTotalPages;
+      if (wasWrong) {
+        const page = Math.min(prevProgress.currentPage || 1, pdfTotalPages);
+        api.library.updateProgress(b.id, page, pdfTotalPages)
+          .catch(() => { /* не критично: поправится при следующем открытии */ });
+      }
     }
     pdfCurrentPage = Math.min(state.readingProgress[b.id].currentPage || 1, pdfTotalPages);
 
