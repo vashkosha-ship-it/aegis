@@ -25,6 +25,20 @@
   // /auth/refresh (cookie отправится сама).
   let _accessToken = null;
 
+  // Разовая уборка: до перехода на cookie токены лежали в localStorage.
+  // Оставлять их там нельзя — это ровно то, от чего мы уходили: любой скрипт
+  // на странице (XSS) прочитал бы refresh-токен и получил доступ к аккаунту.
+  (function purgeLegacyTokens() {
+    try {
+      for (const key of ['neon_access_token', 'neon_refresh_token']) {
+        if (localStorage.getItem(key) !== null) {
+          localStorage.removeItem(key);
+          console.info('Удалён устаревший токен из localStorage:', key);
+        }
+      }
+    } catch (_) { /* приватный режим — localStorage может быть недоступен */ }
+  })();
+
   function getCsrfToken() {
     const m = document.cookie.match(/(?:^|;\s*)aegis_csrf=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : null;
