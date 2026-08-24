@@ -5,7 +5,6 @@ from datetime import UTC
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_current_user_any
@@ -24,6 +23,13 @@ from app.core.storage import (
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import UserPublic, UserUpdate
+from app.schemas.me import (
+    AccountDeleteRequest,
+    EmailChangeConfirm,
+    EmailChangeRequest,
+    PasswordChangeRequest,
+    PublicProfile,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["me"])
@@ -79,11 +85,6 @@ async def update_me(
 # ============================================================================
 
 
-class PasswordChangeRequest(BaseModel):
-    current_password: str = Field(..., min_length=1)
-    new_password: str = Field(..., min_length=8, max_length=128)
-
-
 @router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
 async def change_my_password(
     payload: PasswordChangeRequest,
@@ -120,15 +121,6 @@ async def change_my_password(
 # ============================================================================
 # Смена email с подтверждением по коду (G/SMTP)
 # ============================================================================
-
-
-class EmailChangeRequest(BaseModel):
-    new_email: EmailStr
-    password: str = Field(..., min_length=1)
-
-
-class EmailChangeConfirm(BaseModel):
-    code: str = Field(..., min_length=4, max_length=16)
 
 
 @router.post("/me/email/request", status_code=status.HTTP_202_ACCEPTED)
@@ -224,11 +216,6 @@ async def confirm_email_change(
 # ============================================================================
 # DELETE /api/me — удаление аккаунта (подтверждение паролем)
 # ============================================================================
-
-
-class AccountDeleteRequest(BaseModel):
-    password: str = Field(..., min_length=1)
-    confirm: str = Field(..., description="Должно быть 'УДАЛИТЬ' для подтверждения")
 
 
 @router.post("/me/delete", status_code=status.HTTP_204_NO_CONTENT)
@@ -405,20 +392,6 @@ def _mask_email(email: str | None) -> str | None:
     else:
         masked = local[0] + "***" + local[-1]
     return f"{masked}@{domain}"
-
-
-class PublicProfile(BaseModel):
-    id: int
-    username: str
-    full_name: str | None
-    department: str | None
-    cyber_level: str | None
-    xp: int
-    streak_count: int
-    has_avatar: bool
-    email_masked: str | None = None  # замаскированный email (или None если скрыт)
-    books_count: int = 0
-    quizzes_passed: int = 0
 
 
 @users_router.get("/{user_id}/profile", response_model=PublicProfile)

@@ -6,7 +6,6 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from pydantic import BaseModel
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +21,7 @@ from app.schemas.quiz import (
     QuizAttemptPublic,
     QuizQuestionPublic,
     QuizResult,
+    QuizSubmitIn,
 )
 from app.services.deepseek_client import DeepSeekError, chat_completion
 from app.services.gamification import add_xp, check_and_award_achievements
@@ -754,21 +754,6 @@ async def regenerate_all_quizzes(
     await db.commit()
     logger.info("All quizzes reset by admin (%d books affected)", affected)
     return {"status": "ok", "books_cleared": affected}
-
-
-class QuizSubmitIn(BaseModel):
-    """Ответы пользователя.
-
-    answers — выбранные индексы вариантов в том же порядке, в котором вопросы
-    пришли с GET /quiz. session_token — токен сессии оттуда же: именно он
-    определяет, какие вопросы засчитываются.
-
-    question_ids оставлен только для обратной совместимости со старым клиентом
-    (кэш браузера, установленная PWA) и игнорируется, если есть session_token.
-    """
-    answers: list[int]
-    session_token: str | None = None
-    question_ids: list[int] | None = None
 
 
 @router.post(

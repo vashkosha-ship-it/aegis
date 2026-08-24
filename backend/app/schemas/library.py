@@ -81,3 +81,32 @@ class HeatmapEntry(BaseModel):
 
 class HeatmapResponse(BaseModel):
     days: list[HeatmapEntry]
+
+
+# ---------------------------------------------------------------------------
+# Детали активности за конкретный день (карточка в календаре чтения)
+# ---------------------------------------------------------------------------
+
+
+class DayBookActivity(BaseModel):
+    book_id: int
+    title: str
+    pages_at_end: int
+
+
+class DayQuizActivity(BaseModel):
+    book_title: str
+    percentage: int
+    passed: bool
+
+
+class DayStatsResponse(BaseModel):
+    date: str
+    pages_read: int
+    quiz_attempts: int
+    quiz_avg_percentage: int
+    annotations_count: int
+    highlights_count: int
+    notes_count: int
+    books: list[DayBookActivity]
+    quizzes: list[DayQuizActivity]

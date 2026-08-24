@@ -22,6 +22,9 @@ from app.models.user import User
 from app.schemas.library import (
     AnnotationCreate,
     AnnotationPublic,
+    DayBookActivity,
+    DayQuizActivity,
+    DayStatsResponse,
     HeatmapEntry,
     HeatmapResponse,
     MyListEntryPublic,
@@ -422,35 +425,6 @@ async def get_heatmap(
         d = today - timedelta(days=offset)
         entries.append(HeatmapEntry(date=d.isoformat(), pages=by_date.get(d.isoformat(), 0)))
     return HeatmapResponse(days=entries)
-
-# ---------- Day stats (детали активности за конкретный день) ----------
-
-from pydantic import BaseModel
-
-
-class DayBookActivity(BaseModel):
-    book_id: int
-    title: str
-    pages_at_end: int
-
-
-class DayQuizActivity(BaseModel):
-    book_title: str
-    percentage: int
-    passed: bool
-
-
-class DayStatsResponse(BaseModel):
-    date: str
-    pages_read: int
-    quiz_attempts: int
-    quiz_avg_percentage: int
-    annotations_count: int
-    highlights_count: int
-    notes_count: int
-    books: list[DayBookActivity]
-    quizzes: list[DayQuizActivity]
-
 
 @router.get("/me/day-stats", response_model=DayStatsResponse)
 async def get_day_stats(
