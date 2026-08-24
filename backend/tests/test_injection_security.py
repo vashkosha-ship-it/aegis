@@ -60,22 +60,20 @@ class TestAccelPathValidation:
         ],
     )
     def test_traversal_rejected(self, bad_key):
-        from fastapi import HTTPException
+        from app.services.books import InvalidStorageKey, accel_path_for_key
 
-        from app.api.books import _accel_path_for_key
-
-        with pytest.raises(HTTPException):
-            _accel_path_for_key(bad_key)
+        with pytest.raises(InvalidStorageKey):
+            accel_path_for_key(bad_key)
 
     def test_normal_key_allowed(self):
-        from app.api.books import _accel_path_for_key
+        from app.services.books import accel_path_for_key
 
-        path = _accel_path_for_key("books/pdf/abc123.pdf")
+        path = accel_path_for_key("books/pdf/abc123.pdf")
         assert path == "/_protected_pdf/books/pdf/abc123.pdf"
 
     def test_special_chars_are_escaped(self):
-        from app.api.books import _accel_path_for_key
+        from app.services.books import accel_path_for_key
 
-        path = _accel_path_for_key("books/pdf/файл с пробелом.pdf")
+        path = accel_path_for_key("books/pdf/файл с пробелом.pdf")
         assert " " not in path
         assert path.startswith("/_protected_pdf/")

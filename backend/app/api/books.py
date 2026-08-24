@@ -1,7 +1,6 @@
 """Book endpoints: catalog (list/CRUD) + Этап 2 (PDF & cover upload/download)."""
 
 import logging
-import posixpath
 from typing import Literal
 
 from fastapi import (
@@ -42,115 +41,27 @@ from app.schemas.book import (
     BookPublic,
     BookUpdate,
 )
+from app.services import books as books_service
+from app.services.books import BookNotFound, InvalidStorageKey
 
 logger = logging.getLogger(__name__)
-
-def _accel_path_for_key(key: str) -> str:
-    """Собрать безопасный путь для X-Accel-Redirect.
-
-    Ключ хранения приходит из БД. Если в нём окажется '..' или ведущий слэш,
-    nginx выйдет за пределы каталога storage и отдаст произвольный файл сервера.
-    Разрешаем только «плоские» относительные пути и URL-экранируем сегменты.
-    """
-    from urllib.parse import quote
-
-    raw = key.replace("\\", "/")
-    # Абсолютный путь в ключе — признак битых данных: молча превращать его в
-    # относительный опасно, лучше отказать.
-    if raw.startswith("/"):
-        logger.error("Suspicious storage key rejected for X-Accel: %r", key)
-        raise HTTPException(status_code=500, detail="Invalid storage key")
-    normalized = posixpath.normpath(raw)
-    if normalized.startswith("..") or normalized.startswith("/") or normalized == ".":
-        logger.error("Suspicious storage key rejected for X-Accel: %r", key)
-        raise HTTPException(status_code=500, detail="Invalid storage key")
-    return "/_protected_pdf/" + quote(normalized)
 
 router = APIRouter(prefix="/books", tags=["books"])
 
 
 # --- helpers ---------------------------------------------------------------
  
-async def _get_or_create_categories(db, names: list[str]) -> list:
-    """Получает (или создаёт) категории по их именам.
-    
-    Регистронезависимая дедупликация: «AppSec» и «appsec» считаются одним и тем же.
-    """
-    from sqlalchemy import func as sqlfunc
-    from sqlalchemy import select
-
-    from app.models.book import Category
-    
-    if not names:
-        return []
-    
-    result = []
-    for name in names:
-        clean = name.strip()
-        if not clean:
-            continue
-        
-        # Ищем категорию (регистронезависимо)
-        existing = (await db.execute(
-            select(Category).where(sqlfunc.lower(Category.name) == clean.lower())
-        )).scalar_one_or_none()
-        
-        if existing:
-            result.append(existing)
-        else:
-            cat = Category(name=clean)
-            db.add(cat)
-            await db.flush()  # чтобы получить id для последующих связей
-            result.append(cat)
-    
-    return result
-
-def _to_public(book: Book) -> BookPublic:
-    """Convert ORM Book to BookPublic, computing has_pdf/has_cover flags."""
-    return BookPublic(
-        id=book.id,
-        title=book.title,
-        author=book.author,
-        categories=[c.name for c in book.categories],
-        description=book.description,
-        icon=book.icon,
-        rating=book.rating,
-        views=book.views,
-        downloads=book.downloads,
-        popularity=book.popularity,
-        total_pages=book.total_pages,
-        has_pdf=bool(book.pdf_storage_key),
-        has_cover=bool(book.cover_storage_key),
-        date_published=book.date_published,
-        created_at=book.created_at,
-    )
-
-
 async def _get_book_or_404(db: AsyncSession, book_id: int) -> Book:
-    book = await db.get(Book, book_id)
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return book
+    """Обёртка над сервисом: переводит доменную ошибку в HTTP-ответ."""
+    try:
+        return await books_service.get_book_or_raise(db, book_id)
+    except BookNotFound:
+        raise HTTPException(status_code=404, detail="Book not found") from None
 
 
 # Размер «головы» файла, который читаем для magic-bytes проверки.
 # 16 байт хватает на любой формат, что мы поддерживаем.
 _MAGIC_HEAD_BYTES = 16
-
-
-async def _stream_remainder(
-    upload: UploadFile,
-    head: bytes,
-    chunk_size: int = 1024 * 1024,
-):
-    """Async-итератор, отдающий сначала уже прочитанную «голову», потом остаток UploadFile."""
-    if head:
-        yield head
-    while True:
-        chunk = await upload.read(chunk_size)
-        if not chunk:
-            break
-        yield chunk
 
 
 # --- catalog: list / get / create / update / delete -------------------------
@@ -194,7 +105,7 @@ async def list_books(
     rows = (await db.scalars(stmt)).all()
 
     return BookListResponse(
-        items=[_to_public(b) for b in rows],
+        items=[books_service.to_public(b) for b in rows],
         total=total,
         page=page,
         per_page=per_page,
@@ -213,7 +124,7 @@ async def get_book(
         book.views += 1
         await db.commit()
         await db.refresh(book)
-    return _to_public(book)
+    return books_service.to_public(book)
 
 
 @router.get("/{book_id}/also-read", response_model=list[BookPublic])
@@ -262,7 +173,7 @@ async def also_read(
     # сохраняем порядок по частоте
     order = {bid: i for i, bid in enumerate(book_ids)}
     books_sorted = sorted(books, key=lambda b: order.get(b.id, 999))
-    return [_to_public(b) for b in books_sorted]
+    return [books_service.to_public(b) for b in books_sorted]
 
 
 # ---- E4: обязательные книги для подразделения ----
@@ -336,14 +247,14 @@ async def create_book(
     
     # Создаём/находим категории и привязываем
     if payload.categories:
-        book.categories = await _get_or_create_categories(db, payload.categories)
+        book.categories = await books_service.get_or_create_categories(db, payload.categories)
     
     db.add(book)
     await db.commit()
     await db.refresh(book)
     await log_admin_action(db, admin, "book_create", target=f"book:{book.id}", detail=f"Создана книга «{book.title}»")
     await db.commit()
-    return _to_public(book)
+    return books_service.to_public(book)
 
 
 @router.patch("/{book_id}", response_model=BookPublic)
@@ -367,13 +278,13 @@ async def update_book(
     
     # Если в payload передали categories — заменяем целиком
     if categories_update is not None:
-        book.categories = await _get_or_create_categories(db, categories_update)
+        book.categories = await books_service.get_or_create_categories(db, categories_update)
     
     await db.commit()
     await db.refresh(book)
     await log_admin_action(db, admin, "book_update", target=f"book:{book.id}", detail=f"Изменена книга «{book.title}»")
     await db.commit()
-    return _to_public(book)
+    return books_service.to_public(book)
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -456,7 +367,7 @@ async def upload_book_pdf(
     try:
         size = await storage.save_stream(
             new_key,
-            _stream_remainder(file, head),
+            books_service.stream_upload_remainder(file, head),
             max_bytes=settings.MAX_PDF_SIZE_BYTES,
         )
     except StorageError as e:
@@ -490,13 +401,6 @@ async def upload_book_pdf(
 # ============================================================================
 
 
-async def _read_storage_bytes(storage, key: str) -> bytes:
-    """Прочитать весь файл из storage в память (для индексации)."""
-    chunks = await storage.open_stream(key)
-    buf = bytearray()
-    async for chunk in chunks:
-        buf.extend(chunk)
-    return bytes(buf)
 
 
 REINDEX_JOB_KEY = "aegis:reindex_all:job"
@@ -670,7 +574,7 @@ async def ai_match_ar_topics(
             existing_names = {c.name for c in book.categories}
             new_names = [t for t in matched_topics if t not in existing_names]
             if new_names:
-                added = await _get_or_create_categories(db, list(existing_names) + matched_topics)
+                added = await books_service.get_or_create_categories(db, list(existing_names) + matched_topics)
                 book.categories = added
                 updated += 1
         processed += len(chunk)
@@ -772,7 +676,10 @@ async def download_book_pdf(
     storage_backend = getattr(_settings, "STORAGE_BACKEND", "local")
     if storage_backend == "local" and local_path:
         # ключ хранения вида books/pdf/<file>.pdf -> internal location /_protected_pdf/
-        accel_path = _accel_path_for_key(book.pdf_storage_key)
+        try:
+            accel_path = books_service.accel_path_for_key(book.pdf_storage_key)
+        except InvalidStorageKey:
+            raise HTTPException(status_code=500, detail="Invalid storage key") from None
         headers = {
             "X-Accel-Redirect": accel_path,
             "Content-Type": "application/pdf",
@@ -973,7 +880,10 @@ async def download_book_cover(
     local_path = getattr(_settings, "STORAGE_LOCAL_PATH", None)
     storage_backend = getattr(_settings, "STORAGE_BACKEND", "local")
     if storage_backend == "local" and local_path:
-        accel_path = _accel_path_for_key(key)
+        try:
+            accel_path = books_service.accel_path_for_key(key)
+        except InvalidStorageKey:
+            raise HTTPException(status_code=500, detail="Invalid storage key") from None
         return Response(status_code=200, headers={
             "X-Accel-Redirect": accel_path,
             "Content-Type": media_type,
