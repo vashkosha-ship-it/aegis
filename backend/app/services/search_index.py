@@ -7,10 +7,12 @@
 индексаций сервер уходил в своп. Теперь pypdf работает с файловым объектом и
 держит в памяти только текущую страницу, а страницы пишутся в БД пачками.
 """
+import asyncio
 import logging
 import os
 import tempfile
 from collections.abc import AsyncIterator
+from concurrent.futures import ProcessPoolExecutor
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,21 +47,37 @@ async def spool_to_tempfile(chunks: AsyncIterator[bytes]) -> str:
     return path
 
 
-def _iter_pdf_pages(path: str):
-    """Генератор текста страниц. Держит в памяти одну страницу за раз."""
-    try:
-        from pypdf import PdfReader
-    except ImportError:
-        logger.error("pypdf не установлен. Выполните: pip install pypdf")
-        raise
+def _extract_pages_worker(path: str) -> list[str]:
+    """Извлечь текст всех страниц. Выполняется в ОТДЕЛЬНОМ процессе.
+
+    Так сделано по двум причинам:
+      * pypdf строит в памяти карту объектов всего документа — на книге в
+        150 МБ это сотни мегабайт, которые Python не отдаёт ОС обратно. При
+        индексации подряд полусотни книг воркер доходил до OOM. Отдельный
+        процесс умирает вместе со своей памятью.
+      * extract_text() — синхронный CPU-bound код; в основном процессе он
+        блокировал event loop воркера целиком.
+    """
+    from pypdf import PdfReader
 
     reader = PdfReader(path)
+    out: list[str] = []
     for page in reader.pages:
         try:
             txt = page.extract_text() or ""
         except Exception:  # noqa: BLE001 — битая страница не должна ронять всю книгу
             txt = ""
-        yield " ".join(txt.split())[:MAX_PAGE_CHARS]
+        out.append(" ".join(txt.split())[:MAX_PAGE_CHARS])
+    return out
+
+
+async def _extract_pages(path: str) -> list[str]:
+    """Обёртка: запускает извлечение в одноразовом процессе."""
+    loop = asyncio.get_running_loop()
+    # max_workers=1 + новый пул на каждую книгу = процесс гарантированно
+    # завершается, освобождая всю память.
+    with ProcessPoolExecutor(max_workers=1) as pool:
+        return await loop.run_in_executor(pool, _extract_pages_worker, path)
 
 
 async def index_book_from_path(db: AsyncSession, book_id: int, pdf_path: str) -> int:
@@ -71,11 +89,13 @@ async def index_book_from_path(db: AsyncSession, book_id: int, pdf_path: str) ->
     await db.execute(delete(BookPage).where(BookPage.book_id == book_id))
     await db.commit()
 
+    pages = await _extract_pages(pdf_path)
+
     saved = 0
     total = 0
     batch: list[BookPage] = []
 
-    for page_no, text in enumerate(_iter_pdf_pages(pdf_path), start=1):
+    for page_no, text in enumerate(pages, start=1):
         total = page_no
         if not text.strip():
             continue
