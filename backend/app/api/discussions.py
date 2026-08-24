@@ -3,7 +3,6 @@ import logging
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -13,6 +12,7 @@ from app.db.session import get_db
 from app.models.book import Book
 from app.models.book_comment import BookComment
 from app.models.user import User
+from app.schemas.discussions import CommentAuthor, CommentCreate, CommentPublic
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["discussions"])
@@ -65,28 +65,6 @@ def _check_comment_rate(user_id: int) -> tuple[bool, int]:
 
 def _record_comment(user_id: int) -> None:
     _comment_times.setdefault(user_id, []).append(time.time())
-
-
-# ---- Schemas ----------------------------------------------------------------
-class CommentCreate(BaseModel):
-    text: str = Field(..., min_length=1, max_length=4000)
-    parent_id: int | None = None
-
-
-class CommentAuthor(BaseModel):
-    id: int
-    username: str
-    full_name: str | None = None
-    has_avatar: bool = False
-
-
-class CommentPublic(BaseModel):
-    id: int
-    text: str
-    created_at: str
-    author: CommentAuthor
-    can_delete: bool = False
-    replies: list["CommentPublic"] = Field(default_factory=list)
 
 
 def _author(u: User) -> CommentAuthor:

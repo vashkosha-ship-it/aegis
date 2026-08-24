@@ -1,9 +1,7 @@
 """Onboarding endpoints — определение уровня кибербезопасности юзера."""
 from datetime import UTC, datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_any
@@ -14,51 +12,17 @@ from app.data.onboarding_questions import (
 )
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.onboarding import (
+    OnboardingQuestion,
+    OnboardingQuiz,
+    OnboardingResult,
+    OnboardingSubmit,
+    SelfAssessRequest,
+    SelfAssessResponse,
+    TopicScore,
+)
 
 router = APIRouter(prefix="/me/onboarding", tags=["onboarding"])
-
-
-# ============================================================================
-# Schemas
-# ============================================================================
-
-
-class OnboardingQuestion(BaseModel):
-    """Вопрос для теста — без правильного ответа и объяснения."""
-    id: str
-    topic: str
-    difficulty: str
-    question: str
-    options: list[str]
-
-
-class OnboardingQuiz(BaseModel):
-    questions: list[OnboardingQuestion]
-    topic_names: dict[str, str]
-
-
-class OnboardingSubmit(BaseModel):
-    """Ответы юзера: словарь question_id → выбранный_индекс."""
-    answers: dict[str, int] = Field(default_factory=dict)
-
-
-class TopicScore(BaseModel):
-    topic: str
-    topic_name: str
-    correct: int
-    total: int
-    percentage: int
-
-
-class OnboardingResult(BaseModel):
-    cyber_level: str
-    level_name: str
-    level_description: str
-    overall_percentage: int
-    topic_scores: list[TopicScore]
-    weak_topics: list[str]              # темы, где меньше 50% правильных
-    questions_review: list[dict[str, Any]]  # для разбора в конце теста
-    assessed_at: datetime
 
 
 # ============================================================================
@@ -250,17 +214,6 @@ _LEVEL_META = {
         "Я не просто защищаю — я определяю, что такое безопасность. Если я чего-то не знаю, этого ещё не существует.",
     ),
 }
-
-
-class SelfAssessRequest(BaseModel):
-    level: str = Field(min_length=1, max_length=32)
-
-
-class SelfAssessResponse(BaseModel):
-    cyber_level: str
-    level_name: str
-    level_description: str
-    assessed_at: datetime
 
 
 @router.post("/self-assess", response_model=SelfAssessResponse)
