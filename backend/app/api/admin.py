@@ -1,6 +1,4 @@
 """Admin endpoints: dashboard stats, user management, leaderboard, book analytics."""
-import io
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -24,6 +22,7 @@ from app.schemas.admin import (
     MyListBreakdown,
     PendingUserView,
 )
+from app.services import excel_export
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -235,29 +234,17 @@ async def export_reading_xlsx(
     _: User = Depends(get_current_admin),
 ):
     """Выгрузка в Excel: ФИО, подразделение, прочитанные книги за период.
-    Период по дате завершения чтения (updated_at записи со статусом completed)."""
-    try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Alignment, Font, PatternFill
-    except ImportError as e:
-        raise HTTPException(
-            status_code=500,
-            detail="openpyxl не установлен на сервере",
-        ) from e
 
-    # Разбор периода
-    df = dt = None
+    Период считается по дате завершения чтения (updated_at записи со статусом
+    completed).
+    """
     try:
-        if date_from:
-            df = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
-        if date_to:
-            dt = datetime.fromisoformat(date_to).replace(tzinfo=UTC)
+        df, dt = excel_export.parse_period(date_from, date_to)
     except ValueError as e:
         raise HTTPException(
             status_code=400, detail="Неверный формат даты (нужен ГГГГ-ММ-ДД)"
         ) from e
 
-    # Завершённые книги с пользователем и книгой
     conds = [MyListEntry.status == MyListStatus.COMPLETED]
     if df:
         conds.append(MyListEntry.updated_at >= df)
@@ -278,69 +265,22 @@ async def export_reading_xlsx(
     for user, _book, _when in rows:
         s = summary.setdefault(
             user.id,
-            {"fio": user.full_name or user.username, "dept": user.department or "—", "count": 0},
+            {
+                "fio": user.full_name or user.username,
+                "dept": user.department or "—",
+                "count": 0,
+            },
         )
         s["count"] += 1
 
-    def _xl_safe(value):
-        """Защита от formula injection в Excel/LibreOffice.
+    try:
+        buf = excel_export.build_reading_report(rows, summary)
+    except ImportError as e:
+        raise HTTPException(
+            status_code=500, detail="openpyxl не установлен на сервере"
+        ) from e
 
-        Ячейка, начинающаяся с =, +, -, @ или управляющих символов, исполняется
-        как формула при открытии файла. ФИО и названия книг вводят пользователи,
-        поэтому значение обезвреживаем префиксом апострофа.
-        """
-        if not isinstance(value, str):
-            return value
-        if value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
-            return "'" + value
-        return value
-
-    wb = Workbook()
-
-    # Лист 1: сводка по пользователям
-    ws1 = wb.active
-    ws1.title = "Сводка"
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill("solid", fgColor="2F2B7B")
-    for col, name in enumerate(["ФИО", "Подразделение", "Прочитано книг"], start=1):
-        c = ws1.cell(row=1, column=col, value=name)
-        c.font = header_font
-        c.fill = header_fill
-        c.alignment = Alignment(horizontal="center")
-    for i, s in enumerate(sorted(summary.values(), key=lambda x: -x["count"]), start=2):
-        ws1.cell(row=i, column=1, value=_xl_safe(s["fio"]))
-        ws1.cell(row=i, column=2, value=_xl_safe(s["dept"]))
-        ws1.cell(row=i, column=3, value=s["count"])
-    ws1.column_dimensions["A"].width = 30
-    ws1.column_dimensions["B"].width = 22
-    ws1.column_dimensions["C"].width = 16
-
-    # Лист 2: детализация (каждая прочитанная книга)
-    ws2 = wb.create_sheet("Детализация")
-    for col, name in enumerate(["ФИО", "Подразделение", "Книга", "Дата завершения"], start=1):
-        c = ws2.cell(row=1, column=col, value=name)
-        c.font = header_font
-        c.fill = header_fill
-        c.alignment = Alignment(horizontal="center")
-    for i, (user, book, when) in enumerate(rows, start=2):
-        ws2.cell(row=i, column=1, value=_xl_safe(user.full_name or user.username))
-        ws2.cell(row=i, column=2, value=_xl_safe(user.department or "—"))
-        ws2.cell(row=i, column=3, value=_xl_safe(book.title))
-        ws2.cell(row=i, column=4, value=when.strftime("%Y-%m-%d %H:%M") if when else "")
-    ws2.column_dimensions["A"].width = 30
-    ws2.column_dimensions["B"].width = 22
-    ws2.column_dimensions["C"].width = 45
-    ws2.column_dimensions["D"].width = 18
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-
-    period = ""
-    if date_from or date_to:
-        period = f"_{date_from or 'нач'}_{date_to or 'кон'}"
-    filename = f"aegis_reading{period}.xlsx"
-
+    filename = excel_export.report_filename(date_from, date_to)
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
