@@ -114,7 +114,11 @@ async def client(db) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_db] = _override_get_db
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test/api") as ac:
+    # base_url именно https: cookie аутентификации выставляются с флагом
+    # secure, когда DEBUG=false (то есть в CI и на сервере). По http клиент
+    # такие cookie молча отбрасывает, и тесты на CSRF получали 401 вместо 403 —
+    # проверяя не то, что нужно.
+    async with AsyncClient(transport=transport, base_url="https://test/api") as ac:
         yield ac
     app.dependency_overrides.clear()
 
