@@ -21,6 +21,27 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL_SYNC)
 
 target_metadata = Base.metadata
 
+# Колонки полнотекстового поиска: tsvector, вычисляемые самой базой
+# (GENERATED ALWAYS AS ... STORED), и GIN-индексы по ним. Их создаёт отдельная
+# миграция сырым SQL, потому что SQLAlchemy не описывает такие выражения
+# полностью. Alembic не умеет сравнивать Computed-колонки с реальной схемой и
+# при каждой проверке предлагает их удалить — согласиться значит сломать поиск.
+# Поэтому исключаем их из автосравнения; сами объекты живут в миграциях.
+_SEARCH_OBJECTS = {
+    ("column", "books", "search_vector"),
+    ("column", "book_pages", "search_vector"),
+    ("index", "books", "ix_books_search"),
+    ("index", "book_pages", "ix_book_pages_search"),
+}
+
+
+def include_object(obj, name, type_, reflected, compare_to):
+    """Решает, участвует ли объект в автогенерации и alembic check."""
+    table_name = getattr(getattr(obj, "table", None), "name", None)
+    if (type_, table_name, name) in _SEARCH_OBJECTS:
+        return False
+    return True
+
 
 def run_migrations_offline() -> None:
     """Generate SQL without connecting to the database."""
@@ -30,6 +51,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -44,7 +66,10 @@ def run_migrations_online() -> None:
     )
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata, compare_type=True
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            include_object=include_object,
         )
         with context.begin_transaction():
             context.run_migrations()
