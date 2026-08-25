@@ -64,7 +64,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx ruff
+          # Версия ruff зафиксирована: иначе новая версия добавляет правила,
+          # и CI падает на коде, который локально проходил проверку.
+          pip install pytest pytest-asyncio httpx ruff==0.16.3
 
       - name: Ruff (линтер)
         run: ruff check app tests
