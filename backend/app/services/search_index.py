@@ -29,6 +29,25 @@ PAGE_BATCH_SIZE = 100
 # Ограничение на страницу — защита от мусорных PDF с гигантским текстовым слоем
 MAX_PAGE_CHARS = 20000
 
+# Файлы загружают администраторы, но PDF всё равно недоверенный ввод: битый
+# или специально собранный документ может занять воркер на часы. Ограничиваем
+# и объём работы, и время.
+MAX_PAGES_PER_BOOK = 5000
+EXTRACT_TIMEOUT_SECONDS = 900  # 15 минут на книгу
+MAX_PDF_BYTES = 500 * 1024 * 1024
+
+
+class IndexingError(Exception):
+    """Книгу не удалось проиндексировать."""
+
+
+class PdfTooLarge(IndexingError):
+    pass
+
+
+class ExtractionTimeout(IndexingError):
+    pass
+
 
 async def spool_to_tempfile(chunks: AsyncIterator[bytes]) -> str:
     """Слить поток из хранилища во временный файл и вернуть путь.
@@ -62,7 +81,11 @@ def _extract_pages_worker(path: str) -> list[str]:
 
     reader = PdfReader(path)
     out: list[str] = []
-    for page in reader.pages:
+    for page_no, page in enumerate(reader.pages, start=1):
+        if page_no > MAX_PAGES_PER_BOOK:
+            # Документ с десятками тысяч страниц почти наверняка сгенерирован
+            # автоматически; индексировать его целиком нет смысла.
+            break
         try:
             txt = page.extract_text() or ""
         except Exception:  # noqa: BLE001 — битая страница не должна ронять всю книгу
@@ -75,24 +98,48 @@ def _extract_pages_worker(path: str) -> list[str]:
 
 
 async def _extract_pages(path: str) -> list[str]:
-    """Обёртка: запускает извлечение в одноразовом процессе."""
+    """Обёртка: запускает извлечение в одноразовом процессе, с таймаутом."""
+    size = os.path.getsize(path)
+    if size > MAX_PDF_BYTES:
+        raise PdfTooLarge(f"{size} байт — больше допустимых {MAX_PDF_BYTES}")
+
     loop = asyncio.get_running_loop()
     # max_workers=1 + новый пул на каждую книгу = процесс гарантированно
     # завершается, освобождая всю память.
-    with ProcessPoolExecutor(max_workers=1) as pool:
-        return await loop.run_in_executor(pool, _extract_pages_worker, path)
+    pool = ProcessPoolExecutor(max_workers=1)
+    try:
+        return await asyncio.wait_for(
+            loop.run_in_executor(pool, _extract_pages_worker, path),
+            timeout=EXTRACT_TIMEOUT_SECONDS,
+        )
+    except TimeoutError as e:
+        raise ExtractionTimeout(
+            f"извлечение текста заняло больше {EXTRACT_TIMEOUT_SECONDS} с"
+        ) from e
+    finally:
+        # cancel_futures + kill: зависший процесс нужно снять принудительно,
+        # иначе он продолжит жечь CPU уже после нашего таймаута.
+        pool.shutdown(wait=False, cancel_futures=True)
+        for proc in list(getattr(pool, "_processes", {}).values()):
+            if proc.is_alive():
+                proc.kill()
 
 
 async def index_book_from_path(db: AsyncSession, book_id: int, pdf_path: str) -> int:
     """Проиндексировать PDF с диска. Возвращает число сохранённых страниц.
 
-    Прежний индекс книги удаляется. Заодно обновляем book.total_pages —
-    сервер узнаёт реальное число страниц и может проверять прогресс чтения.
+    Прежний индекс заменяется только после успешного извлечения текста.
+    Заодно обновляем book.total_pages — сервер узнаёт реальное число страниц
+    и может проверять прогресс чтения.
     """
+    # ВАЖНО: сначала извлекаем текст, и только потом трогаем существующий
+    # индекс. Раньше старые страницы удалялись первыми, и если извлечение
+    # падало (битый файл, таймаут, нехватка памяти), книга оставалась вообще
+    # без поиска — было хоть что-то, стало ничего.
+    pages = await _extract_pages(pdf_path)
+
     await db.execute(delete(BookPage).where(BookPage.book_id == book_id))
     await db.commit()
-
-    pages = await _extract_pages(pdf_path)
 
     saved = 0
     total = 0
