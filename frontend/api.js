@@ -441,8 +441,8 @@
       // Achievements
       myAchievements() { return request('/me/achievements'); },
       allAchievements() { return request('/achievements'); },
-      // Лидерборд (бэк отдаёт через /admin/leaderboard, но доступен всем авторизованным)
-      leaderboard(limit = 50) { return request('/admin/leaderboard?limit=' + limit); },
+      // Рейтинг: переехал из /admin — к администрированию не относится
+      leaderboard(limit = 50) { return request('/me/leaderboard?limit=' + limit); },
       // Heatmap (reading activity)
       heatmap(days = 90) { return request('/me/heatmap?days=' + days); },
             // Admin: users

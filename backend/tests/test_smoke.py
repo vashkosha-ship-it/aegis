@@ -16,7 +16,7 @@ def test_routes_registered() -> None:
         "/api/books",
         "/api/books/{book_id}",
         "/api/admin/dashboard",
-        "/api/admin/leaderboard",
+        "/api/me/leaderboard",
     }
     missing = expected - paths
     assert not missing, f"Missing routes: {missing}"

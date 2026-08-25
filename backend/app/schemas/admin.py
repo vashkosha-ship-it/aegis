@@ -23,13 +23,6 @@ class DashboardStats(BaseModel):
     total_downloads: int
 
 
-class LeaderboardEntry(BaseModel):
-    username: str
-    full_name: str | None
-    xp: int
-    streak_count: int
-
-
 # ---------------------------------------------------------------------------
 # Пользователи
 # ---------------------------------------------------------------------------

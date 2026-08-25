@@ -35,3 +35,22 @@ class PublicProfile(BaseModel):
     email_masked: str | None = None  # замаскированный email (или None если скрыт)
     books_count: int = 0
     quizzes_passed: int = 0
+
+
+class LeaderboardEntry(BaseModel):
+    """Строка рейтинга.
+
+    Пользователи, скрывшие профиль, участвуют в рейтинге анонимно: позиция и
+    опыт видны, имя — нет. Так настройка приватности соблюдается, но человек
+    не выпадает из общей картины.
+    """
+
+    place: int
+    username: str
+    full_name: str | None
+    xp: int
+    streak_count: int
+    # Профиль скрыт настройками приватности — имя не показываем
+    is_hidden: bool = False
+    # Это сам запрашивающий: его строку подсвечивает интерфейс
+    is_self: bool = False

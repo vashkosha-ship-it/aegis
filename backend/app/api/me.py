@@ -3,7 +3,7 @@ import logging
 from collections.abc import AsyncIterator
 from datetime import UTC
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +27,7 @@ from app.schemas.me import (
     AccountDeleteRequest,
     EmailChangeConfirm,
     EmailChangeRequest,
+    LeaderboardEntry,
     PasswordChangeRequest,
     PublicProfile,
 )
@@ -392,6 +393,46 @@ def _mask_email(email: str | None) -> str | None:
     else:
         masked = local[0] + "***" + local[-1]
     return f"{masked}@{domain}"
+
+
+@router.get("/me/leaderboard", response_model=list[LeaderboardEntry])
+async def leaderboard(
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> list[LeaderboardEntry]:
+    """Рейтинг пользователей по опыту.
+
+    Эндпоинт переехал из /admin: он доступен всем и к администрированию
+    отношения не имеет.
+
+    Приватность: тем, кто скрыл профиль, имя не показываем — иначе настройка
+    видимости не работает как раз там, где она заметнее всего. Себя человек
+    видит всегда: своя позиция в рейтинге должна быть узнаваемой.
+    """
+    rows = await db.scalars(
+        select(User)
+        .where(User.is_active.is_(True))
+        .order_by(User.xp.desc())
+        .limit(limit)
+    )
+
+    out: list[LeaderboardEntry] = []
+    for place, u in enumerate(rows.all(), start=1):
+        is_self = u.id == current.id
+        hidden = (u.profile_visibility or "public") != "public" and not is_self
+        out.append(
+            LeaderboardEntry(
+                place=place,
+                username="" if hidden else u.username,
+                full_name=None if hidden else u.full_name,
+                xp=u.xp,
+                streak_count=u.streak_count,
+                is_hidden=hidden,
+                is_self=is_self,
+            )
+        )
+    return out
 
 
 @users_router.get("/{user_id}/profile", response_model=PublicProfile)

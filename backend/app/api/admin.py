@@ -1,11 +1,11 @@
-"""Admin endpoints: dashboard stats, user management, leaderboard, book analytics."""
+"""Admin endpoints: dashboard stats, user management, book analytics."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_admin
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.book import Book
@@ -18,7 +18,6 @@ from app.schemas.admin import (
     BookReaderRow,
     CreateUserRequest,
     DashboardStats,
-    LeaderboardEntry,
     MyListBreakdown,
     PendingUserView,
 )
@@ -286,27 +285,6 @@ async def export_reading_xlsx(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
-
-
-@router.get("/leaderboard", response_model=list[LeaderboardEntry])
-async def leaderboard(
-    limit: int = 50,
-    db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
-) -> list[LeaderboardEntry]:
-    """Top users by XP."""
-    rows = await db.scalars(
-        select(User).where(User.is_active.is_(True)).order_by(User.xp.desc()).limit(limit)
-    )
-    return [
-        LeaderboardEntry(
-            username=u.username,
-            full_name=u.full_name,
-            xp=u.xp,
-            streak_count=u.streak_count,
-        )
-        for u in rows.all()
-    ]
 
 
 # ============================================================================

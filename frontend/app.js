@@ -8069,12 +8069,18 @@ async function loadAndRenderLeaderboard() {
     container.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>#</th><th>Пользователь</th><th>XP</th><th>Стрик</th></tr></thead>
       <tbody>
-        ${lb.map((u, i) => `<tr>
-          <td>${i + 1}</td>
-          <td>${eh(u.full_name || u.username)}</td>
+        ${lb.map((u, i) => {
+          // Скрывшие профиль участвуют анонимно; свою строку подсвечиваем
+          const name = u.is_hidden ? 'Участник' : (u.full_name || u.username);
+          const style = u.is_self ? ' style="background:rgba(0,212,255,0.08);"' : '';
+          const muted = u.is_hidden ? ' style="color:var(--text-muted);"' : '';
+          return `<tr${style}>
+          <td>${u.place || i + 1}</td>
+          <td${muted}>${eh(name)}${u.is_self ? ' (вы)' : ''}</td>
           <td>${u.xp}</td>
           <td>${u.streak_count}<span style="display:inline-flex;vertical-align:middle;margin-left:2px;color:#f97316;">${ICONS.fire}</span></td>
-        </tr>`).join('')}
+        </tr>`;
+        }).join('')}
       </tbody>
     </table></div>`;
   } catch (err) {
