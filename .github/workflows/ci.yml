@@ -27,6 +27,18 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      # Redis обязателен в production (rate limiting + очередь фоновых задач).
+      # Гоняем тесты с ним, иначе поведение в CI и на сервере расходится.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     defaults:
       run:
         working-directory: backend
@@ -34,6 +46,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://neon:neon_password@localhost:5432/neon_stack
       DATABASE_URL_SYNC: postgresql+psycopg2://neon:neon_password@localhost:5432/neon_stack
+      REDIS_URL: redis://localhost:6379/0
       SECRET_KEY: ci-test-secret-key-not-used-in-production
       DEBUG: "false"
       CORS_ORIGINS: http://localhost:5173
@@ -54,9 +67,22 @@ jobs:
           pip install pytest pytest-asyncio httpx ruff
 
       - name: Ruff (линтер)
-        # Пока не блокирует сборку: в коде накопились замечания, которые
-        # разбираются отдельно. Убрать continue-on-error, когда почистим.
         run: ruff check app tests
+
+      - name: Миграции применяются
+        # Ловит битые и конфликтующие ревизии до того, как они попадут на сервер
+        run: alembic upgrade head
+
+      - name: Модели соответствуют миграциям
+        # Если поле добавили в модель, а миграцию не написали — alembic check
+        # это увидит. Без проверки расхождение обнаруживается только при
+        # падении на проде.
+        run: alembic check
+
+      - name: Воркер фоновых задач импортируется
+        # Воркер живёт отдельным процессом и в тесты не попадает: опечатка в
+        # его импортах всплыла бы только на сервере.
+        run: python -c "from app.worker import WorkerSettings; print(WorkerSettings.functions)"
 
       - name: Тесты
         run: pytest -q

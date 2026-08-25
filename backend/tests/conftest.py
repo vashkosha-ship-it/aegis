@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
@@ -28,6 +28,7 @@ from app.main import app
 from app.models.book import Book
 from app.models.quiz import QuizQuestion
 from app.models.user import User, UserRole
+
 
 TEST_SCHEMA = "aegis_test"
 
@@ -119,22 +120,36 @@ async def client(db) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(autouse=True)
-def reset_rate_limiters():
-    """Лимитеры живут в памяти процесса — обнуляем, чтобы тесты не влияли друг на друга."""
+def _clear_limiters() -> None:
+    """Сбросить счётчики и в памяти, и в Redis.
+
+    В CI Redis поднят, поэтому чистить только память недостаточно: счётчики
+    переживут тест и следующий получит чужой лимит.
+    """
+    from app.core import rate_limit
     from app.core.rate_limit import (
         email_send_limiter,
         login_limiter,
         otp_attempt_limiter,
     )
 
-    for limiter in (email_send_limiter, otp_attempt_limiter):
+    for limiter in (email_send_limiter, otp_attempt_limiter, login_limiter):
         limiter._store.clear()
-    login_limiter._store.clear()
+
+    if rate_limit._redis is not None:
+        try:
+            for key in rate_limit._redis.scan_iter("rl:*"):
+                rate_limit._redis.delete(key)
+        except Exception:  # noqa: BLE001 — Redis недоступен, хватит и памяти
+            pass
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiters():
+    """Лимитеры общие на процесс — обнуляем, чтобы тесты не влияли друг на друга."""
+    _clear_limiters()
     yield
-    for limiter in (email_send_limiter, otp_attempt_limiter):
-        limiter._store.clear()
-    login_limiter._store.clear()
+    _clear_limiters()
 
 
 # --------------------------------------------------------------------------
@@ -221,7 +236,7 @@ async def book_with_quiz(db) -> Book:
 
 
 def utcnow() -> datetime:
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 def in_minutes(minutes: int) -> datetime:
