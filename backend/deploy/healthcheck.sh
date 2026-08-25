@@ -65,6 +65,7 @@ check_header "Content-Security-Policy"
 check_header "X-Content-Type-Options"
 check_header "X-Frame-Options"
 check_header "Referrer-Policy"
+check_header "Strict-Transport-Security"
 
 # Точки входа приложения не должны кэшироваться: иначе правки не доезжают
 # до пользователей, пока те вручную не почистят кэш.
@@ -140,6 +141,43 @@ if [ -d "$APP_DIR/backend" ]; then
     else
         fail "расхождение схемы и моделей" ".venv/bin/alembic check"
     fi
+fi
+
+# ---------------------------------------------------------------------------
+section "Фоновые задачи"
+
+# Плановая очистка сессий идёт раз в сутки. Если она перестала выполняться,
+# таблицы начнут расти незаметно — узнаем об этом через месяцы.
+if journalctl -u aegis-worker --since "36 hours ago" --no-pager 2>/dev/null \
+        | grep -q "Очистка истёкших сессий\|cleanup_expired_sessions"; then
+    ok "очистка сессий выполнялась за последние сутки"
+else
+    gray "  — записей об очистке нет (задача идёт ночью, это нормально сразу после деплоя)"
+fi
+
+# Ошибки воркера за сутки: индексация книг падает молча, в интерфейсе это
+# выглядит просто как «поиск ничего не находит».
+worker_errors=$(journalctl -u aegis-worker --since "24 hours ago" --no-pager 2>/dev/null \
+    | grep -ci "traceback\|ошибка индексации" || true)
+if [ "$worker_errors" -eq 0 ]; then
+    ok "воркер без ошибок за сутки"
+else
+    fail "у воркера $worker_errors ошибок за сутки" "journalctl -u aegis-worker --since '24 hours ago'"
+fi
+
+# ---------------------------------------------------------------------------
+section "Диск и логи"
+
+disk_use=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+if [ "$disk_use" -lt 85 ]; then
+    ok "диск занят на ${disk_use}%"
+else
+    fail "диск занят на ${disk_use}%" "проверьте /opt/aegis/backend/storage и journalctl --disk-usage"
+fi
+
+journal_size=$(journalctl --disk-usage 2>/dev/null | grep -o '[0-9.]*[GM]' | head -1)
+if [ -n "$journal_size" ]; then
+    gray "    журнал занимает: $journal_size"
 fi
 
 # ---------------------------------------------------------------------------
