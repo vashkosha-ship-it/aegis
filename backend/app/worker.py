@@ -11,13 +11,18 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from arq import cron
+from sqlalchemy import delete, select
 
 from app.core.queue import redis_settings
 from app.core.storage import StorageNotFound, get_storage
 from app.db.session import AsyncSessionLocal
 from app.models.book import Book
+from app.models.exam_session import ExamSession
+from app.models.quiz_session import QuizSession
+from app.models.refresh_token import RefreshToken
 from app.services.search_index import index_book_from_path, spool_to_tempfile
 
 logging.basicConfig(
@@ -96,8 +101,48 @@ async def index_all_books(ctx: dict) -> dict:
     return result
 
 
+# Сколько храним отработавшие записи после истечения срока. Не удаляем сразу:
+# по ним разбирают инциденты (например, кто и когда предъявил украденный
+# refresh-токен), а место они занимают немного.
+KEEP_EXPIRED_DAYS = 7
+
+
+async def cleanup_expired_sessions(ctx: dict) -> dict:
+    """Удалить истёкшие сессии экзаменов, тестов и refresh-токены.
+
+    Без этого таблицы растут бесконечно: записи создаются на каждый вход и
+    каждую попытку теста, но никогда не удаляются. На дистанции это раздувает
+    базу и замедляет выборки по токену.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=KEEP_EXPIRED_DAYS)
+    removed: dict[str, int] = {}
+
+    async with AsyncSessionLocal() as db:
+        for name, model in (
+            ("exam_sessions", ExamSession),
+            ("quiz_sessions", QuizSession),
+            ("refresh_tokens", RefreshToken),
+        ):
+            result = await db.execute(
+                delete(model).where(model.expires_at < cutoff)
+            )
+            removed[name] = result.rowcount or 0
+        await db.commit()
+
+    total = sum(removed.values())
+    if total:
+        logger.info("Очистка истёкших сессий: удалено %s", removed)
+    return removed
+
+
 class WorkerSettings:
-    functions = [index_book, index_all_books]
+    functions = [index_book, index_all_books, cleanup_expired_sessions]
+
+    # Раз в сутки ночью подчищаем отработавшие записи. Отдельный systemd-таймер
+    # не нужен: планировщик встроен в ARQ.
+    cron_jobs = [
+        cron(cleanup_expired_sessions, hour=4, minute=17),
+    ]
     redis_settings = redis_settings()
     # Индексация упирается в диск и CPU — параллелить сильно смысла нет,
     # а память растёт линейно числу одновременных книг.
