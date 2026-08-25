@@ -18,6 +18,8 @@ from app.models.library import (
     Review,
 )
 from app.models.quiz import QuizAttempt, QuizQuestion
+from app.models.quiz_session import QuizSession
+from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserRole
 
 __all__ = [
@@ -34,6 +36,8 @@ __all__ = [
     "Collection",
     "DailyPagesRead",
     "ExamSession",
+    "QuizSession",
+    "RefreshToken",
     "MyListEntry",
     "MyListStatus",
     "QuizAttempt",
