@@ -110,9 +110,19 @@ section "API"
 
 health=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/health" 2>/dev/null)
 if [ "$health" = "200" ]; then
-    ok "/health отвечает"
+    ok "/health отвечает (процесс жив)"
 else
     fail "/health вернул $health"
+fi
+
+# /ready проверяет зависимости: базу, Redis, хранилище. Одним запросом видно
+# то, ради чего раньше приходилось смотреть каждый сервис по отдельности.
+ready_body=$(curl -s "$BASE/ready" 2>/dev/null)
+ready_code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/ready" 2>/dev/null)
+if [ "$ready_code" = "200" ]; then
+    ok "/ready: все зависимости доступны"
+else
+    fail "/ready вернул $ready_code" "$(echo "$ready_body" | head -c 300)"
 fi
 
 # Каталог книг закрыт для неавторизованных — проверяем, что защита на месте

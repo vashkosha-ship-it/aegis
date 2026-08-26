@@ -1,7 +1,7 @@
 """FastAPI application entrypoint."""
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -94,5 +94,86 @@ app.include_router(api_router)
 
 @app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
-    """Liveness probe."""
+    """Проверка живости процесса.
+
+    Отвечает мгновенно и ничего не проверяет — намеренно. Это ответ на вопрос
+    «процесс не завис?», по которому systemd решает, перезапускать ли сервис.
+    Если сюда добавить обращение к БД, то при её недоступности systemd начнёт
+    бесконечно перезапускать здоровое приложение.
+    """
     return {"status": "ok", "app": settings.APP_NAME}
+
+
+@app.get("/ready", tags=["health"])
+async def ready(response: Response) -> dict:
+    """Проверка готовности обслуживать запросы.
+
+    В отличие от /health смотрит на зависимости: без базы, Redis или
+    хранилища приложение запущено, но бесполезно. Раньше это выяснялось
+    только по жалобам пользователей.
+
+    Отдаёт 503, если хоть одна обязательная часть недоступна.
+    """
+    from sqlalchemy import text
+
+    from app.core import rate_limit
+    from app.db.session import AsyncSessionLocal
+
+    checks: dict[str, dict] = {}
+
+    # --- База данных: без неё не работает ничего ---------------------------
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        checks["database"] = {"ok": True}
+    except Exception as e:  # noqa: BLE001
+        checks["database"] = {"ok": False, "error": str(e)[:200]}
+
+    # --- Redis: rate limiting и очередь фоновых задач ----------------------
+    if rate_limit._redis is None:
+        # В production приложение без Redis не стартует, значит это dev-режим
+        checks["redis"] = {"ok": True, "note": "не настроен (режим разработки)"}
+    else:
+        try:
+            rate_limit._redis.ping()
+            checks["redis"] = {"ok": True}
+        except Exception as e:  # noqa: BLE001
+            checks["redis"] = {"ok": False, "error": str(e)[:200]}
+
+    # --- Хранилище книг ----------------------------------------------------
+    try:
+        import os
+
+        path = getattr(settings, "STORAGE_LOCAL_PATH", None)
+        backend = getattr(settings, "STORAGE_BACKEND", "local")
+        if backend == "local" and path:
+            if os.path.isdir(path) and os.access(path, os.R_OK):
+                checks["storage"] = {"ok": True}
+            else:
+                checks["storage"] = {"ok": False, "error": f"нет доступа к {path}"}
+        else:
+            checks["storage"] = {"ok": True, "note": f"backend={backend}"}
+    except Exception as e:  # noqa: BLE001
+        checks["storage"] = {"ok": False, "error": str(e)[:200]}
+
+    # --- Очередь фоновых задач --------------------------------------------
+    # Не обязательна для работы сайта: без неё не пойдёт индексация книг,
+    # но читать и проходить тесты можно. Поэтому в общий вердикт не входит.
+    try:
+        from app.core.queue import get_queue
+
+        queue = await get_queue()
+        checks["queue"] = {"ok": queue is not None, "required": False}
+    except Exception as e:  # noqa: BLE001
+        checks["queue"] = {"ok": False, "required": False, "error": str(e)[:200]}
+
+    required_ok = all(
+        c["ok"] for c in checks.values() if c.get("required", True)
+    )
+    if not required_ok:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return {
+        "status": "ready" if required_ok else "not ready",
+        "checks": checks,
+    }
