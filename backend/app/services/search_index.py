@@ -120,9 +120,17 @@ async def _extract_pages(path: str) -> list[str]:
         # cancel_futures + kill: зависший процесс нужно снять принудительно,
         # иначе он продолжит жечь CPU уже после нашего таймаута.
         pool.shutdown(wait=False, cancel_futures=True)
-        for proc in list(getattr(pool, "_processes", {}).values()):
-            if proc.is_alive():
-                proc.kill()
+
+        # _processes существует, но равен None, пока пул не запустил рабочие
+        # процессы или уже их снял. getattr с умолчанием тут не спасает:
+        # атрибут есть, просто пустой.
+        processes = getattr(pool, "_processes", None) or {}
+        for proc in list(processes.values()):
+            try:
+                if proc.is_alive():
+                    proc.kill()
+            except Exception:  # noqa: BLE001 — процесс мог завершиться сам
+                pass
 
 
 async def index_book_from_path(db: AsyncSession, book_id: int, pdf_path: str) -> int:
