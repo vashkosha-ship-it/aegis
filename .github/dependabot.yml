@@ -1,0 +1,54 @@
+# Dependabot: сам открывает PR, когда выходят обновления зависимостей.
+#
+# Зачем: pip-audit говорит, что уязвимость есть, но обновлять приходится
+# руками. Dependabot приносит готовый PR, который прогоняется через CI — то
+# есть сразу видно, ломает обновление тесты или нет.
+
+version: 2
+updates:
+  # --- Python ---------------------------------------------------------------
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Moscow
+
+    # Больше пяти открытых PR разом никто не разбирает — они превращаются
+    # в фоновый шум, который перестают замечать.
+    open-pull-requests-limit: 5
+
+    labels:
+      - dependencies
+
+    commit-message:
+      prefix: "deps"
+
+    groups:
+      # Мелкие обновления одним PR: разбирать десяток отдельных патчей
+      # ради багфиксов — пустая трата внимания.
+      patch-updates:
+        update-types:
+          - patch
+
+    ignore:
+      # Мажорные версии обновляем осознанно и отдельно: там ломающие
+      # изменения, а у нас на этих пакетах держится всё приложение.
+      - dependency-name: fastapi
+        update-types: ["version-update:semver-major"]
+      - dependency-name: sqlalchemy
+        update-types: ["version-update:semver-major"]
+      - dependency-name: pydantic
+        update-types: ["version-update:semver-major"]
+
+  # --- GitHub Actions -------------------------------------------------------
+  # Версии actions тоже устаревают, и в них тоже находят уязвимости.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "ci"
