@@ -72,6 +72,11 @@ jobs:
           # и CI падает на коде, который локально проходил проверку.
           pip install pytest pytest-asyncio httpx ruff==0.16.3
 
+      - name: Каталог хранилища
+        # На сервере он существует, в чистом чекауте — нет. Без него
+        # /ready справедливо сообщает о неготовности, и тест падает.
+        run: mkdir -p storage
+
       - name: Ruff (линтер)
         run: ruff check app tests
 
