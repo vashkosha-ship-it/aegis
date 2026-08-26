@@ -42,13 +42,9 @@ updates:
       - dependency-name: pydantic
         update-types: ["version-update:semver-major"]
 
-  # --- GitHub Actions -------------------------------------------------------
-  # Версии actions тоже устаревают, и в них тоже находят уязвимости.
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: monthly
-    labels:
-      - dependencies
-    commit-message:
-      prefix: "ci"
+      # redis жёстко ограничен сверху зависимостью arq (arq 0.26.3 требует
+      # redis<6). PR с redis 8.1.0 не собирается в принципе: pip падает на
+      # конфликте ещё до тестов. Снять запрет можно будет, когда arq
+      # объявит поддержку redis 6+ — тогда меняем обе версии одним PR.
+      - dependency-name: redis
+        versions: [">=6.0.0"]
