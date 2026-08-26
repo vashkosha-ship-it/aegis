@@ -42,7 +42,13 @@ for unit in aegis aegis-worker redis-server postgresql nginx; do
 done
 
 # Воркер должен знать про все задачи, включая плановую очистку.
-if journalctl -u aegis-worker -n 50 --no-pager 2>/dev/null | grep -q "cron:cleanup_expired_sessions"; then
+#
+# Вывод журнала сохраняем в переменную, а не отдаём в grep через конвейер:
+# grep -q закрывает трубу на первом совпадении, journalctl получает SIGPIPE и
+# умирает с кодом 141. При set -o pipefail код конвейера берётся от него, а не
+# от grep, — и проверка падала ровно тогда, когда задача находилась.
+worker_log=$(journalctl -u aegis-worker -n 50 --no-pager 2>/dev/null || true)
+if grep -q "cron:cleanup_expired_sessions" <<<"$worker_log"; then
     ok "фоновые задачи зарегистрированы (включая очистку сессий)"
 else
     fail "воркер не видит задачу очистки" "journalctl -u aegis-worker -n 30"
@@ -158,8 +164,9 @@ section "Фоновые задачи"
 
 # Плановая очистка сессий идёт раз в сутки. Если она перестала выполняться,
 # таблицы начнут расти незаметно — узнаем об этом через месяцы.
-if journalctl -u aegis-worker --since "36 hours ago" --no-pager 2>/dev/null \
-        | grep -q "Очистка истёкших сессий\|cleanup_expired_sessions"; then
+# Конвейера здесь тоже избегаем — см. пояснение про SIGPIPE и pipefail выше.
+cleanup_log=$(journalctl -u aegis-worker --since "36 hours ago" --no-pager 2>/dev/null || true)
+if grep -q "Очистка истёкших сессий\|cleanup_expired_sessions" <<<"$cleanup_log"; then
     ok "очистка сессий выполнялась за последние сутки"
 else
     gray "  — записей об очистке нет (задача идёт ночью, это нормально сразу после деплоя)"
