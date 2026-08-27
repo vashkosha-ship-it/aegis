@@ -89,3 +89,19 @@ function onSearchKeydown(ev) {
 function onAiInputKeydown(ev) {
   if (ev.key === 'Enter') sendAIMessage();
 }
+
+/* ---- закрытие модальных окон и делегирование клика ----
+ * Раньше в разметке стояло document.getElementById('x').remove(). Диспетчер
+ * такие цепочки не выполняет (и не должен: через них можно дотянуться куда
+ * угодно), поэтому — именованные функции.
+ */
+
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function clickElement(id) {
+  var el = document.getElementById(id);
+  if (el) el.click();
+}
