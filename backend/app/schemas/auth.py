@@ -35,15 +35,19 @@ class UserLogin(BaseModel):
 
 
 class AccessTokenOnly(BaseModel):
-    """Ответ для браузерного клиента: refresh только в httpOnly-cookie."""
-    access_token: str
-    token_type: str = "bearer"
+    """Единственная форма ответа с токенами.
 
+    Refresh-токен в теле не возвращается никогда — он живёт только в
+    httpOnly-cookie. Раньше рядом стояла вторая схема «для мобильного
+    клиента»: она отдавала пару целиком, если запрос приходил с заголовком
+    X-Client-Type: mobile. Заголовок может выставить кто угодно, в том числе
+    скрипт на странице, — то есть это была не поддержка мобильных, а способ
+    попросить refresh-токен в JSON в обход всей защиты.
 
-class TokenPair(BaseModel):
-    """Ответ для мобильного клиента (X-Client-Type: mobile)."""
+    Отдельного мобильного приложения нет: установка идёт через PWA, а это тот
+    же браузер с обычным cookie-хранилищем, которому токен в теле не нужен.
+    """
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
 
 

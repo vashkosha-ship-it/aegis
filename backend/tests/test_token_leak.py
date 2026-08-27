@@ -11,8 +11,6 @@ from sqlalchemy import select
 from app.models.refresh_token import RefreshToken
 from tests.conftest import make_user
 
-MOBILE = {"X-Client-Type": "mobile"}
-
 
 class TestBrowserResponses:
     async def test_login_does_not_return_refresh(self, client, db):
@@ -50,33 +48,6 @@ class TestBrowserResponses:
         )
         assert client.cookies.get("aegis_refresh"), "cookie с refresh не выставлена"
 
-
-class TestMobileResponses:
-    async def test_mobile_client_gets_pair(self, client, db):
-        """У мобильной обёртки нет cookie-хранилища — ей пара нужна в теле."""
-        await make_user(db, username="mobileuser")
-
-        r = await client.post(
-            "/auth/login",
-            json={"username": "mobileuser", "password": "TestPass123!"},
-            headers=MOBILE,
-        )
-        assert r.status_code == 200
-
-        body = r.json()
-        assert "access_token" in body
-        assert "refresh_token" in body
-
-    async def test_header_must_be_explicit(self, client, db):
-        """Без заголовка — браузерный ответ. Умолчание безопасное."""
-        await make_user(db, username="mobileuser2")
-
-        r = await client.post(
-            "/auth/login",
-            json={"username": "mobileuser2", "password": "TestPass123!"},
-            headers={"X-Client-Type": "desktop"},
-        )
-        assert "refresh_token" not in r.json()
 
 
 class TestLogoutRevocation:

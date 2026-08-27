@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from jose import JWTError
@@ -23,7 +24,18 @@ from app.core.security import (
 )
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.auth import TokenPair
+
+
+@dataclass(slots=True)
+class TokenPair:
+    """Пара токенов для внутреннего использования.
+
+    Раньше бралась из схем ответа. Наружу пара больше не отдаётся — refresh
+    уходит только в cookie, — поэтому здесь нужен обычный контейнер, а не
+    Pydantic-модель API.
+    """
+    access_token: str
+    refresh_token: str
 
 logger = logging.getLogger(__name__)
 

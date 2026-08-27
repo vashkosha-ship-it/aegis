@@ -32,7 +32,6 @@ from app.schemas.auth import (
     RegisterResponse,
     ResendCodeRequest,
     ResetPasswordRequest,
-    TokenPair,
     UserLogin,
     UserPublic,
     UserRegister,
@@ -51,38 +50,23 @@ def _gen_code() -> str:
 
 logger = logging.getLogger(__name__)
 
-MOBILE_CLIENT_HEADER = "X-Client-Type"
-MOBILE_CLIENT_VALUE = "mobile"
-
-
-def _is_mobile_client(request: Request) -> bool:
-    """Клиент без cookie-хранилища, которому нужен токен в теле ответа.
-
-    Мобильная обёртка обязана заявить о себе явно. Умолчание — браузер:
-    так безопасный путь получается по умолчанию, а не по недосмотру.
-    """
-    return (
-        request.headers.get(MOBILE_CLIENT_HEADER, "").lower() == MOBILE_CLIENT_VALUE
-    )
-
-
 async def _issue_tokens(
     db: AsyncSession, user: User, request: Request, response: Response
-):
-    """Выдать токены в форме, подходящей клиенту.
+) -> AccessTokenOnly:
+    """Выдать токены. Refresh уходит только в httpOnly-cookie.
 
-    Браузеру уходит только access-токен, refresh кладётся в httpOnly-cookie.
-    Раньше refresh дублировался ещё и в теле — и обесценивал защиту: скрипт,
-    внедрённый через XSS, читал его прямо из ответа, не трогая cookie.
+    Раньше здесь была развилка: при заголовке X-Client-Type: mobile ответ
+    содержал пару целиком, «для клиентов без cookie-хранилища». Но заголовок
+    выставляет кто угодно — обычный fetch со страницы в том числе, — поэтому
+    работала она не как поддержка мобильных, а как способ вытащить
+    refresh-токен в JSON в обход httpOnly. Ровно то, ради предотвращения чего
+    cookie и вводилась.
 
-    Мобильный клиент cookie хранить не умеет, поэтому для него пара
-    возвращается целиком. Он должен запросить это заголовком.
+    Отдельного мобильного приложения нет: установка идёт через PWA, а это тот
+    же браузерный контекст с обычным cookie-хранилищем.
     """
     pair = await tokens_service.issue_token_pair(db, user)
     set_auth_cookies(response, pair.refresh_token)
-
-    if _is_mobile_client(request):
-        return pair
     return AccessTokenOnly(access_token=pair.access_token)
 
 
@@ -169,13 +153,13 @@ async def register(
     )
 
 
-@router.post("/verify", response_model=AccessTokenOnly | TokenPair)
+@router.post("/verify", response_model=AccessTokenOnly)
 async def verify_email(
     response: Response,
     payload: VerifyEmailRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> AccessTokenOnly | TokenPair:
+) -> AccessTokenOnly:
     """Подтвердить email кодом. При успехе аккаунт активируется и выдаются токены."""
     _guard_otp_attempt(payload.email, request)
 
@@ -245,13 +229,13 @@ async def resend_code(
     return {"detail": "Verification code sent."}
 
 
-@router.post("/login", response_model=AccessTokenOnly | TokenPair)
+@router.post("/login", response_model=AccessTokenOnly)
 async def login(
     response: Response,
     payload: UserLogin,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> AccessTokenOnly | TokenPair:
+) -> AccessTokenOnly:
     """Authenticate by username + password and return JWT pair."""
     ip = _client_ip(request)
 
@@ -277,13 +261,13 @@ async def login(
     return await _issue_tokens(db, user, request, response)
 
 
-@router.post("/refresh", response_model=AccessTokenOnly | TokenPair)
+@router.post("/refresh", response_model=AccessTokenOnly)
 async def refresh_token(
     request: Request,
     response: Response,
     payload: RefreshRequest | None = None,
     db: AsyncSession = Depends(get_db),
-) -> AccessTokenOnly | TokenPair:
+) -> AccessTokenOnly:
     """Обменять refresh-токен на новую пару access+refresh.
 
     Токен берётся из httpOnly-cookie. Тело запроса поддерживается для клиентов
@@ -324,9 +308,6 @@ async def refresh_token(
         raise HTTPException(status_code=401, detail="Invalid refresh token") from None
 
     set_auth_cookies(response, pair.refresh_token)
-
-    if _is_mobile_client(request):
-        return pair
     return AccessTokenOnly(access_token=pair.access_token)
 
 
@@ -354,8 +335,28 @@ async def logout(
     if token:
         try:
             await tokens_service.revoke_refresh_token(db, token)
-        except Exception as e:  # noqa: BLE001 — выход должен работать всегда
-            logger.info("Не удалось отозвать токен при выходе: %s", e)
+        except (
+            tokens_service.InvalidToken,
+            tokens_service.TokenExpired,
+            tokens_service.TokenRevoked,
+            tokens_service.UserInactive,
+        ) as e:
+            # Токен и так нерабочий — отзывать нечего, выход состоялся.
+            logger.info("Выход с уже недействительным токеном: %s", e)
+        except Exception:
+            # А вот это уже другое дело: база недоступна, что-то сломалось.
+            # Раньше здесь тоже стоял pass, и выход возвращал 204 — то есть
+            # пользователю сообщали, что сеанс завершён, хотя refresh-токен
+            # остался рабочим до конца срока. Если причина выхода в том, что
+            # устройство потеряно или токен утёк, такой ответ прямо вредит.
+            #
+            # Cookie намеренно НЕ стираем: сеанс не завершён, и делать вид,
+            # что завершён, — та же самая ложь, только на стороне клиента.
+            logger.exception("Не удалось отозвать токен при выходе")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Не удалось завершить сеанс, попробуйте ещё раз",
+            ) from None
 
     clear_auth_cookies(response)
 
@@ -365,13 +366,13 @@ async def me(current: User = Depends(get_current_user_any)) -> UserPublic:
     """Return the currently authenticated user."""
     return UserPublic.model_validate(current)
 
-@router.post("/token", response_model=AccessTokenOnly | TokenPair)
+@router.post("/token", response_model=AccessTokenOnly)
 async def login_form(
     response: Response,
     request: Request,
     form: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
-) -> AccessTokenOnly | TokenPair:
+) -> AccessTokenOnly:
     """OAuth2-совместимый логин для Swagger UI и других OAuth2-клиентов."""
     ip = _client_ip(request)
 
@@ -428,13 +429,13 @@ async def forgot_password(
     return {"detail": "Если такой email зарегистрирован, на него отправлен код восстановления"}
 
 
-@router.post("/reset-password", response_model=AccessTokenOnly | TokenPair)
+@router.post("/reset-password", response_model=AccessTokenOnly)
 async def reset_password(
     response: Response,
     payload: ResetPasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> AccessTokenOnly | TokenPair:
+) -> AccessTokenOnly:
     """Сбросить пароль по коду из письма. При успехе сразу выдаём токены (вход)."""
     _guard_otp_attempt(payload.email, request)
 
