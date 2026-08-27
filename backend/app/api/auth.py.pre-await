@@ -86,7 +86,7 @@ async def _guard_email_send(email: str, request: Request) -> None:
             )
 
 
-async def _record_email_send(email: str, request: Request) -> None:
+def _record_email_send(email: str, request: Request) -> None:
     await email_send_limiter.record(f"email:{email.lower().strip()}")
     await email_send_limiter.record(f"ip:{_client_ip(request)}")
 
@@ -141,7 +141,7 @@ async def register(
 
     try:
         await send_verification_code(payload.email, code)
-        await _record_email_send(payload.email, request)
+        _record_email_send(payload.email, request)
     except EmailError:
         # Письмо не ушло — аккаунт создан, но просим запросить код повторно
         pass
@@ -221,7 +221,7 @@ async def resend_code(
     await db.commit()
     try:
         await send_verification_code(payload.email, code)
-        await _record_email_send(payload.email, request)
+        _record_email_send(payload.email, request)
     except EmailError as e:
         raise HTTPException(
             status_code=502, detail="Failed to send email. Try later."
@@ -423,7 +423,7 @@ async def forgot_password(
         try:
             from app.services.email_service import send_password_reset_code
             await send_password_reset_code(user.email, code)
-            await _record_email_send(payload.email, request)
+            _record_email_send(payload.email, request)
         except EmailError:
             pass
     return {"detail": "Если такой email зарегистрирован, на него отправлен код восстановления"}

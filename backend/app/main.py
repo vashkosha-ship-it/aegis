@@ -9,19 +9,31 @@ from starlette.responses import JSONResponse
 
 from app.api import api_router
 from app.core.config import settings
+from app.core.rate_limit import close_rate_limit, init_rate_limit
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Lifespan hook: подключения создаются лениво, на старте делать нечего."""
+    """Проверяем зависимости до того, как начнём принимать запросы.
+
+    Клиент Redis асинхронный и соединяется лениво, поэтому его недоступность
+    сама собой больше не всплывает при старте. Без явной проверки приложение
+    поднимется с неработающими лимитами, и выяснится это только на первом
+    запросе — то есть уже на пользователе. В production init_rate_limit
+    не даст запуститься вовсе.
+    """
+    await init_rate_limit()
+
     yield
-    # Аккуратно закрываем пул очереди задач, чтобы не оставлять висящие
-    # соединения к Redis при перезапуске.
+
+    # Аккуратно закрываем пулы, чтобы не оставлять висящие соединения
+    # к Redis при перезапуске.
     from app.core.queue import close_queue
 
     await close_queue()
+    await close_rate_limit()
 
 
 app = FastAPI(
@@ -91,14 +103,15 @@ app.add_middleware(
     # запретил такую комбинацию).
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    # X-CSRF-Token нужен для double-submit проверки, X-Client-Type — чтобы
-    # мобильная обёртка могла запросить токены в теле ответа.
+    # X-CSRF-Token нужен для double-submit проверки при обновлении токена
+    # и выходе. X-Client-Type отсюда убран вместе с самой веткой: заголовок
+    # позволял любому клиенту попросить refresh-токен в теле ответа, то есть
+    # обойти httpOnly-cookie одной строкой.
     allow_headers=[
         "Authorization",
         "Content-Type",
         "Accept",
         "X-CSRF-Token",
-        "X-Client-Type",
     ],
     max_age=600,  # кэшируем preflight-ответ на 10 минут (меньше OPTIONS-запросов)
 )
@@ -153,7 +166,7 @@ async def ready(response: Response) -> dict:
         checks["redis"] = {"ok": True, "note": "не настроен (режим разработки)"}
     else:
         try:
-            rate_limit._redis.ping()
+            await rate_limit._redis.ping()
             checks["redis"] = {"ok": True}
         except Exception as e:  # noqa: BLE001
             logger.error("Readiness: Redis недоступен: %s", e)

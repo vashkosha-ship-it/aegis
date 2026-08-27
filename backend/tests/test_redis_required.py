@@ -1,19 +1,28 @@
-"""Тест: в production приложение не должно стартовать без Redis.
+"""В production приложение не должно стартовать без работающего Redis.
 
-Молчаливая деградация опаснее падения — при работе в памяти процесса лимиты
+Молчаливая деградация опаснее падения: при счётчиках в памяти процесса лимиты
 умножаются на число воркеров и сбрасываются при каждом рестарте, а узнать об
 этом можно только случайно.
 
-Проверяем саму функцию подключения, а не перезагрузку модуля: importlib.reload
-внутри теста оставляет пересозданные лимитеры в чужих модулях, и падение
-всплывает в неожиданных местах.
+Что изменилось после перехода на асинхронный клиент. Раньше недоступность
+Redis обнаруживалась сама собой в момент создания клиента — синхронный
+from_url сразу проверял связь. Асинхронный соединяется лениво, при первой
+команде, поэтому проверка стала отдельной функцией init_rate_limit, которую
+вызывает lifespan в main.py. Если её забыть вызвать, приложение поднимется с
+неработающими лимитами — именно то, что этот файл и должен предотвращать.
+
+Проверяем сами функции, а не перезагрузку модуля: importlib.reload внутри
+теста оставляет пересозданные лимитеры в чужих модулях, и падение всплывает в
+неожиданных местах.
 """
 from __future__ import annotations
 
 import pytest
 
-from app.core import config
-from app.core.rate_limit import RedisRequiredError, _make_redis
+from app.core import config, rate_limit
+from app.core.rate_limit import RedisRequiredError, _make_redis, init_rate_limit
+
+DEAD_REDIS = "redis://127.0.0.1:6399/0"
 
 
 @pytest.fixture
@@ -32,49 +41,81 @@ def redis_env():
     config.settings.REDIS_URL = original_url
 
 
-class TestRedisRequirement:
+class TestConfigurationCheck:
+    """Отсутствие настройки видно сразу, без обращения к сети."""
+
     def test_production_without_redis_url_fails(self, redis_env):
         redis_env(debug=False, redis_url="")
 
         with pytest.raises(RedisRequiredError, match="REDIS_URL"):
             _make_redis()
 
-    def test_production_with_dead_redis_fails(self, redis_env):
-        redis_env(debug=False, redis_url="redis://127.0.0.1:6399/0")
-
-        with pytest.raises(RedisRequiredError, match="недоступен"):
-            _make_redis()
-
-    def test_debug_without_redis_returns_none(self, redis_env):
+    def test_debug_without_redis_url_returns_none(self, redis_env):
         """В разработке fallback на память допустим."""
         redis_env(debug=True, redis_url="")
 
         assert _make_redis() is None
 
-    def test_debug_with_dead_redis_returns_none(self, redis_env):
-        redis_env(debug=True, redis_url="redis://127.0.0.1:6399/0")
+    def test_client_is_created_without_connecting(self, redis_env):
+        """Клиент создаётся даже для заведомо мёртвого адреса.
 
-        assert _make_redis() is None
+        Это не недосмотр, а свойство асинхронного клиента: соединение
+        откладывается до первой команды. Поэтому проверка связи вынесена
+        в init_rate_limit — см. класс ниже.
+        """
+        redis_env(debug=False, redis_url=DEAD_REDIS)
+
+        assert _make_redis() is not None
+
+
+class TestStartupCheck:
+    """Связь проверяется явно, при старте приложения."""
+
+    async def test_production_with_dead_redis_refuses_to_start(
+        self, redis_env, monkeypatch
+    ):
+        redis_env(debug=False, redis_url=DEAD_REDIS)
+        monkeypatch.setattr(rate_limit, "_redis", _make_redis())
+
+        with pytest.raises(RedisRequiredError, match="недоступен"):
+            await init_rate_limit()
+
+    async def test_debug_with_dead_redis_starts_anyway(
+        self, redis_env, monkeypatch
+    ):
+        redis_env(debug=True, redis_url=DEAD_REDIS)
+        monkeypatch.setattr(rate_limit, "_redis", _make_redis())
+
+        await init_rate_limit()  # не должно бросить
+
+    async def test_without_redis_check_is_skipped(self, redis_env, monkeypatch):
+        redis_env(debug=True, redis_url="")
+        monkeypatch.setattr(rate_limit, "_redis", None)
+
+        await init_rate_limit()
 
 
 class TestInMemoryFallback:
     """Лимитер обязан работать и без Redis — иначе разработка встанет."""
 
-    def test_limiter_counts_without_redis(self):
-        from app.core.rate_limit import SlidingWindowLimiter
+    async def test_limiter_counts_without_redis(self, monkeypatch):
+        monkeypatch.setattr(rate_limit, "_redis", None)
 
-        limiter = SlidingWindowLimiter(
+        limiter = rate_limit.SlidingWindowLimiter(
             max_actions=2, window_seconds=60, prefix="test-fallback"
         )
         key = "some-key"
 
-        assert limiter.check_allowed(key)[0] is True
-        limiter.record(key)
-        limiter.record(key)
+        allowed, _ = await limiter.check_allowed(key)
+        assert allowed is True
 
-        allowed, wait = limiter.check_allowed(key)
+        await limiter.record(key)
+        await limiter.record(key)
+
+        allowed, wait = await limiter.check_allowed(key)
         assert allowed is False
         assert wait > 0
 
-        limiter.reset(key)
-        assert limiter.check_allowed(key)[0] is True
+        await limiter.reset(key)
+        allowed, _ = await limiter.check_allowed(key)
+        assert allowed is True
