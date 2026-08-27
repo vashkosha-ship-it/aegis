@@ -1,4 +1,5 @@
 """FastAPI application entrypoint."""
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response, status
@@ -8,6 +9,8 @@ from starlette.responses import JSONResponse
 
 from app.api import api_router
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -82,9 +85,21 @@ if not _FRONTEND_ORIGINS:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_FRONTEND_ORIGINS,
-    allow_credentials=False,  # JWT в localStorage, cookies не нужны
+    # True обязательно: refresh-токен теперь в httpOnly-cookie, а браузер не
+    # отправит её кросс-доменно без этого флага. Безопасно ровно потому, что
+    # allow_origins — конкретный список, а не "*" (с "*" браузер и сам бы
+    # запретил такую комбинацию).
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
+    # X-CSRF-Token нужен для double-submit проверки, X-Client-Type — чтобы
+    # мобильная обёртка могла запросить токены в теле ответа.
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "X-CSRF-Token",
+        "X-Client-Type",
+    ],
     max_age=600,  # кэшируем preflight-ответ на 10 минут (меньше OPTIONS-запросов)
 )
 
@@ -127,7 +142,10 @@ async def ready(response: Response) -> dict:
             await db.execute(text("SELECT 1"))
         checks["database"] = {"ok": True}
     except Exception as e:  # noqa: BLE001
-        checks["database"] = {"ok": False, "error": str(e)[:200]}
+        # Наружу отдаём только факт недоступности: текст ошибки SQLAlchemy
+        # содержит хост, порт и имя базы, а /ready доступен без авторизации.
+        logger.error("Readiness: база недоступна: %s", e)
+        checks["database"] = {"ok": False}
 
     # --- Redis: rate limiting и очередь фоновых задач ----------------------
     if rate_limit._redis is None:
@@ -138,7 +156,8 @@ async def ready(response: Response) -> dict:
             rate_limit._redis.ping()
             checks["redis"] = {"ok": True}
         except Exception as e:  # noqa: BLE001
-            checks["redis"] = {"ok": False, "error": str(e)[:200]}
+            logger.error("Readiness: Redis недоступен: %s", e)
+            checks["redis"] = {"ok": False}
 
     # --- Хранилище книг ----------------------------------------------------
     try:
@@ -150,11 +169,13 @@ async def ready(response: Response) -> dict:
             if os.path.isdir(path) and os.access(path, os.R_OK):
                 checks["storage"] = {"ok": True}
             else:
-                checks["storage"] = {"ok": False, "error": f"нет доступа к {path}"}
+                logger.error("Readiness: нет доступа к хранилищу %s", path)
+                checks["storage"] = {"ok": False}
         else:
             checks["storage"] = {"ok": True, "note": f"backend={backend}"}
     except Exception as e:  # noqa: BLE001
-        checks["storage"] = {"ok": False, "error": str(e)[:200]}
+        logger.error("Readiness: ошибка проверки хранилища: %s", e)
+        checks["storage"] = {"ok": False}
 
     # --- Очередь фоновых задач --------------------------------------------
     # Не обязательна для работы сайта: без неё не пойдёт индексация книг,
@@ -165,7 +186,8 @@ async def ready(response: Response) -> dict:
         queue = await get_queue()
         checks["queue"] = {"ok": queue is not None, "required": False}
     except Exception as e:  # noqa: BLE001
-        checks["queue"] = {"ok": False, "required": False, "error": str(e)[:200]}
+        logger.error("Readiness: очередь недоступна: %s", e)
+        checks["queue"] = {"ok": False, "required": False}
 
     required_ok = all(
         c["ok"] for c in checks.values() if c.get("required", True)

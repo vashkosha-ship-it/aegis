@@ -185,7 +185,8 @@
     },
 
     async logout() {
-      // Cookie удаляет сервер: из JS httpOnly-cookie не стереть.
+      // Cookie удаляет сервер: из JS httpOnly-cookie не стереть. Заодно он
+      // отзывает refresh-токен, иначе утёкшая копия работала бы и после выхода.
       const csrf = getCsrfToken();
       try {
         await request('/auth/logout', {

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -12,6 +12,13 @@ from app.db.session import Base
 class Certificate(Base):
     """Выданный сертификат: пользователь сдал тест по категории на >=85%."""
     __tablename__ = "certificates"
+    __table_args__ = (
+        # Один сертификат на тему. Проверки в коде мало: два параллельных
+        # submit по РАЗНЫМ экзаменационным сессиям одной категории блокируют
+        # разные строки, оба не находят существующий сертификат и оба его
+        # создают. Гарантию даёт только БД.
+        UniqueConstraint("user_id", "category", name="uq_certificates_user_category"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(

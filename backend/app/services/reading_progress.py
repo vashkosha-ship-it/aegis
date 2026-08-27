@@ -10,6 +10,7 @@ import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -94,38 +95,31 @@ def _looks_like_real_reading(
 
 
 async def _bump_daily_pages(db: AsyncSession, user: User, delta: int) -> None:
-    """Прибавить прочитанные страницы к сегодняшнему счётчику."""
+    """Прибавить прочитанные страницы к сегодняшнему счётчику.
+
+    Прибавление считает БД, а не Python. Две причины.
+
+    Во-первых, `daily.pages += delta` в коде — это чтение и запись двумя
+    шагами. Параллельные обновления по РАЗНЫМ книгам блокируют разные строки
+    прогресса и до счётчика доходят одновременно: оба читают одно значение,
+    оба пишут своё, одна прибавка теряется.
+
+    Во-вторых, здесь больше нет rollback. Прежняя ветка обработки конфликта
+    откатывала транзакцию целиком — вместе с уже записанной страницей
+    прогресса, начисленным XP и отметкой о дочитывании.
+    """
     if delta <= 0:
         return
 
     today = datetime.now(UTC).date()
-    daily = await db.scalar(
-        select(DailyPagesRead).where(
-            DailyPagesRead.user_id == user.id,
-            DailyPagesRead.date == today,
-        )
+    stmt = pg_insert(DailyPagesRead).values(
+        user_id=user.id, date=today, pages=delta
     )
-    if daily:
-        daily.pages += delta
-        return
-
-    db.add(DailyPagesRead(user_id=user.id, date=today, pages=delta))
-    try:
-        await db.flush()
-    except IntegrityError:
-        # Запись за сегодня создал параллельный запрос — прибавляем к ней.
-        await db.rollback()
-        daily = await db.scalar(
-            select(DailyPagesRead)
-            .where(
-                DailyPagesRead.user_id == user.id,
-                DailyPagesRead.date == today,
-            )
-            .with_for_update()
-        )
-        if daily is None:
-            raise
-        daily.pages += delta
+    stmt = stmt.on_conflict_do_update(
+        index_elements=[DailyPagesRead.user_id, DailyPagesRead.date],
+        set_={"pages": DailyPagesRead.pages + stmt.excluded.pages},
+    )
+    await db.execute(stmt)
 
 
 async def _mark_completed_in_list(db: AsyncSession, user: User, book_id: int) -> None:
@@ -191,14 +185,17 @@ async def update_reading_progress(
             total_pages=total_pages,
             started=True,
         )
-        db.add(progress)
         try:
-            # flush, а не commit: нужно поймать конфликт уникальности здесь,
-            # пока транзакцию ещё можно откатить и перечитать чужую запись.
-            await db.flush()
+            # SAVEPOINT, а не общий rollback: откатить нужно ровно неудавшуюся
+            # вставку. Прежний db.rollback() сносил всю транзакцию — вместе с
+            # тем, что уже было сделано выше.
+            async with db.begin_nested():
+                db.add(progress)
+                await db.flush()
         except IntegrityError:
             # Параллельный запрос успел создать запись раньше — берём её.
-            await db.rollback()
+            if progress in db:
+                db.expunge(progress)
             progress = await db.scalar(
                 select(ReadingProgress)
                 .where(

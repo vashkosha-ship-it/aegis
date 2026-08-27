@@ -34,7 +34,14 @@ class UserLogin(BaseModel):
     password: str
 
 
+class AccessTokenOnly(BaseModel):
+    """Ответ для браузерного клиента: refresh только в httpOnly-cookie."""
+    access_token: str
+    token_type: str = "bearer"
+
+
 class TokenPair(BaseModel):
+    """Ответ для мобильного клиента (X-Client-Type: mobile)."""
     access_token: str
     refresh_token: str
     token_type: str = "bearer"

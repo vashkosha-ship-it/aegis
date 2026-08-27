@@ -194,3 +194,30 @@ async def rotate_refresh_token(db: AsyncSession, refresh_token: str) -> TokenPai
             user.id, token_version=user.token_version, jti=new_jti
         ),
     )
+
+async def revoke_refresh_token(db: AsyncSession, refresh_token: str) -> bool:
+    """Пометить refresh-токен использованным — например, при выходе.
+
+    Возвращает True, если токен нашёлся и был отозван. Удаление cookie само
+    по себе токен не аннулирует: значение остаётся действительным до
+    истечения срока, и утёкшая копия продолжит работать.
+    """
+    try:
+        decoded = decode_token(refresh_token)
+        jti = decoded.get("jti")
+    except JWTError:
+        return False
+
+    if not jti:
+        return False
+
+    record = await db.scalar(
+        select(RefreshToken).where(RefreshToken.jti == jti).with_for_update()
+    )
+    if not record or record.used_at is not None:
+        return False
+
+    record.used_at = datetime.now(UTC)
+    await db.commit()
+    logger.info("Refresh-токен отозван при выходе (user=%s)", record.user_id)
+    return True

@@ -3911,7 +3911,7 @@ function _commentBubble(c, isReply) {
         </div>
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:3px 0 6px;white-space:pre-wrap;word-break:break-word;">${eh(c.text)}</div>
         <div style="display:flex;gap:14px;">
-          ${!isReply ? `<button data-onclick="startReply(${c.id}, '${name.replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0;">Ответить</button>` : ''}
+          ${!isReply ? `<button onclick="startReply(${c.id}, '${name.replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0;">Ответить</button>` : ''}
           ${c.can_delete ? `<button data-onclick="deleteComment(${c.id})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0;">Удалить</button>` : ''}
         </div>
       </div>
@@ -4004,7 +4004,7 @@ async function renderReviews() {
         return `<div class="review-card">
           <div class="review-header">
             <div class="review-user">
-              <div class="review-avatar"><img src="${api.users.avatarUrl(r._userId)}" alt="" data-onerror="replaceWithFallback()" data-args="this" data-fallback="${eh(r.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+              <div class="review-avatar"><img src="${api.users.avatarUrl(r._userId)}" alt="" onerror="this.outerHTML='${eh(r.avatar)}'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
               <div>
                 <div style="font-size:12px;font-weight:600;">${eh(r.user)}</div>
                 <div class="review-date">${dateStr}</div>
@@ -4264,7 +4264,7 @@ async function showAnnotationDetail(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div style="font-size:11px;margin-bottom:4px;">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div style="display:flex;gap:4px;"><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},2)" data-args="this">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`;
+  t.innerHTML = `<div style="font-size:11px;margin-bottom:4px;">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div style="display:flex;gap:4px;"><button class="btn-sm" onclick="deleteAnnotation(${currentBookId},${id});this.parentElement.parentElement.remove();">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`;
   t.style.left = (ann.position?.x || 10) + '%';
   t.style.top = ((ann.position?.y || 10) + 5) + '%';
   document.getElementById('pdfViewport').appendChild(t);
@@ -4277,7 +4277,7 @@ async function showNoteTooltip(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">${ICONS.bookmark} Заметка</div><div style="font-size:11px;margin-bottom:4px;">${eh(ann.note)}</div><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},1)" data-args="this">${ICONS.trash} Удалить</button>`;
+  t.innerHTML = `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">${ICONS.bookmark} Заметка</div><div style="font-size:11px;margin-bottom:4px;">${eh(ann.note)}</div><button class="btn-sm" onclick="deleteAnnotation(${currentBookId},${id});this.parentElement.remove();">${ICONS.trash} Удалить</button>`;
   t.style.left = (ann.position?.x || 15) + '%';
   t.style.top = ((ann.position?.y || 15) + 3) + '%';
   document.getElementById('pdfViewport').appendChild(t);
@@ -6319,7 +6319,7 @@ function renderRecommendations() {
   list.innerHTML = recs.map(b => `
     <div class="recommendation-card" data-onclick="openBookDetail(${b.id})">
       <div style="font-size:32px;width:48px;height:64px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg, #1a2030, #1a1530);border-radius:8px;border:1px solid var(--border);flex-shrink:0;">
-        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" data-onerror="replaceWithFallback()" data-args="this" data-fallback="${ICONS.bookCover.replace(/"/g, '&quot;')}">` : ICONS.bookCover}
+        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" onerror="this.outerHTML='${ICONS.bookCover.replace(/"/g, '&quot;')}'">` : ICONS.bookCover}
       </div>
       <div>
         <div style="font-size:13px;font-weight:600;">${eh(b.title)}</div>
@@ -6530,7 +6530,7 @@ function renderFavCatsPicker() {
   const favs = getFavCategories();
   body.innerHTML = [...allCats].sort().map(c => {
     const on = favs.includes(c);
-    return `<button data-onclick="toggleFavCategory(${JSON.stringify(c).replace(/"/g, '&quot;')})" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:11px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
+    return `<button onclick="toggleFavCategory(${JSON.stringify(c).replace(/"/g, '&quot;')})" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:11px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
       <span>${eh(c)}</span><span style="color:var(--accent);font-weight:700;">${on ? '✓' : '+'}</span>
     </button>`;
   }).join('') || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Категорий пока нет</div>';
@@ -6620,7 +6620,7 @@ function cardHTML(b, query) {
   const coverInner = b.has_cover
     ? `<img src="${api.books.coverUrl(b.id)}" alt="" loading="lazy"
             style="width:100%;height:100%;object-fit:cover;"
-            data-onerror="replaceWithFallback()" data-args="this" data-fallback="<div class=&quot;cover-bg&quot;>${ICONS.bookCover.replace(/"/g, '&quot;')}</div>">`
+            onerror="this.outerHTML='<div class=&quot;cover-bg&quot;>${ICONS.bookCover.replace(/"/g, '&quot;')}</div>'">`
     : `<div class="cover-bg">${ICONS.bookCover}</div>`;
 
   const year = extractBookYear(b.datePublished);
@@ -7149,7 +7149,7 @@ async function renderSettingsStorageTab(c) {
           <div style="font-size:10px;color:var(--text-muted);">Экономия мобильного трафика</div>
         </div>
         <label class="toggle-switch" style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;cursor:pointer;">
-          <input type="checkbox" id="wifiOnlyToggle" ${wifiOnly ? 'checked' : ''} data-onchange="onWifiOnlyToggle()" data-args="this" style="opacity:0;width:0;height:0;position:absolute;">
+          <input type="checkbox" id="wifiOnlyToggle" ${wifiOnly ? 'checked' : ''} onchange="setWifiOnly(this.checked);renderSettingsScreen();showToast(this.checked ? 'Только Wi-Fi' : 'Любая сеть')" style="opacity:0;width:0;height:0;position:absolute;">
           <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${wifiOnly ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;">
             <span style="position:absolute;height:18px;width:18px;left:${wifiOnly ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
           </span>
@@ -7165,7 +7165,7 @@ async function renderSettingsStorageTab(c) {
           <div style="font-size:10px;color:var(--text-muted);">Начатые книги автоматически скачиваются по Wi-Fi</div>
         </div>
         <label class="toggle-switch" style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;cursor:pointer;">
-          <input type="checkbox" id="autoPreloadToggle" ${isAutoPreloadEnabled() ? 'checked' : ''} data-onchange="onAutoPreloadToggle()" data-args="this" style="opacity:0;width:0;height:0;position:absolute;">
+          <input type="checkbox" id="autoPreloadToggle" ${isAutoPreloadEnabled() ? 'checked' : ''} onchange="setAutoPreload(this.checked);renderSettingsScreen();showToast(this.checked ? 'Автосохранение включено' : 'Автосохранение выключено')" style="opacity:0;width:0;height:0;position:absolute;">
           <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${isAutoPreloadEnabled() ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;">
             <span style="position:absolute;height:18px;width:18px;left:${isAutoPreloadEnabled() ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
           </span>
@@ -7536,7 +7536,7 @@ function renderSettingsPersonalizationTab(c) {
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
         ${[5, 10, 15, 20, 30].map(n => {
           const sel = (getBooksGoal()?.count) === n;
-          return `<button type="button" data-onclick="selectBooksGoalCount(${n})" data-args="this" class="bg-count-btn" style="min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${n}</button>`;
+          return `<button type="button" onclick="window._booksGoalCount=${n};document.querySelectorAll('.bg-count-btn').forEach(b=>{b.style.background='var(--bg-primary)';b.style.color='var(--text-secondary)';b.style.borderColor='var(--border)';});this.style.background='var(--accent-gradient)';this.style.color='#fff';this.style.borderColor='transparent';document.getElementById('booksGoalCount').value=${n};" class="bg-count-btn" style="min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${n}</button>`;
         }).join('')}
       </div>
 
@@ -7548,7 +7548,7 @@ function renderSettingsPersonalizationTab(c) {
         ${[{v:'month',l:'Месяц'},{v:'quarter',l:'Квартал'},{v:'year',l:'Год'}].map(o => {
           const cur = getBooksGoal()?.period || 'quarter';
           const sel = cur === o.v;
-          return `<button type="button" data-onclick="selectBooksGoalPeriod('${o.v}')" data-args="this" class="bg-period-btn" style="flex:1;padding:13px 8px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;">${o.l}</button>`;
+          return `<button type="button" onclick="window._booksGoalPeriod='${o.v}';document.querySelectorAll('.bg-period-btn').forEach(b=>{b.style.background='var(--bg-primary)';b.style.color='var(--text-secondary)';b.style.borderColor='var(--border)';});this.style.background='var(--accent-gradient)';this.style.color='#fff';this.style.borderColor='transparent';" class="bg-period-btn" style="flex:1;padding:13px 8px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;">${o.l}</button>`;
         }).join('')}
       </div>
 
@@ -8375,7 +8375,7 @@ function renderBookInfo() {
   }
   document.getElementById('detailTabInfo').innerHTML = `
     <div class="detail-content">
-      <div class="detail-cover">${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);" data-onerror="replaceWithFallback()" data-args="this" data-fallback="${ICONS.bookCover.replace(/"/g, '&quot;')}">` : ICONS.bookCover}</div>
+      <div class="detail-cover">${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);" onerror="this.outerHTML='${ICONS.bookCover.replace(/"/g, '&quot;')}'">` : ICONS.bookCover}</div>
       <div class="detail-info">
         <div class="detail-title">${eh(b.title)}</div>
         <div class="detail-author">${eh(b.author)}</div>
@@ -8383,7 +8383,7 @@ function renderBookInfo() {
         <div class="detail-category">${bookCategoriesText(b)} • ${formatLabel}</div>
         <div class="detail-desc">${eh(b.desc)}</div>
         ${adminStats}
-        <select class="mylist-status-select" data-onchange="onBookStatusChange(${b.id})" data-args="this">
+        <select class="mylist-status-select" onchange="updateBookStatus(${b.id},this.value)">
           <option value="">Не в списке</option>
           <option value="reading" ${state.mylist[currentBookId] === 'reading' ? 'selected' : ''}>Читаю</option>
           <option value="planned" ${state.mylist[currentBookId] === 'planned' ? 'selected' : ''}>В планах</option>
@@ -9549,7 +9549,7 @@ function renderTocPanel() {
       const isRead = read.includes(i);
       return `<div style="display:flex;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid var(--border);">
         <button data-onclick="toggleTocRead(${currentBookId},${i})" title="Отметить прочитанным" style="width:22px;height:22px;flex-shrink:0;border-radius:6px;border:2px solid ${isRead ? 'var(--accent)' : 'var(--border-light)'};background:${isRead ? 'var(--accent)' : 'transparent'};color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;">${isRead ? '✓' : ''}</button>
-        <div ${it.page ? `data-onclick="tocGoTo(${it.page})"` : ''} style="flex:1;cursor:${it.page ? 'pointer' : 'default'};font-size:13px;color:${isRead ? 'var(--text-muted)' : 'var(--text-primary)'};${isRead ? 'text-decoration:line-through;' : ''}">
+        <div onclick="${it.page ? `tocGoTo(${it.page})` : ''}" style="flex:1;cursor:${it.page ? 'pointer' : 'default'};font-size:13px;color:${isRead ? 'var(--text-muted)' : 'var(--text-primary)'};${isRead ? 'text-decoration:line-through;' : ''}">
           ${eh(it.title)}${it.page ? `<span style="color:var(--text-muted);font-size:11px;"> · стр. ${it.page}</span>` : ''}
         </div>
       </div>`;
@@ -12211,7 +12211,7 @@ function renderAdminUsersWithFilter() {
             <td>${u.total_pages_read}</td>
             <td>${u.is_active ? ICONS.check : ICONS.x}</td>
             <td>${u.role !== 'admin'
-              ? `<button class="btn-sm danger" data-onclick="deleteAdminUser(${u.id}, '${eh(u.username).replace(/'/g, "\\'")}')">${ICONS.trash}</button>`
+              ? `<button class="btn-sm danger" onclick="deleteAdminUser(${u.id}, '${eh(u.username).replace(/'/g, "\\'")}')">${ICONS.trash}</button>`
               : '—'}</td>
           </tr>`;
         }).join('')}

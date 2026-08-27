@@ -137,8 +137,13 @@ class TestRefreshConcurrency:
             "/auth/login", json={"username": "racer", "password": "TestPass123!"}
         )
         assert login.status_code == 200
-        token = login.json()["refresh_token"]
+        assert "refresh_token" not in login.json()
+        token = parallel_client.cookies.get("aegis_refresh")
         csrf = parallel_client.cookies.get("aegis_csrf")
+
+        # Cookie обновится после первого же обмена, а гонку надо устроить одним
+        # и тем же значением — поэтому отправляем токен телом и чистим cookie.
+        parallel_client.cookies.clear()
 
         async def refresh():
             return await parallel_client.post(

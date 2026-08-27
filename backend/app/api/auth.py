@@ -26,9 +26,12 @@ from app.core.security import (
 from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.schemas.auth import (
+    AccessTokenOnly,
+    ForgotPasswordRequest,
     RefreshRequest,
     RegisterResponse,
     ResendCodeRequest,
+    ResetPasswordRequest,
     TokenPair,
     UserLogin,
     UserPublic,
@@ -48,18 +51,39 @@ def _gen_code() -> str:
 
 logger = logging.getLogger(__name__)
 
-async def _issue_with_cookie(
-    db: AsyncSession, user: User, response: Response
-) -> TokenPair:
-    """Выдать пару и положить refresh в httpOnly-cookie.
+MOBILE_CLIENT_HEADER = "X-Client-Type"
+MOBILE_CLIENT_VALUE = "mobile"
 
-    В теле ответа refresh тоже возвращается — для обратной совместимости со
-    старым клиентом и мобильными обёртками, у которых нет cookie-хранилища.
-    Веб-клиент его игнорирует и полагается на cookie.
+
+def _is_mobile_client(request: Request) -> bool:
+    """Клиент без cookie-хранилища, которому нужен токен в теле ответа.
+
+    Мобильная обёртка обязана заявить о себе явно. Умолчание — браузер:
+    так безопасный путь получается по умолчанию, а не по недосмотру.
+    """
+    return (
+        request.headers.get(MOBILE_CLIENT_HEADER, "").lower() == MOBILE_CLIENT_VALUE
+    )
+
+
+async def _issue_tokens(
+    db: AsyncSession, user: User, request: Request, response: Response
+):
+    """Выдать токены в форме, подходящей клиенту.
+
+    Браузеру уходит только access-токен, refresh кладётся в httpOnly-cookie.
+    Раньше refresh дублировался ещё и в теле — и обесценивал защиту: скрипт,
+    внедрённый через XSS, читал его прямо из ответа, не трогая cookie.
+
+    Мобильный клиент cookie хранить не умеет, поэтому для него пара
+    возвращается целиком. Он должен запросить это заголовком.
     """
     pair = await tokens_service.issue_token_pair(db, user)
     set_auth_cookies(response, pair.refresh_token)
-    return pair
+
+    if _is_mobile_client(request):
+        return pair
+    return AccessTokenOnly(access_token=pair.access_token)
 
 
 def _client_ip(request: Request) -> str:
@@ -145,13 +169,13 @@ async def register(
     )
 
 
-@router.post("/verify", response_model=TokenPair)
+@router.post("/verify", response_model=AccessTokenOnly | TokenPair)
 async def verify_email(
     response: Response,
     payload: VerifyEmailRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> TokenPair:
+) -> AccessTokenOnly | TokenPair:
     """Подтвердить email кодом. При успехе аккаунт активируется и выдаются токены."""
     _guard_otp_attempt(payload.email, request)
 
@@ -190,7 +214,7 @@ async def verify_email(
         except EmailError:
             pass  # письмо админу не критично — не ломаем регистрацию
 
-    return await _issue_with_cookie(db, user, response)
+    return await _issue_tokens(db, user, request, response)
 
 
 @router.post("/resend-code", status_code=status.HTTP_200_OK)
@@ -221,13 +245,13 @@ async def resend_code(
     return {"detail": "Verification code sent."}
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login", response_model=AccessTokenOnly | TokenPair)
 async def login(
     response: Response,
     payload: UserLogin,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> TokenPair:
+) -> AccessTokenOnly | TokenPair:
     """Authenticate by username + password and return JWT pair."""
     ip = _client_ip(request)
 
@@ -250,16 +274,16 @@ async def login(
         raise HTTPException(status_code=403, detail="Email not verified")
 
     login_limiter.record_success(ip)
-    return await _issue_with_cookie(db, user, response)
+    return await _issue_tokens(db, user, request, response)
 
 
-@router.post("/refresh", response_model=TokenPair)
+@router.post("/refresh", response_model=AccessTokenOnly | TokenPair)
 async def refresh_token(
     request: Request,
     response: Response,
     payload: RefreshRequest | None = None,
     db: AsyncSession = Depends(get_db),
-) -> TokenPair:
+) -> AccessTokenOnly | TokenPair:
     """Обменять refresh-токен на новую пару access+refresh.
 
     Токен берётся из httpOnly-cookie. Тело запроса поддерживается для клиентов
@@ -300,12 +324,39 @@ async def refresh_token(
         raise HTTPException(status_code=401, detail="Invalid refresh token") from None
 
     set_auth_cookies(response, pair.refresh_token)
-    return pair
+
+    if _is_mobile_client(request):
+        return pair
+    return AccessTokenOnly(access_token=pair.access_token)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(response: Response) -> None:
-    """Выход: удаляем cookie. Access-токен клиент забывает сам."""
+async def logout(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Выход: отзываем refresh-токен и удаляем cookie.
+
+    Удалить cookie мало: сама по себе она лишь перестаёт отправляться
+    браузером, а значение остаётся действительным до истечения срока. Если
+    копия утекла, выход не должен оставлять её рабочей — поэтому помечаем
+    токен использованным в БД.
+    """
+    token = get_refresh_from_cookie(request)
+
+    # CSRF: logout меняет состояние, значит подделать его через чужой сайт
+    # быть не должно. Без cookie проверять нечего — это мобильный клиент.
+    if token and not csrf_is_valid(request):
+        clear_auth_cookies(response)
+        raise HTTPException(status_code=403, detail="CSRF token mismatch")
+
+    if token:
+        try:
+            await tokens_service.revoke_refresh_token(db, token)
+        except Exception as e:  # noqa: BLE001 — выход должен работать всегда
+            logger.info("Не удалось отозвать токен при выходе: %s", e)
+
     clear_auth_cookies(response)
 
 
@@ -314,13 +365,13 @@ async def me(current: User = Depends(get_current_user_any)) -> UserPublic:
     """Return the currently authenticated user."""
     return UserPublic.model_validate(current)
 
-@router.post("/token", response_model=TokenPair)
+@router.post("/token", response_model=AccessTokenOnly | TokenPair)
 async def login_form(
     response: Response,
     request: Request,
     form: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
-) -> TokenPair:
+) -> AccessTokenOnly | TokenPair:
     """OAuth2-совместимый логин для Swagger UI и других OAuth2-клиентов."""
     ip = _client_ip(request)
 
@@ -341,30 +392,12 @@ async def login_form(
         raise HTTPException(status_code=403, detail="Email not verified")
 
     login_limiter.record_success(ip)
-    return await _issue_with_cookie(db, user, response)
+    return await _issue_tokens(db, user, request, response)
 
 
 # ============================================================================
 # Восстановление пароля («забыли пароль»)
 # ============================================================================
-from pydantic import BaseModel, EmailStr, field_validator
-
-
-class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
-
-
-class ResetPasswordRequest(BaseModel):
-    email: EmailStr
-    code: str
-    new_password: str
-
-    @field_validator("new_password")
-    @classmethod
-    def _min_len(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Пароль должен содержать минимум 8 символов")
-        return v
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
@@ -395,13 +428,13 @@ async def forgot_password(
     return {"detail": "Если такой email зарегистрирован, на него отправлен код восстановления"}
 
 
-@router.post("/reset-password", response_model=TokenPair)
+@router.post("/reset-password", response_model=AccessTokenOnly | TokenPair)
 async def reset_password(
     response: Response,
     payload: ResetPasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> TokenPair:
+) -> AccessTokenOnly | TokenPair:
     """Сбросить пароль по коду из письма. При успехе сразу выдаём токены (вход)."""
     _guard_otp_attempt(payload.email, request)
 
@@ -429,4 +462,4 @@ async def reset_password(
     user.token_version = (user.token_version or 0) + 1
     await db.commit()
 
-    return await _issue_with_cookie(db, user, response)
+    return await _issue_tokens(db, user, request, response)

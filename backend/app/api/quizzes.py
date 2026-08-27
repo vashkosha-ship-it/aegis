@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_admin, get_current_user
+from app.db.locks import lock_user
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.quiz import QuizAttempt, QuizQuestion
@@ -191,6 +192,12 @@ async def submit_quiz(
     score = sum(1 for i, ans in enumerate(payload.answers) if ans == correct_indices[i])
     total = len(graded)
     percentage = round(score / total * 100) if total else 0
+
+    # Блокировки сессии мало: открыв тест дважды, пользователь получает ДВЕ
+    # сессии — разные строки, разные блокировки, друг другу не мешают. Оба
+    # запроса видели «раньше не сдавал» и оба начисляли XP. Блокировка
+    # пользователя выстраивает их в очередь.
+    await lock_user(db, current.id)
 
     attempt = QuizAttempt(
         user_id=current.id,

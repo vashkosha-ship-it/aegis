@@ -38,17 +38,19 @@ class TestRefreshRotation:
     async def test_refresh_returns_new_pair(self, client, db):
         await make_user(db, username="refresher")
         tokens = await _login(client)
+        assert "refresh_token" not in tokens, "браузер не должен получать refresh в теле"
+        old_refresh = client.cookies.get("aegis_refresh")
 
-        r = await _refresh(client, tokens["refresh_token"])
+        r = await _refresh(client)
         assert r.status_code == 200, r.text
-        new = r.json()
-        assert new["refresh_token"] != tokens["refresh_token"], "токен должен меняться"
+        new_refresh = client.cookies.get("aegis_refresh")
+        assert new_refresh != old_refresh, "токен должен меняться"
 
     async def test_old_token_marked_used(self, client, db):
         await make_user(db, username="refresher")
-        tokens = await _login(client)
+        await _login(client)
 
-        await _refresh(client, tokens["refresh_token"])
+        await _refresh(client)
 
         used = await db.scalar(
             select(RefreshToken).where(RefreshToken.used_at.isnot(None))
@@ -61,10 +63,12 @@ class TestRefreshReuse:
     async def test_reuse_outside_grace_revokes_sessions(self, client, db):
         """Предъявление потраченного токена = утечка → все сессии отзываются."""
         user = await make_user(db, username="refresher")
-        tokens = await _login(client)
+        await _login(client)
+        old_refresh = client.cookies.get("aegis_refresh")
 
-        r1 = await _refresh(client, tokens["refresh_token"])
+        r1 = await _refresh(client)
         assert r1.status_code == 200, r1.text
+        new_refresh = client.cookies.get("aegis_refresh")
 
         # Сдвигаем время использования в прошлое, за пределы окна благодати
         record = await db.scalar(select(RefreshToken).where(RefreshToken.used_at.isnot(None)))
@@ -77,7 +81,7 @@ class TestRefreshReuse:
 
         version_before = user.token_version
         r2 = await client.post(
-            "/auth/refresh", json={"refresh_token": tokens["refresh_token"]}
+            "/auth/refresh", json={"refresh_token": old_refresh}
         )
         assert r2.status_code == 401, r2.text
 
@@ -87,7 +91,7 @@ class TestRefreshReuse:
         # Пара, выданная в r1, тоже больше не работает
         client.cookies.clear()
         r3 = await client.post(
-            "/auth/refresh", json={"refresh_token": r1.json()["refresh_token"]}
+            "/auth/refresh", json={"refresh_token": new_refresh}
         )
         assert r3.status_code == 401
 

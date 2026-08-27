@@ -8,7 +8,8 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
@@ -181,23 +182,28 @@ async def submit_exam(
             needs_full_name=True,
         )
 
-    # Выдаём сертификат (или обновляем, если уже был по этой теме с меньшим баллом)
-    existing = await db.scalar(
-        select(Certificate).where(
-            Certificate.user_id == current.id, Certificate.category == exam.category
-        )
+    # Выдаём сертификат (или обновляем, если уже был по этой теме с меньшим
+    # баллом). Раньше это была связка «прочитали existing → решили → записали»:
+    # два параллельных submit по разным экзаменационным сессиям одной категории
+    # оба не находили запись и оба её создавали. Блокировка сессии не помогала —
+    # строки-то разные. Теперь решение принимает БД одним запросом.
+    stmt = pg_insert(Certificate).values(
+        user_id=current.id,
+        category=exam.category,
+        score=score,
+        full_name=current.full_name.strip(),
     )
-    if existing:
-        if score > existing.score:
-            existing.score = score
-            existing.issued_at = datetime.now(UTC)
-    else:
-        db.add(Certificate(
-            user_id=current.id,
-            category=exam.category,
-            score=score,
-            full_name=current.full_name.strip(),
-        ))
+    stmt = stmt.on_conflict_do_update(
+        constraint="uq_certificates_user_category",
+        set_={
+            "score": stmt.excluded.score,
+            "full_name": stmt.excluded.full_name,
+            "issued_at": func.now(),
+        },
+        # Понижать балл и перевыдавать дату при худшей попытке не нужно.
+        where=Certificate.score < stmt.excluded.score,
+    )
+    await db.execute(stmt)
     await db.commit()
 
     return SubmitExamResponse(
