@@ -1,17 +1,25 @@
-/* Делегирование инлайновых обработчиков.
+/* Делегирование обработчиков из разметки.
  *
  * CSP без script-src 'unsafe-inline' запрещает onclick="..." в разметке.
- * Переписывать 300 вызовов на отдельные addEventListener нереально, поэтому
- * атрибут остаётся в разметке, но переезжает в data-onclick — а вызов
- * разбирает и выполняет этот диспетчер.
+ * Вызов остаётся в атрибуте, но переезжает в data-onclick, а разбирает и
+ * выполняет его этот диспетчер.
  *
- * Строка НЕ выполняется через eval или new Function: это потребовало бы
- * script-src 'unsafe-eval', то есть мы бы поменяли одну дыру на другую.
- * Вместо этого разбираем имя функции и её аргументы-литералы вручную.
+ * Три ограничения, каждое закрывает свой способ злоупотребления.
  *
- * Обработчики, которым нужен this или event, диспетчер тоже поддерживает:
- * они получают элемент и событие последними аргументами, если объявлены с
- * data-onclick-args="event" / "this".
+ * 1. Строка НЕ выполняется через eval или new Function. Иначе понадобился бы
+ *    script-src 'unsafe-eval', то есть мы бы поменяли одну лазейку на другую.
+ *    Имя функции и аргументы-литералы разбираются вручную.
+ *
+ * 2. Функция обязана быть в реестре handler-allowlist.js. Раньше имя бралось
+ *    прямо из window — любая разметка, попавшая в DOM через innerHTML, могла
+ *    позвать любую глобальную функцию приложения.
+ *
+ * 3. Списки разделены по событиям, и для error он предельно узкий. error
+ *    возникает сам, без действия пользователя: достаточно вставить
+ *    <img src=x data-onerror="...">, и обработчик выполнится немедленно.
+ *
+ * Элемент и само событие передаются последними аргументами, если в разметке
+ * указано data-args="this" или data-args="event".
  */
 (function () {
   'use strict';
@@ -21,6 +29,19 @@
   var EVENTS = ['click', 'change', 'input', 'keydown', 'keyup', 'submit'];
   // error на <img> не всплывает — ловим на фазе перехвата
   var CAPTURE_EVENTS = ['error'];
+
+  var RAW = window.AEGIS_ALLOWED_HANDLERS || {};
+  var ALLOWED = {};
+  Object.keys(RAW).forEach(function (ev) {
+    var set = Object.create(null);
+    (RAW[ev] || []).forEach(function (name) { set[name] = true; });
+    ALLOWED[ev] = set;
+  });
+
+  function isAllowed(eventType, name) {
+    var set = ALLOWED[eventType];
+    return !!(set && set[name] === true);
+  }
 
   function parseArgs(src) {
     var args = [];
@@ -100,17 +121,9 @@
     return args;
   }
 
-  function resolve(name) {
-    var parts = name.split('.');
-    var ctx = window;
-    for (var i = 0; i < parts.length; i++) {
-      if (ctx == null) return null;
-      ctx = ctx[parts[i]];
-    }
-    return typeof ctx === 'function' ? ctx : null;
-  }
-
-  var CALL_RE = /^\s*([A-Za-z_$][\w$.]*)\s*\(([\s\S]*)\)\s*;?\s*$/;
+  // Точки в имени не допускаются: через window.foo.bar раньше дотягивались
+  // до document.getElementById и подобного в обход реестра.
+  var CALL_RE = /^\s*([A-Za-z_$][\w$]*)\s*\(([\s\S]*)\)\s*;?\s*$/;
 
   function invoke(spec, el, ev) {
     var m = CALL_RE.exec(spec);
@@ -119,9 +132,15 @@
       return;
     }
 
-    var fn = resolve(m[1]);
-    if (!fn) {
-      console.warn('[handlers] функция не найдена:', m[1]);
+    var name = m[1];
+    if (!isAllowed(ev.type, name)) {
+      console.warn('[handlers] запрещён для события ' + ev.type + ':', name);
+      return;
+    }
+
+    var fn = window[name];
+    if (typeof fn !== 'function') {
+      console.warn('[handlers] функция не найдена:', name);
       return;
     }
 
@@ -140,10 +159,12 @@
       });
     }
 
+    if (el.getAttribute('data-stop')) ev.stopPropagation();
+
     try {
       fn.apply(el, args);
     } catch (e) {
-      console.error('[handlers] ошибка в ' + m[1] + ':', e);
+      console.error('[handlers] ошибка в ' + name + ':', e);
     }
   }
 

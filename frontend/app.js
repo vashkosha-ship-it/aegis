@@ -3251,7 +3251,7 @@ function renderFullTextResults(res) {
             ${h.pages && h.pages.length ? h.pages.map(p => `
               <div style="font-size:11px;color:var(--text-secondary);background:var(--bg-primary);border-radius:6px;padding:5px 8px;margin-top:4px;line-height:1.4;">
                 <span style="color:var(--accent);font-weight:600;">с. ${p.page}:</span> …${p.snippet}…
-                <button data-onclick="event.stopPropagation();askAiAboutSnippet(${h.book_id}, ${p.page}, '${_encodeSnippet(p.snippet)}', '${_encodeSnippet(h.title)}')" style="display:block;margin-top:4px;background:none;border:none;color:var(--accent);cursor:pointer;font-size:10px;padding:0;font-family:inherit;">✨ Спросить AI про этот фрагмент</button>
+                <button data-onclick="askAiAboutSnippet(${h.book_id}, ${p.page}, '${_encodeSnippet(p.snippet)}', '${_encodeSnippet(h.title)}')" data-stop="1" style="display:block;margin-top:4px;background:none;border:none;color:var(--accent);cursor:pointer;font-size:10px;padding:0;font-family:inherit;">✨ Спросить AI про этот фрагмент</button>
               </div>`).join('') : ''}
           </div>
         </div>`).join('')}
@@ -3292,7 +3292,7 @@ async function openAdminLogs() {
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Журнал действий</h3>
-      <button data-onclick="document.getElementById('adminLogsModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+      <button data-onclick="closeModal('adminLogsModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <div id="adminLogsBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загрузка…</div>
   </div>`;
@@ -3513,7 +3513,7 @@ function openCreateUserModal() {
     <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:420px;width:95%;border:1px solid var(--border);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="font-size:16px;font-weight:700;">Создать пользователя</h3>
-        <button data-onclick="document.getElementById('createUserModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+        <button data-onclick="closeModal('createUserModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
       </div>
       <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Пользователь создаётся сразу активным. Передайте ему логин и пароль.</p>
       <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Логин (латиница, цифры, _)</label>
@@ -3566,7 +3566,7 @@ function openExportModal() {
     <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:420px;width:95%;border:1px solid var(--border);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="font-size:16px;font-weight:700;">Выгрузка в Excel</h3>
-        <button data-onclick="document.getElementById('exportModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+        <button data-onclick="closeModal('exportModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
       </div>
       <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Прочитанные книги по сотрудникам за период (ФИО, подразделение, книги). Оставьте даты пустыми — выгрузится всё.</p>
       <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Дата с</label>
@@ -3615,7 +3615,7 @@ async function openPendingUsersModal() {
     <div style="background:var(--bg-elevated);border-radius:14px;padding:20px;max-width:560px;width:95%;border:1px solid var(--border);max-height:85vh;overflow-y:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <h3 style="font-size:16px;font-weight:700;">Заявки на регистрацию</h3>
-        <button data-onclick="document.getElementById('pendingUsersModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+        <button data-onclick="closeModal('pendingUsersModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
       </div>
       <div id="pendingUsersList" style="font-size:13px;color:var(--text-secondary);">Загрузка…</div>
     </div>`;
@@ -4365,7 +4365,7 @@ async function exportNotes() {
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:380px;width:100%;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Экспорт заметок</h3>
-      <button data-onclick="document.getElementById('exportFmtModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">&times;</button>
+      <button data-onclick="closeModal('exportFmtModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">&times;</button>
     </div>
     ${btn('pdf', 'PDF документ', 'Для печати и чтения')}
     ${btn('md', 'Markdown', 'Текст с разметкой')}
@@ -4477,7 +4477,7 @@ async function renderDetailNotes() {
           <div style="font-size:10px;color:${stripColor};font-weight:600;">
             ${isNote ? 'ЗАМЕТКА' : 'МАРКЕР'} · Стр.${a.page}
           </div>
-          <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;flex-shrink:0;" data-onclick="event.stopPropagation();deleteAnnotation(${currentBookId},${a.id})">${ICONS.trash}</button>
+          <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;flex-shrink:0;" data-onclick="deleteAnnotation(${currentBookId},${a.id})" data-stop="1">${ICONS.trash}</button>
         </div>
         <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;font-style:italic;">«${eh(a.text.substring(0, 200))}${a.text.length > 200 ? '…' : ''}»</div>
         ${a.note ? `
@@ -5023,7 +5023,7 @@ function openForgotPassword() {
     <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:100%;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <h3 style="font-size:17px;font-weight:800;color:var(--text-primary);">ÐÐ¾ÑÑÑÐ°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð°ÑÐ¾Ð»Ñ</h3>
-        <button data-onclick="document.getElementById('forgotPasswordModal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+        <button data-onclick="closeModal('forgotPasswordModal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
       </div>
       <div id="fpStep1">
         <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">Введите email, указанный при регистрации. Мы отправим код для сброса пароля.</p>
@@ -6017,7 +6017,7 @@ async function openChatHistory() {
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);">История диалогов</h3>
-      <button data-onclick="document.getElementById('chatHistoryModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+      <button data-onclick="closeModal('chatHistoryModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <div id="chatHistoryBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загружаю…</div>
   </div>`;
@@ -6548,7 +6548,7 @@ function openFavCatsPicker() {
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Избранные темы</h3>
-      <button data-onclick="document.getElementById('favCatsPickerModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+      <button data-onclick="closeModal('favCatsPickerModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <div id="favCatsPickerBody"></div>
   </div>`;
@@ -7335,13 +7335,13 @@ function _openLegalModal(titleText, html) {
   m.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
       <div style="font-size:16px;font-weight:700;color:var(--text-primary);">${titleText}</div>
-      <button data-onclick="document.getElementById('legalDocModal').remove()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
+      <button data-onclick="closeModal('legalDocModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:20px;font-size:14px;color:var(--text-secondary);line-height:1.7;max-width:680px;margin:0 auto;width:100%;-webkit-overflow-scrolling:touch;">
       ${html}
     </div>
     <div style="padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0;">
-      <button data-onclick="document.getElementById('legalDocModal').remove()" style="width:100%;max-width:680px;margin:0 auto;display:block;background:var(--accent);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Закрыть</button>
+      <button data-onclick="closeModal('legalDocModal')" style="width:100%;max-width:680px;margin:0 auto;display:block;background:var(--accent);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Закрыть</button>
     </div>`;
 }
 
@@ -7415,7 +7415,7 @@ function confirmDeleteAccount() {
     <input id="delAccPassword" type="password" placeholder="Пароль" style="width:100%;padding:11px 14px;margin-bottom:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;">
     <input id="delAccConfirm" type="text" placeholder="Введите УДАЛИТЬ" style="width:100%;padding:11px 14px;margin-bottom:14px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;">
     <div style="display:flex;gap:8px;">
-      <button data-onclick="document.getElementById('deleteAccModal').remove()" style="flex:1;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Отмена</button>
+      <button data-onclick="closeModal('deleteAccModal')" style="flex:1;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Отмена</button>
       <button data-onclick="doDeleteAccount()" style="flex:1;padding:12px;background:#ef4444;border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Удалить</button>
     </div>
   </div>`;
@@ -7758,7 +7758,7 @@ function renderSettingsInfoTab(c) {
 
     <!-- Аватар -->
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;">
-      <div class="profile-avatar-lg" style="width:64px;height:64px;font-size:22px;cursor:pointer;flex-shrink:0;" data-onclick="document.getElementById('settingsAvatarUpload').click()">
+      <div class="profile-avatar-lg" style="width:64px;height:64px;font-size:22px;cursor:pointer;flex-shrink:0;" data-onclick="clickElement('settingsAvatarUpload')">
         <span id="settingsAvatarText">U</span>
         <img id="settingsAvatarImg" style="display:none;">
       </div>
@@ -8490,7 +8490,7 @@ async function openAddToCollection(bookId) {
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);">В коллекцию</h3>
-      <button data-onclick="document.getElementById('addToColModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+      <button data-onclick="closeModal('addToColModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <div id="addToColRows">${rows || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">Пока нет коллекций</div>'}</div>
     <div style="display:flex;gap:8px;margin-top:10px;">
@@ -9343,13 +9343,13 @@ function openBookmarksList() {
   const rows = list.length
     ? list.map(p => `<button data-onclick="jumpToBookmark(${p})" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
         <span>${ICONS.bookmark} Страница ${p}</span>
-        <span data-onclick="event.stopPropagation();removeBookmark(${p})" style="color:#ef4444;font-size:16px;padding:0 6px;">✕</span>
+        <span data-onclick="removeBookmark(${p})" data-stop="1" style="color:#ef4444;font-size:16px;padding:0 6px;">✕</span>
       </button>`).join('')
     : '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Закладок пока нет. Нажмите на флажок в панели, чтобы добавить.</div>';
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:380px;width:100%;max-height:75vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Закладки</h3>
-      <button data-onclick="document.getElementById('bookmarksListModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+      <button data-onclick="closeModal('bookmarksListModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <div id="bookmarksListRows">${rows}</div>
   </div>`;
@@ -9428,7 +9428,7 @@ async function openReviewMode() {
   m.innerHTML = `<div style="max-width:460px;width:100%;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:16px;font-weight:800;color:#fff;">Повторение</h3>
-      <button data-onclick="document.getElementById('reviewModal').remove()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;cursor:pointer;font-size:18px;width:34px;height:34px;border-radius:50%;">✕</button>
+      <button data-onclick="closeModal('reviewModal')" style="background:rgba(255,255,255,0.1);border:none;color:#fff;cursor:pointer;font-size:18px;width:34px;height:34px;border-radius:50%;">✕</button>
     </div>
     <div id="reviewBody" style="color:#fff;text-align:center;padding:30px;">Готовлю карточки…</div>
   </div>`;
@@ -9553,7 +9553,7 @@ async function openTOC() {
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Оглавление</h3>
-      <button data-onclick="document.getElementById('tocModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+      <button data-onclick="closeModal('tocModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <div id="tocPanelBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загружаю оглавление…</div>
   </div>`;
@@ -10478,7 +10478,7 @@ function showAndroidInstallInstructions() {
       <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;">
         Если приложение не появилось на рабочем столе — проверьте список всех приложений (свайп вверх). В настройках Xiaomi включите «Добавлять значки на рабочий стол».
       </p>
-      <button data-onclick="document.getElementById('androidInstallModal').remove()" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
+      <button data-onclick="closeModal('androidInstallModal')" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
     </div>`;
 }
 
@@ -10498,7 +10498,7 @@ function showIOSInstallInstructions() {
         2. Выберите «На экран Домой»<br>
         3. Нажмите «Добавить»
       </p>
-      <button data-onclick="document.getElementById('iosInstallModal').remove()" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
+      <button data-onclick="closeModal('iosInstallModal')" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
     </div>`;
 }
 
@@ -10718,7 +10718,7 @@ function showReaderAiPopup(title, loadingText) {
   p.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <h3 style="font-size:15px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:6px;">${ICONS.sparkles || ''}<span>${eh(title)}</span></h3>
-      <button data-onclick="document.getElementById('readerAiPopup').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:50%;">✕</button>
+      <button data-onclick="closeModal('readerAiPopup')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:50%;">✕</button>
     </div>
     <div id="readerAiContent" style="font-size:13px;line-height:1.6;color:var(--text-primary);">
       <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);"><span class="ai-spinner" style="width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin 0.7s linear infinite;"></span>${eh(loadingText)}</div>
