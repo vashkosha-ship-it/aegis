@@ -1030,6 +1030,7 @@
 <!-- Тяжёлые vendor-библиотеки (pdf, epub, chart) грузятся ЛЕНИВО при первом
      открытии книги/графика — см. ensureVendorLoaded() в app.js. Это убирает
      их из критического пути первой загрузки и ускоряет старт. -->
+<script defer src="handler-allowlist.js"></script>
 <script defer src="inline-handlers.js"></script>
 <script defer src="offline-storage.js"></script>
 <script defer src="api.js"></script>
