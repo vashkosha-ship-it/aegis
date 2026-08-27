@@ -6432,21 +6432,55 @@ function renderBooksGoalWidget() {
     </div>`;
 }
 
-// ===== D: Возобновить чтение (последние 1-3 книги) =====
+// ===== D: Возобновить чтение (последние 5 незавершённых книг) =====
+
+// Книги, убранные пользователем из блока вручную. Держим локально: это
+// предпочтение конкретного устройства, а не состояние чтения — на сервере
+// ему делать нечего. Если книгу открыть заново, она вернётся в блок.
+const RESUME_HIDDEN_KEY = 'aegis_resume_hidden';
+
+function getResumeHidden() {
+  try { return JSON.parse(lsGet(RESUME_HIDDEN_KEY) || '[]'); } catch (_) { return []; }
+}
+
+function hideFromResume(bookId) {
+  const hidden = getResumeHidden();
+  if (!hidden.includes(bookId)) hidden.push(bookId);
+  lsSet(RESUME_HIDDEN_KEY, JSON.stringify(hidden));
+  if (navigator.vibrate) navigator.vibrate(10);
+  renderResumeReading();
+}
+
+function unhideFromResume(bookId) {
+  const hidden = getResumeHidden().filter(id => id !== bookId);
+  lsSet(RESUME_HIDDEN_KEY, JSON.stringify(hidden));
+}
+
 function renderResumeReading() {
   const section = document.getElementById('sectionResume');
   const wrap = document.getElementById('resumeReadingCards');
   if (!section || !wrap) return;
 
+  const hidden = getResumeHidden();
+
   const started = (state.books || [])
-    .filter(b => state.readingProgress[b.id]?.started)
+    .filter(b => {
+      const p = state.readingProgress[b.id];
+      if (!p || !p.started) return false;
+      if (hidden.includes(b.id)) return false;
+      // Дочитанным здесь не место: блок про то, к чему вернуться.
+      // finished_at с сервера во фронт не приходит, считаем по страницам.
+      const total = p.totalPages || 0;
+      if (total > 1 && (p.currentPage || 0) >= total) return false;
+      return true;
+    })
     .map(b => ({ b, p: state.readingProgress[b.id] }))
     .sort((x, y) => {
       const tx = x.p.lastReadAt ? new Date(x.p.lastReadAt).getTime() : 0;
       const ty = y.p.lastReadAt ? new Date(y.p.lastReadAt).getTime() : 0;
       return ty - tx;
     })
-    .slice(0, 3);
+    .slice(0, 5);
 
   if (!started.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
@@ -6462,7 +6496,7 @@ function renderResumeReading() {
         <div style="font-size:11px;color:var(--text-muted);margin:3px 0 6px;">Стр. ${p.currentPage} из ${p.totalPages} · ${pct}%</div>
         <div style="height:5px;background:var(--bg-primary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
       </div>
-      <div style="flex-shrink:0;color:var(--accent);">${ICONS.book}</div>
+      <button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" style="flex-shrink:0;background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:8px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-size:16px;line-height:1;">&times;</button>
     </div>`;
   }).join('');
 }
@@ -8963,6 +8997,9 @@ const SWIPE_RESTRAINT = 100;
 function openReader(id) {
   const b = state.books.find(x => x.id === id);
   if (!b) return;
+  // Открыли заново — значит книга снова актуальна, возвращаем её
+  // в блок «Продолжить», даже если раньше её оттуда убрали.
+  unhideFromResume(id);
   currentBookId = id;
   state.currentBook = b;
   hideReaderEmptyStub();
@@ -9779,9 +9816,11 @@ async function loadPdf(b) {
         httpHeaders: cfg.httpHeaders,
         withCredentials: cfg.withCredentials,
         rangeChunkSize: 1048576,       // 1 МБ на чанк — меньше round-trip'ов
-        // false — иначе pdf.js не может подтянуть нужные объекты через Range
-        // и сваливается в полную загрузку файла.
-        disableAutoFetch: false,
+        // true — качаем только то, что нужно показанным страницам.
+        // При false pdf.js берёт первую страницу через Range, показывает
+        // её, а потом фоном дотягивает файл целиком: для сканов на сотню
+        // мегабайт это и есть «Загрузка книги… 0%» на несколько минут.
+        disableAutoFetch: true,
         // Ключевое для больших книг: без этого pdf.js открывает полный поток
         // и тянет весь файл (144 МБ), несмотря на Range-поддержку сервера.
         disableStream: true,
