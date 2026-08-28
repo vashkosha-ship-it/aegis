@@ -14,7 +14,7 @@ import tempfile
 from collections.abc import AsyncIterator
 from concurrent.futures import ProcessPoolExecutor
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Book
@@ -47,6 +47,10 @@ class PdfTooLarge(IndexingError):
 
 class ExtractionTimeout(IndexingError):
     pass
+
+
+class IndexWouldRegress(IndexingError):
+    """Новый индекс пуст, а старый — нет. Замена уничтожила бы данные."""
 
 
 async def spool_to_tempfile(chunks: AsyncIterator[bytes]) -> str:
@@ -129,51 +133,97 @@ async def _extract_pages(path: str) -> list[str]:
             try:
                 if proc.is_alive():
                     proc.kill()
-            except Exception:  # noqa: BLE001 — процесс мог завершиться сам
+            except Exception:  # noqa: BLE001, S110 — процесс мог завершиться сам
                 pass
 
 
-async def index_book_from_path(db: AsyncSession, book_id: int, pdf_path: str) -> int:
+async def count_indexed_pages(db: AsyncSession, book_id: int) -> int:
+    """Сколько страниц книги сейчас в индексе."""
+    return await db.scalar(
+        select(func.count(BookPage.id)).where(BookPage.book_id == book_id)
+    ) or 0
+
+
+async def index_book_from_path(
+    db: AsyncSession, book_id: int, pdf_path: str, *, force: bool = False
+) -> int:
     """Проиндексировать PDF с диска. Возвращает число сохранённых страниц.
 
-    Прежний индекс заменяется только после успешного извлечения текста.
+    Замена индекса выполняется одной транзакцией: удаление старых страниц и
+    вставка новых либо происходят целиком, либо не происходят вовсе.
+
+    Раньше удаление коммитилось отдельно, и каждая пачка страниц — тоже.
+    Прерывание посередине (перезапуск воркера при деплое, обрыв соединения с
+    базой, OOM) оставляло книгу с частью страниц: поиск формально работал, но
+    находил не всё, и отличить такую книгу от нормально проиндексированной
+    было нельзя. Теперь незавершённая индексация просто откатывается, и
+    остаётся прежний индекс — он хотя бы полный.
+
     Заодно обновляем book.total_pages — сервер узнаёт реальное число страниц
     и может проверять прогресс чтения.
+
+    force=True разрешает заменить непустой индекс пустым. По умолчанию это
+    запрещено: см. IndexWouldRegress ниже.
     """
-    # ВАЖНО: сначала извлекаем текст, и только потом трогаем существующий
-    # индекс. Раньше старые страницы удалялись первыми, и если извлечение
-    # падало (битый файл, таймаут, нехватка памяти), книга оставалась вообще
-    # без поиска — было хоть что-то, стало ничего.
+    # Извлекаем текст ДО того, как трогаем индекс. Если извлечение упадёт
+    # (битый файл, таймаут, нехватка памяти), существующий индекс не пострадает.
     pages = await _extract_pages(pdf_path)
 
-    await db.execute(delete(BookPage).where(BookPage.book_id == book_id))
-    await db.commit()
-
-    saved = 0
-    total = 0
-    batch: list[BookPage] = []
-
-    for page_no, text in enumerate(pages, start=1):
-        total = page_no
-        if not text.strip():
-            continue
-        batch.append(BookPage(book_id=book_id, page=page_no, content=text))
-        if len(batch) >= PAGE_BATCH_SIZE:
-            db.add_all(batch)
-            await db.commit()
-            saved += len(batch)
-            batch = []
-
-    if batch:
-        db.add_all(batch)
-        await db.commit()
-        saved += len(batch)
-
-    if total:
-        await db.execute(
-            update(Book).where(Book.id == book_id).values(total_pages=total)
+    if not pages:
+        raise IndexingError(
+            f"Книга {book_id}: из файла не извлечено ни одной страницы"
         )
+
+    rows = [
+        {"book_id": book_id, "page": page_no, "content": text}
+        for page_no, text in enumerate(pages, start=1)
+        if text.strip()
+    ]
+    total = len(pages)
+    saved = len(rows)
+
+    if not rows and not force:
+        # Текста нет вовсе. Если раньше индекс был, замена уничтожила бы его
+        # без всякой пользы — а причина (заменили файл на скан, сломался
+        # шрифтовый слой) требует человеческого решения, а не молчаливой
+        # потери данных.
+        existing = await count_indexed_pages(db, book_id)
+        if existing:
+            raise IndexWouldRegress(
+                f"Книга {book_id}: в новом тексте нет ни одной страницы, "
+                f"а в индексе сейчас {existing}. Замена отменена. "
+                f"Если это ожидаемо, вызовите с force=True."
+            )
+
+    try:
+        # Одна транзакция на всю замену. Коммит — единственный, в самом конце.
+        # synchronize_session=False: сверять условие с объектами, уже
+        # загруженными в сессию, здесь не нужно — мы удаляем всё разом. А при
+        # включённой сверке SQLAlchemy пытается подгрузить просроченные после
+        # commit объекты прямо посреди удаления и падает на этом.
+        await db.execute(
+            delete(BookPage).where(BookPage.book_id == book_id),
+            execution_options={"synchronize_session": False},
+        )
+
+        # Вставляем пачками: это про размер одного запроса, а не про
+        # атомарность — транзакция всё равно общая. Core insert вместо ORM,
+        # чтобы объекты не оседали в identity map сессии.
+        for start in range(0, len(rows), PAGE_BATCH_SIZE):
+            await db.execute(insert(BookPage), rows[start:start + PAGE_BATCH_SIZE])
+
+        if total:
+            await db.execute(
+                update(Book).where(Book.id == book_id).values(total_pages=total)
+            )
+
         await db.commit()
+    except Exception:
+        # Откат возвращает прежний индекс целиком — книга остаётся в том
+        # состоянии, в каком была до попытки.
+        await db.rollback()
+        logger.exception("Книга %s: индексация не завершена, индекс не изменён", book_id)
+        raise
 
     if total and saved / total < 0.1:
         # Скан без текстового слоя: файл читается, но искать в нём нечего.
