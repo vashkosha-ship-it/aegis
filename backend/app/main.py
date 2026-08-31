@@ -166,15 +166,25 @@ async def _check_database() -> dict:
 
 
 async def _check_redis() -> dict:
-    """Redis: rate limiting и очередь фоновых задач."""
+    """Redis: rate limiting и очередь фоновых задач.
+
+    Клиент берём через get_redis(), а не из переменной модуля: он привязан к
+    event loop и пересоздаётся при смене цикла. Обращение к внутренней
+    переменной давало закрытый клиент после первого же перезапуска lifespan,
+    и проверка сообщала о недоступности исправного Redis.
+    """
     from app.core import rate_limit
 
-    if rate_limit._redis is None:
+    if not rate_limit.redis_configured():
         # В production приложение без Redis не стартует, значит это dev-режим
         return {"ok": True, "note": "не настроен (режим разработки)"}
 
+    client = rate_limit.get_redis()
+    if client is None:
+        return {"ok": False, "note": "клиент не создан"}
+
     try:
-        await rate_limit._redis.ping()
+        await client.ping()
         return {"ok": True}
     except Exception as e:  # noqa: BLE001
         logger.error("Readiness: Redis недоступен: %s", e)

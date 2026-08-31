@@ -123,6 +123,37 @@ async def client(db) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides.clear()
 
 
+def _clear_redis_counters() -> None:
+    """Удалить счётчики лимитера из Redis.
+
+    Отдельным синхронным клиентом, а не рабочим асинхронным. Причина простая:
+    фикстура синхронная, а прежний код перебирал асинхронный scan_iter обычным
+    for — это бросает TypeError, который тут же глотался except Exception.
+    То есть Redis не чистился вообще, просто молча, и в CI тесты доставались
+    друг другу чужие лимиты.
+
+    Делать фикстуру асинхронной нельзя: она autouse, а часть тестов обычные
+    синхронные функции.
+    """
+    from app.core import rate_limit
+
+    if not rate_limit.redis_configured():
+        return
+
+    try:
+        import redis as sync_redis
+
+        client = sync_redis.Redis.from_url(
+            rate_limit.redis_url(), socket_timeout=1, socket_connect_timeout=1
+        )
+        keys = list(client.scan_iter("rl:*"))
+        if keys:
+            client.delete(*keys)
+        client.close()
+    except Exception:  # noqa: BLE001, S110 — Redis недоступен, хватит и памяти
+        pass
+
+
 def _clear_limiters() -> None:
     """Сбросить счётчики и в памяти, и в Redis.
 
@@ -131,20 +162,25 @@ def _clear_limiters() -> None:
     """
     from app.core import rate_limit
     from app.core.rate_limit import (
+        assistant_limiter,
         email_send_limiter,
         login_limiter,
         otp_attempt_limiter,
     )
 
-    for limiter in (email_send_limiter, otp_attempt_limiter, login_limiter):
+    for limiter in (
+        email_send_limiter,
+        otp_attempt_limiter,
+        login_limiter,
+        assistant_limiter,
+    ):
         limiter._store.clear()
 
-    if rate_limit._redis is not None:
-        try:
-            for key in rate_limit._redis.scan_iter("rl:*"):
-                rate_limit._redis.delete(key)
-        except Exception:  # noqa: BLE001 — Redis недоступен, хватит и памяти
-            pass
+    # Предохранитель тоже общий на процесс: сбой в одном тесте иначе заставил
+    # бы следующий получать отказы по уже несуществующей причине.
+    rate_limit.reset_circuit()
+
+    _clear_redis_counters()
 
 
 @pytest.fixture(autouse=True)
