@@ -16,11 +16,16 @@ import asyncio
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.models.achievement import Achievement, UserAchievement
 from app.models.user import User
-from app.services.gamification import add_xp, update_streak
+from app.services.gamification import (
+    add_xp,
+    check_and_award_achievements,
+    update_streak,
+)
 
 
 @pytest_asyncio.fixture
@@ -158,3 +163,114 @@ class TestStreak:
             select(User.streak_count).where(User.id == user_id)
         )
         assert streak == 1, f"стрик засчитан {streak} раз вместо одного"
+
+
+class TestAchievementRace:
+    """Две награды одновременно не должны ронять транзакцию вызывающего.
+
+    Уникальный индекс uq_user_achievement не даёт создать дубль — но прежняя
+    вставка через db.add() падала бы с IntegrityError на коммите. Коммит
+    делает вызывающий код, поэтому откатывалась вся его транзакция:
+    пользователь терял сданный тест из-за того, что достижение выдали дважды.
+    """
+
+    @pytest_asyncio.fixture
+    async def seeded_achievement(self, db):
+        code = "ach_reading_1"
+        existing = await db.scalar(
+            select(Achievement).where(Achievement.code == code)
+        )
+        if existing is None:
+            db.add(Achievement(
+                code=code, name="Первая книга", description="", icon="🥉",
+                tier="bronze",
+            ))
+            await db.commit()
+        return code
+
+    async def _granted_count(self, db, user_id: int, code: str) -> int:
+        return await db.scalar(
+            select(func.count(UserAchievement.id))
+            .join(Achievement, Achievement.id == UserAchievement.achievement_id)
+            .where(UserAchievement.user_id == user_id, Achievement.code == code)
+        )
+
+    async def test_parallel_award_does_not_raise(
+        self, db, approved_user, session_factory, seeded_achievement
+    ):
+        user_id = approved_user.id
+
+        async def award() -> list[str]:
+            async with session_factory() as session:
+                user = await session.get(User, user_id)
+                codes = await check_and_award_achievements(
+                    session, user, trigger="reading_started"
+                )
+                await session.commit()
+                return codes
+
+        results = await asyncio.gather(award(), award(), return_exceptions=True)
+
+        errors = [r for r in results if isinstance(r, Exception)]
+        assert not errors, f"параллельная выдача уронила транзакцию: {errors}"
+
+    async def test_achievement_granted_exactly_once(
+        self, db, approved_user, session_factory, seeded_achievement
+    ):
+        user_id = approved_user.id
+
+        async def award() -> list[str]:
+            async with session_factory() as session:
+                user = await session.get(User, user_id)
+                codes = await check_and_award_achievements(
+                    session, user, trigger="reading_started"
+                )
+                await session.commit()
+                return codes
+
+        await asyncio.gather(*[award() for _ in range(5)], return_exceptions=True)
+
+        count = await self._granted_count(db, user_id, seeded_achievement)
+        assert count == 1, f"достижение выдано {count} раз"
+
+    async def test_only_the_winner_reports_the_code(
+        self, db, approved_user, session_factory, seeded_achievement
+    ):
+        """Проигравший гонку не должен сообщать о награде, которую выдал не он.
+
+        Иначе фронт покажет уведомление дважды.
+        """
+        user_id = approved_user.id
+
+        async def award() -> list[str]:
+            async with session_factory() as session:
+                user = await session.get(User, user_id)
+                codes = await check_and_award_achievements(
+                    session, user, trigger="reading_started"
+                )
+                await session.commit()
+                return codes
+
+        results = await asyncio.gather(award(), award(), return_exceptions=True)
+        reported = [
+            r for r in results
+            if not isinstance(r, Exception) and seeded_achievement in r
+        ]
+        assert len(reported) == 1, (
+            f"о награде сообщили {len(reported)} раз — уведомление задвоится"
+        )
+
+    async def test_repeat_call_reports_nothing_new(
+        self, db, approved_user, seeded_achievement
+    ):
+        first = await check_and_award_achievements(
+            db, approved_user, trigger="reading_started"
+        )
+        await db.commit()
+        assert seeded_achievement in first
+
+        second = await check_and_award_achievements(
+            db, approved_user, trigger="reading_started"
+        )
+        await db.commit()
+        assert seeded_achievement not in second

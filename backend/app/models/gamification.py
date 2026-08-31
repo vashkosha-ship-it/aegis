@@ -233,20 +233,14 @@ async def check_and_award_achievements(
         # и раньше: это ошибка наполнения базы, а не действий пользователя.
         return []
 
-    # Вставляем через Table, а не через ORM-класс: с ORM-сущностью SQLAlchemy
-    # уходит в свой путь массовой вставки и теряет ON CONFLICT — уникальное
-    # ограничение снова срабатывает как ошибка.
-    table = UserAchievement.__table__
     stmt = (
-        pg_insert(table)
+        pg_insert(UserAchievement)
         .values([
             {"user_id": user.id, "achievement_id": achievement_id}
             for achievement_id, _ in rows
         ])
-        .on_conflict_do_nothing(
-            index_elements=[table.c.user_id, table.c.achievement_id]
-        )
-        .returning(table.c.achievement_id)
+        .on_conflict_do_nothing(constraint="uq_user_achievement")
+        .returning(UserAchievement.achievement_id)
     )
     granted_ids = set((await db.execute(stmt)).scalars().all())
 
