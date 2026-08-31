@@ -1,36 +1,85 @@
+# Окружение ТОЛЬКО для локальной разработки.
+#
+# Здесь нет ни backend, ни воркера фоновых задач: приложение запускается с
+# хоста (uvicorn/arq), а в контейнерах живут его зависимости. Разворачивать
+# этим файлом боевой сервер нельзя — на сервере всё поднимает systemd, а
+# порты наружу не смотрят.
+#
+# Что изменилось и почему.
+#
+# Пароли больше не зашиты. Раньше здесь стояли neon_password и minioadmin —
+# в открытом репозитории, то есть известные всем. Даже для разработки это
+# плохо: dev-окружение регулярно оказывается доступным из сети, а привычка
+# «пароль и так в compose» переносится на сервер.
+#
+# Порты слушают только localhost. Прежние "5432:5432" открывали базу на всех
+# интерфейсах машины: в кафе или коворкинге к ней мог подключиться любой из
+# той же сети, зная пароль из репозитория.
+#
+# Версии образов фиксируются. latest означает, что окружение меняется само,
+# без единой правки в коде, и «у меня работает» перестаёт что-либо значить.
+#
+# Запуск:
+#   cp .env.docker.example .env
+#   # заполнить пароли и MINIO_TAG
+#   docker compose up -d
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: neon_postgres
     environment:
-      POSTGRES_USER: neon
-      POSTGRES_PASSWORD: neon_password
-      POSTGRES_DB: neon_stack
+      POSTGRES_USER: ${POSTGRES_USER:?укажите POSTGRES_USER в .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?укажите POSTGRES_PASSWORD в .env}
+      POSTGRES_DB: ${POSTGRES_DB:?укажите POSTGRES_DB в .env}
     ports:
-      - "5432:5432"
+      # 127.0.0.1 — база доступна только с этой машины
+      - "127.0.0.1:5432:5432"
     volumes:
       - neon_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U neon -d neon_stack"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # MinIO — S3-совместимое локальное хранилище. Нужно для Этапа 2 (PDF).
-  # На Этапе 1 контейнер просто крутится — никто к нему не обращается.
+  # Redis: rate limiting и очередь фоновых задач (индексация PDF).
+  # В production он обязателен — приложение без него не стартует. В
+  # разработке допустим запуск без Redis, но тогда очередь не работает и
+  # книги не индексируются, а расхождение с сервером обнаруживается поздно.
+  redis:
+    image: redis:7-alpine
+    container_name: neon_redis
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - neon_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO — S3-совместимое хранилище. Сейчас книги лежат на диске
+  # (STORAGE_BACKEND=local), контейнер нужен для перехода на S3.
   minio:
-    image: minio/minio:latest
+    # Тег обязателен: с latest образ меняется молча, между запусками.
+    # Узнать текущий:  docker image inspect minio/minio --format '{{index .RepoTags 0}}'
+    image: minio/minio:${MINIO_TAG:?укажите MINIO_TAG в .env}
     container_name: neon_minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?укажите MINIO_ROOT_USER в .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?укажите MINIO_ROOT_PASSWORD в .env}
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # web-консоль
+      - "127.0.0.1:9000:9000"   # S3 API
+      - "127.0.0.1:9001:9001"   # web-консоль
     volumes:
       - neon_minio_data:/data
     healthcheck:
+      # mc входит в образ minio. Если в вашей версии его нет, проверка будет
+      # вечно unhealthy — тогда замените на обращение к /minio/health/live.
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
       timeout: 5s
@@ -38,4 +87,5 @@ services:
 
 volumes:
   neon_pg_data:
+  neon_redis_data:
   neon_minio_data:
