@@ -115,12 +115,30 @@ jobs:
         # Полноценного сборщика у фронта нет, но синтаксическую ошибку
         # в app.js/api.js/sw.js поймать стоит — она кладёт весь интерфейс.
         run: |
-          for f in app.js api.js sw.js offline-storage.js; do
+          for f in app.js api.js sw.js offline-storage.js \
+                   inline-handlers.js handler-allowlist.js csp-helpers.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
               node --check "$f"
             fi
           done
+
+      - name: Реестр обработчиков соответствует разметке
+        # Диспетчер вызывает только то, что перечислено в реестре. Добавили
+        # обработчик в разметку, забыли пересобрать реестр — кнопка молча
+        # перестаёт работать. Скрипт пересобирает и сравнивает.
+        working-directory: .
+        run: |
+          python tools/gen_allowlist.py
+          git diff --exit-code frontend/handler-allowlist.js \
+            || (echo "Реестр устарел: запусти python tools/gen_allowlist.py" && exit 1)
+
+      - name: Тесты диспетчера обработчиков
+        # Проверяют, что разметка, попавшая в DOM, не может позвать
+        # произвольную функцию приложения.
+        run: |
+          npm install --no-save jsdom
+          node tests/dispatcher.test.js
 
   security:
     runs-on: ubuntu-latest
@@ -128,10 +146,14 @@ jobs:
       run:
         working-directory: backend
 
-    # Не блокирует деплой: если уязвимость нашли в пакете, который нельзя
-    # обновить сегодня, срочные исправления всё равно должны выкатываться.
-    # Результат виден в интерфейсе — этого достаточно, чтобы не пропустить.
-    continue-on-error: true
+    # Скан блокирующий. Прежний continue-on-error означал, что находки видит
+    # только тот, кто откроет вкладку с логами: жёлтая галочка выглядит как
+    # зелёная, и уязвимость живёт до следующего аудита.
+    #
+    # Возражение «нельзя блокировать выкатку срочного исправления» решается не
+    # отключением проверки, а списком исключений: уязвимость, которую сейчас
+    # не устранить, вносится в backend/.pip-audit-ignore с датой и причиной.
+    # Разница в том, что исключение осознанное и видно в истории репозитория.
 
     steps:
       - uses: actions/checkout@v4
@@ -148,11 +170,26 @@ jobs:
       - name: Уязвимости в зависимостях
         # Сверяет версии из requirements.txt с базой известных уязвимостей.
         # --strict, чтобы падать и на ошибках разбора, а не только на находках.
-        run: pip-audit --requirement requirements.txt --strict --desc
+        #
+        # Идентификаторы из .pip-audit-ignore исключаются: это принятые риски,
+        # каждый с датой и причиной в самом файле.
+        run: |
+          IGNORES=""
+          if [ -f .pip-audit-ignore ]; then
+            while IFS= read -r line; do
+              case "$line" in ''|\#*) continue ;; esac
+              IGNORES="$IGNORES --ignore-vuln ${line%% *}"
+            done < .pip-audit-ignore
+          fi
+          echo "Исключения: ${IGNORES:-нет}"
+          pip-audit --requirement requirements.txt --strict --desc $IGNORES
 
       - name: Устаревшие пакеты
         # Не проверка безопасности, а подсказка: чем дальше отстаём, тем
         # болезненнее будет обновление, когда уязвимость всё-таки найдут.
+        # Отставание само по себе не повод не выкатываться, поэтому шаг
+        # информационный — в отличие от скана выше.
+        continue-on-error: true
         run: |
           pip install -r requirements.txt --quiet
           pip list --outdated
