@@ -1,9 +1,11 @@
 """XP, levels, streaks, achievements — server-side mirror of frontend logic."""
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
+from app.db.locks import lock_user
 from app.models.achievement import Achievement, UserAchievement
 from app.models.user import User
 
@@ -28,12 +30,53 @@ def calculate_level(xp: int) -> dict[str, int]:
 
 
 async def add_xp(db: AsyncSession, user: User, amount: int) -> None:
-    """Increment user XP and persist. Caller is responsible for commit."""
-    user.xp += amount
+    """Начислить XP. Коммитит вызывающий.
+
+    Прибавление считает БД, а не Python. Прежнее `user.xp += amount` — это
+    чтение и запись двумя шагами: параллельные начисления (дочитал книгу и
+    одновременно сдал тест в другой вкладке, синхронизация офлайна, выдача
+    достижения) читают одно значение, прибавляют каждый своё и пишут обратно.
+    Одна прибавка исчезает бесследно — ни в логе, ни в данных следа не
+    остаётся, а пользователь видит, что XP «не начислился».
+
+    Блокировка пользователя, которая стоит при сдаче теста, закрывает только
+    тот путь; начисления из чтения и достижений шли мимо неё.
+    """
+    if amount == 0:
+        return
+
+    result = await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(xp=User.xp + amount)
+        .returning(User.xp)
+    )
+    new_xp = result.scalar_one_or_none()
+    if new_xp is None:
+        return
+
+    # Обновляем объект в сессии, не помечая его изменённым: иначе при коммите
+    # SQLAlchemy запишет старое значение поверх только что посчитанного.
+    # Значение нужно тут же — пороговые достижения смотрят на user.xp.
+    set_committed_value(user, "xp", new_xp)
 
 
 async def update_streak(db: AsyncSession, user: User) -> None:
-    """Update reading streak. Same logic as frontend updateStreak."""
+    """Обновить стрик чтения. Логика та же, что на фронте.
+
+    Здесь простым прибавлением не обойтись: новое значение зависит от даты
+    последней отметки, то есть это настоящее «прочитать, решить, записать».
+    Поэтому берём блокировку строки пользователя — параллельные вызовы
+    выстроятся в очередь, и второй увидит уже проставленную сегодняшнюю дату.
+
+    Без блокировки два запроса в один день могли оба решить, что отмечаются
+    первыми: стрик прибавлялся дважды, и бонус тоже.
+    """
+    await lock_user(db, user.id)
+    # После блокировки перечитываем: значения в сессии могли устареть, пока
+    # ждали своей очереди.
+    await db.refresh(user, ["streak_count", "streak_last_date"])
+
     today = datetime.now(UTC).date()
     last = user.streak_last_date.date() if user.streak_last_date else None
 
@@ -42,7 +85,7 @@ async def update_streak(db: AsyncSession, user: User) -> None:
     yesterday = today - timedelta(days=1)
     user.streak_count = user.streak_count + 1 if last == yesterday else 1
     user.streak_last_date = datetime.now(UTC)
-    user.xp += 5  # бонус за стрик
+    await add_xp(db, user, 5)  # бонус за стрик
 
 
 # Триггеры — что засчитывает достижение (первое действие данного типа)
