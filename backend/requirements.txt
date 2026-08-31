@@ -5,10 +5,10 @@ fastapi==0.115.6
 uvicorn[standard]==0.32.0
 
 # Database
-sqlalchemy==2.0.36
+sqlalchemy==2.0.52
 alembic==1.13.3
 asyncpg==0.30.0
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.12
 
 # Auth & security
 passlib==1.7.4
@@ -18,7 +18,7 @@ bcrypt==4.0.1
 # Планируется переезд на PyJWT — задача отдельная, затрагивает всю выдачу
 # и проверку токенов.
 python-jose[cryptography]==3.3.0
-python-multipart==0.0.20
+python-multipart==0.0.32
 email-validator==2.2.0
 
 # Rate limiting (общие счётчики между воркерами)
