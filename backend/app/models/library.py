@@ -44,6 +44,21 @@ class ReadingProgress(Base):
     current_page: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     total_pages: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     started: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Сколько страниц засчитано как реально пройденные. Отличается от
+    # current_page тем, что не зависит от того, куда пользователь перемотал:
+    # за одно обновление прибавляется не больше нескольких страниц. Без такого
+    # счётчика «дочитал» определялось по позиции, а позицию присылает клиент —
+    # достаточно было двух запросов, на середину и на конец.
+    pages_advanced: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    # Время чтения, посчитанное сервером по промежуткам между обновлениями.
+    # Длинные паузы не засчитываются: вкладка могла просто остаться открытой.
+    reading_seconds: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+
     # Момент реального дочитывания (дошёл до последней страницы).
     # Отличается от статуса «Прочитано» в списке, который ставится вручную.
     finished_at: Mapped[datetime | None] = mapped_column(

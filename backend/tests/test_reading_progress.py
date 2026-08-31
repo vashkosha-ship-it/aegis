@@ -5,10 +5,13 @@
 """
 from __future__ import annotations
 
-from sqlalchemy import select
+from datetime import UTC, datetime, timedelta
+
+from sqlalchemy import select, update
 
 from app.models.book import Book
 from app.models.library import MyListEntry, MyListStatus, ReadingProgress
+from app.services import reading_progress as rp
 from tests.conftest import auth_headers
 
 
@@ -27,6 +30,52 @@ async def _put_progress(client, user, book_id, page, total=None):
     return await client.put(
         f"/books/{book_id}/progress", headers=auth_headers(user), json=body
     )
+
+
+async def _backdate(db, user_id: int, book_id: int, seconds: int) -> None:
+    """Сдвинуть last_read_at назад, имитируя паузу между обновлениями.
+
+    Пишем через Core: у колонки onupdate=func.now(), и присвоение через ORM
+    затёрлось бы текущим временем при коммите. Сбрасываем только эту строку —
+    expire_all пометил бы просроченными и книгу с пользователем.
+    """
+    await db.execute(
+        update(ReadingProgress)
+        .where(
+            ReadingProgress.user_id == user_id,
+            ReadingProgress.book_id == book_id,
+        )
+        .values(last_read_at=datetime.now(UTC) - timedelta(seconds=seconds))
+    )
+    await db.commit()
+    progress = await db.scalar(
+        select(ReadingProgress).where(
+            ReadingProgress.user_id == user_id,
+            ReadingProgress.book_id == book_id,
+        )
+    )
+    if progress is not None:
+        db.expire(progress)
+
+
+async def _read_book(client, db, user, book_id: int, total: int) -> None:
+    """Прочитать книгу так, как это делает живой читатель.
+
+    Раньше для завершения хватало двух обновлений — на середину и на конец.
+    Теперь сервер копит продвижение по частям и считает время, поэтому нужен
+    настоящий проход: шагами не больше потолка и с паузами между запросами.
+    """
+    user_id = user.id
+    step = rp.MAX_PAGES_CREDITED_PER_UPDATE
+    page = 1
+    while page < total:
+        page = min(page + step, total)
+        await _put_progress(client, user, book_id, page)
+        await _backdate(db, user_id, book_id, 30)
+
+    # Читатель задержался на последней странице — так накапливается время
+    # на коротких книгах, где переходов слишком мало.
+    await _put_progress(client, user, book_id, total)
 
 
 class TestPageValidation:
@@ -83,29 +132,31 @@ class TestBookCompletion:
     async def test_gradual_reading_completes(self, client, db, approved_user):
         """Нормальный сценарий: читал постепенно и дошёл до конца."""
         book = await _make_book(db, total_pages=200)
+        book_id = book.id
 
-        await _put_progress(client, approved_user, book.id, 50)
-        await _put_progress(client, approved_user, book.id, 150)
-        r = await _put_progress(client, approved_user, book.id, 200)
-        assert r.status_code == 200
+        await _read_book(client, db, approved_user, book_id, 200)
 
         progress = await db.scalar(
-            select(ReadingProgress).where(ReadingProgress.book_id == book.id)
+            select(ReadingProgress).where(ReadingProgress.book_id == book_id)
         )
         await db.refresh(progress)
-        assert progress.finished_at is not None
+        assert progress.finished_at is not None, (
+            f"честное чтение не засчиталось: продвижение "
+            f"{progress.pages_advanced}, время {progress.reading_seconds} с"
+        )
 
     async def test_completion_marks_mylist(self, client, db, approved_user):
         """Дочитанная книга должна попасть в «Прочитано», иначе счётчики разойдутся."""
         book = await _make_book(db, total_pages=100)
+        book_id = book.id
+        user_id = approved_user.id
 
-        await _put_progress(client, approved_user, book.id, 60)
-        await _put_progress(client, approved_user, book.id, 100)
+        await _read_book(client, db, approved_user, book_id, 100)
 
         entry = await db.scalar(
             select(MyListEntry).where(
-                MyListEntry.user_id == approved_user.id,
-                MyListEntry.book_id == book.id,
+                MyListEntry.user_id == user_id,
+                MyListEntry.book_id == book_id,
             )
         )
         assert entry is not None
@@ -114,14 +165,20 @@ class TestBookCompletion:
     async def test_completion_awards_xp_once(self, client, db, approved_user):
         """Повторный выход на последнюю страницу не должен доначислять XP."""
         book = await _make_book(db, total_pages=100)
+        book_id = book.id
 
-        await _put_progress(client, approved_user, book.id, 60)
-        await _put_progress(client, approved_user, book.id, 100)
+        await _read_book(client, db, approved_user, book_id, 100)
         await db.refresh(approved_user)
         xp_after_finish = approved_user.xp
 
-        await _put_progress(client, approved_user, book.id, 99)
-        await _put_progress(client, approved_user, book.id, 100)
+        progress = await db.scalar(
+            select(ReadingProgress).where(ReadingProgress.book_id == book_id)
+        )
+        await db.refresh(progress)
+        assert progress.finished_at is not None, "книга должна быть дочитана"
+
+        await _put_progress(client, approved_user, book_id, 99)
+        await _put_progress(client, approved_user, book_id, 100)
         await db.refresh(approved_user)
 
         assert approved_user.xp == xp_after_finish
@@ -157,9 +214,14 @@ class TestOfflineLimitation:
         """Известное ограничение, зафиксированное намеренно.
 
         Очередь синхронизации хранит одну запись на книгу, поэтому после
-        офлайн-чтения приходит только последняя страница — сервер видит прыжок
-        и завершение не засчитывает. Мы сознательно предпочли это возможности
-        накрутки: подменить прогресс проще, чем дочитать книгу без сети.
+        офлайн-чтения приходит только последняя страница. Сервер засчитывает
+        за одно обновление не больше нескольких страниц продвижения, так что
+        завершение не наступает.
+
+        Это осознанный размен: отличить «читал без сети» от «подставил номер
+        страницы» по одному запросу невозможно, а подставить номер несравнимо
+        проще, чем дочитать книгу. Цена — офлайн-читателю придётся пройти
+        последние страницы онлайн.
         """
         book = await _make_book(db, total_pages=300)
 

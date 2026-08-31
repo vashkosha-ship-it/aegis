@@ -21,6 +21,7 @@ from app.main import app
 from app.models.certificate import Certificate
 from app.models.exam_session import ExamSession
 from app.models.quiz import QuizAttempt, QuizQuestion
+from app.services import reading_progress
 from tests.conftest import auth_headers
 
 
@@ -162,11 +163,15 @@ class TestProgressAcrossBooksRace:
             )
             assert r.status_code in (200, 201), r.text
 
+        # Шаг в пределах потолка засчитываемого продвижения: иначе прибавка
+        # обрежется, и тест перестанет измерять то, ради чего написан.
+        step = reading_progress.MAX_PAGES_CREDITED_PER_UPDATE
+
         async def bump(book_id):
             return await parallel_client.put(
                 f"/books/{book_id}/progress",
                 headers=auth_headers(approved_user),
-                json={"current_page": 21},
+                json={"current_page": 1 + step},
             )
 
         await asyncio.gather(*[bump(b.id) for b in books], return_exceptions=True)
@@ -176,6 +181,9 @@ class TestProgressAcrossBooksRace:
                 DailyPagesRead.user_id == approved_user.id
             )
         )
-        # По 20 страниц с каждой книги. Прежняя реализация теряла одну
-        # прибавку: обе транзакции читали одно значение и писали своё.
-        assert pages == 40, f"в счётчике {pages} страниц вместо 40 — прибавка потеряна"
+        expected = step * len(books)
+        # Прежняя реализация теряла одну прибавку: обе транзакции читали одно
+        # значение и писали своё.
+        assert pages == expected, (
+            f"в счётчике {pages} страниц вместо {expected} — прибавка потеряна"
+        )
