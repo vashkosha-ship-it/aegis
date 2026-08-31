@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Браузерные проверки запускаются вручную: они ходят на боевой сайт и
+  # выполняют выход, то есть отзывают действующие сессии тестовой учётки.
+  workflow_dispatch:
   schedule:
     # Раз в неделю: уязвимость может появиться в уже установленной версии,
     # без единого изменения в нашем коде.
@@ -193,3 +196,65 @@ jobs:
         run: |
           pip install -r requirements.txt --quiet
           pip list --outdated
+
+  # Браузерные проверки развёрнутого сайта.
+  #
+  # Отдельно от остальных задач и не на каждый коммит: они требуют работающего
+  # сервера и учётной записи. Смысл в том, чтобы поймать расхождение между
+  # «код правильный» и «сайт работает» — заголовки CSP, флаги cookie, реально
+  # подключённые скрипты. Дважды за время работы такое расхождение находилось
+  # только вручную.
+  #
+  # Запускается вручную (Actions → Run workflow) и раз в неделю по расписанию.
+  # Без настроенных секретов задача пропускается, а не падает: иначе форк или
+  # чужой PR получал бы красную сборку из-за отсутствия чужих доступов.
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Проверить наличие настроек
+        id: config
+        env:
+          BASE_URL: ${{ secrets.E2E_BASE_URL }}
+        run: |
+          if [ -z "$BASE_URL" ]; then
+            echo "Секрет E2E_BASE_URL не задан — проверки пропущены"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.config.outputs.ready == 'true'
+        with:
+          node-version: "20"
+
+      - name: Установить зависимости
+        if: steps.config.outputs.ready == 'true'
+        run: npm ci || npm install
+
+      - name: Установить браузер
+        if: steps.config.outputs.ready == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Браузерные проверки
+        if: steps.config.outputs.ready == 'true'
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: npx playwright test
+
+      - name: Отчёт при падении
+        if: failure() && steps.config.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7

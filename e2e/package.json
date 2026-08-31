@@ -1,0 +1,13 @@
+{
+  "name": "aegis-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Браузерные проверки Aegis: аутентификация, cookie, CSRF, CORS, CSP",
+  "scripts": {
+    "test": "playwright test",
+    "install-browsers": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1"
+  }
+}
