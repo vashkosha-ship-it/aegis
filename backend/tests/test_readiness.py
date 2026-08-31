@@ -25,9 +25,27 @@ class TestReadiness:
         assert r.status_code == 200
 
         body = r.json()
-        assert body["status"] == "ready"
+        # ready или degraded — оба означают, что запросы обслуживаются.
+        # degraded появляется, когда не работает необязательная часть: в тестах
+        # это обычно очередь, которую никто не поднимал. Раньше такой сайт
+        # выглядел полностью здоровым, теперь состояние видно в ответе.
+        assert body["status"] in ("ready", "degraded"), body
         assert "database" in body["checks"]
         assert body["checks"]["database"]["ok"] is True
+
+    async def test_degraded_never_means_required_failure(self, client):
+        """Обязательные части при degraded обязаны быть в порядке.
+
+        Иначе смысл состояния теряется: degraded — это «работает с
+        ограничениями», а не «частично сломано».
+        """
+        body = (await client.get("../ready")).json()
+        if body["status"] != "degraded":
+            return
+
+        for name, check in body["checks"].items():
+            if check.get("required", True):
+                assert check["ok"] is True, f"обязательная часть {name} не в порядке"
 
     async def test_ready_lists_all_components(self, client):
         r = await client.get("../ready")

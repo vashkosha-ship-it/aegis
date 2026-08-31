@@ -147,8 +147,24 @@ def main(base: str) -> int:
     )
 
     print("\nAPI")
-    code, _, _ = fetch(base + "/api/health")
-    check("/api/health отвечает", code == 200, f"код {code}")
+    # Путь зависит от того, под каким префиксом смонтировано приложение:
+    # /health объявлен на корне FastAPI, а nginx проксирует /api/. Пробуем
+    # оба и считаем успехом любой ответ — задача проверить, что бэкенд жив,
+    # а не угадать префикс.
+    health_paths = ["/api/health", "/health"]
+    reached = False
+    for path in health_paths:
+        code, _, _ = fetch(base + path)
+        if code == 200:
+            check(f"{path} отвечает", True)
+            reached = True
+            break
+    if not reached:
+        check(
+            "бэкенд отвечает на health",
+            False,
+            f"ни один из путей не ответил 200: {', '.join(health_paths)}",
+        )
 
     print(f"\nИтого: {passed} ok, {failed} fail\n")
     return 0 if failed == 0 else 1

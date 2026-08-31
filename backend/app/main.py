@@ -1,5 +1,7 @@
 """FastAPI application entrypoint."""
+import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response, status
@@ -12,6 +14,20 @@ from app.core.config import settings
 from app.core.rate_limit import close_rate_limit, init_rate_limit
 
 logger = logging.getLogger(__name__)
+
+# Файл, которым проверяется возможность записи в хранилище. Создаётся и тут же
+# удаляется при каждом обращении к /ready.
+READINESS_PROBE_FILENAME = ".readiness-probe"
+
+# Считать ли неработающую очередь поводом объявить сервис неготовым.
+#
+# False: без очереди не идёт индексация новых книг, но читать, проходить тесты
+# и получать сертификаты можно. Снимать сервер с ротации из-за этого — значит
+# променять работающий сайт на неработающий.
+#
+# Поставьте True, если индексация критична настолько, что сервер без неё
+# бесполезен. Тогда /ready начнёт отдавать 503, и балансировщик выведет узел.
+QUEUE_REQUIRED_FOR_READINESS = False
 
 
 @asynccontextmanager
@@ -132,6 +148,126 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "app": settings.APP_NAME}
 
 
+async def _check_database() -> dict:
+    """База: без неё не работает ничего."""
+    from sqlalchemy import text
+
+    from app.db.session import AsyncSessionLocal
+
+    try:
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        return {"ok": True}
+    except Exception as e:  # noqa: BLE001
+        # Наружу отдаём только факт недоступности: текст ошибки SQLAlchemy
+        # содержит хост, порт и имя базы, а /ready доступен без авторизации.
+        logger.error("Readiness: база недоступна: %s", e)
+        return {"ok": False}
+
+
+async def _check_redis() -> dict:
+    """Redis: rate limiting и очередь фоновых задач."""
+    from app.core import rate_limit
+
+    if rate_limit._redis is None:
+        # В production приложение без Redis не стартует, значит это dev-режим
+        return {"ok": True, "note": "не настроен (режим разработки)"}
+
+    try:
+        await rate_limit._redis.ping()
+        return {"ok": True}
+    except Exception as e:  # noqa: BLE001
+        logger.error("Readiness: Redis недоступен: %s", e)
+        return {"ok": False}
+
+
+def _probe_storage_write(path: str) -> None:
+    """Создать и удалить файл в каталоге хранилища.
+
+    Синхронная функция — вызывается через to_thread, чтобы обращение к диску
+    не останавливало event loop.
+    """
+    probe = os.path.join(path, READINESS_PROBE_FILENAME)
+    with open(probe, "wb") as f:
+        f.write(b"ok")
+    os.unlink(probe)
+
+
+async def _check_storage() -> dict:
+    """Хранилище книг: проверяем запись, а не только чтение.
+
+    os.access(path, os.R_OK) подтверждал, что каталог существует и читается.
+    Но ломается хранилище обычно иначе: закончилось место, том перемонтировался
+    в read-only после ошибки диска, права слетели при переносе. Во всех этих
+    случаях прежняя проверка отвечала «готово», а загрузка книг падала.
+
+    Пробный файл создаётся и удаляется на каждом обращении. Без fsync:
+    гарантированно поймать переполнение диска он бы помог, но /ready
+    опрашивают часто, и постоянная синхронизация с диском обошлась бы дороже
+    той доли случаев, которую добавляет.
+    """
+    path = getattr(settings, "STORAGE_LOCAL_PATH", None)
+    backend = getattr(settings, "STORAGE_BACKEND", "local")
+
+    if backend != "local" or not path:
+        return {"ok": True, "note": f"backend={backend}"}
+
+    if not os.path.isdir(path):
+        logger.error("Readiness: каталог хранилища отсутствует: %s", path)
+        return {"ok": False, "note": "каталог отсутствует"}
+
+    try:
+        await asyncio.to_thread(_probe_storage_write, path)
+        return {"ok": True}
+    except OSError as e:
+        logger.error("Readiness: в хранилище %s нельзя писать: %s", path, e)
+        return {"ok": False, "note": "нет записи"}
+    except Exception as e:  # noqa: BLE001
+        logger.error("Readiness: ошибка проверки хранилища: %s", e)
+        return {"ok": False}
+
+
+async def _check_queue() -> dict:
+    """Очередь фоновых задач: индексация книг.
+
+    По умолчанию не влияет на общий вердикт — см. QUEUE_REQUIRED_FOR_READINESS.
+    Но её состояние видно в ответе, и при неработающей очереди сервис помечен
+    как работающий с ограничениями.
+    """
+    required = QUEUE_REQUIRED_FOR_READINESS
+    try:
+        from app.core.queue import get_queue
+
+        queue = await get_queue()
+        if queue is None:
+            return {"ok": False, "required": required, "note": "не настроена"}
+
+        # Наличие объекта ещё не значит, что соединение живое.
+        ping = getattr(queue, "ping", None)
+        if ping is not None:
+            await ping()
+        return {"ok": True, "required": required}
+    except Exception as e:  # noqa: BLE001
+        logger.error("Readiness: очередь недоступна: %s", e)
+        return {"ok": False, "required": required}
+
+
+async def _safe_check(name: str, check, *, required: bool = True) -> dict:
+    """Выполнить проверку так, чтобы её собственная поломка не роняла /ready.
+
+    Каждая проверка ловит свои ошибки сама, но полагаться на это нельзя:
+    достаточно опечатки или изменившегося API библиотеки, и эндпоинт готовности
+    начнёт отвечать пятисоткой. Это худший исход из возможных — мониторинг
+    видит «сервис отвечает ошибкой» вместо внятного отчёта о том, что именно
+    сломалось, а балансировщик не может отличить недоступность от неготовности.
+    """
+    try:
+        return await check()
+    except Exception:
+        logger.exception("Readiness: проверка %s завершилась ошибкой", name)
+        return {"ok": False, "required": required, "note": "проверка не выполнена"}
+
+
 @app.get("/ready", tags=["health"])
 async def ready(response: Response) -> dict:
     """Проверка готовности обслуживать запросы.
@@ -140,75 +276,34 @@ async def ready(response: Response) -> dict:
     хранилища приложение запущено, но бесполезно. Раньше это выяснялось
     только по жалобам пользователей.
 
-    Отдаёт 503, если хоть одна обязательная часть недоступна.
+    Отдаёт 503, если недоступна обязательная часть. Необязательная (очередь)
+    на код ответа не влияет, но переводит сервис в состояние degraded — иначе
+    «работает, но книги не индексируются» выглядело бы полностью здоровым.
     """
-    from sqlalchemy import text
+    checks: dict[str, dict] = {
+        "database": await _safe_check("database", _check_database),
+        "redis": await _safe_check("redis", _check_redis),
+        "storage": await _safe_check("storage", _check_storage),
+        "queue": await _safe_check(
+            "queue", _check_queue, required=QUEUE_REQUIRED_FOR_READINESS
+        ),
+    }
 
-    from app.core import rate_limit
-    from app.db.session import AsyncSessionLocal
+    required_ok = all(c["ok"] for c in checks.values() if c.get("required", True))
+    degraded = [
+        name for name, c in checks.items()
+        if not c["ok"] and not c.get("required", True)
+    ]
 
-    checks: dict[str, dict] = {}
-
-    # --- База данных: без неё не работает ничего ---------------------------
-    try:
-        async with AsyncSessionLocal() as db:
-            await db.execute(text("SELECT 1"))
-        checks["database"] = {"ok": True}
-    except Exception as e:  # noqa: BLE001
-        # Наружу отдаём только факт недоступности: текст ошибки SQLAlchemy
-        # содержит хост, порт и имя базы, а /ready доступен без авторизации.
-        logger.error("Readiness: база недоступна: %s", e)
-        checks["database"] = {"ok": False}
-
-    # --- Redis: rate limiting и очередь фоновых задач ----------------------
-    if rate_limit._redis is None:
-        # В production приложение без Redis не стартует, значит это dev-режим
-        checks["redis"] = {"ok": True, "note": "не настроен (режим разработки)"}
-    else:
-        try:
-            await rate_limit._redis.ping()
-            checks["redis"] = {"ok": True}
-        except Exception as e:  # noqa: BLE001
-            logger.error("Readiness: Redis недоступен: %s", e)
-            checks["redis"] = {"ok": False}
-
-    # --- Хранилище книг ----------------------------------------------------
-    try:
-        import os
-
-        path = getattr(settings, "STORAGE_LOCAL_PATH", None)
-        backend = getattr(settings, "STORAGE_BACKEND", "local")
-        if backend == "local" and path:
-            if os.path.isdir(path) and os.access(path, os.R_OK):
-                checks["storage"] = {"ok": True}
-            else:
-                logger.error("Readiness: нет доступа к хранилищу %s", path)
-                checks["storage"] = {"ok": False}
-        else:
-            checks["storage"] = {"ok": True, "note": f"backend={backend}"}
-    except Exception as e:  # noqa: BLE001
-        logger.error("Readiness: ошибка проверки хранилища: %s", e)
-        checks["storage"] = {"ok": False}
-
-    # --- Очередь фоновых задач --------------------------------------------
-    # Не обязательна для работы сайта: без неё не пойдёт индексация книг,
-    # но читать и проходить тесты можно. Поэтому в общий вердикт не входит.
-    try:
-        from app.core.queue import get_queue
-
-        queue = await get_queue()
-        checks["queue"] = {"ok": queue is not None, "required": False}
-    except Exception as e:  # noqa: BLE001
-        logger.error("Readiness: очередь недоступна: %s", e)
-        checks["queue"] = {"ok": False, "required": False}
-
-    required_ok = all(
-        c["ok"] for c in checks.values() if c.get("required", True)
-    )
     if not required_ok:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        state = "not ready"
+    elif degraded:
+        state = "degraded"
+    else:
+        state = "ready"
 
-    return {
-        "status": "ready" if required_ok else "not ready",
-        "checks": checks,
-    }
+    result: dict = {"status": state, "checks": checks}
+    if degraded:
+        result["degraded"] = degraded
+    return result
