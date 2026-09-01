@@ -1,9 +1,12 @@
 """Common FastAPI dependencies — auth, current user, role checks."""
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer
-from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# TokenError под прежним именем: библиотека сменилась (python-jose → PyJWT),
+# но обработчики ниже ловят JWTError, и переименовывать их в той же правке,
+# что и замену библиотеки, — лишний риск. Отдельным проходом.
+from app.core.security import TokenError as JWTError
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User, UserRole

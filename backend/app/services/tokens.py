@@ -12,11 +12,15 @@ import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+
+# TokenError из security под именем JWTError: в этом модуле уже есть свой
+# класс TokenError с другим смыслом (ошибки ротации), поэтому импортируем
+# под прежним именем, а не переименовываем.
+from app.core.security import TokenError as JWTError
 from app.core.security import (
     create_access_token,
     create_refresh_token,

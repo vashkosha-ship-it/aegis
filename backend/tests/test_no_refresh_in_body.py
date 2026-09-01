@@ -78,12 +78,17 @@ class TestNoRefreshInBody:
         )
         _assert_no_refresh_in_body(r, "token")
 
-    async def test_no_route_promises_refresh_token(self):
-        """Ни один маршрут не должен объявлять refresh_token в ответе.
+    async def test_no_schema_promises_refresh_token(self):
+        """Ни одна схема ответа не должна объявлять refresh_token.
 
         Проверки выше бьют по конкретным вызовам. Эта — по контракту целиком:
         если завтра появится ещё один эндпоинт, выдающий пару, он попадётся
-        здесь, даже если отдельного теста для него никто не написал.
+        здесь, даже если отдельного теста для него никто не напишет.
+
+        Смотрим в OpenAPI-схему, а не в app.routes. Устройство app.routes
+        меняется между версиями FastAPI, и прежняя редакция этой проверки
+        какое-то время обходила семь маршрутов вместо восьмидесяти —
+        проходила, ничего при этом не проверяя.
         """
         from app.main import app as fastapi_app
         from app.schemas import auth as auth_schemas
@@ -93,14 +98,54 @@ class TestNoRefreshInBody:
         )
         assert "refresh_token" not in auth_schemas.AccessTokenOnly.model_fields
 
-        offenders = []
-        for route in fastapi_app.routes:
-            model = getattr(route, "response_model", None)
-            fields = getattr(model, "model_fields", None)
-            if fields and "refresh_token" in fields:
-                offenders.append(getattr(route, "path", str(route)))
+        schema = fastapi_app.openapi()
+        schemas = schema.get("components", {}).get("schemas", {})
+        paths = schema.get("paths", {})
 
-        assert not offenders, f"маршруты обещают refresh_token: {offenders}"
+        assert len(paths) > 50, (
+            f"в схеме всего {len(paths)} путей — проверка смотрит не туда"
+        )
+
+        # Собираем только те схемы, на которые ссылаются ОТВЕТЫ. Перебирать
+        # все подряд нельзя: RefreshRequest содержит refresh_token законно —
+        # это тело запроса, клиент передаёт токен на вход. Направление здесь
+        # решает всё.
+        used_in_responses: set[str] = set()
+        for methods in paths.values():
+            for operation in methods.values():
+                if not isinstance(operation, dict):
+                    continue
+                for response in operation.get("responses", {}).values():
+                    for media in response.get("content", {}).values():
+                        ref = media.get("schema", {}).get("$ref", "")
+                        if ref.startswith("#/components/schemas/"):
+                            used_in_responses.add(ref.rsplit("/", 1)[-1])
+
+        offenders = [
+            name for name in sorted(used_in_responses)
+            if "refresh_token" in schemas.get(name, {}).get("properties", {})
+        ]
+        assert not offenders, (
+            f"схемы ответа объявляют refresh_token: {offenders}"
+        )
+
+    async def test_refresh_token_absent_from_whole_schema(self):
+        """Грубая, но полезная проверка: слова быть не должно нигде в ответах.
+
+        Ловит случай, когда токен возвращают не через схему, а вручную
+        собранным словарём с описанием в docstring.
+        """
+        from app.main import app as fastapi_app
+
+        schema = fastapi_app.openapi()
+        for path, methods in schema.get("paths", {}).items():
+            for method, operation in methods.items():
+                if not isinstance(operation, dict):
+                    continue
+                responses = operation.get("responses", {})
+                assert "refresh_token" not in str(responses), (
+                    f"{method.upper()} {path} упоминает refresh_token в ответе"
+                )
 
 
 class TestLogoutHonesty:
