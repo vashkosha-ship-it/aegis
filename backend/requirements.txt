@@ -11,10 +11,10 @@ starlette==1.6.0
 uvicorn[standard]==0.32.0
 
 # Database
-sqlalchemy==2.0.36
+sqlalchemy==2.0.52
 alembic==1.13.3
 asyncpg==0.30.0
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.12
 
 # Auth & security
 # passlib не обновляется с 2020 года, и bcrypt закреплён на 4.0.1 именно
