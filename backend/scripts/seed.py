@@ -176,12 +176,23 @@ async def _seed_admin(db, password: str) -> None:
         print("Администратор уже существует, пароль не изменён")
         return
 
+    # is_verified и is_approved обязательны.
+    #
+    # По умолчанию оба False, и созданный так администратор не смог бы войти:
+    # вход отказывает неподтверждённым, а с недавних пор и зависимость
+    # аутентификации тоже. Раньше это сходило с рук, потому что проверка
+    # подтверждения существовала только на входе.
+    #
+    # Подтверждать администратора письмом некому и незачем: его заводит тот,
+    # у кого есть доступ к серверу, и владение ящиком тут ничего не добавляет.
     db.add(User(
         username="admin",
         email="admin@neonstack.local",
         password_hash=hash_password(password),
         full_name="Administrator",
         role=UserRole.ADMIN,
+        is_verified=True,
+        is_approved=True,
     ))
     await db.commit()
     # Пароль не печатаем: вывод скрипта попадает в логи деплоя и в историю
@@ -206,6 +217,8 @@ async def _seed_demo_data(db) -> None:
                 full_name="Demo Reader",
                 role=UserRole.READER,
                 xp=150,
+                is_verified=True,
+                is_approved=True,
             ))
             await db.commit()
             print("Создан демо-пользователь (username=user)")

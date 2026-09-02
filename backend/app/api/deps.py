@@ -55,6 +55,19 @@ async def get_current_user_any(
     # Токены, выпущенные до смены пароля / выхода со всех устройств, отзываются
     if int(payload.get("tv", 0)) != user.token_version:
         raise credentials_exc
+
+    # Подтверждение почты проверяем здесь, а не только при входе.
+    #
+    # Раньше это правило держалось на договорённости: login отказывает
+    # неподтверждённым, значит токена у них быть не может. Договорённость уже
+    # нарушалась — сброс пароля выдавал токены, не глядя на is_verified.
+    # Такие правила надо выражать в коде, а не подразумевать: иначе следующий
+    # путь выдачи токена сломает их так же молча.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified",
+        )
     return user
 
 
@@ -105,6 +118,9 @@ async def get_current_user_optional(
         if not user or not user.is_active:
             return None
         if int(payload.get("tv", 0)) != user.token_version:
+            return None
+        if not user.is_verified:
+            # Здесь не бросаем: эндпоинт публичный, просто считаем гостем.
             return None
         return user
     except (JWTError, ValueError, TypeError):
