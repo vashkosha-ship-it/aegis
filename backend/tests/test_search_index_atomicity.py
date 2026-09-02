@@ -14,6 +14,7 @@ from __future__ import annotations
 import pytest
 import pytest_asyncio
 from sqlalchemy import func, select
+from sqlalchemy import text as sql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models.book import Book
@@ -183,6 +184,106 @@ class TestPartialFailureLeavesOldIndex:
 
         fresh = await read_session.get(Book, book_id)
         assert fresh.total_pages == before
+
+
+class TestCommitFailure:
+    """Обрыв на самом коммите — отдельный случай.
+
+    Проверки выше роняют вставку: сервер отвергает данные, соединение живо, и
+    откат проходит обычным путём. На коммите всё иначе — к этому моменту вся
+    работа уже отправлена, и типичный сбой здесь не «данные плохие», а
+    «соединения больше нет». Откатывать становится некуда, и вопрос в том,
+    останется ли книга в прежнем состоянии.
+    """
+
+    async def test_failed_commit_keeps_old_index(
+        self, db, read_session, fake_extract, monkeypatch
+    ):
+        """Коммит не прошёл — старый индекс должен уцелеть целиком."""
+        book = await _make_book(db)
+        book_id = book.id
+        old = ["старая один", "старая два"]
+        await _seed_index(db, book_id, old)
+
+        fake_extract(["новая один", "новая два", "новая три"])
+
+        async def _fail_commit():
+            raise ConnectionError("соединение потеряно при коммите")
+
+        monkeypatch.setattr(db, "commit", _fail_commit)
+
+        with pytest.raises(ConnectionError):
+            await search_index.index_book_from_path(db, book_id, "/dev/null")
+
+        assert await _indexed(read_session, book_id) == old, (
+            "старый индекс потерян: коммит не прошёл, а откат не вернул данные"
+        )
+
+    async def test_failed_rollback_does_not_mask_the_cause(
+        self, db, read_session, fake_extract, monkeypatch
+    ):
+        """Если и откат не удался, наружу должна уйти исходная ошибка.
+
+        Иначе в логе останется «соединение закрыто» от отката, а из-за чего всё
+        началось — неизвестно. Разбираться в таком инциденте нечем.
+        """
+        book = await _make_book(db)
+        book_id = book.id
+        await _seed_index(db, book_id, ["единственная страница"])
+
+        fake_extract(["новая"])
+
+        async def _fail_commit():
+            raise ConnectionError("исходная причина")
+
+        async def _fail_rollback():
+            raise RuntimeError("откат тоже не прошёл")
+
+        monkeypatch.setattr(db, "commit", _fail_commit)
+        monkeypatch.setattr(db, "rollback", _fail_rollback)
+
+        with pytest.raises(ConnectionError, match="исходная причина"):
+            await search_index.index_book_from_path(db, book_id, "/dev/null")
+
+    async def test_real_connection_loss_during_commit(
+        self, db, read_session, fake_extract, monkeypatch
+    ):
+        """Настоящий разрыв: соединение убивают со стороны сервера.
+
+        Отличается от подмены коммита тем, что проверяет и поведение самой
+        базы: незавершённую транзакцию откатывает сервер, заметив разрыв.
+        Именно на это мы полагаемся, когда собственный откат не проходит.
+        """
+        book = await _make_book(db)
+        book_id = book.id
+        old = ["было до обрыва"]
+        await _seed_index(db, book_id, old)
+
+        pid = await db.scalar(sql("SELECT pg_backend_pid()"))
+        assert pid, "не удалось узнать идентификатор соединения"
+
+        fake_extract(["станет после", "и ещё страница"])
+
+        original_commit = db.commit
+
+        async def _kill_then_commit():
+            # Рвём соединение ровно перед фиксацией: вставки уже отправлены,
+            # но не подтверждены.
+            await read_session.execute(
+                sql("SELECT pg_terminate_backend(:pid)"), {"pid": pid}
+            )
+            await read_session.commit()
+            await original_commit()
+
+        monkeypatch.setattr(db, "commit", _kill_then_commit)
+
+        with pytest.raises(Exception):  # noqa: B017 — важен факт отказа
+            await search_index.index_book_from_path(db, book_id, "/dev/null")
+
+        # Читаем из другой сессии: у первой соединения больше нет
+        assert await _indexed(read_session, book_id) == old, (
+            "после обрыва на коммите книга осталась не в прежнем состоянии"
+        )
 
 
 class TestExtractionFailures:
