@@ -1,0 +1,128 @@
+# Подстановки в innerHTML, требующие внимания, на момент фиксации.
+# Файл нужен защёлке: новая запись валит сборку, старые чинятся
+# постепенно. Уменьшать список можно и нужно; увеличивать — только
+# осознанно, вместе с объяснением в коммите.
+#
+# Пересобрать: python tools/audit_innerhtml.py --baseline
+
+app.js	AR_3D.pyramid
+app.js	ICONS[tab.icon]
+app.js	ONBOARDING_TOUR_STEPS.map((_, i) => `<div style="width:7px
+app.js	[1,2,3,4,5].map(i => `<span class="star" style="cursor:pointer
+app.js	[2, 3, 4].map(n => `
+app.js	_currentTOC.map((it, i) => { const isRead = read.includes(i); return `<div style="display:flex
+app.js	_reviewIdx + 1
+app.js	_reviewQueue.length
+app.js	adminBtn
+app.js	all.length
+app.js	allReviews.map(r => `
+app.js	ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button
+app.js	arrows
+app.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%
+app.js	biometricAuth.supported() ? `<button class="set-save-btn" data-onclick="toggleBiometricFromSettings()" ${biometricAuth.i
+app.js	book ? eh(book.title) : 'Эта книга'
+app.js	books.map(b => `
+app.js	breakdown
+app.js	btn('csv', 'CSV', 'Таблица для Excel')
+app.js	btn('json', 'JSON', 'Для импорта в другие приложения')
+app.js	btn('md', 'Markdown', 'Текст с разметкой')
+app.js	btn('pdf', 'PDF документ', 'Для печати и чтения')
+app.js	btn(page + 1, '›', false, page === totalPages)
+app.js	btn(page - 1, '‹', false, page === 1)
+app.js	c.message_count
+app.js	c.score
+app.js	card(activeDays, 'активных дней', '#10b981')
+app.js	card(avgQuiz !== null ? avgQuiz + '%' : '—', 'средний балл тестов', '#f59e0b')
+app.js	card(hours + ' ч', 'примерно времени', '#a855f7')
+app.js	card(totalPages, 'страниц прочитано', 'var(--accent)')
+app.js	cards
+app.js	circles
+app.js	confirmBtnColor
+app.js	confirmBtnText
+app.js	currentQuiz.bookId
+app.js	currentQuiz.currentIndex + 1
+app.js	currentQuiz.questions.length
+app.js	cx
+app.js	cy
+app.js	cy + 14
+app.js	cy - 6
+app.js	dateStr ? `<div style="font-size:11px
+app.js	done
+app.js	doneCount
+app.js	encodeURIComponent(c.category).replace(/'/g, '')
+app.js	err && err.status ? '(' + err.status + ')' : ''
+app.js	field
+app.js	formatBytes(stats.cacheSize)
+app.js	formatBytes(stats.quota)
+app.js	formatBytes(stats.used)
+app.js	formatHeatmapDate(date)
+app.js	goal.count
+app.js	hasLevel ? `
+app.js	html
+app.js	info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').rep
+app.js	inner
+app.js	items
+app.js	labels
+app.js	layers
+app.js	lb.map((u, i) => { // Скрывшие профиль участвуют анонимно; свою строку подсвечиваем const name = u.is_hidden ? 'Участник
+app.js	levelInfo.icon
+app.js	numsHtml
+app.js	options.map(opt => `
+app.js	p
+app.js	page
+app.js	pct >= 100 ? '🎉 Цель достигнута!' : `Осталось ${goal.count - done} — продолжайте!`
+app.js	pdfCurrentPage
+app.js	pdfTotalPages
+app.js	percent
+app.js	periodLabel
+app.js	q.options.map((o, i) => { const isSelected = isAnswered && userAnswer === i; const cls = 'quiz-option' + (isSelected ? '
+app.js	quotaHtml
+app.js	r.height + pad * 2
+app.js	r.left - pad
+app.js	r.top - pad
+app.js	r.width + pad * 2
+app.js	rInner - 6
+app.js	res.hits.map(h => `
+app.js	res.total
+app.js	result.overall_percentage
+app.js	rows
+app.js	rows || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">Пока нет коллекций</div>'
+app.js	s
+app.js	s.done
+app.js	s.errors ? `, ошибок: ${s.errors}` : ''
+app.js	s.indexed_pages
+app.js	safeTag
+app.js	segs
+app.js	sensitiveNonce()
+app.js	stage.attacker.map(a => `<li style="margin-bottom:6px
+app.js	stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'
+app.js	stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'
+app.js	stage.defenseMethod ? stage.defenseMethod.color : '#666'
+app.js	stage.defenseMethod ? stage.defenseMethod.color : '#fff'
+app.js	stage.nameRu.toUpperCase()
+app.js	stages.map((s) => { const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6'; const badge = (s.code || Stri
+app.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; return `<button data-onclick="selectKillChainStage(${s.id})
+app.js	state.books.length
+app.js	state.books.map(b => `
+app.js	stats.cacheCount
+app.js	stats.total_books
+app.js	stats.total_downloads
+app.js	stats.total_quiz_attempts
+app.js	stats.total_reviews
+app.js	stats.total_users
+app.js	stats.total_views
+app.js	statusColor[item.status]
+app.js	statusIcon[item.status]
+app.js	step.emoji
+app.js	step.text
+app.js	step.title
+app.js	t
+app.js	tab ? tab.label : ''
+app.js	tab.label
+app.js	topicsHtml
+app.js	total
+app.js	totalPages
+app.js	u.department ? `<div style="font-size:11px
+app.js	usedPct
+app.js	weakHtml
+app.js	weeks.map(w => `<div title="${w} стр." style="flex:1

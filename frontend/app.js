@@ -5309,7 +5309,7 @@ function showVerifyEmailScreen(email) {
       <div style="font-size:40px;margin-bottom:12px;">✉️</div>
       <h2 style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--text-primary);">Подтвердите email</h2>
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-        Мы отправили код подтверждения на<br><b style="color:var(--text-primary);">${email}</b><br>
+        Мы отправили код подтверждения на<br><b style="color:var(--text-primary);">${eh(email)}</b><br>
         <span style="font-size:11px;color:var(--text-muted);">Проверьте папку «Спам», если письма нет</span>
       </p>
       <input type="text" id="verifyCodeInput" inputmode="numeric" maxlength="6" placeholder="000000"
@@ -7255,7 +7255,7 @@ function _openLegalModal(titleText, html) {
   }
   m.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <div style="font-size:16px;font-weight:700;color:var(--text-primary);">${titleText}</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary);">${eh(titleText)}</div>
       <button data-onclick="closeModal('legalDocModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
     </div>
     <div style="flex:1;overflow-y:auto;padding:20px;font-size:14px;color:var(--text-secondary);line-height:1.7;max-width:680px;margin:0 auto;width:100%;-webkit-overflow-scrolling:touch;">
