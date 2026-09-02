@@ -18,6 +18,15 @@
  *    возникает сам, без действия пользователя: достаточно вставить
  *    <img src=x data-onerror="...">, и обработчик выполнится немедленно.
  *
+ * 4. Разрушительные обработчики — удаление книги, пользователя, аккаунта —
+ *    требуют одноразового значения в data-nonce. Реестра для них мало:
+ *    внедрённая разметка может нарисовать кнопку «Удалить» с разрешённым
+ *    именем, и пользователь нажмёт её сам, не подозревая, что делает.
+ *
+ *    Значение генерируется при каждой загрузке страницы. Свой код подставляет
+ *    его в разметку, а внедрённый — не может: это заранее заготовленный текст,
+ *    а прочитать что-либо со страницы ему нечем, скрипты запрещены политикой.
+ *
  * Элемент и само событие передаются последними аргументами, если в разметке
  * указано data-args="this" или data-args="event".
  */
@@ -30,6 +39,30 @@
   // error на <img> не всплывает — ловим на фазе перехвата
   var CAPTURE_EVENTS = ['error'];
 
+  // Одноразовое значение текущей загрузки страницы. Свой код подставляет его
+  // в разметку разрушительных кнопок через sensitiveNonce(), диспетчер
+  // сверяет. Хранится в замыкании: даже если однажды появится способ
+  // выполнить чужой скрипт, прочитать значение из window не выйдет.
+  var NONCE = (function () {
+    if (window.crypto && window.crypto.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+    var bytes = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+    } else {
+      for (var i = 0; i < bytes.length; i++) {
+        bytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    return Array.prototype.map.call(bytes, function (b) {
+      return ('0' + b.toString(16)).slice(-2);
+    }).join('');
+  })();
+
+  // Единственный способ узнать значение — вызвать эту функцию из своего кода.
+  window.sensitiveNonce = function () { return NONCE; };
+
   var RAW = window.AEGIS_ALLOWED_HANDLERS || {};
   var ALLOWED = {};
   Object.keys(RAW).forEach(function (ev) {
@@ -38,9 +71,16 @@
     ALLOWED[ev] = set;
   });
 
+  var SENSITIVE = Object.create(null);
+  (RAW.sensitive || []).forEach(function (name) { SENSITIVE[name] = true; });
+
   function isAllowed(eventType, name) {
     var set = ALLOWED[eventType];
     return !!(set && set[name] === true);
+  }
+
+  function isSensitive(name) {
+    return SENSITIVE[name] === true;
   }
 
   function parseArgs(src) {
@@ -135,6 +175,16 @@
     var name = m[1];
     if (!isAllowed(ev.type, name)) {
       console.warn('[handlers] запрещён для события ' + ev.type + ':', name);
+      return;
+    }
+
+    if (isSensitive(name) && el.getAttribute('data-nonce') !== NONCE) {
+      // Разметка пришла не из нашего кода — либо её внедрили, либо забыли
+      // подставить sensitiveNonce() при отрисовке. Оба случая требуют
+      // внимания, поэтому сообщение заметное.
+      console.error(
+        '[handlers] разрушительный обработчик без действительного nonce:', name
+      );
       return;
     }
 

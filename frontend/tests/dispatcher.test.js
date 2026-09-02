@@ -42,12 +42,14 @@ function makeEnv(allowlist) {
   // Функции-приманки: любой их вызов означает, что барьер не сработал
   win.allowedFn = function (...args) { win.calls.push(['allowedFn', args]); };
   win.deleteAdminUser = function (...args) { win.calls.push(['deleteAdminUser', args]); };
+  win.deleteBook = function (...args) { win.calls.push(['deleteBook', args]); };
   win.replaceWithFallback = function (el) {
     win.calls.push(['replaceWithFallback', el && el.tagName]);
   };
 
-  // console.warn диспетчера в тестах только шумит
+  // console.warn и console.error диспетчера в тестах только шумят
   win.console.warn = () => {};
+  win.console.error = () => {};
 
   const code = fs.readFileSync(path.join(FRONTEND, 'inline-handlers.js'), 'utf8');
   win.eval(code);
@@ -181,6 +183,93 @@ console.log('\nРеестр соответствует разметке');
     missing.slice(0, 20).forEach((x) => console.log('      ' + x));
   }
   check('все обработчики из разметки есть в реестре', missing.length === 0);
+}
+
+console.log('\nРазрушительные обработчики');
+{
+  // deleteBook разрешён для click — он нужен настоящей кнопке в админке.
+  // Значит одного реестра мало: внедрённая разметка нарисует такую же кнопку,
+  // и пользователь нажмёт её сам.
+  const win = makeEnv({ click: ['deleteBook'], sensitive: ['deleteBook'] });
+  win.document.body.innerHTML =
+    '<button id="b" data-onclick="deleteBook(7)">Удалить</button>';
+  click(win, win.document.getElementById('b'));
+
+  check('без nonce разрушительный обработчик не вызывается', win.calls.length === 0);
+}
+
+{
+  const win = makeEnv({ click: ['deleteBook'], sensitive: ['deleteBook'] });
+  win.document.body.innerHTML =
+    '<button id="b" data-onclick="deleteBook(7)" data-nonce="угадал">x</button>';
+  click(win, win.document.getElementById('b'));
+
+  check('подобранное значение nonce не подходит', win.calls.length === 0);
+}
+
+{
+  const win = makeEnv({ click: ['deleteBook'], sensitive: ['deleteBook'] });
+  const nonce = win.sensitiveNonce();
+  win.document.body.innerHTML =
+    `<button id="b" data-onclick="deleteBook(7)" data-nonce="${nonce}">x</button>`;
+  click(win, win.document.getElementById('b'));
+
+  check('со своим nonce обработчик работает',
+    win.calls.length === 1 && win.calls[0][0] === 'deleteBook');
+}
+
+{
+  // Значение должно быть разным при каждой загрузке — иначе его можно
+  // подсмотреть один раз и зашить в полезную нагрузку.
+  const a = makeEnv({ click: [], sensitive: [] }).sensitiveNonce();
+  const b = makeEnv({ click: [], sensitive: [] }).sensitiveNonce();
+  check('nonce не повторяется между загрузками', a !== b && a.length > 15);
+}
+
+{
+  // Обычные обработчики nonce не требуют: иначе пришлось бы размечать
+  // сотню кнопок, и от этого никто не стал бы безопаснее.
+  const win = makeEnv({ click: ['allowedFn'], sensitive: ['deleteBook'] });
+  win.document.body.innerHTML =
+    '<button id="b" data-onclick="allowedFn(1)">x</button>';
+  click(win, win.document.getElementById('b'));
+  check('обычный обработчик работает без nonce', win.calls.length === 1);
+}
+
+console.log('\nСписок разрушительных не пуст');
+{
+  const fs2 = require('fs');
+  const src = fs2.readFileSync(path.join(FRONTEND, 'handler-allowlist.js'), 'utf8');
+  const w = new JSDOM('', { runScripts: 'outside-only' }).window;
+  w.eval(src);
+  const registry = w.AEGIS_ALLOWED_HANDLERS;
+
+  check('в реестре есть раздел sensitive',
+    Array.isArray(registry.sensitive) && registry.sensitive.length > 5);
+
+  // Проверка, которая ловит забытую разметку: если функция объявлена
+  // разрушительной, каждая её кнопка обязана нести nonce.
+  const missing = [];
+  for (const name of registry.sensitive || []) {
+    const marker = `data-onclick="${name}(`;
+    for (const file of ['app.js', 'index.html']) {
+      const text = fs2.readFileSync(path.join(FRONTEND, file), 'utf8');
+      let from = 0;
+      for (;;) {
+        const found = text.indexOf(marker, from);
+        if (found === -1) break;
+        from = found + marker.length;
+        if (!text.slice(found, found + 400).includes('data-nonce')) {
+          missing.push(`${file}: ${name}`);
+        }
+      }
+    }
+  }
+  if (missing.length) {
+    console.log('    без nonce в разметке:');
+    missing.slice(0, 10).forEach((x) => console.log('      ' + x));
+  }
+  check('все разрушительные кнопки в разметке несут nonce', missing.length === 0);
 }
 
 console.log(`\nИтого: ${passed} ok, ${failed} fail\n`);

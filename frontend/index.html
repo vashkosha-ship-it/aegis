@@ -890,7 +890,7 @@
         Логин (username) изменить нельзя.
       </div>
       <div id="editAvatarSection" style="margin-bottom:14px;">
-        <button data-onclick="deleteCurrentAvatar()" id="deleteAvatarBtn" style="width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid #ef4444;color:#ef4444;font-family:inherit;font-size:12px;cursor:pointer;">Удалить аватар</button>
+        <button data-onclick="deleteCurrentAvatar()" data-nonce="${sensitiveNonce()}" id="deleteAvatarBtn" style="width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid #ef4444;color:#ef4444;font-family:inherit;font-size:12px;cursor:pointer;">Удалить аватар</button>
       </div>
       <div style="display:flex;gap:10px;">
         <button data-onclick="closeEditProfileModal()" style="flex:1;padding:12px;border-radius:10px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;">Отмена</button>

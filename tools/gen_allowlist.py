@@ -20,12 +20,41 @@ OUT = FRONTEND / "handler-allowlist.js"
 # Обработчики, добавляемые не из разметки, а из кода
 EXTRA = {"click": {"closeModal", "clickElement"}}
 
+# Разрушительные обработчики: удаляют данные, затрагивают чужие записи или
+# административные операции. Для них реестра мало — внедрённая разметка может
+# нарисовать кнопку «Удалить» с разрешённым именем, и пользователь нажмёт её
+# сам. Поэтому диспетчер дополнительно требует data-nonce со значением,
+# сгенерированным при загрузке страницы.
+#
+# Список ведётся вручную и намеренно: он отвечает на вопрос «что страшно
+# нажать по ошибке», а на такой вопрос эвристика по имени не отвечает.
+# resetFilters и clearAssistantChat тоже начинаются с «опасных» слов, но лишь
+# меняют вид на экране.
+SENSITIVE = [
+    "approvePendingUser",
+    "rejectPendingUser",
+    "deleteAdminUser",
+    "deleteBook",
+    "regenerateAllQuizzesUI",
+    "regenerateBookQuiz",
+    "deleteComment",
+    "deleteReview",
+    "deleteReviewAndRefresh",
+    "deleteAnnotation",
+    "deleteAnnotationFromTooltip",
+    "deleteChatFromHistory",
+    "deleteCurrentAvatar",
+    "confirmDeleteAccount",
+    "doDeleteAccount",
+    "exportAllUserData",
+]
+
 # События, возникающие без участия пользователя. Для них список ведётся
 # вручную и намеренно узкий — всё, что сюда попадёт, будет исполняться
 # автоматически, стоит внедрить нужный тег в DOM.
 AUTO_EVENTS = {"error": ["replaceWithFallback"]}
 
-ATTR_RE = re.compile(r'data-on([a-z]+)\s*=\s*(["\'])(.*?)\2', re.S)
+ATTR_RE = re.compile(r'data-on([a-z]+)\s*=\s*(["\'])(.*?)\2', re.DOTALL)
 CALL_RE = re.compile(r"^\s*([A-Za-z_$][\w$]*)\s*\(")
 
 HEADER = """/* Реестр функций, которые разрешено вызывать из разметки.
@@ -44,6 +73,14 @@ HEADER = """/* Реестр функций, которые разрешено в
  * Править руками не нужно — правки затрутся при следующей пересборке.
  */
 window.AEGIS_ALLOWED_HANDLERS = Object.freeze({
+"""
+
+SENSITIVE_NOTE = """
+  /* Разрушительные обработчики. Они перечислены и в списке своего события —
+   * реестр их пропускает, — но диспетчер дополнительно требует data-nonce.
+   * Одного реестра мало: он не даёт позвать произвольную функцию, но не мешает
+   * позвать опасную, ведь удаление книги нужно настоящей кнопке в интерфейсе.
+   */
 """
 
 AUTO_NOTE = """
@@ -105,6 +142,16 @@ def main() -> int:
     for event in ("click", "change", "input", "keydown", "keyup", "submit"):
         if event in found:
             parts.append(f"  {event}: [\n{render_list(sorted(found[event]))}\n  ],\n")
+
+    known = {name for names in found.values() for name in names}
+    missing = [name for name in SENSITIVE if name not in known]
+    if missing:
+        print("\nВ разметке нет обработчиков из списка разрушительных: "
+              + ", ".join(missing))
+        print("Либо кнопку удалили, либо имя изменилось — уточните SENSITIVE.")
+
+    parts.append(SENSITIVE_NOTE)
+    parts.append(f"  sensitive: [\n{render_list(sorted(SENSITIVE))}\n  ],\n")
 
     parts.append(AUTO_NOTE)
     for event, allowed in AUTO_EVENTS.items():

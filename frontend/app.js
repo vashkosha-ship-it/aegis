@@ -3634,8 +3634,8 @@ async function openPendingUsersModal() {
             ${u.department ? `<div style="font-size:11px;color:var(--accent);">${eh(u.department)}</div>` : ''}
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button data-onclick="approvePendingUser(${u.id})" data-args="this" style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#22c55e;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Одобрить</button>
-            <button data-onclick="rejectPendingUser(${u.id})" data-args="this" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#ef4444;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Отклонить</button>
+            <button data-onclick="approvePendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#22c55e;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Одобрить</button>
+            <button data-onclick="rejectPendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#ef4444;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Отклонить</button>
           </div>
         </div>`).join('');
     }
@@ -3912,7 +3912,7 @@ function _commentBubble(c, isReply) {
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:3px 0 6px;white-space:pre-wrap;word-break:break-word;">${eh(c.text)}</div>
         <div style="display:flex;gap:14px;">
           ${!isReply ? `<button data-onclick="startReply(${c.id}, '${name.replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0;">Ответить</button>` : ''}
-          ${c.can_delete ? `<button data-onclick="deleteComment(${c.id})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0;">Удалить</button>` : ''}
+          ${c.can_delete ? `<button data-onclick="deleteComment(${c.id})" data-nonce="${sensitiveNonce()}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0;">Удалить</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -4004,7 +4004,7 @@ async function renderReviews() {
         return `<div class="review-card">
           <div class="review-header">
             <div class="review-user">
-              <div class="review-avatar"><img src="${api.users.avatarUrl(r._userId)}" alt="" data-onerror="replaceWithFallback()" data-args="this" data-fallback="${eh(r.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+              <div class="review-avatar"><img src="${api.users.avatarUrl(r._userId)}" alt="" data-onerror="replaceWithFallback()" data-args="this" data-fallback="text" data-fallback-text="${eh(r.avatar)}" data-fallback-class="review-avatar-fallback" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
               <div>
                 <div style="font-size:12px;font-weight:600;">${eh(r.user)}</div>
                 <div class="review-date">${dateStr}</div>
@@ -4015,7 +4015,7 @@ async function renderReviews() {
             </div>
           </div>
           <div class="review-text">${eh(r.text || '')}</div>
-          ${canDelete ? `<button class="btn-sm danger" style="margin-top:6px;" data-onclick="deleteReview(${currentBookId}, ${r.id})">${ICONS.trash} Удалить</button>` : ''}
+          ${canDelete ? `<button class="btn-sm danger" style="margin-top:6px;" data-onclick="deleteReview(${currentBookId}, ${r.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash} Удалить</button>` : ''}
         </div>`;
       }).join('');
 
@@ -4264,7 +4264,7 @@ async function showAnnotationDetail(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div style="font-size:11px;margin-bottom:4px;">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div style="display:flex;gap:4px;"><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},2)" data-args="this">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`;
+  t.innerHTML = `<div style="font-size:11px;margin-bottom:4px;">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div style="display:flex;gap:4px;"><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},2)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`;
   t.style.left = (ann.position?.x || 10) + '%';
   t.style.top = ((ann.position?.y || 10) + 5) + '%';
   document.getElementById('pdfViewport').appendChild(t);
@@ -4277,7 +4277,7 @@ async function showNoteTooltip(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">${ICONS.bookmark} Заметка</div><div style="font-size:11px;margin-bottom:4px;">${eh(ann.note)}</div><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},1)" data-args="this">${ICONS.trash} Удалить</button>`;
+  t.innerHTML = `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">${ICONS.bookmark} Заметка</div><div style="font-size:11px;margin-bottom:4px;">${eh(ann.note)}</div><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},1)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>`;
   t.style.left = (ann.position?.x || 15) + '%';
   t.style.top = ((ann.position?.y || 15) + 3) + '%';
   document.getElementById('pdfViewport').appendChild(t);
@@ -4477,7 +4477,7 @@ async function renderDetailNotes() {
           <div style="font-size:10px;color:${stripColor};font-weight:600;">
             ${isNote ? 'ЗАМЕТКА' : 'МАРКЕР'} · Стр.${a.page}
           </div>
-          <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;flex-shrink:0;" data-onclick="deleteAnnotation(${currentBookId},${a.id})" data-stop="1">${ICONS.trash}</button>
+          <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;flex-shrink:0;" data-onclick="deleteAnnotation(${currentBookId},${a.id})" data-nonce="${sensitiveNonce()}" data-stop="1">${ICONS.trash}</button>
         </div>
         <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;font-style:italic;">«${eh(a.text.substring(0, 200))}${a.text.length > 200 ? '…' : ''}»</div>
         ${a.note ? `
@@ -6034,7 +6034,7 @@ async function openChatHistory() {
           <div style="font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${eh(c.title)}</div>
           <div style="font-size:10px;color:var(--text-muted);">${c.message_count} сообщений</div>
         </div>
-        <button data-onclick="deleteChatFromHistory(${c.id})" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:15px;padding:4px 8px;">✕</button>
+        <button data-onclick="deleteChatFromHistory(${c.id})" data-nonce="${sensitiveNonce()}" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:15px;padding:4px 8px;">✕</button>
       </div>`).join('');
   } catch (_) {
     const body = document.getElementById('chatHistoryBody');
@@ -6319,7 +6319,7 @@ function renderRecommendations() {
   list.innerHTML = recs.map(b => `
     <div class="recommendation-card" data-onclick="openBookDetail(${b.id})">
       <div style="font-size:32px;width:48px;height:64px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg, #1a2030, #1a1530);border-radius:8px;border:1px solid var(--border);flex-shrink:0;">
-        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" data-onerror="replaceWithFallback()" data-args="this" data-fallback="${ICONS.bookCover.replace(/"/g, '&quot;')}">` : ICONS.bookCover}
+        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}
       </div>
       <div>
         <div style="font-size:13px;font-weight:600;">${eh(b.title)}</div>
@@ -6654,7 +6654,7 @@ function cardHTML(b, query) {
   const coverInner = b.has_cover
     ? `<img src="${api.books.coverUrl(b.id)}" alt="" loading="lazy"
             style="width:100%;height:100%;object-fit:cover;"
-            data-onerror="replaceWithFallback()" data-args="this" data-fallback="<div class=&quot;cover-bg&quot;>${ICONS.bookCover.replace(/"/g, '&quot;')}</div>">`
+            data-onerror="replaceWithFallback()" data-args="this" data-fallback="coverBg">`
     : `<div class="cover-bg">${ICONS.bookCover}</div>`;
 
   const year = extractBookYear(b.datePublished);
@@ -7207,7 +7207,7 @@ async function renderSettingsStorageTab(c) {
       </div>
     </div>
 
-    <button class="set-save-btn" data-onclick="exportAllUserData()" style="background:rgba(0,212,255,0.12);color:var(--accent);border:1px solid rgba(0,212,255,0.4);margin-top:14px;">
+    <button class="set-save-btn" data-onclick="exportAllUserData()" data-nonce="${sensitiveNonce()}" style="background:rgba(0,212,255,0.12);color:var(--accent);border:1px solid rgba(0,212,255,0.4);margin-top:14px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       <span>Скачать все мои данные</span>
     </button>
@@ -7392,7 +7392,7 @@ function renderSettingsPrivacyTab(c) {
 
     <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
       <label style="font-size:12px;color:#ef4444;font-weight:700;display:block;margin-bottom:8px;">Опасная зона</label>
-      <button data-onclick="confirmDeleteAccount()" class="set-save-btn" style="background:#ef444418;color:#ef4444;border:1px solid #ef444455;">
+      <button data-onclick="confirmDeleteAccount()" data-nonce="${sensitiveNonce()}" class="set-save-btn" style="background:#ef444418;color:#ef4444;border:1px solid #ef444455;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         <span>Удалить аккаунт</span>
       </button>
@@ -7416,7 +7416,7 @@ function confirmDeleteAccount() {
     <input id="delAccConfirm" type="text" placeholder="Введите УДАЛИТЬ" style="width:100%;padding:11px 14px;margin-bottom:14px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;">
     <div style="display:flex;gap:8px;">
       <button data-onclick="closeModal('deleteAccModal')" style="flex:1;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Отмена</button>
-      <button data-onclick="doDeleteAccount()" style="flex:1;padding:12px;background:#ef4444;border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Удалить</button>
+      <button data-onclick="doDeleteAccount()" data-nonce="${sensitiveNonce()}" style="flex:1;padding:12px;background:#ef4444;border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Удалить</button>
     </div>
   </div>`;
   m.onclick = (e) => { if (e.target === m) m.remove(); };
@@ -8409,7 +8409,7 @@ function renderBookInfo() {
   }
   document.getElementById('detailTabInfo').innerHTML = `
     <div class="detail-content">
-      <div class="detail-cover">${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);" data-onerror="replaceWithFallback()" data-args="this" data-fallback="${ICONS.bookCover.replace(/"/g, '&quot;')}">` : ICONS.bookCover}</div>
+      <div class="detail-cover">${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}</div>
       <div class="detail-info">
         <div class="detail-title">${eh(b.title)}</div>
         <div class="detail-author">${eh(b.author)}</div>
@@ -8530,7 +8530,7 @@ function renderDetailTraining() {
   if (!currentBookId) return;
   const isAdmin = state.currentUser?.role === 'admin';
   const adminBtn = isAdmin
-    ? `<button data-onclick="regenerateBookQuiz(${currentBookId})" id="regenQuizBtn" style="margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.5);border-radius:10px;color:#c084fc;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">${ICONS.sparkles || ''}<span>Пересоздать тест (ИИ)</span></button>`
+    ? `<button data-onclick="regenerateBookQuiz(${currentBookId})" data-nonce="${sensitiveNonce()}" id="regenQuizBtn" style="margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.5);border-radius:10px;color:#c084fc;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">${ICONS.sparkles || ''}<span>Пересоздать тест (ИИ)</span></button>`
     : '';
   const c = state.completedQuizzes[state.currentUser?.name] || [];
   if (c.includes(currentBookId)) {
@@ -11786,7 +11786,7 @@ function renderAdminBooks() {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
         Подобрать книги для AR
       </button>
-      <button data-onclick="regenerateAllQuizzesUI()" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="regenerateAllQuizzesUI()" data-nonce="${sensitiveNonce()}" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
         Перегенерировать тесты
       </button>
@@ -11814,7 +11814,7 @@ function renderAdminBooks() {
               <td>
                 <button class="btn-sm" data-onclick="openBookAnalyticsModal(${b.id})" title="Аналитика">📊</button>
                 <button class="btn-sm" data-onclick="openAdminBookModal(${b.id})">${ICONS.settings}</button>
-                <button class="btn-sm danger" data-onclick="deleteBook(${b.id})">${ICONS.trash}</button>
+                <button class="btn-sm danger" data-onclick="deleteBook(${b.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash}</button>
               </td>
             </tr>
           `).join('')}
@@ -12090,7 +12090,7 @@ async function loadAndRenderAdminReviews() {
                 <td>${Array(r.rating).fill(ICONS.star).join('')}</td>
                 <td>${eh((r.text || '').substring(0, 50))}${r.text && r.text.length > 50 ? '...' : ''}</td>
                 <td>
-                  <button class="btn-sm danger" data-onclick="deleteReview(${r.bookId}, ${r.id}); loadAndRenderAdminReviews()">${ICONS.trash}</button>
+                  <button class="btn-sm danger" data-onclick="deleteReviewAndRefresh(${r.bookId}, ${r.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash}</button>
                 </td>
               </tr>
             `).join('')}
@@ -12250,7 +12250,7 @@ function renderAdminUsersWithFilter() {
             <td>${u.total_pages_read}</td>
             <td>${u.is_active ? ICONS.check : ICONS.x}</td>
             <td>${u.role !== 'admin'
-              ? `<button class="btn-sm danger" data-onclick="deleteAdminUser(${u.id}, '${eh(u.username).replace(/'/g, "\\'")}')">${ICONS.trash}</button>`
+              ? `<button class="btn-sm danger" data-onclick="deleteAdminUser(${u.id}, '${eh(u.username).replace(/'/g, "\\'")}')" data-nonce="${sensitiveNonce()}">${ICONS.trash}</button>`
               : '—'}</td>
           </tr>`;
         }).join('')}
