@@ -6379,11 +6379,10 @@ function renderHome() {
   if (sectionContinue) sectionContinue.style.display = '';
   if (booksTabs) booksTabs.style.display = '';
 
-  renderBookScroll('scrollContinue', sorted.filter(b => state.readingProgress[b.id]?.started), q);
+  renderContinueScroll(sorted, q);
   renderBookScroll('scrollPopular', [...sorted].sort((a, b) => b.popularity - a.popularity).slice(0, 5), q);
   renderPaginatedBooks('scrollAll', sorted, q);
   setHomeBooksTab(state.homeBooksTab || 'popular');
-  // renderResumeReading() убран: дублировал секцию «Продолжить»
   renderBooksGoalWidget();
   renderFavCategories();
   renderRecommendations();
@@ -6432,11 +6431,13 @@ function renderBooksGoalWidget() {
     </div>`;
 }
 
-// ===== D: Возобновить чтение (последние 5 незавершённых книг) =====
+// ===== Блок «Продолжить»: что скрыл пользователь =====
+//
+// Сам блок рисует renderContinueScroll ниже. Здесь только список скрытых
+// вручную книг. Раньше рядом жила renderResumeReading — вторая, дублирующая
+// отрисовка того же блока; её отключили, но код остался, и правки уходили
+// именно в него, не доезжая до экрана.
 
-// Книги, убранные пользователем из блока вручную. Держим локально: это
-// предпочтение конкретного устройства, а не состояние чтения — на сервере
-// ему делать нечего. Если книгу открыть заново, она вернётся в блок.
 const RESUME_HIDDEN_KEY = 'aegis_resume_hidden';
 
 function getResumeHidden() {
@@ -6448,7 +6449,9 @@ function hideFromResume(bookId) {
   if (!hidden.includes(bookId)) hidden.push(bookId);
   lsSet(RESUME_HIDDEN_KEY, JSON.stringify(hidden));
   if (navigator.vibrate) navigator.vibrate(10);
-  renderResumeReading();
+  // Перерисовываем главную целиком: блок «Продолжить» живёт внутри неё, и
+  // отдельной точки обновления у него нет.
+  renderHome();
 }
 
 function unhideFromResume(bookId) {
@@ -6456,14 +6459,22 @@ function unhideFromResume(bookId) {
   lsSet(RESUME_HIDDEN_KEY, JSON.stringify(hidden));
 }
 
-function renderResumeReading() {
-  const section = document.getElementById('sectionResume');
-  const wrap = document.getElementById('resumeReadingCards');
-  if (!section || !wrap) return;
+function renderBookScroll(id, books, query) {
+  document.getElementById(id).innerHTML = books.map(b => cardHTML(b, query)).join('');
+}
+
+// Сколько книг показывать в блоке «Продолжить». Больше — и он перестаёт быть
+// подсказкой «на чём я остановилась» и превращается во вторую библиотеку.
+const CONTINUE_LIMIT = 5;
+
+function renderContinueScroll(books, query) {
+  const section = document.getElementById('sectionContinue');
+  const container = document.getElementById('scrollContinue');
+  if (!container) return;
 
   const hidden = getResumeHidden();
 
-  const started = (state.books || [])
+  const items = books
     .filter(b => {
       const p = state.readingProgress[b.id];
       if (!p || !p.started) return false;
@@ -6474,110 +6485,18 @@ function renderResumeReading() {
       if (total > 1 && (p.currentPage || 0) >= total) return false;
       return true;
     })
-    .map(b => ({ b, p: state.readingProgress[b.id] }))
-    .sort((x, y) => {
-      const tx = x.p.lastReadAt ? new Date(x.p.lastReadAt).getTime() : 0;
-      const ty = y.p.lastReadAt ? new Date(y.p.lastReadAt).getTime() : 0;
-      return ty - tx;
+    .sort((a, b) => {
+      const ta = state.readingProgress[a.id]?.lastReadAt;
+      const tb = state.readingProgress[b.id]?.lastReadAt;
+      return (tb ? new Date(tb).getTime() : 0) - (ta ? new Date(ta).getTime() : 0);
     })
-    .slice(0, 5);
+    .slice(0, CONTINUE_LIMIT);
 
-  if (!started.length) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
-
-  wrap.innerHTML = started.map(({ b, p }) => {
-    const pct = p.totalPages ? Math.round(p.currentPage / p.totalPages * 100) : 0;
-    return `<div data-onclick="openReader(${b.id})" style="display:flex;gap:12px;align-items:center;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
-      <div style="width:48px;height:64px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg-primary);">
-        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:22px;">📖</div>`}
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${eh(b.title)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin:3px 0 6px;">Стр. ${p.currentPage} из ${p.totalPages} · ${pct}%</div>
-        <div style="height:5px;background:var(--bg-primary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
-      </div>
-      <button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" style="flex-shrink:0;background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:8px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;font-size:16px;line-height:1;">&times;</button>
-    </div>`;
-  }).join('');
-}
-
-// ===== A3: Избранные категории =====
-const FAV_CATS_KEY = 'aegis_fav_categories';
-function getFavCategories() {
-  try { return JSON.parse(lsGet(FAV_CATS_KEY) || '[]'); } catch (_) { return []; }
-}
-function saveFavCategories(arr) { lsSet(FAV_CATS_KEY, JSON.stringify(arr)); }
-function toggleFavCategory(cat) {
-  const favs = getFavCategories();
-  const i = favs.indexOf(cat);
-  if (i >= 0) favs.splice(i, 1); else favs.push(cat);
-  saveFavCategories(favs);
-  if (navigator.vibrate) navigator.vibrate(10);
-  renderFavCategories();
-  if (document.getElementById('favCatsPickerModal')) renderFavCatsPicker();
-}
-function renderFavCategories() {
-  const section = document.getElementById('sectionFavCategories');
-  const wrap = document.getElementById('favCategoriesChips');
-  if (!section || !wrap) return;
-  const favs = getFavCategories();
-  section.style.display = 'block';
-  const chipStyle = 'display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--border);';
-  let html = favs.map(c =>
-    `<button data-onclick="filterByCategory('${encodeURIComponent(c).replace(/'/g, '')}')" style="${chipStyle}background:var(--accent-gradient);color:#fff;border-color:transparent;">${eh(c)}</button>`
-  ).join('');
-  html += `<button data-onclick="openFavCatsPicker()" style="${chipStyle}background:transparent;color:var(--text-secondary);border-style:dashed;">+ Тема</button>`;
-  wrap.innerHTML = html;
-}
-function filterByCategory(encCat) {
-  const cat = decodeURIComponent(encCat);
-  const input = document.getElementById('searchInput');
-  if (input) { input.value = cat; }
-  // используем существующую фильтрацию по тексту
-  setHomeBooksTab('all');
-  renderHome();
-  const all = document.getElementById('scrollAll');
-  if (all) all.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-function openFavCatsPicker() {
-  const ex = document.getElementById('favCatsPickerModal');
-  if (ex) ex.remove();
-  const m = document.createElement('div');
-  m.id = 'favCatsPickerModal';
-  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Избранные темы</h3>
-      <button data-onclick="closeModal('favCatsPickerModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
-    </div>
-    <div id="favCatsPickerBody"></div>
-  </div>`;
-  m.onclick = (e) => { if (e.target === m) m.remove(); };
-  document.body.appendChild(m);
-  renderFavCatsPicker();
-}
-function renderFavCatsPicker() {
-  const body = document.getElementById('favCatsPickerBody');
-  if (!body) return;
-  const allCats = new Set();
-  (state.books || []).forEach(b => (b.categories || []).forEach(c => allCats.add(c)));
-  const favs = getFavCategories();
-  body.innerHTML = [...allCats].sort().map(c => {
-    const on = favs.includes(c);
-    return `<button data-onclick="toggleFavCategory(${JSON.stringify(c).replace(/"/g, '&quot;')})" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:11px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${on ? 'var(--accent)' : 'var(--border)'};background:${on ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
-      <span>${eh(c)}</span><span style="color:var(--accent);font-weight:700;">${on ? '✓' : '+'}</span>
-    </button>`;
-  }).join('') || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Категорий пока нет</div>';
-}
-
-function highlightText(text, query) {
-  if (!query) return eh(text);
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return eh(text).replace(regex, '<span class="search-highlight">$1</span>');
-}
-
-function renderBookScroll(id, books, query) {
-  document.getElementById(id).innerHTML = books.map(b => cardHTML(b, query)).join('');
+  // Пустой блок с заголовком выглядит поломкой, поэтому прячем целиком.
+  if (section) section.style.display = items.length ? '' : 'none';
+  container.innerHTML = items
+    .map(b => cardHTML(b, query, { removable: true }))
+    .join('');
 }
 
 const BOOKS_PER_PAGE = 24;
@@ -6647,7 +6566,8 @@ function extractBookYear(datePublished) {
   return match ? match[0] : null;
 }
 
-function cardHTML(b, query) {
+function cardHTML(b, query, options) {
+  const opts = options || {};
   const p = state.readingProgress[b.id];
   const pct = p?.started ? Math.min(Math.round(p.currentPage / p.totalPages * 100), 100) : 0;
 
@@ -6665,6 +6585,7 @@ function cardHTML(b, query) {
       <div class="rating-badge">${ICONS.star}${b.rating}</div>
       ${offlineBookIds.has(b.id) ? `<div class="offline-badge" title="Доступна оффлайн">${ICONS.cloudCheck}</div>` : ''}
       ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" style="width:${pct}%"></div>` : ''}
+      ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" style="position:absolute;top:6px;right:6px;z-index:3;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,0.6);color:#fff;font-family:inherit;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">&times;</button>` : ''}
     </div>
     <div class="book-card-meta">
       <div class="book-card-title" title="${eh(b.title)}">${eh(b.title)}</div>
