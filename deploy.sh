@@ -118,8 +118,18 @@ for name in required:
         problems.append(f"{name}: {run['conclusion']}")
 
 for name, run in sorted(runs.items()):
-    mark = "ok  " if run.get("conclusion") in ("success", "skipped") else "FAIL"
     state = run.get("conclusion") or run.get("status")
+    if run.get("conclusion") in ("success", "skipped"):
+        mark = "ok  "
+    elif run.get("status") != "completed":
+        mark = "идёт"
+    elif name in required:
+        mark = "FAIL"
+    else:
+        # Проверка не пройдена, но выкатку не блокирует. Помечать её как
+        # провал вводит в заблуждение: смотрящий начинает искать причину
+        # остановки не там.
+        mark = "    "
     print(f"  {mark} {name}: {state}")
 
 if problems:
