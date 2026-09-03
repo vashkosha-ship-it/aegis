@@ -63,6 +63,16 @@
   // Единственный способ узнать значение — вызвать эту функцию из своего кода.
   window.sensitiveNonce = function () { return NONCE; };
 
+  // index.html — статический файл, поэтому шаблонное выражение в его
+  // data-nonce браузер само не вычисляет. Подставляем nonce только в
+  // доверенную разметку, уже существующую к моменту запуска defer-скрипта.
+  // Динамически добавленная позже разметка этим проходом не затрагивается.
+  document.querySelectorAll('[data-nonce]').forEach(function (el) {
+    if (el.getAttribute('data-nonce') === '${sensitiveNonce()}') {
+      el.setAttribute('data-nonce', NONCE);
+    }
+  });
+
   var RAW = window.AEGIS_ALLOWED_HANDLERS || {};
   var ALLOWED = {};
   Object.keys(RAW).forEach(function (ev) {
