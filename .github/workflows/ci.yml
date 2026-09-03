@@ -57,10 +57,6 @@ jobs:
       SECRET_KEY: ci-test-secret-key-not-used-in-production
       DEBUG: "false"
       CORS_ORIGINS: http://localhost:5173
-      # CI проверяет production-настройки старта, но реальную почту не шлёт.
-      # localhost позволяет пройти fail-closed проверку без внешнего SMTP.
-      SMTP_HOST: localhost
-
     steps:
       - uses: actions/checkout@v4
 
