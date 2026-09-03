@@ -30,8 +30,8 @@ function check(name, condition) {
 }
 
 /** Свежий DOM с загруженным диспетчером и заданным реестром. */
-function makeEnv(allowlist) {
-  const dom = new JSDOM('<!doctype html><body></body>', {
+function makeEnv(allowlist, body = '') {
+  const dom = new JSDOM('<!doctype html><body>' + body + '</body>', {
     runScripts: 'outside-only',
     resources: undefined,
   });
@@ -186,6 +186,16 @@ console.log('\nРеестр соответствует разметке');
 }
 
 console.log('\nРазрушительные обработчики');
+{
+  const win = makeEnv(
+    { click: ['deleteBook'], sensitive: ['deleteBook'] },
+    '<button id="b" data-onclick="deleteBook(7)" data-nonce="${sensitiveNonce()}">x</button>',
+  );
+  click(win, win.document.getElementById('b'));
+  check('nonce подставляется в доверенную статическую разметку',
+    win.calls.length === 1 && win.calls[0][0] === 'deleteBook');
+}
+
 {
   // deleteBook разрешён для click — он нужен настоящей кнопке в админке.
   // Значит одного реестра мало: внедрённая разметка нарисует такую же кнопку,
