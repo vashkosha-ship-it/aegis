@@ -18,6 +18,10 @@
 # Вернуться на предыдущий развёрнутый коммит:
 #   ./deploy.sh --rollback
 #
+# Выполнить установку заново, даже если код уже обновлён (например, после
+# ручного git merge):
+#   ./deploy.sh --redeploy
+#
 # Для приватного репозитория или чтобы не упереться в ограничение запросов,
 # положите токен в /opt/aegis/.deploy-token (права 600) или задайте
 # GITHUB_TOKEN в окружении.
@@ -43,10 +47,12 @@ REQUIRED_JOBS="backend security"
 
 FORCE=0
 ROLLBACK=0
+REDEPLOY=0
 for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
     --rollback) ROLLBACK=1 ;;
+    --redeploy) REDEPLOY=1 ;;
     *) echo "Неизвестный аргумент: $arg"; exit 2 ;;
   esac
 done
@@ -145,14 +151,31 @@ fi
 cd "$REPO_DIR"
 
 say "Получаю изменения"
-git fetch --quiet origin
+# Ветка указана явно, и запрос пароля запрещён.
+#
+# Без имени ветки git обращается к репозиторию иначе и на этом сервере
+# спрашивает учётные данные, хотя репозиторий публичный и `git fetch origin
+# main` проходит молча. А GIT_TERMINAL_PROMPT=0 нужен, чтобы скрипт при любой
+# заминке с доступом завершился с ошибкой, а не завис, ожидая ввода в
+# автоматическом запуске.
+GIT_TERMINAL_PROMPT=0 git fetch --quiet origin main \
+  || fail "не удалось получить изменения из origin/main"
 
 current="$(git rev-parse HEAD)"
 target="$(git rev-parse origin/main)"
 
 if [ "$current" = "$target" ]; then
-  say "Уже на последнем коммите ($(git log -1 --format=%s))"
-  exit 0
+  if [ "$REDEPLOY" -eq 0 ]; then
+    say "Уже на последнем коммите ($(git log -1 --format=%s))"
+    echo
+    echo "Если код обновляли вручную и нужно доделать установку:"
+    echo "  ./deploy.sh --redeploy"
+    exit 0
+  fi
+  # Код уже нужный, но зависимости, миграции, фронт и сервисы могли остаться
+  # от прошлой версии. Проверку сборки всё равно делаем: разворачиваем-то мы
+  # именно этот коммит.
+  say "Код уже обновлён, выполняю установку заново"
 fi
 
 echo "  сейчас:  ${current:0:8} $(git log -1 --format=%s "$current")"
@@ -176,11 +199,18 @@ if [ "$status" -ne 0 ]; then
   fi
 fi
 
-# Запоминаем текущий коммит ДО обновления — иначе откатываться будет некуда.
-echo "$current" > "$LAST_DEPLOY_FILE"
+# Запоминаем предыдущий коммит — иначе откатываться будет некуда.
+# При повторной установке того же кода не трогаем: там нечего запоминать, а
+# перезапись стёрла бы точку возврата на действительно прошлую версию.
+if [ "$current" != "$target" ]; then
+  echo "$current" > "$LAST_DEPLOY_FILE"
+fi
 
-say "Обновляю код"
-git merge --ff-only origin/main
+if [ "$current" != "$target" ]; then
+  say "Обновляю код"
+  git merge --ff-only origin/main \
+    || fail "быстрая перемотка невозможна: на сервере есть свои коммиты"
+fi
 
 say "Зависимости"
 "$BACKEND_DIR/.venv/bin/pip" install -q -r "$BACKEND_DIR/requirements.txt"
