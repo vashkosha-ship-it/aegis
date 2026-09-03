@@ -40,6 +40,9 @@ async def lifespan(_app: FastAPI):
     запросе — то есть уже на пользователе. В production init_rate_limit
     не даст запуститься вовсе.
     """
+    from app.services.email_service import validate_email_configuration
+
+    validate_email_configuration()
     await init_rate_limit()
 
     yield
