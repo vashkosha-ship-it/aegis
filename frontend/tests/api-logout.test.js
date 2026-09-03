@@ -47,7 +47,15 @@ async function main() {
   assert.equal(api.tokens.access, 'access-token', 'локальная сессия должна сохраниться');
   assert.equal(requestOptions.headers['X-CSRF-Token'], 'test-csrf');
 
-  process.stdout.write('api logout regression: ok\n');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const unloadStart = appSource.indexOf("window.addEventListener('beforeunload'");
+  const unloadEnd = appSource.indexOf('// Set с ID сохранённых', unloadStart);
+  const unloadHandler = appSource.slice(unloadStart, unloadEnd);
+  assert.ok(unloadHandler.includes('queueProgress(bookId, p.currentPage, p.totalPages)'));
+  assert.ok(unloadHandler.includes('const accessToken = api.tokens.access'));
+  assert.ok(!unloadHandler.includes("localStorage.getItem('neon_access_token')"));
+
+  process.stdout.write('api logout/progress regressions: ok\n');
 }
 
 main().catch(error => {
