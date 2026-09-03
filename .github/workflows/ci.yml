@@ -143,6 +143,15 @@ jobs:
           git diff --exit-code frontend/handler-allowlist.js \
             || (echo "Реестр устарел: запусти python tools/gen_allowlist.py" && exit 1)
 
+      - name: ESLint
+        # Ошибки блокируют сборку, предупреждения ограничены текущим числом.
+        # Так же, как с подстановками в innerHTML: разом их не вычистить, но
+        # расти они не должны. Уменьшать порог по мере исправлений.
+        working-directory: .
+        run: |
+          npm install --no-save eslint@9
+          npx eslint frontend --max-warnings 54
+
       - name: Новых неэкранированных подстановок нет
         # Присваиваний innerHTML во фронте больше сотни, переписать их разом
         # нельзя. Защёлка фиксирует текущее состояние и валит сборку, если

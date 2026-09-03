@@ -1,0 +1,14 @@
+{
+  "name": "aegis-frontend-lint",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Проверка фронтенда линтером и тесты диспетчера. Без \"type\": \"module\" — иначе Node считает модулями все .js проекта, и тесты с require перестают запускаться. Конфигурация линтера лежит в eslint.config.mjs: расширение .mjs само задаёт модуль, флаг в package.json для этого не нужен.",
+  "scripts": {
+    "lint": "eslint frontend",
+    "lint:ci": "eslint frontend --max-warnings 54"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.0",
+    "jsdom": "^26.0.0"
+  }
+}
