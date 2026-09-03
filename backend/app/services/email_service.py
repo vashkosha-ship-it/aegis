@@ -1,8 +1,8 @@
 """Отправка email через SMTP (подтверждение смены адреса и т.п.).
 
-Если SMTP не настроен (SMTP_HOST пуст), письма не отправляются — код/ссылка
-пишется в лог. Это удобно в dev-режиме: ничего не падает, а значение видно
-в консоли сервера.
+Если SMTP не настроен, production-приложение не должно запускаться. В режиме
+разработки письмо не отправляется, но его тело также не попадает в лог: коды
+подтверждения и восстановления остаются секретами в любом окружении.
 """
 import logging
 import smtplib
@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 
 class EmailError(Exception):
     """Ошибка отправки письма."""
+
+
+class EmailConfigurationError(RuntimeError):
+    """Production-конфигурация email небезопасна или неполна."""
+
+
+def validate_email_configuration() -> None:
+    """Запретить production-запуск без канала доставки одноразовых кодов."""
+    if not settings.DEBUG and not settings.SMTP_HOST.strip():
+        raise EmailConfigurationError(
+            "SMTP_HOST не задан. В production отправка кодов по email обязательна."
+        )
 
 
 def _send_sync(to: str, subject: str, body: str) -> None:
@@ -41,12 +53,13 @@ def _send_sync(to: str, subject: str, body: str) -> None:
 
 
 async def send_email(to: str, subject: str, body: str) -> None:
-    """Отправить письмо. Если SMTP не настроен — лог вместо отправки (dev)."""
+    """Отправить письмо; без SMTP допустим только безопасный dev no-op."""
     if not settings.SMTP_HOST:
         logger.warning(
-            "[EMAIL DISABLED] SMTP не настроен. Письмо для %s НЕ отправлено.\n"
-            "Тема: %s\nТело:\n%s",
-            to, subject, body,
+            "[EMAIL DISABLED] SMTP не настроен; письмо для %s не отправлено "
+            "(тема: %s). Содержимое скрыто.",
+            to,
+            subject,
         )
         return
 
@@ -91,7 +104,12 @@ async def send_verification_code(to: str, code: str) -> None:
 
 async def send_admin_new_registration(username: str, email: str, full_name: str | None) -> None:
     """Уведомить администратора о новом пользователе, ожидающем одобрения."""
-    admin_to = getattr(settings, "ADMIN_NOTIFY_EMAIL", None) or "vash.kosha@gmail.com"
+    admin_to = settings.ADMIN_NOTIFY_EMAIL.strip()
+    if not admin_to:
+        logger.warning(
+            "ADMIN_NOTIFY_EMAIL не задан; уведомление о новой заявке не отправлено"
+        )
+        return
     subject = "Aegis — новая заявка на регистрацию"
     fio = full_name or "(не указано)"
     body = (
