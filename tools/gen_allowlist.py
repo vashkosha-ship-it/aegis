@@ -31,6 +31,7 @@ EXTRA = {"click": {"closeModal", "clickElement"}}
 # resetFilters и clearAssistantChat тоже начинаются с «опасных» слов, но лишь
 # меняют вид на экране.
 SENSITIVE = [
+    "aiMatchArBooksUI",
     "approvePendingUser",
     "rejectPendingUser",
     "deleteAdminUser",
@@ -47,6 +48,10 @@ SENSITIVE = [
     "confirmDeleteAccount",
     "doDeleteAccount",
     "exportAllUserData",
+    "generateMissingCoversUI",
+    "markRequiredForDept",
+    "reindexAllBooksUI",
+    "startBulkUpload",
 ]
 
 # События, возникающие без участия пользователя. Для них список ведётся
