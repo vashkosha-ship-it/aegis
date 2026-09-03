@@ -5281,11 +5281,16 @@ function showPendingApprovalScreen() {
       showToast('Не удалось проверить статус, попробуйте ещё раз');
     }
   };
-  document.getElementById('pendingLogoutBtn').onclick = () => {
-    overlay.remove();
-    api.logout();    clearNoteKey(); stopSyncPolling();
-    state.currentUser = null;
-    navigateTo('auth');
+  document.getElementById('pendingLogoutBtn').onclick = async () => {
+    try {
+      await api.logout();
+      overlay.remove();
+      clearNoteKey(); stopSyncPolling();
+      state.currentUser = null;
+      navigateTo('auth');
+    } catch (err) {
+      showToast(err && err.detail ? err.detail : 'Не удалось завершить сеанс. Попробуйте ещё раз.');
+    }
   };
 }
 
@@ -5508,11 +5513,16 @@ function logout() {
     cancelText: 'Отмена',
     danger: true,
     onConfirm: async () => {
-      api.logout();      clearNoteKey(); stopSyncPolling();
-      await clearUserScopedData();
-      state.currentUser = null;
-      navigateTo('auth');
-      showToast('Вы вышли из аккаунта');
+      try {
+        await api.logout();
+        clearNoteKey(); stopSyncPolling();
+        await clearUserScopedData();
+        state.currentUser = null;
+        navigateTo('auth');
+        showToast('Вы вышли из аккаунта');
+      } catch (err) {
+        showToast(err && err.detail ? err.detail : 'Не удалось завершить сеанс. Попробуйте ещё раз.');
+      }
     },
   });
 }
@@ -5566,7 +5576,8 @@ async function tryAutoLogin() {
       showToast('Офлайн-режим: вход по сохранённой сессии');
       return true;
     }
-    api.logout();    clearNoteKey(); stopSyncPolling();
+    try { await api.logout(); } catch (_) { api.tokens.clear(); }
+    clearNoteKey(); stopSyncPolling();
     clearCachedUser();
     return false;
   }
@@ -5708,13 +5719,18 @@ async function runBiometricUnlock() {
   }
 }
 
-function biometricGateFallback() {
+async function biometricGateFallback() {
   const m = document.getElementById('biometricGate');
-  if (m) m.remove();
-  biometricAuth.disable();
-  api.logout(); clearNoteKey(); stopSyncPolling(); clearCachedUser();
-  state.currentUser = null;
-  navigateTo('auth');
+  try {
+    await api.logout();
+    if (m) m.remove();
+    biometricAuth.disable();
+    clearNoteKey(); stopSyncPolling(); clearCachedUser();
+    state.currentUser = null;
+    navigateTo('auth');
+  } catch (err) {
+    showToast(err && err.detail ? err.detail : 'Не удалось завершить сеанс. Попробуйте ещё раз.');
+  }
 }
 
 // Переключатель в настройках (вкладка «Безопасность»)
@@ -7346,7 +7362,10 @@ async function doDeleteAccount() {
     const m = document.getElementById('deleteAccModal');
     if (m) m.remove();
     showToast('Аккаунт удалён');
-    api.logout();    clearNoteKey(); stopSyncPolling();
+    // Аккаунт уже удалён сервером, поэтому отдельный отзыв сессии здесь
+    // может закономерно вернуть 401. Локальные данные всё равно очищаем.
+    try { await api.logout(); } catch (_) { api.tokens.clear(); }
+    clearNoteKey(); stopSyncPolling();
     setTimeout(() => location.reload(), 800);
   } catch (err) {
     const msg = err && err.detail ? err.detail : (err && err.status ? 'Ошибка ' + err.status : 'Не удалось удалить');
