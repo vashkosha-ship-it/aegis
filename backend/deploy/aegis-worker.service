@@ -5,9 +5,12 @@ Requires=redis-server.service
 
 [Service]
 Type=simple
-User=root
+User=www-data
+Group=www-data
 WorkingDirectory=/opt/aegis/backend
+Environment="HOME=/opt/aegis/backend"
 Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=/opt/aegis/backend/.env
 ExecStart=/opt/aegis/backend/.venv/bin/arq app.worker.WorkerSettings
 Restart=always
 RestartSec=5
@@ -16,6 +19,14 @@ RestartSec=5
 # книги, поэтому память не накапливается. Лимит — страховка от одиночного
 # гигантского PDF; учитывается вся группа процессов юнита.
 MemoryMax=2G
+
+# PDF/EPUB приходят от пользователей и обрабатываются сторонними библиотеками.
+# Воркеру не нужны root-права или возможность повышать привилегии.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target

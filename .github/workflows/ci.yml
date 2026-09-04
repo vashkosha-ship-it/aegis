@@ -109,6 +109,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -119,6 +120,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Установить frontend-инструменты
+        working-directory: .
+        run: npm install --no-save --no-audit --no-fund eslint@9 jsdom@26
 
       - name: Проверка синтаксиса JS
         # Полноценного сборщика у фронта нет, но синтаксическую ошибку
@@ -147,9 +152,7 @@ jobs:
         # Так же, как с подстановками в innerHTML: разом их не вычистить, но
         # расти они не должны. Уменьшать порог по мере исправлений.
         working-directory: .
-        run: |
-          npm install --no-save eslint@9
-          npx eslint frontend --max-warnings 54
+        run: npx --no-install eslint frontend --max-warnings 54
 
       - name: Новых неэкранированных подстановок нет
         # Присваиваний innerHTML во фронте больше сотни, переписать их разом
@@ -162,9 +165,7 @@ jobs:
       - name: Тесты диспетчера обработчиков
         # Проверяют, что разметка, попавшая в DOM, не может позвать
         # произвольную функцию приложения.
-        run: |
-          npm install --no-save jsdom
-          node tests/dispatcher.test.js
+        run: node tests/dispatcher.test.js
 
       - name: Тест корректного выхода
         run: node tests/api-logout.test.js
