@@ -5,7 +5,7 @@
 """
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.user import UserRole
 
@@ -61,10 +61,10 @@ class PendingUserView(BaseModel):
 
 
 class CreateUserRequest(BaseModel):
-    username: str
-    password: str
-    full_name: str | None = None
-    department: str | None = None
+    username: str = Field(min_length=3, max_length=64, pattern=r"^[a-zA-Z0-9_]+$")
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str | None = Field(default=None, max_length=128)
+    department: str | None = Field(default=None, max_length=64)
 
 
 # ---------------------------------------------------------------------------
