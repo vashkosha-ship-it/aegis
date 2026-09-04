@@ -26,6 +26,10 @@ BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
 WORKER_SERVICE = REPO / "backend" / "deploy" / "aegis-worker.service"
 HEALTHCHECK = REPO / "backend" / "deploy" / "healthcheck.sh"
 JOURNAL_CONF = REPO / "backend" / "deploy" / "20-aegis-retention.conf"
+BACKUP_SCRIPT = REPO / "backend" / "deploy" / "backup.sh"
+BACKUP_SERVICE = REPO / "backend" / "deploy" / "aegis-backup.service"
+BACKUP_TIMER = REPO / "backend" / "deploy" / "aegis-backup.timer"
+RESTORE_DOC = REPO / "backend" / "deploy" / "RESTORE.md"
 
 
 def _active_lines(path: Path) -> list[str]:
@@ -289,3 +293,35 @@ class TestLogRetention:
         assert "SystemMaxUse=500M" in active
         assert "RuntimeMaxUse=100M" in active
         assert "MaxRetentionSec=30day" in active
+
+
+class TestBackupConfiguration:
+    """Backup должен быть регулярным, закрытым и проверяемым."""
+
+    def test_backup_is_daily_and_persistent(self):
+        timer = _active_lines(BACKUP_TIMER)
+        assert "OnCalendar=*-*-* 02:30:00 UTC" in timer
+        assert "Persistent=true" in timer
+
+    def test_backup_service_is_hardened(self):
+        service = _active_lines(BACKUP_SERVICE)
+        assert "Type=oneshot" in service
+        assert "UMask=0077" in service
+        assert "NoNewPrivileges=true" in service
+        assert "ProtectSystem=strict" in service
+        assert "ReadWritePaths=/var/backups/aegis" in service
+
+    def test_backup_checksums_and_retention(self):
+        script = BACKUP_SCRIPT.read_text(encoding="utf-8")
+        assert "set -euo pipefail" in script
+        assert "pg_dump --format=custom" in script
+        assert "sha256sum database.dump storage.tar.gz" in script
+        assert "AEGIS_BACKUP_KEEP_DAYS" in script
+        assert ".incomplete-" in script
+
+    def test_restore_requires_integrity_check_and_safety_copy(self):
+        document = RESTORE_DOC.read_text(encoding="utf-8")
+        assert "sha256sum --check SHA256SUMS" in document
+        assert "pre-restore-neon-stack.dump" in document
+        assert "storage.before-restore-" in document
+        assert "systemctl stop aegis aegis-worker" in document

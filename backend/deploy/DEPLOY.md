@@ -13,6 +13,8 @@
 | `aegis.service` | `/etc/systemd/system/` | веб-приложение (gunicorn) |
 | `aegis-worker.service` | `/etc/systemd/system/` | фоновые задачи (индексация PDF) |
 | `20-aegis-retention.conf` | `/etc/systemd/journald.conf.d/` | лимит размера и срока хранения системного журнала |
+| `aegis-backup.service`, `aegis-backup.timer` | `/etc/systemd/system/` | ежедневная резервная копия |
+| `backup.sh`, `RESTORE.md` | остаются в `/opt/aegis/backend/deploy/` | создание копии и инструкция восстановления |
 
 ## Зависимости
 
@@ -51,16 +53,22 @@ install -d -m 0755 /etc/systemd/journald.conf.d
 cp deploy/20-aegis-retention.conf /etc/systemd/journald.conf.d/
 systemctl restart systemd-journald
 
-# 7. Фронт: симлинк, чтобы git pull сразу обновлял сайт
+# 7. Ежедневные резервные копии
+install -d -m 0700 /var/backups/aegis
+cp deploy/aegis-backup.service deploy/aegis-backup.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now aegis-backup.timer
+
+# 8. Фронт: симлинк, чтобы git pull сразу обновлял сайт
 ln -s /opt/aegis/frontend /var/www/aegis
 
-# 8. Nginx
+# 9. Nginx
 cp deploy/nginx-aegis.conf /etc/nginx/sites-available/aegis
 cp deploy/aegis-security-headers.conf /etc/nginx/snippets/
 ln -sf /etc/nginx/sites-available/aegis /etc/nginx/sites-enabled/aegis
 nginx -t && systemctl reload nginx
 
-# 9. HTTPS
+# 10. HTTPS
 certbot --nginx -d aegis-sec-library.ru -d www.aegis-sec-library.ru
 ```
 
@@ -74,6 +82,21 @@ certbot --nginx -d aegis-sec-library.ru -d www.aegis-sec-library.ru
 Журнал административных действий приложения хранится 365 дней. Ежедневная
 задача `cleanup_expired_sessions` удаляет более старые записи вместе с
 истёкшими exam/quiz/refresh-сессиями.
+
+## Резервные копии
+
+Timer ежедневно создаёт PostgreSQL dump и архив local storage в
+`/var/backups/aegis`, записывает SHA-256 и хранит копии 14 дней. Проверка:
+
+```bash
+systemctl list-timers aegis-backup.timer
+systemctl start aegis-backup.service
+journalctl -u aegis-backup.service -n 20 --no-pager
+```
+
+Процедура восстановления описана в [RESTORE.md](RESTORE.md). Минимум раз в
+квартал её нужно проверять на отдельной базе: непроверенный backup нельзя
+считать восстанавливаемым.
 
 ## Обычный деплой
 
