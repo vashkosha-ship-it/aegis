@@ -142,14 +142,17 @@ class TestRefreshConcurrency:
         csrf = parallel_client.cookies.get("aegis_csrf")
 
         # Cookie обновится после первого же обмена, а гонку надо устроить одним
-        # и тем же значением — поэтому отправляем токен телом и чистим cookie.
+        # и тем же значением — поэтому фиксируем Cookie header для всех запросов.
         parallel_client.cookies.clear()
 
         async def refresh():
             return await parallel_client.post(
                 "/auth/refresh",
-                json={"refresh_token": token},
-                headers={"X-CSRF-Token": csrf} if csrf else {},
+                json=None,
+                headers={
+                    "X-CSRF-Token": csrf,
+                    "Cookie": f"aegis_refresh={token}; aegis_csrf={csrf}",
+                },
             )
 
         results = await asyncio.gather(*[refresh() for _ in range(5)],
