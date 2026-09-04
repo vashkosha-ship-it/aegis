@@ -21,6 +21,9 @@ REPO = Path(__file__).resolve().parents[2]
 HEADERS_CONF = REPO / "backend" / "deploy" / "aegis-security-headers.conf"
 INDEX_HTML = REPO / "frontend" / "index.html"
 APP_JS = REPO / "frontend" / "app.js"
+NGINX_CONF = REPO / "backend" / "deploy" / "nginx-aegis.conf"
+BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
+HEALTHCHECK = REPO / "backend" / "deploy" / "healthcheck.sh"
 
 
 def _active_lines(path: Path) -> list[str]:
@@ -226,3 +229,28 @@ class TestNoStaleConfigs:
         assert not path.exists(), (
             f"{stale} — устаревшая копия. Рабочие конфиги в backend/deploy/"
         )
+
+
+class TestHealthRouting:
+    """Healthcheck не должен принимать HTML SPA за здоровый backend."""
+
+    def test_nginx_proxies_health_endpoints(self):
+        config = NGINX_CONF.read_text(encoding="utf-8")
+
+        assert "location = /health" in config
+        assert "proxy_pass http://127.0.0.1:8000/health" in config
+        assert "location = /ready" in config
+        assert "proxy_pass http://127.0.0.1:8000/ready" in config
+
+    def test_healthcheck_validates_json_and_redis(self):
+        script = HEALTHCHECK.read_text(encoding="utf-8")
+
+        assert '\"status\":\"ok\"' in script
+        assert '\"redis\":{\"ok\":true' in script
+        assert '\"database\":{\"ok\":true' in script
+        assert '\"storage\":{\"ok\":true' in script
+
+    def test_backend_requires_redis_service(self):
+        service = BACKEND_SERVICE.read_text(encoding="utf-8")
+
+        assert "Requires=redis-server.service" in service
