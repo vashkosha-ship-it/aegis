@@ -12,8 +12,8 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import asynccontextmanager
-from time import monotonic
 from datetime import UTC, datetime, timedelta
+from time import monotonic
 
 from arq import cron
 from sqlalchemy import delete, select
@@ -74,7 +74,6 @@ async def _measure_job(ctx: dict, job_name: str):
                 )
             except Exception:  # noqa: BLE001 — метрики не ломают полезную работу
                 logger.exception("Не удалось записать метрики задачи %s", job_name)
-
 
 
 async def _index_one(book_id: int) -> int:
