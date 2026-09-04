@@ -268,7 +268,7 @@ async def create_annotation(
         page=payload.page,
         selected_text=payload.selected_text,
         note_text=payload.note_text,
-        position=payload.position,
+        position=payload.position.model_dump(),
     )
     db.add(ann)
     await add_xp(db, current, 5 if payload.type.value == "note" else 2)
