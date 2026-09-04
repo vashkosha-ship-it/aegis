@@ -35,7 +35,7 @@ def test_production_accepts_long_secret(monkeypatch):
     main.validate_security_configuration()
 
 
-async def _call_body_middleware(*, chunks, headers=(), max_bytes=5):
+async def _call_body_middleware(*, chunks, headers=(), max_bytes=5, path="/"):
     messages = [
         {
             "type": "http.request",
@@ -61,7 +61,12 @@ async def _call_body_middleware(*, chunks, headers=(), max_bytes=5):
         await send_response({"type": "http.response.body", "body": b""})
 
     middleware = main.BodySizeLimitMiddleware(consume_app, max_bytes=max_bytes)
-    scope = {"type": "http", "method": "POST", "path": "/", "headers": list(headers)}
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": path,
+        "headers": list(headers),
+    }
     await middleware(scope, receive, send)
     return sent
 
@@ -99,3 +104,24 @@ async def test_body_within_limit_reaches_application():
     sent = await _call_body_middleware(chunks=[b"12", b"345"], max_bytes=5)
 
     assert sent[0]["status"] == 204
+
+
+def test_only_upload_routes_receive_large_limits():
+    middleware = main.BodySizeLimitMiddleware(lambda *_args: None)
+
+    assert (
+        middleware._limit_for_scope({"path": "/api/auth/login"})
+        == 2 * 1024 * 1024
+    )
+    assert (
+        middleware._limit_for_scope({"path": "/api/books/42/pdf"})
+        > 100 * 1024 * 1024
+    )
+    assert (
+        middleware._limit_for_scope({"path": "/api/books/42/cover"})
+        < 10 * 1024 * 1024
+    )
+    assert (
+        middleware._limit_for_scope({"path": "/api/me/avatar"})
+        == 3 * 1024 * 1024
+    )
