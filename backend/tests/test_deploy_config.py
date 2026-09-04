@@ -252,7 +252,6 @@ class TestHealthRouting:
         assert '\"storage\":{\"ok\":true' in script
 
     def test_worker_drops_root_privileges(self):
-        service = WORKER_SERVICE.read_text(encoding="utf-8")
         active = _active_lines(WORKER_SERVICE)
 
         assert "User=www-data" in active
