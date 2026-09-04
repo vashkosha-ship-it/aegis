@@ -92,7 +92,7 @@ const ICONS = {
   warningTriangle: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
   fire: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
   iconPlus: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
-  refresh: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: block; margin: 0 auto;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',fileText: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+  refresh: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-static-style="a001"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',fileText: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
   iconBulb: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2v.3h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>',
   iconNote: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   iconChart: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
@@ -298,9 +298,9 @@ function bookCategoriesText(book) {
 // ========== SKELETON LOADING ==========
 function loadingSpinnerHTML(text) {
   return `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:48px 20px;">
+    <div data-static-style="a002">
       <div class="aegis-spinner"></div>
-      <div style="font-size:14px;color:var(--text-secondary);font-weight:500;letter-spacing:0.3px;">${text || 'Загрузка…'}</div>
+      <div data-static-style="a003">${text || 'Загрузка…'}</div>
     </div>`;
 }
 
@@ -322,9 +322,9 @@ function showListSkeleton(containerId, count = 3) {
   container.innerHTML = Array(count).fill(`
     <div class="skeleton-list-item">
       <div class="skeleton skeleton-avatar"></div>
-      <div style="flex:1;">
-        <div class="skeleton skeleton-title" style="width:60%;"></div>
-        <div class="skeleton skeleton-text" style="width:40%;"></div>
+      <div data-static-style="a004">
+        <div class="skeleton skeleton-title" data-static-style="a005"></div>
+        <div class="skeleton skeleton-text" data-static-style="a006"></div>
       </div>
     </div>
   `).join('');
@@ -1167,7 +1167,7 @@ function renderARScheme(schemeCode) {
   arSelectedStage = null;
 
   if (!AR_SCHEMES[schemeCode]) {
-    container.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);padding:20px;border-radius:12px;color:#fff;text-align:center;pointer-events:none;">Схема в разработке</div>`;
+    container.innerHTML = `<div data-static-style="a007">Схема в разработке</div>`;
     return;
   }
   arActiveSchemeCode = schemeCode;
@@ -1199,16 +1199,16 @@ function renderOwaspScheme() {
                   '#eab308','#84cc16','#84cc16','#10b981','#3b82f6'];
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
+    <div id="arSchemeRoot" data-static-style="a008">
       ${AR_3D.pyramid}
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(239,68,68,0.5);color:#ef4444;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(239,68,68,0.5);color:#ef4444;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(239,68,68,0.5);color:#ef4444;font-size:14px;cursor:pointer;">⟳</button>
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a010">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a010">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a011">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 100px;-webkit-overflow-scrolling:touch;">
-        <div id="killChainWrapper" style="display:flex;justify-content:safe center;min-width:min-content;margin:auto;">
-          <div id="killChainNodes" style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:380px;transition:transform 0.2s ease;transform-origin:top center;">
+      <div id="killChainScrollContainer" data-static-style="a012">
+        <div id="killChainWrapper" data-static-style="a013">
+          <div id="killChainNodes" data-static-style="a014">
             ${stages.map((s, i) => {
               const color = colors[i] || '#3b82f6';
               return `<button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
@@ -1220,9 +1220,9 @@ function renderOwaspScheme() {
                 <div style="width:36px;height:36px;border-radius:8px;background:${color}22;
                             border:1px solid ${color};color:${color};display:flex;align-items:center;
                             justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">A${String(s.id).padStart(2,'0')}</div>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:12px;font-weight:700;color:#fff;">${eh(s.nameRu)}</div>
-                  <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${eh(s.name)}</div>
+                <div data-static-style="a015">
+                  <div data-static-style="a016">${eh(s.nameRu)}</div>
+                  <div data-static-style="a017">${eh(s.name)}</div>
                 </div>
                 <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
               </button>`;
@@ -1230,17 +1230,17 @@ function renderOwaspScheme() {
           </div>
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2,0.9,0.4,1.1);border-radius:20px 20px 0 0;">
-        <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a018">
+        <div data-static-style="a019">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#ef4444;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УЯЗВИМОСТЬ</div>
+          <div data-static-style="a023" id="arStageDetailTitle">НАЖМИТЕ НА УЯЗВИМОСТЬ</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на уязвимость, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на уязвимость, чтобы узнать подробнее</div>
     </div>`;
   initStageDetailsSwipe();
   initARPan();
@@ -1305,7 +1305,7 @@ function renderNistScheme() {
             style="cursor:pointer;transition:fill-opacity 0.25s, transform 0.4s cubic-bezier(0.22,1,0.36,1);transform-origin:${cx}px ${cy}px;opacity:0;"
             data-onclick="selectKillChainStage(${s.id})"></path>
       <text x="${lx}" y="${ly + 5}" text-anchor="middle" fill="#fff" font-size="15" font-weight="800"
-            style="pointer-events:none;font-family:inherit;">${s.code}</text>`;
+            data-static-style="a026">${s.code}</text>`;
   }).join('');
 
   // Стрелки направления цикла (по часовой) — маленькие треугольники между сегментами
@@ -1314,38 +1314,38 @@ function renderNistScheme() {
     const [ax, ay] = polar(rOuter + 12, aEnd);
     const rot = (aEnd * 180 / Math.PI) + 90;
     return `<text x="${ax}" y="${ay}" text-anchor="middle" fill="rgba(0,212,255,0.6)" font-size="12"
-              style="pointer-events:none;" transform="rotate(${rot} ${ax} ${ay})">▶</text>`;
+              data-static-style="a027" transform="rotate(${rot} ${ax} ${ay})">▶</text>`;
   }).join('');
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+    <div id="arSchemeRoot" data-static-style="a008">
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;display:flex;align-items:center;justify-content:center;padding:60px 16px 110px;">
-        <div id="killChainNodes" style="transition:transform 0.2s ease;transform-origin:center center;">
-          <svg width="300" height="300" viewBox="0 0 300 300" style="max-width:88vw;max-height:60vh;">
+      <div id="killChainScrollContainer" data-static-style="a030">
+        <div id="killChainNodes" data-static-style="a031">
+          <svg width="300" height="300" viewBox="0 0 300 300" data-static-style="a032">
             <circle cx="${cx}" cy="${cy}" r="${rInner - 6}" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
-            <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="#00d4ff" font-size="20" font-weight="800" style="font-family:inherit;">NIST</text>
-            <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" style="font-family:inherit;">CSF</text>
-            <g id="nistArrows" style="opacity:0;transition:opacity 0.5s;">${arrows}</g>
+            <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="#00d4ff" font-size="20" font-weight="800" data-static-style="a033">NIST</text>
+            <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" data-static-style="a033">CSF</text>
+            <g id="nistArrows" data-static-style="a034">${arrows}</g>
             ${segs}
           </svg>
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
-        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
+        <div data-static-style="a036">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ФУНКЦИЮ</div>
+          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА ФУНКЦИЮ</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на функцию цикла, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на функцию цикла, чтобы узнать подробнее</div>
     </div>`;
 
   initStageDetailsSwipe();
@@ -1394,12 +1394,12 @@ function renderDidScheme() {
     if (isCenter) {
       return `<circle id="didRing${s.id}" cx="${cx}" cy="${cy}" r="${rOuter}"
         fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="2"
-        style="cursor:pointer;transition:fill-opacity 0.25s, r 0.4s cubic-bezier(0.22,1,0.36,1);opacity:0;"
+        data-static-style="a038"
         data-onclick="selectKillChainStage(${s.id})"></circle>`;
     }
     return `<circle id="didRing${s.id}" cx="${cx}" cy="${cy}" r="${rOuter}"
       fill="${color}" fill-opacity="0.10" stroke="${color}" stroke-width="2"
-      style="cursor:pointer;transition:fill-opacity 0.25s, r 0.4s cubic-bezier(0.22,1,0.36,1);opacity:0;"
+      data-static-style="a038"
       data-onclick="selectKillChainStage(${s.id})"></circle>`;
   }).join('');
 
@@ -1407,39 +1407,39 @@ function renderDidScheme() {
   const labels = rings.map(({ s, rOuter, rInner, color, isCenter }) => {
     if (isCenter) {
       return `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="12" font-weight="800"
-        style="pointer-events:none;font-family:inherit;">${s.nameRu}</text>`;
+        data-static-style="a026">${s.nameRu}</text>`;
     }
     const ly = cy - (rOuter + rInner) / 2 + 4;
     return `<text x="${cx}" y="${ly}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700"
-      style="pointer-events:none;font-family:inherit;">${s.nameRu}</text>`;
+      data-static-style="a026">${s.nameRu}</text>`;
   }).join('');
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+    <div id="arSchemeRoot" data-static-style="a008">
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;display:flex;align-items:center;justify-content:center;padding:60px 16px 110px;">
-        <div id="killChainNodes" style="transition:transform 0.2s ease;transform-origin:center center;">
-          <svg width="320" height="320" viewBox="0 0 320 320" style="max-width:90vw;max-height:62vh;">
+      <div id="killChainScrollContainer" data-static-style="a030">
+        <div id="killChainNodes" data-static-style="a031">
+          <svg width="320" height="320" viewBox="0 0 320 320" data-static-style="a039">
             ${circles}
             ${labels}
           </svg>
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
-        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
+        <div data-static-style="a036">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА СЛОЙ</div>
+          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА СЛОЙ</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на слой защиты, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на слой защиты, чтобы узнать подробнее</div>
     </div>`;
 
   initStageDetailsSwipe();
@@ -1466,9 +1466,9 @@ function renderIrScheme() {
     const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
     const isLast = i === stages.length - 1;
     return `
-      <div style="display:flex;gap:14px;align-items:stretch;pointer-events:auto;">
+      <div data-static-style="a040">
         <!-- Колонка таймлайна: точка + линия -->
-        <div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0;">
+        <div data-static-style="a041">
           <div id="arNode${s.id}" data-onclick="selectKillChainStage(${s.id})"
                style="width:36px;height:36px;border-radius:50%;background:${color}22;border:2px solid ${color};
                       color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;
@@ -1481,35 +1481,35 @@ function renderIrScheme() {
                        backdrop-filter:blur(10px);border:1px solid ${color}44;border-left:3px solid ${color};
                        border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;transition:all 0.2s;
                        opacity:0;transform:translateX(20px);" id="arCard${s.id}">
-          <div style="font-weight:700;font-size:14px;">${s.nameRu}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px;">${s.name}</div>
+          <div data-static-style="a042">${s.nameRu}</div>
+          <div data-static-style="a043">${s.name}</div>
         </button>
       </div>`;
   }).join('');
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+    <div id="arSchemeRoot" data-static-style="a008">
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 110px;">
-        <div id="killChainNodes" style="max-width:420px;margin:auto;transition:transform 0.2s ease;transform-origin:top center;">
+      <div id="killChainScrollContainer" data-static-style="a044">
+        <div id="killChainNodes" data-static-style="a045">
           ${items}
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
-        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
+        <div data-static-style="a036">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
+          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на этап реагирования, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на этап реагирования, чтобы узнать подробнее</div>
     </div>`;
 
   initStageDetailsSwipe();
@@ -1548,34 +1548,34 @@ function renderStrideScheme() {
         <div style="width:42px;height:42px;border-radius:12px;background:${color}22;border:1.5px solid ${color};
                     color:${color};display:flex;align-items:center;justify-content:center;font-weight:900;
                     font-size:20px;margin-bottom:8px;z-index:1;">${s.code}</div>
-        <div style="font-size:12px;font-weight:700;text-align:center;line-height:1.2;z-index:1;">${s.nameRu}</div>
-        <div style="font-size:9.5px;color:rgba(255,255,255,0.55);text-align:center;margin-top:2px;z-index:1;">${s.name}</div>
+        <div data-static-style="a046">${s.nameRu}</div>
+        <div data-static-style="a047">${s.name}</div>
       </button>`;
   }).join('');
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+    <div id="arSchemeRoot" data-static-style="a008">
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 110px;display:flex;align-items:center;">
-        <div id="killChainNodes" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:380px;margin:auto;transition:transform 0.2s ease;transform-origin:center center;">
+      <div id="killChainScrollContainer" data-static-style="a048">
+        <div id="killChainNodes" data-static-style="a049">
           ${cards}
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
-        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
+        <div data-static-style="a036">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА КАТЕГОРИЮ</div>
+          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА КАТЕГОРИЮ</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на категорию угроз, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на категорию угроз, чтобы узнать подробнее</div>
     </div>`;
 
   initStageDetailsSwipe();
@@ -1600,15 +1600,15 @@ function renderGenericScheme(scheme) {
   const stages = scheme.stages;
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+    <div id="arSchemeRoot" data-static-style="a008">
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 100px;-webkit-overflow-scrolling:touch;">
-        <div id="killChainWrapper" style="display:flex;justify-content:safe center;min-width:min-content;margin:auto;">
-          <div id="killChainNodes" style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:380px;transition:transform 0.2s ease;transform-origin:top center;">
+      <div id="killChainScrollContainer" data-static-style="a012">
+        <div id="killChainWrapper" data-static-style="a013">
+          <div id="killChainNodes" data-static-style="a014">
             ${stages.map((s) => {
               const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
               const badge = (s.code || String(s.id)).toUpperCase().slice(0, 4);
@@ -1621,9 +1621,9 @@ function renderGenericScheme(scheme) {
                 <div style="width:40px;height:36px;border-radius:8px;background:${color}22;
                             border:1px solid ${color};color:${color};display:flex;align-items:center;
                             justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;">${badge}</div>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-weight:700;font-size:13px;">${s.nameRu}</div>
-                  <div style="font-size:11px;color:rgba(255,255,255,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
+                <div data-static-style="a015">
+                  <div data-static-style="a050">${s.nameRu}</div>
+                  <div data-static-style="a051">${s.name}</div>
                 </div>
                 <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
               </button>`;
@@ -1631,17 +1631,17 @@ function renderGenericScheme(scheme) {
           </div>
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
-        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
+        <div data-static-style="a036">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
+          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на этап, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на этап, чтобы узнать подробнее</div>
     </div>`;
   initStageDetailsSwipe();
   initARPan();
@@ -1682,42 +1682,42 @@ function renderOsiScheme() {
         <div style="width:44px;height:44px;border-radius:10px;background:${color}33;border:1.5px solid ${color};
                     color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
                     flex-shrink:0;line-height:1;">
-          <div style="font-size:9px;opacity:0.8;">LVL</div>
-          <div style="font-size:18px;font-weight:900;">${num}</div>
+          <div data-static-style="a052">LVL</div>
+          <div data-static-style="a053">${num}</div>
         </div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:14px;">${s.nameRu}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.6);">${s.name}</div>
+        <div data-static-style="a015">
+          <div data-static-style="a042">${s.nameRu}</div>
+          <div data-static-style="a054">${s.name}</div>
         </div>
         <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 8px ${color};"></div>
       </button>`;
   }).join('');
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+    <div id="arSchemeRoot" data-static-style="a008">
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
       </div>
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:60px 16px 110px;">
-        <div id="killChainNodes" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:400px;margin:auto;transition:transform 0.2s ease;transform-origin:top center;">
-          <div style="text-align:center;color:rgba(255,255,255,0.5);font-size:10px;margin-bottom:4px;letter-spacing:1px;">▲ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ</div>
+      <div id="killChainScrollContainer" data-static-style="a044">
+        <div id="killChainNodes" data-static-style="a055">
+          <div data-static-style="a056">▲ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ</div>
           ${layers}
-          <div style="text-align:center;color:rgba(255,255,255,0.5);font-size:10px;margin-top:4px;letter-spacing:1px;">ФИЗИЧЕСКАЯ СРЕДА ▼</div>
+          <div data-static-style="a057">ФИЗИЧЕСКАЯ СРЕДА ▼</div>
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
-        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
+        <div data-static-style="a036">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА УРОВЕНЬ</div>
+          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА УРОВЕНЬ</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на уровень модели, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на уровень модели, чтобы узнать подробнее</div>
     </div>`;
 
   initStageDetailsSwipe();
@@ -1756,49 +1756,49 @@ function renderMitreScheme() {
     const color = dangerColor(i, stages.length);
     const isLast = i === stages.length - 1;
     return `
-      <div style="display:flex;align-items:center;flex-shrink:0;">
+      <div data-static-style="a058">
         <button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
           style="width:130px;min-height:120px;display:flex;flex-direction:column;align-items:flex-start;
                  padding:12px;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);
                  border:1px solid ${color}66;border-top:3px solid ${color};border-radius:12px;
                  color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.25s;
                  flex-shrink:0;opacity:0;transform:translateY(16px);">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <div data-static-style="a059">
             <div style="width:26px;height:26px;border-radius:7px;background:${color}33;border:1px solid ${color};
                         color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${i + 1}</div>
-            <div style="font-size:8.5px;color:rgba(255,255,255,0.4);font-family:monospace;text-transform:uppercase;">${s.code}</div>
+            <div data-static-style="a060">${s.code}</div>
           </div>
-          <div style="font-weight:700;font-size:13px;line-height:1.2;margin-bottom:3px;">${s.nameRu}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,0.55);line-height:1.2;">${s.name}</div>
+          <div data-static-style="a061">${s.nameRu}</div>
+          <div data-static-style="a062">${s.name}</div>
         </button>
         ${isLast ? '' : `<div style="color:${color};font-size:18px;margin:0 4px;flex-shrink:0;opacity:0.7;">→</div>`}
       </div>`;
   }).join('');
 
   container.innerHTML = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.4);">
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;">⟳</button>
+    <div id="arSchemeRoot" data-static-style="a008">
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
       </div>
-      <div style="position:absolute;top:64px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.6);font-size:10px;letter-spacing:1px;pointer-events:none;z-index:6;">РАЗВЕДКА ──────▶ ВОЗДЕЙСТВИЕ (листай вбок)</div>
-      <div id="killChainScrollContainer" style="flex:1;overflow-x:auto;overflow-y:auto;pointer-events:auto;padding:96px 16px 110px;display:flex;align-items:center;-webkit-overflow-scrolling:touch;">
-        <div id="killChainNodes" style="display:flex;align-items:center;gap:0;min-width:min-content;margin:auto;transition:transform 0.2s ease;transform-origin:left center;">
+      <div data-static-style="a063">РАЗВЕДКА ──────▶ ВОЗДЕЙСТВИЕ (листай вбок)</div>
+      <div id="killChainScrollContainer" data-static-style="a064">
+        <div id="killChainNodes" data-static-style="a065">
           ${cards}
         </div>
       </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" style="position:absolute;bottom:0;left:0;right:0;background:rgba(15,18,30,0.97);backdrop-filter:blur(20px);border-top:1px solid rgba(0,212,255,0.3);border-radius:20px 20px 0 0;transform:translateY(calc(100% - 60px));transition:transform 0.3s ease;z-index:10;max-height:75vh;overflow-y:auto;pointer-events:auto;">
-        <div style="position:sticky;top:0;background:rgba(15,18,30,0.97);padding:12px 16px 8px;border-radius:20px 20px 0 0;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
+        <div data-static-style="a036">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:#00d4ff;font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ТАКТИКУ</div>
+          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА ТАКТИКУ</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;"></div>
+        <div id="arStageDetailContent" data-static-style="a024"></div>
       </div>
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">Нажми на тактику атаки, чтобы узнать подробнее</div>
+      <div id="arStageHint" data-static-style="a025">Нажми на тактику атаки, чтобы узнать подробнее</div>
     </div>`;
 
   initStageDetailsSwipe();
@@ -1865,33 +1865,33 @@ function renderKillChainScheme() {
   currentARSchemeZoom = 1;
   
   let html = `
-    <div id="arSchemeRoot" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;pointer-events:none;background:rgba(0,0,0,0.3);">
+    <div id="arSchemeRoot" data-static-style="a066">
       ${AR_3D.cube}
       
       <!-- Контролы зума -->
-      <div style="position:absolute;top:70px;right:12px;z-index:30;display:flex;flex-direction:column;gap:8px;pointer-events:auto;">
-        <button data-onclick="zoomARScheme('in')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);">+</button>
-        <button data-onclick="zoomARScheme('out')" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:22px;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);">−</button>
-        <button data-onclick="resetARSchemeZoom()" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid rgba(0,212,255,0.5);color:#00d4ff;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);">⟳</button>
+      <div data-static-style="a009">
+        <button data-onclick="zoomARScheme('in')" data-static-style="a067">+</button>
+        <button data-onclick="zoomARScheme('out')" data-static-style="a067">−</button>
+        <button data-onclick="resetARSchemeZoom()" data-static-style="a068">⟳</button>
       </div>
       
       <!-- Контейнер для скролла с поддержкой зума -->
-      <div id="killChainScrollContainer" style="flex:1;overflow:auto;pointer-events:auto;padding:64px 16px 80px;-webkit-overflow-scrolling:touch;">
-        <div id="killChainWrapper" style="display:flex;justify-content:safe center;min-width:min-content;margin:auto;">
+      <div id="killChainScrollContainer" data-static-style="a069">
+        <div id="killChainWrapper" data-static-style="a013">
           <div id="killChainNodes" style="display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;">
             ${stages.map((s, i) => `
               ${i > 0 ? `<div class="ar-chain-link${isVertical ? ' vertical' : ''}" style="width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(0,212,255,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(0,212,255,0.2),inset 0 0 4px rgba(0,0,0,0.4);"></div>` : ''}
               ${(() => {
                 const studied = isKillChainStageStudied(s);
                 const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
-                const checkmark = studied ? `<div style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.3);">✓</div>` : '';
+                const checkmark = studied ? `<div data-static-style="a070">✓</div>` : '';
                 return `
-                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
+                <div data-static-style="a071">
                 <button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" style="position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);">
                   <div style="font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);">${s.id}</div>
                   ${checkmark}
                 </button>
-                <div style="font-size:11px;font-weight:600;color:#fff;text-align:center;line-height:1.2;max-width:96px;text-shadow:0 1px 3px rgba(0,0,0,0.8);">${s.nameRu}</div>
+                <div data-static-style="a072">${s.nameRu}</div>
                 </div>
                 `;
               })()}
@@ -1901,21 +1901,21 @@ function renderKillChainScheme() {
       </div>
 
       <!-- Панель деталей этапа (с возможностью свайпа вверх) -->
-      <div id="arStageDetails" class="ar-stage-details-panel" style="display:none;position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.2);color:#fff;max-height:70%;overflow-y:auto;pointer-events:auto;z-index:20;transform:translateY(calc(100% - 60px));transition:transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);border-radius:20px 20px 0 0;">
-        <div style="position:sticky;top:0;background:inherit;backdrop-filter:blur(20px);padding:12px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);cursor:grab;touch-action:pan-y;">
-          <div style="width:40px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;margin:0 auto 8px;"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" style="position:absolute;top:8px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:25;" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.3s ease;"><polyline points="18 15 12 9 6 15"/></svg>
+      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a073">
+        <div data-static-style="a074">
+          <div data-static-style="a020"></div>
+          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
-          <div style="font-size:10px;color:var(--accent);font-weight:600;" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
+          <div data-static-style="a075" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
         </div>
-        <div id="arStageDetailContent" style="padding:16px 20px 24px;">
+        <div id="arStageDetailContent" data-static-style="a024">
           <!-- Содержимое будет подставлено -->
         </div>
       </div>
       
       <!-- Подсказка -->
-      <div id="arStageHint" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:16px;color:rgba(255,255,255,0.7);font-size:11px;background:linear-gradient(0deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:5;">
+      <div id="arStageHint" data-static-style="a025">
         Нажми на этап, чтобы узнать подробнее
       </div>
     </div>
@@ -2254,7 +2254,7 @@ function showZoomIndicator(percent) {
   const indicator = document.createElement('div');
   indicator.id = 'zoomIndicator';
   indicator.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-static-style="a076">
       <circle cx="11" cy="11" r="8"/>
       <line x1="21" y1="21" x2="16.65" y2="16.65"/>
       <line x1="11" y1="8" x2="11" y2="14"/>
@@ -2347,80 +2347,80 @@ function selectKillChainStage(stageId) {
   const contentEl = document.getElementById('arStageDetailContent');
   if (contentEl) {
     contentEl.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(168,85,247,0.08));border:1px solid rgba(0,212,255,0.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
-        <div style="font-size:9px;font-weight:700;color:rgba(0,212,255,0.9);letter-spacing:0.8px;margin-bottom:4px;">МЕТАФОРА</div>
-        <div style="font-size:12px;line-height:1.4;font-style:italic;opacity:0.9;">${eh(stage.metaphor || '—')}</div>
+      <div data-static-style="a077">
+        <div data-static-style="a078">МЕТАФОРА</div>
+        <div data-static-style="a079">${eh(stage.metaphor || '—')}</div>
       </div>
 
       <div style="display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;">
         <div style="width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">
           ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
         </div>
-        <div style="flex:1;">
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;opacity:0.7;">МЕТОД ЗАЩИТЫ (6D)</div>
+        <div data-static-style="a004">
+          <div data-static-style="a080">МЕТОД ЗАЩИТЫ (6D)</div>
           <div style="font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};">
             ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
           </div>
         </div>
       </div>
 
-      <div style="font-size:13px;line-height:1.5;opacity:0.9;margin-bottom:14px;">${eh(stage.description)}</div>
+      <div data-static-style="a081">${eh(stage.description)}</div>
 
-      <div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.04);padding:3px;border-radius:8px;">
-        <button data-onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" style="flex:1;padding:7px;background:rgba(239,68,68,0.25);border:none;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+      <div data-static-style="a082">
+        <button data-onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" data-static-style="a083">
           ${ICONS.iconSword} АТАКА
         </button>
-        <button data-onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <button data-onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" data-static-style="a084">
           ${ICONS.iconShield} ЗАЩИТА
         </button>
-        <button data-onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <button data-onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" data-static-style="a084">
           ИНСТРУМЕНТЫ
         </button>
       </div>
 
-      <div id="killChainTabContent-attack" class="killchain-tab-content" style="display:block;margin-bottom:16px;">
-        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
-          ${stage.attacker.map(a => `<li style="margin-bottom:6px;">${eh(a)}</li>`).join('')}
+      <div id="killChainTabContent-attack" class="killchain-tab-content" data-static-style="a085">
+        <ul data-static-style="a086">
+          ${stage.attacker.map(a => `<li data-static-style="a087">${eh(a)}</li>`).join('')}
         </ul>
       </div>
 
-      <div id="killChainTabContent-defense" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
-        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
-          ${stage.defender.map(d => `<li style="margin-bottom:6px;">${eh(d)}</li>`).join('')}
+      <div id="killChainTabContent-defense" class="killchain-tab-content" data-static-style="a088">
+        <ul data-static-style="a086">
+          ${stage.defender.map(d => `<li data-static-style="a087">${eh(d)}</li>`).join('')}
         </ul>
       </div>
 
-      <div id="killChainTabContent-tools" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
+      <div id="killChainTabContent-tools" class="killchain-tab-content" data-static-style="a088">
         ${(stage.defenseTools && stage.defenseTools.length) ? `
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <div data-static-style="a089">
             ${stage.defenseTools.map(t => `
               <div style="background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;">
                 ${eh(t)}
               </div>
             `).join('')}
           </div>
-        ` : `<div style="font-size:11px;opacity:0.5;text-align:center;padding:12px;">Список инструментов не задан</div>`}
+        ` : `<div data-static-style="a090">Список инструментов не задан</div>`}
       </div>
 
       ${relatedBooks.length > 0 ? `
-        <div style="margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:rgba(0,212,255,0.9);letter-spacing:0.5px;margin-bottom:8px;">${ICONS.iconBook} КНИГИ ПО ТЕМЕ</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
+        <div data-static-style="a091">
+          <div data-static-style="a092">${ICONS.iconBook} КНИГИ ПО ТЕМЕ</div>
+          <div data-static-style="a093">
             ${relatedBooks.slice(0, 3).map(b => `
-              <button data-onclick="openBookFromAR(${b.id})" style="text-align:left;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;color:#fff;cursor:pointer;font-family:inherit;font-size:11px;transition:all 0.2s;">
-                <div style="font-weight:600;margin-bottom:4px;">${eh(b.title)}</div>
-                <div style="font-size:10px;opacity:0.6;">${eh(b.author)}</div>
+              <button data-onclick="openBookFromAR(${b.id})" data-static-style="a094">
+                <div data-static-style="a095">${eh(b.title)}</div>
+                <div data-static-style="a096">${eh(b.author)}</div>
               </button>
             `).join('')}
           </div>
         </div>
       ` : `
-        <div style="font-size:11px;opacity:0.5;text-align:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:16px;">
+        <div data-static-style="a097">
           Книг по теме «${eh(stage.relatedCategory)}» пока нет
         </div>
       `}
 
-      <div style="display:flex;gap:10px;margin-top:8px;">
+      <div data-static-style="a098">
         <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
         <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
       </div>
@@ -2569,9 +2569,9 @@ function applyKillChainViewMode() {
   if (contentEl) {
     contentEl.innerHTML = `
       <!-- Метафора визуализации -->
-      <div style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(168,85,247,0.08));border:1px solid rgba(0,212,255,0.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
-        <div style="font-size:9px;font-weight:700;color:rgba(0,212,255,0.9);letter-spacing:0.8px;margin-bottom:4px;">МЕТАФОРА</div>
-        <div style="font-size:12px;line-height:1.4;font-style:italic;opacity:0.9;">${eh(stage.metaphor || '—')}</div>
+      <div data-static-style="a077">
+        <div data-static-style="a078">МЕТАФОРА</div>
+        <div data-static-style="a079">${eh(stage.metaphor || '—')}</div>
       </div>
 
       <!-- Бейдж метода защиты -->
@@ -2579,8 +2579,8 @@ function applyKillChainViewMode() {
         <div style="width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">
           ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
         </div>
-        <div style="flex:1;">
-          <div style="font-size:9px;font-weight:700;letter-spacing:0.8px;opacity:0.7;">МЕТОД ЗАЩИТЫ (6D)</div>
+        <div data-static-style="a004">
+          <div data-static-style="a080">МЕТОД ЗАЩИТЫ (6D)</div>
           <div style="font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};">
             ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
           </div>
@@ -2588,65 +2588,65 @@ function applyKillChainViewMode() {
       </div>
 
       <!-- Описание -->
-      <div style="font-size:13px;line-height:1.5;opacity:0.9;margin-bottom:14px;">${eh(stage.description)}</div>
+      <div data-static-style="a081">${eh(stage.description)}</div>
 
       <!-- Вкладки Атака / Защита / Инструменты -->
-      <div style="display:flex;gap:4px;margin-bottom:10px;background:rgba(255,255,255,0.04);padding:3px;border-radius:8px;">
-        <button data-onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" style="flex:1;padding:7px;background:rgba(239,68,68,0.25);border:none;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+      <div data-static-style="a082">
+        <button data-onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" data-static-style="a083">
           ${ICONS.iconSword} АТАКА
         </button>
-        <button data-onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <button data-onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" data-static-style="a084">
           ${ICONS.iconShield} ЗАЩИТА
         </button>
-        <button data-onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" style="flex:1;padding:7px;background:transparent;border:none;color:rgba(255,255,255,0.6);border-radius:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <button data-onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" data-static-style="a084">
           ⚙ ИНСТРУМЕНТЫ
         </button>
       </div>
 
       <!-- Содержимое вкладок -->
-      <div id="killChainTabContent-attack" class="killchain-tab-content" style="display:block;margin-bottom:16px;">
-        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
-          ${stage.attacker.map(a => `<li style="margin-bottom:6px;">${eh(a)}</li>`).join('')}
+      <div id="killChainTabContent-attack" class="killchain-tab-content" data-static-style="a085">
+        <ul data-static-style="a086">
+          ${stage.attacker.map(a => `<li data-static-style="a087">${eh(a)}</li>`).join('')}
         </ul>
       </div>
 
-      <div id="killChainTabContent-defense" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
-        <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;opacity:0.9;">
-          ${stage.defender.map(d => `<li style="margin-bottom:6px;">${eh(d)}</li>`).join('')}
+      <div id="killChainTabContent-defense" class="killchain-tab-content" data-static-style="a088">
+        <ul data-static-style="a086">
+          ${stage.defender.map(d => `<li data-static-style="a087">${eh(d)}</li>`).join('')}
         </ul>
       </div>
 
-      <div id="killChainTabContent-tools" class="killchain-tab-content" style="display:none;margin-bottom:16px;">
+      <div id="killChainTabContent-tools" class="killchain-tab-content" data-static-style="a088">
         ${(stage.defenseTools && stage.defenseTools.length) ? `
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <div data-static-style="a089">
             ${stage.defenseTools.map(t => `
               <div style="background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;">
                 ${eh(t)}
               </div>
             `).join('')}
           </div>
-        ` : `<div style="font-size:11px;opacity:0.5;text-align:center;padding:12px;">Список инструментов не задан</div>`}
+        ` : `<div data-static-style="a090">Список инструментов не задан</div>`}
       </div>
 
       ${relatedBooks.length > 0 ? `
-        <div style="margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:rgba(0,212,255,0.9);letter-spacing:0.5px;margin-bottom:8px;">${ICONS.iconBook} КНИГИ ПО ТЕМЕ</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
+        <div data-static-style="a091">
+          <div data-static-style="a092">${ICONS.iconBook} КНИГИ ПО ТЕМЕ</div>
+          <div data-static-style="a093">
             ${relatedBooks.slice(0, 3).map(b => `
-              <button data-onclick="openBookFromAR(${b.id})" style="text-align:left;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;color:#fff;cursor:pointer;font-family:inherit;font-size:11px;transition:all 0.2s;">
-                <div style="font-weight:600;margin-bottom:4px;">${eh(b.title)}</div>
-                <div style="font-size:10px;opacity:0.6;">${eh(b.author)}</div>
+              <button data-onclick="openBookFromAR(${b.id})" data-static-style="a094">
+                <div data-static-style="a095">${eh(b.title)}</div>
+                <div data-static-style="a096">${eh(b.author)}</div>
               </button>
             `).join('')}
           </div>
         </div>
       ` : `
-        <div style="font-size:11px;opacity:0.5;text-align:center;padding:12px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:16px;">
+        <div data-static-style="a097">
           Книг по теме «${eh(stage.relatedCategory)}» пока нет
         </div>
       `}
 
-      <div style="display:flex;gap:10px;margin-top:8px;">
+      <div data-static-style="a098">
        <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
         <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
       </div>
@@ -2873,17 +2873,17 @@ function renderAchievementsInProfile() {
   const ownedCodes = new Set(owned.map(a => a.code));
 
   if (!owned.length && !catalog.length) {
-    l.innerHTML = '<span style="font-size:10px;color:var(--text-muted);">Нет достижений</span>';
+    l.innerHTML = '<span data-static-style="a099">Нет достижений</span>';
     return;
   }
 
   // Сначала полученные (ярко), затем остальные из каталога (приглушённо — как цели).
   const lockedList = catalog.filter(a => !ownedCodes.has(a.code));
   const ownedHtml = owned.map(a =>
-    `<span class="achievement-badge ${a.tier}" title="${eh(a.description)}"><span style="display:inline-flex;vertical-align:middle;margin-right:4px;">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
+    `<span class="achievement-badge ${a.tier}" title="${eh(a.description)}"><span data-static-style="a100">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
   ).join('');
   const lockedHtml = lockedList.map(a =>
-    `<span class="achievement-badge ${a.tier} locked" title="${eh(a.description)}"><span style="display:inline-flex;vertical-align:middle;margin-right:4px;">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
+    `<span class="achievement-badge ${a.tier} locked" title="${eh(a.description)}"><span data-static-style="a100">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
   ).join('');
 
   l.innerHTML = ownedHtml + lockedHtml;
@@ -3170,17 +3170,17 @@ function showFinishReviewModal(bookId) {
   const m = document.createElement('div');
   m.id = 'finishReviewModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6500;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:18px;padding:24px 20px;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow-card);">
-      <div style="font-size:40px;margin-bottom:8px;">${ICONS.check || '✓'}</div>
-      <h3 style="font-size:16px;font-weight:700;margin-bottom:6px;">Книга прочитана!</h3>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">${book ? eh(book.title) : 'Эта книга'} — поделитесь оценкой, это поможет другим читателям.</p>
-      <div class="star-input" style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
-        ${[1,2,3,4,5].map(i => `<span class="star" style="cursor:pointer;font-size:30px;line-height:1;" data-onclick="setFinishReviewStar(${i})">${renderStarSVG(false)}</span>`).join('')}
+  m.innerHTML = `<div data-static-style="a101">
+      <div data-static-style="a102">${ICONS.check || '✓'}</div>
+      <h3 data-static-style="a103">Книга прочитана!</h3>
+      <p data-static-style="a104">${book ? eh(book.title) : 'Эта книга'} — поделитесь оценкой, это поможет другим читателям.</p>
+      <div class="star-input" data-static-style="a105">
+        ${[1,2,3,4,5].map(i => `<span class="star" data-static-style="a106" data-onclick="setFinishReviewStar(${i})">${renderStarSVG(false)}</span>`).join('')}
       </div>
-      <textarea id="finishReviewText" rows="2" placeholder="Пара слов о книге (необязательно)" style="width:100%;margin-bottom:14px;"></textarea>
-      <div style="display:flex;gap:8px;">
-        <button class="btn" data-onclick="closeFinishReviewModal()" style="flex:1;padding:11px;font-size:13px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);">Позже</button>
-        <button class="btn btn-primary" data-onclick="submitFinishReview(${bookId})" style="flex:1;padding:11px;font-size:13px;">Оценить</button>
+      <textarea id="finishReviewText" rows="2" placeholder="Пара слов о книге (необязательно)" data-static-style="a107"></textarea>
+      <div data-static-style="a108">
+        <button class="btn" data-onclick="closeFinishReviewModal()" data-static-style="a109">Позже</button>
+        <button class="btn btn-primary" data-onclick="submitFinishReview(${bookId})" data-static-style="a110">Оценить</button>
       </div>
     </div>`;
   m.addEventListener('click', (e) => { if (e.target === m) closeFinishReviewModal(); });
@@ -3204,13 +3204,13 @@ async function runFullTextSearch() {
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor);
     else if (container) container.parentNode.insertBefore(panel, container);
   }
-  panel.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Ищу «${eh(q)}»…</div>`;
+  panel.innerHTML = `<div data-static-style="a111">Ищу «${eh(q)}»…</div>`;
 
   try {
     const res = await api.library.searchBooks(q, 20);
     renderFullTextResults(res);
   } catch (e) {
-    panel.innerHTML = `<div style="text-align:center;padding:20px;color:#ef4444;font-size:13px;">Ошибка поиска. ${eh(e?.detail || '')}</div>`;
+    panel.innerHTML = `<div data-static-style="a112">Ошибка поиска. ${eh(e?.detail || '')}</div>`;
   }
 }
 
@@ -3219,32 +3219,32 @@ function renderFullTextResults(res) {
   if (!panel) return;
   if (!res.hits || !res.hits.length) {
     panel.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div data-static-style="a113">
         <div class="section-title">Поиск: «${eh(res.query)}»</div>
-        <button data-onclick="clearFullTextSearch()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;">Очистить</button>
+        <button data-onclick="clearFullTextSearch()" data-static-style="a114">Очистить</button>
       </div>
-      <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">Ничего не найдено. Возможно, книги ещё не проиндексированы (админ → «Переиндексировать»).</div>`;
+      <div data-static-style="a111">Ничего не найдено. Возможно, книги ещё не проиндексированы (админ → «Переиндексировать»).</div>`;
     return;
   }
   const matchLabel = { meta: 'в описании', content: 'в тексте', both: 'в описании и тексте' };
   panel.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div data-static-style="a113">
       <div class="section-title">Найдено: ${res.total} по «${eh(res.query)}»</div>
-      <button data-onclick="clearFullTextSearch()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;">Очистить</button>
+      <button data-onclick="clearFullTextSearch()" data-static-style="a114">Очистить</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
+    <div data-static-style="a115">
       ${res.hits.map(h => `
-        <div data-onclick="openBookDetail(${h.book_id})" style="display:flex;gap:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;">
-          <div style="width:46px;height:62px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--bg-primary);">
-            ${h.has_cover ? `<img src="${api.books.coverUrl(h.book_id)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:20px;">📕</div>`}
+        <div data-onclick="openBookDetail(${h.book_id})" data-static-style="a116">
+          <div data-static-style="a117">
+            ${h.has_cover ? `<img src="${api.books.coverUrl(h.book_id)}" alt="" data-static-style="a118">` : `<div data-static-style="a119">📕</div>`}
           </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:14px;font-weight:600;">${eh(h.title)}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin:2px 0 4px;">${eh(h.author)} · совпадение ${matchLabel[h.matched_in] || ''}</div>
+          <div data-static-style="a015">
+            <div data-static-style="a120">${eh(h.title)}</div>
+            <div data-static-style="a121">${eh(h.author)} · совпадение ${matchLabel[h.matched_in] || ''}</div>
             ${h.pages && h.pages.length ? h.pages.map(p => `
-              <div style="font-size:11px;color:var(--text-secondary);background:var(--bg-primary);border-radius:6px;padding:5px 8px;margin-top:4px;line-height:1.4;">
-                <span style="color:var(--accent);font-weight:600;">с. ${p.page}:</span> …${p.snippet}…
-                <button data-onclick="askAiAboutSnippet(${h.book_id}, ${p.page}, '${_encodeSnippet(p.snippet)}', '${_encodeSnippet(h.title)}')" data-stop="1" style="display:block;margin-top:4px;background:none;border:none;color:var(--accent);cursor:pointer;font-size:10px;padding:0;font-family:inherit;">✨ Спросить AI про этот фрагмент</button>
+              <div data-static-style="a122">
+                <span data-static-style="a123">с. ${p.page}:</span> …${p.snippet}…
+                <button data-onclick="askAiAboutSnippet(${h.book_id}, ${p.page}, '${_encodeSnippet(p.snippet)}', '${_encodeSnippet(h.title)}')" data-stop="1" data-static-style="a124">✨ Спросить AI про этот фрагмент</button>
               </div>`).join('') : ''}
           </div>
         </div>`).join('')}
@@ -3282,19 +3282,19 @@ async function openAdminLogs() {
   const m = document.createElement('div');
   m.id = 'adminLogsModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Журнал действий</h3>
-      <button data-onclick="closeModal('adminLogsModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+  m.innerHTML = `<div data-static-style="a125">
+    <div data-static-style="a126">
+      <h3 data-static-style="a127">Журнал действий</h3>
+      <button data-onclick="closeModal('adminLogsModal')" data-static-style="a128">✕</button>
     </div>
-    <div id="adminLogsBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загрузка…</div>
+    <div id="adminLogsBody" data-static-style="a129">Загрузка…</div>
   </div>`;
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
   try {
     const logs = await api.library.adminLogs(100);
     const body = document.getElementById('adminLogsBody');
-    if (!logs.length) { body.innerHTML = '<div style="padding:16px;color:var(--text-muted);">Записей пока нет.</div>'; return; }
+    if (!logs.length) { body.innerHTML = '<div data-static-style="a130">Записей пока нет.</div>'; return; }
     const actionLabel = {
       book_create: '➕ Создание', book_update: '✏️ Изменение', book_delete: '🗑 Удаление',
       pdf_upload: '📄 Загрузка PDF', cover_upload: '🖼 Обложка', reindex: '🔍 Индексация',
@@ -3302,18 +3302,18 @@ async function openAdminLogs() {
     body.style.textAlign = 'left'; body.style.padding = '0';
     body.innerHTML = logs.map(l => {
       const d = new Date(l.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-      return `<div style="padding:9px 6px;border-bottom:1px solid var(--border);">
-        <div style="display:flex;justify-content:space-between;gap:8px;">
-          <span style="font-size:12px;color:var(--text-primary);">${actionLabel[l.action] || l.action}</span>
-          <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${d}</span>
+      return `<div data-static-style="a131">
+        <div data-static-style="a132">
+          <span data-static-style="a133">${actionLabel[l.action] || l.action}</span>
+          <span data-static-style="a134">${d}</span>
         </div>
-        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${eh(l.detail || '')}</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${eh(l.admin || '—')}</div>
+        <div data-static-style="a135">${eh(l.detail || '')}</div>
+        <div data-static-style="a136">${eh(l.admin || '—')}</div>
       </div>`;
     }).join('');
   } catch (e) {
     const body = document.getElementById('adminLogsBody');
-    if (body) body.innerHTML = '<div style="padding:16px;color:#ef4444;">Не удалось загрузить журнал.</div>';
+    if (body) body.innerHTML = '<div data-static-style="a137">Не удалось загрузить журнал.</div>';
   }
 }
 
@@ -3326,9 +3326,9 @@ async function renderMyCertificates() {
     const certs = await api.library.certMine();
     if (!certs.length) { el.innerHTML = ''; return; }
     el.innerHTML = certs.map(c => `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;">
-        <div><span style="color:var(--text-primary);font-weight:600;">${eh(c.category)}</span> <span style="color:var(--text-muted);font-size:11px;">· ${c.score}%</span></div>
-        <button data-onclick="downloadCertificate('${encodeURIComponent(c.category).replace(/'/g, '')}')" style="background:rgba(0,212,255,0.15);border:none;color:var(--accent);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;font-family:inherit;">Скачать PDF</button>
+      <div data-static-style="a138">
+        <div><span data-static-style="a139">${eh(c.category)}</span> <span data-static-style="a140">· ${c.score}%</span></div>
+        <button data-onclick="downloadCertificate('${encodeURIComponent(c.category).replace(/'/g, '')}')" data-static-style="a141">Скачать PDF</button>
       </div>`).join('');
   } catch (_) { el.innerHTML = ''; }
 }
@@ -3353,7 +3353,7 @@ function certModalShell(inner) {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2500;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
     document.body.appendChild(modal);
   }
-  modal.innerHTML = `<div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:560px;width:96%;border:1px solid var(--border);max-height:90vh;overflow-y:auto;">${inner}</div>`;
+  modal.innerHTML = `<div data-static-style="a142">${inner}</div>`;
   return modal;
 }
 
@@ -3364,35 +3364,35 @@ function closeCertModal() {
 }
 
 async function openCertificationModal() {
-  certModalShell('<div style="text-align:center;padding:30px;color:var(--text-secondary);">Загрузка тем…</div>');
+  certModalShell('<div data-static-style="a143">Загрузка тем…</div>');
   try {
     const cats = await api.library.certCategories();
     const options = cats.map(c => `<option value="${eh(c)}">${eh(c)}</option>`).join('');
     certModalShell(`
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:16px;font-weight:700;">Аттестация</h3>
-        <button data-onclick="closeCertModal()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+      <div data-static-style="a144">
+        <h3 data-static-style="a145">Аттестация</h3>
+        <button data-onclick="closeCertModal()" data-static-style="a146">✕</button>
       </div>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Выберите тему. Будет сгенерирован тест из 50 вопросов (это может занять до минуты). Для прохождения нужно 85% правильных.</p>
-      <select id="certCategorySelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:16px;font-family:inherit;">${options}</select>
-      <button id="certStartBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;">Начать тест</button>
+      <p data-static-style="a147">Выберите тему. Будет сгенерирован тест из 50 вопросов (это может занять до минуты). Для прохождения нужно 85% правильных.</p>
+      <select id="certCategorySelect" data-static-style="a148">${options}</select>
+      <button id="certStartBtn" data-static-style="a149">Начать тест</button>
     `);
     document.getElementById('certStartBtn').onclick = startCertExam;
   } catch (e) {
-    certModalShell('<div style="padding:20px;color:#ef4444;">Не удалось загрузить темы<br><button data-onclick="closeCertModal()" style="margin-top:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:8px 16px;border-radius:8px;cursor:pointer;">Закрыть</button></div>');
+    certModalShell('<div data-static-style="a150">Не удалось загрузить темы<br><button data-onclick="closeCertModal()" data-static-style="a151">Закрыть</button></div>');
   }
 }
 
 async function startCertExam() {
   const category = document.getElementById('certCategorySelect').value;
-  certModalShell(`<div style="text-align:center;padding:40px;color:var(--text-secondary);">${loadingSpinnerHTML('')}<div style="margin-top:-12px;">Генерируем тест по теме<br><b style="color:var(--text-primary);">${eh(category)}</b><br><span style="font-size:12px;color:var(--text-muted);">Это может занять до минуты…</span></div></div>`);
+  certModalShell(`<div data-static-style="a152">${loadingSpinnerHTML('')}<div data-static-style="a153">Генерируем тест по теме<br><b data-static-style="a154">${eh(category)}</b><br><span data-static-style="a155">Это может занять до минуты…</span></div></div>`);
   try {
     const data = await api.library.certStartExam(category);
     _certExam = { token: data.exam_token, category: data.category, questions: data.questions, answers: new Array(data.questions.length).fill(-1), index: 0 };
     renderCertQuestion();
   } catch (e) {
     const msg = (e && e.detail) || 'Не удалось сгенерировать тест';
-    certModalShell(`<div style="padding:20px;color:#ef4444;">${eh(msg)}<br><button data-onclick="closeCertModal()" style="margin-top:12px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:8px 16px;border-radius:8px;cursor:pointer;">Закрыть</button></div>`);
+    certModalShell(`<div data-static-style="a150">${eh(msg)}<br><button data-onclick="closeCertModal()" data-static-style="a151">Закрыть</button></div>`);
   }
 }
 
@@ -3405,18 +3405,18 @@ function renderCertQuestion() {
     <button data-onclick="answerCertQuestion(${i})" style="display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 14px;border-radius:8px;border:1px solid ${ex.answers[ex.index] === i ? 'var(--accent)' : 'var(--border)'};background:${ex.answers[ex.index] === i ? 'rgba(0,212,255,0.12)' : 'var(--bg-card)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">${eh(o)}</button>`).join('');
   const answered = ex.answers.filter(a => a >= 0).length;
   certModalShell(`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <span style="font-size:12px;color:var(--text-muted);">Вопрос ${ex.index + 1} из ${total}</span>
-      <button data-onclick="closeCertModal()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:26px;height:26px;border-radius:7px;cursor:pointer;">✕</button>
+    <div data-static-style="a156">
+      <span data-static-style="a155">Вопрос ${ex.index + 1} из ${total}</span>
+      <button data-onclick="closeCertModal()" data-static-style="a157">✕</button>
     </div>
-    <div style="height:4px;background:var(--bg-card);border-radius:2px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;width:${(answered / total * 100)}%;background:var(--accent);"></div></div>
-    <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:16px;">${eh(q.question)}</div>
+    <div data-static-style="a158"><div style="height:100%;width:${(answered / total * 100)}%;background:var(--accent);"></div></div>
+    <div data-static-style="a159">${eh(q.question)}</div>
     ${opts}
-    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:16px;">
+    <div data-static-style="a160">
       <button data-onclick="certNav(-1)" ${ex.index === 0 ? 'disabled' : ''} style="flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;opacity:${ex.index === 0 ? '0.4' : '1'};">← Назад</button>
       ${ex.index < total - 1
-        ? `<button data-onclick="certNav(1)" style="flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;">Далее →</button>`
-        : `<button data-onclick="submitCertExam()" style="flex:1;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;">Завершить</button>`}
+        ? `<button data-onclick="certNav(1)" data-static-style="a161">Далее →</button>`
+        : `<button data-onclick="submitCertExam()" data-static-style="a162">Завершить</button>`}
     </div>
   `);
 }
@@ -3438,15 +3438,15 @@ async function submitCertExam() {
   if (!ex) return;
   const unanswered = ex.answers.filter(a => a < 0).length;
   if (unanswered > 0 && !confirm(`Без ответа: ${unanswered}. Они будут засчитаны как неверные. Завершить?`)) return;
-  certModalShell('<div style="text-align:center;padding:40px;color:var(--text-secondary);">Проверяем ответы…</div>');
+  certModalShell('<div data-static-style="a152">Проверяем ответы…</div>');
   try {
     const res = await api.library.certSubmitExam(ex.token, ex.answers);
     if (res.needs_full_name) {
       certModalShell(`
-        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;">Заполните ФИО</h3>
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Вы прошли тест (${res.score}%)! Для сертификата укажите ФИО — оно появится в документе.</p>
-        <input type="text" id="certFullName" placeholder="Фамилия Имя Отчество" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:14px;font-family:inherit;">
-        <button id="certSaveNameBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700;">Сохранить и получить сертификат</button>
+        <h3 data-static-style="a163">Заполните ФИО</h3>
+        <p data-static-style="a147">Вы прошли тест (${res.score}%)! Для сертификата укажите ФИО — оно появится в документе.</p>
+        <input type="text" id="certFullName" placeholder="Фамилия Имя Отчество" data-static-style="a164">
+        <button id="certSaveNameBtn" data-static-style="a165">Сохранить и получить сертификат</button>
       `);
       document.getElementById('certSaveNameBtn').onclick = async () => {
         const fio = document.getElementById('certFullName').value.trim();
@@ -3468,12 +3468,12 @@ async function submitCertExam() {
       showCertResult(res.score, ex.category);
     } else {
       certModalShell(`
-        <div style="text-align:center;padding:20px;">
-          <div style="font-size:36px;margin-bottom:10px;">😔</div>
-          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;">Не пройдено</h3>
-          <p style="color:var(--text-secondary);margin-bottom:6px;">Результат: ${res.score}% (${res.correct_count} из ${res.total})</p>
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px;">Для сертификата нужно 85%. Попробуйте ещё раз после изучения материалов.</p>
-          <button data-onclick="closeCertModal()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px 20px;border-radius:8px;cursor:pointer;font-family:inherit;">Закрыть</button>
+        <div data-static-style="a166">
+          <div data-static-style="a167">😔</div>
+          <h3 data-static-style="a168">Не пройдено</h3>
+          <p data-static-style="a169">Результат: ${res.score}% (${res.correct_count} из ${res.total})</p>
+          <p data-static-style="a170">Для сертификата нужно 85%. Попробуйте ещё раз после изучения материалов.</p>
+          <button data-onclick="closeCertModal()" data-static-style="a171">Закрыть</button>
         </div>`);
     }
   } catch (e) {
@@ -3484,13 +3484,13 @@ async function submitCertExam() {
 
 function showCertResult(score, category) {
   certModalShell(`
-    <div style="text-align:center;padding:20px;">
-      <div style="font-size:44px;margin-bottom:10px;">🎉</div>
-      <h3 style="font-size:20px;font-weight:800;margin-bottom:8px;">Поздравляем!</h3>
-      <p style="color:var(--text-secondary);margin-bottom:6px;">Вы прошли аттестацию по теме<br><b style="color:var(--text-primary);">${eh(category)}</b></p>
-      <p style="color:var(--accent);font-weight:700;font-size:18px;margin-bottom:18px;">${score}%</p>
-      <button data-onclick="downloadCertificate('${encodeURIComponent(category).replace(/'/g, '')}');closeCertModal();renderMyCertificates()" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:11px 22px;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:700;margin-bottom:10px;">Скачать сертификат</button>
-      <br><button data-onclick="closeCertModal();renderMyCertificates()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px;">Закрыть</button>
+    <div data-static-style="a166">
+      <div data-static-style="a172">🎉</div>
+      <h3 data-static-style="a173">Поздравляем!</h3>
+      <p data-static-style="a169">Вы прошли аттестацию по теме<br><b data-static-style="a154">${eh(category)}</b></p>
+      <p data-static-style="a174">${score}%</p>
+      <button data-onclick="downloadCertificate('${encodeURIComponent(category).replace(/'/g, '')}');closeCertModal();renderMyCertificates()" data-static-style="a175">Скачать сертификат</button>
+      <br><button data-onclick="closeCertModal();renderMyCertificates()" data-static-style="a176">Закрыть</button>
     </div>`);
 }
 
@@ -3503,21 +3503,21 @@ function openCreateUserModal() {
     document.body.appendChild(modal);
   }
   modal.innerHTML = `
-    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:420px;width:95%;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:16px;font-weight:700;">Создать пользователя</h3>
-        <button data-onclick="closeModal('createUserModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+    <div data-static-style="a177">
+      <div data-static-style="a144">
+        <h3 data-static-style="a145">Создать пользователя</h3>
+        <button data-onclick="closeModal('createUserModal')" data-static-style="a146">✕</button>
       </div>
-      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Пользователь создаётся сразу активным. Передайте ему логин и пароль.</p>
-      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Логин (латиница, цифры, _)</label>
-      <input type="text" id="cuUsername" autocomplete="off" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:10px;font-family:inherit;">
-      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Пароль (минимум 8 символов)</label>
-      <input type="text" id="cuPassword" autocomplete="off" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:10px;font-family:inherit;">
-      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">ФИО</label>
-      <input type="text" id="cuFullName" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:10px;font-family:inherit;">
-      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Подразделение</label>
-      <input type="text" id="cuDepartment" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:18px;font-family:inherit;">
-      <button id="cuCreateBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;">Создать</button>
+      <p data-static-style="a178">Пользователь создаётся сразу активным. Передайте ему логин и пароль.</p>
+      <label data-static-style="a179">Логин (латиница, цифры, _)</label>
+      <input type="text" id="cuUsername" autocomplete="off" data-static-style="a180">
+      <label data-static-style="a179">Пароль (минимум 8 символов)</label>
+      <input type="text" id="cuPassword" autocomplete="off" data-static-style="a180">
+      <label data-static-style="a179">ФИО</label>
+      <input type="text" id="cuFullName" data-static-style="a180">
+      <label data-static-style="a179">Подразделение</label>
+      <input type="text" id="cuDepartment" data-static-style="a181">
+      <button id="cuCreateBtn" data-static-style="a149">Создать</button>
     </div>`;
 
   document.getElementById('cuCreateBtn').onclick = async () => {
@@ -3556,17 +3556,17 @@ function openExportModal() {
     document.body.appendChild(modal);
   }
   modal.innerHTML = `
-    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:420px;width:95%;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:16px;font-weight:700;">Выгрузка в Excel</h3>
-        <button data-onclick="closeModal('exportModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;">✕</button>
+    <div data-static-style="a177">
+      <div data-static-style="a144">
+        <h3 data-static-style="a145">Выгрузка в Excel</h3>
+        <button data-onclick="closeModal('exportModal')" data-static-style="a146">✕</button>
       </div>
-      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Прочитанные книги по сотрудникам за период (ФИО, подразделение, книги). Оставьте даты пустыми — выгрузится всё.</p>
-      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Дата с</label>
-      <input type="date" id="exportDateFrom" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:12px;font-family:inherit;">
-      <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">Дата по</label>
-      <input type="date" id="exportDateTo" style="width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:18px;font-family:inherit;">
-      <button id="exportRunBtn" style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;">Скачать Excel</button>
+      <p data-static-style="a182">Прочитанные книги по сотрудникам за период (ФИО, подразделение, книги). Оставьте даты пустыми — выгрузится всё.</p>
+      <label data-static-style="a179">Дата с</label>
+      <input type="date" id="exportDateFrom" data-static-style="a183">
+      <label data-static-style="a179">Дата по</label>
+      <input type="date" id="exportDateTo" data-static-style="a181">
+      <button id="exportRunBtn" data-static-style="a184">Скачать Excel</button>
     </div>`;
 
   document.getElementById('exportRunBtn').onclick = async () => {
@@ -3605,30 +3605,30 @@ async function openPendingUsersModal() {
     document.body.appendChild(modal);
   }
   modal.innerHTML = `
-    <div style="background:var(--bg-elevated);border-radius:14px;padding:20px;max-width:560px;width:95%;border:1px solid var(--border);max-height:85vh;overflow-y:auto;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h3 style="font-size:16px;font-weight:700;">Заявки на регистрацию</h3>
-        <button data-onclick="closeModal('pendingUsersModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+    <div data-static-style="a185">
+      <div data-static-style="a126">
+        <h3 data-static-style="a145">Заявки на регистрацию</h3>
+        <button data-onclick="closeModal('pendingUsersModal')" data-static-style="a186">✕</button>
       </div>
-      <div id="pendingUsersList" style="font-size:13px;color:var(--text-secondary);">Загрузка…</div>
+      <div id="pendingUsersList" data-static-style="a187">Загрузка…</div>
     </div>`;
 
   try {
     const users = await api.library.adminPendingUsers();
     const list = document.getElementById('pendingUsersList');
     if (!users.length) {
-      list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Нет заявок на рассмотрении</div>';
+      list.innerHTML = '<div data-static-style="a188">Нет заявок на рассмотрении</div>';
     } else {
       list.innerHTML = users.map(u => `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;">
-          <div style="min-width:0;flex:1;">
-            <div style="font-weight:600;color:var(--text-primary);">${eh(u.full_name || u.username)}</div>
-            <div style="font-size:11px;color:var(--text-muted);">@${eh(u.username)} · ${eh(u.email || '—')}</div>
-            ${u.department ? `<div style="font-size:11px;color:var(--accent);">${eh(u.department)}</div>` : ''}
+        <div data-static-style="a189">
+          <div data-static-style="a190">
+            <div data-static-style="a191">${eh(u.full_name || u.username)}</div>
+            <div data-static-style="a192">@${eh(u.username)} · ${eh(u.email || '—')}</div>
+            ${u.department ? `<div data-static-style="a193">${eh(u.department)}</div>` : ''}
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button data-onclick="approvePendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);color:#22c55e;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Одобрить</button>
-            <button data-onclick="rejectPendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#ef4444;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;">Отклонить</button>
+          <div data-static-style="a194">
+            <button data-onclick="approvePendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" data-static-style="a195">Одобрить</button>
+            <button data-onclick="rejectPendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" data-static-style="a196">Отклонить</button>
           </div>
         </div>`).join('');
     }
@@ -3636,7 +3636,7 @@ async function openPendingUsersModal() {
   } catch (err) {
     console.error('Ошибка загрузки заявок:', err, err && err.status, err && err.body);
     const detail = (err && (err.detail || (err.body && err.body.detail))) || (err && err.message) || '';
-    document.getElementById('pendingUsersList').innerHTML = '<div style="color:#ef4444;padding:16px;">Не удалось загрузить заявки' + (detail ? '<br><span style="font-size:11px;color:var(--text-muted);">' + eh(String(detail)) + '</span>' : '') + '</div>';
+    document.getElementById('pendingUsersList').innerHTML = '<div data-static-style="a197">Не удалось загрузить заявки' + (detail ? '<br><span data-static-style="a192">' + eh(String(detail)) + '</span>' : '') + '</div>';
   }
 }
 
@@ -3649,7 +3649,7 @@ async function approvePendingUser(userId, btn) {
     refreshPendingBadge();
     const list = document.getElementById('pendingUsersList');
     if (list && !list.querySelector('button')) {
-      list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Нет заявок на рассмотрении</div>';
+      list.innerHTML = '<div data-static-style="a188">Нет заявок на рассмотрении</div>';
     }
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Одобрить';
@@ -3803,18 +3803,18 @@ function showReindexProgress() {
   const m = document.createElement('div');
   m.id = 'reindexProgressModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:22px;max-width:400px;width:100%;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Индексация поиска</h3>
-      <button data-onclick="stopReindexPolling();document.getElementById('reindexProgressModal').remove()" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+  m.innerHTML = `<div data-static-style="a198">
+    <div data-static-style="a126">
+      <h3 data-static-style="a127">Индексация поиска</h3>
+      <button data-onclick="stopReindexPolling();document.getElementById('reindexProgressModal').remove()" data-static-style="a128">✕</button>
     </div>
     <div id="reindexProgressBody">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Запуск…</div>
-      <div style="height:8px;background:var(--bg-primary);border-radius:4px;overflow:hidden;">
-        <div id="reindexBar" style="height:100%;width:0%;background:var(--accent-gradient);transition:width 0.4s;"></div>
+      <div data-static-style="a199">Запуск…</div>
+      <div data-static-style="a200">
+        <div id="reindexBar" data-static-style="a201"></div>
       </div>
     </div>
-    <div style="font-size:10px;color:var(--text-muted);margin-top:10px;">Можно закрыть это окно — индексация продолжится в фоне.</div>
+    <div data-static-style="a202">Можно закрыть это окно — индексация продолжится в фоне.</div>
   </div>`;
   m.onclick = (e) => { if (e.target === m) { stopReindexPolling(); m.remove(); } };
   document.body.appendChild(m);
@@ -3836,7 +3836,7 @@ function startReindexPolling() {
       if (bar) bar.style.width = (s.percent || 0) + '%';
       if (s.finished) {
         stopReindexPolling();
-        body.innerHTML = `<div style="font-size:13px;color:#10b981;text-align:center;padding:8px;">
+        body.innerHTML = `<div data-static-style="a203">
           ✓ Готово: ${s.done} книг, ${s.indexed_pages} страниц${s.errors ? `, ошибок: ${s.errors}` : ''}
         </div>`;
       } else if (s.running) {
@@ -3857,15 +3857,15 @@ async function renderDiscussion() {
   const c = document.getElementById('detailTabDiscussion');
   if (!c || !currentBookId) return;
   c.innerHTML = `
-    <div style="margin-bottom:14px;">
-      <textarea id="discussInput" placeholder="Написать комментарий..." rows="3" style="width:100%;box-sizing:border-box;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;resize:vertical;"></textarea>
-      <div id="discussReplyHint" style="display:none;font-size:11px;color:var(--accent);margin-top:4px;"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button data-onclick="submitComment()" class="set-save-btn" style="flex:1;">Отправить</button>
-        <button id="discussCancelReply" data-onclick="cancelReply()" style="display:none;padding:0 16px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);cursor:pointer;font-family:inherit;font-size:13px;">Отмена</button>
+    <div data-static-style="a204">
+      <textarea id="discussInput" placeholder="Написать комментарий..." rows="3" data-static-style="a205"></textarea>
+      <div id="discussReplyHint" data-static-style="a206"></div>
+      <div data-static-style="a207">
+        <button data-onclick="submitComment()" class="set-save-btn" data-static-style="a004">Отправить</button>
+        <button id="discussCancelReply" data-onclick="cancelReply()" data-static-style="a208">Отмена</button>
       </div>
     </div>
-    <div id="discussList" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загрузка...</div>
+    <div id="discussList" data-static-style="a129">Загрузка...</div>
   `;
   loadComments();
 }
@@ -3877,14 +3877,14 @@ async function loadComments() {
     const comments = await api.library.bookComments(currentBookId);
     if (!comments.length) {
       list.style.textAlign = 'center';
-      list.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Пока нет комментариев. Будьте первым!</div>';
+      list.innerHTML = '<div data-static-style="a209">Пока нет комментариев. Будьте первым!</div>';
       return;
     }
     list.style.textAlign = 'left';
     list.style.padding = '0';
     list.innerHTML = comments.map(renderCommentNode).join('');
   } catch (e) {
-    list.innerHTML = '<div style="padding:16px;color:#ef4444;">Не удалось загрузить обсуждение.</div>';
+    list.innerHTML = '<div data-static-style="a137">Не удалось загрузить обсуждение.</div>';
   }
 }
 
@@ -3892,20 +3892,20 @@ function _commentBubble(c, isReply) {
   const name = eh(c.author.full_name || c.author.username);
   const when = _formatCommentDate(c.created_at);
   const avatar = c.author.has_avatar
-    ? `<img src="${api.users.avatarUrl(c.author.id)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
-    : `<div style="width:32px;height:32px;border-radius:50%;background:var(--accent-gradient);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;">${name.charAt(0).toUpperCase()}</div>`;
+    ? `<img src="${api.users.avatarUrl(c.author.id)}" data-static-style="a210">`
+    : `<div data-static-style="a211">${name.charAt(0).toUpperCase()}</div>`;
   return `
     <div style="display:flex;gap:10px;padding:10px 0;${isReply ? 'margin-left:42px;' : ''}">
       ${avatar}
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${name}</span>
-          <span style="font-size:10px;color:var(--text-muted);">${when}</span>
+      <div data-static-style="a015">
+        <div data-static-style="a212">
+          <span data-static-style="a213">${name}</span>
+          <span data-static-style="a099">${when}</span>
         </div>
-        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin:3px 0 6px;white-space:pre-wrap;word-break:break-word;">${eh(c.text)}</div>
-        <div style="display:flex;gap:14px;">
-          ${!isReply ? `<button data-onclick="startReply(${c.id}, '${name.replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:0;">Ответить</button>` : ''}
-          ${c.can_delete ? `<button data-onclick="deleteComment(${c.id})" data-nonce="${sensitiveNonce()}" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:11px;padding:0;">Удалить</button>` : ''}
+        <div data-static-style="a214">${eh(c.text)}</div>
+        <div data-static-style="a215">
+          ${!isReply ? `<button data-onclick="startReply(${c.id}, '${name.replace(/'/g, "\\'")}')" data-static-style="a216">Ответить</button>` : ''}
+          ${c.can_delete ? `<button data-onclick="deleteComment(${c.id})" data-nonce="${sensitiveNonce()}" data-static-style="a217">Удалить</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -3913,7 +3913,7 @@ function _commentBubble(c, isReply) {
 
 function renderCommentNode(c) {
   const replies = (c.replies || []).map(r => _commentBubble(r, true)).join('');
-  return `<div style="border-bottom:1px solid var(--border);padding-bottom:4px;">${_commentBubble(c, false)}${replies}</div>`;
+  return `<div data-static-style="a218">${_commentBubble(c, false)}${replies}</div>`;
 }
 
 function _formatCommentDate(iso) {
@@ -3990,16 +3990,16 @@ async function renderReviews() {
   const myReview = me ? reviews.find(r => r._userId === me.id) : null;
 
   const reviewsHtml = reviews.length === 0
-    ? '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Пока нет отзывов. Будьте первым!</div>'
+    ? '<div data-static-style="a219">Пока нет отзывов. Будьте первым!</div>'
     : reviews.map(r => {
         const canDelete = me && (r._userId === me.id || me.role === 'admin');
         const dateStr = new Date(r.date).toLocaleDateString('ru-RU');
         return `<div class="review-card">
           <div class="review-header">
             <div class="review-user">
-              <div class="review-avatar"><img src="${api.users.avatarUrl(r._userId)}" alt="" data-onerror="replaceWithFallback()" data-args="this" data-fallback="text" data-fallback-text="${eh(r.avatar)}" data-fallback-class="review-avatar-fallback" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+              <div class="review-avatar"><img src="${api.users.avatarUrl(r._userId)}" alt="" data-onerror="replaceWithFallback()" data-args="this" data-fallback="text" data-fallback-text="${eh(r.avatar)}" data-fallback-class="review-avatar-fallback" data-static-style="a220"></div>
               <div>
-                <div style="font-size:12px;font-weight:600;">${eh(r.user)}</div>
+                <div data-static-style="a221">${eh(r.user)}</div>
                 <div class="review-date">${dateStr}</div>
               </div>
             </div>
@@ -4008,20 +4008,20 @@ async function renderReviews() {
             </div>
           </div>
           <div class="review-text">${eh(r.text || '')}</div>
-          ${canDelete ? `<button class="btn-sm danger" style="margin-top:6px;" data-onclick="deleteReview(${currentBookId}, ${r.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash} Удалить</button>` : ''}
+          ${canDelete ? `<button class="btn-sm danger" data-static-style="a222" data-onclick="deleteReview(${currentBookId}, ${r.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash} Удалить</button>` : ''}
         </div>`;
       }).join('');
 
   const formHtml = me ? `
-    <div id="reviewForm" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-top:16px;">
-      <h4 style="font-size:13px;margin-bottom:10px;color:var(--accent);">${myReview ? 'Обновить мой отзыв' : 'Оставить отзыв'}</h4>
+    <div id="reviewForm" data-static-style="a223">
+      <h4 data-static-style="a224">${myReview ? 'Обновить мой отзыв' : 'Оставить отзыв'}</h4>
       <div class="star-input">
         ${[1,2,3,4,5].map(i => `<span class="star ${i <= (myReview?.rating || 0) ? 'filled' : ''}" data-onclick="setReviewStar(${i})">${renderStarSVG(i <= (myReview?.rating || 0))}</span>`).join('')}
       </div>
-      <textarea id="reviewTextInput" rows="3" placeholder="Поделитесь впечатлением..." style="width:100%;margin-bottom:8px;">${eh(myReview?.text || '')}</textarea>
-      <button class="btn btn-primary" data-onclick="submitReview()" style="padding:10px;font-size:13px;">Отправить</button>
+      <textarea id="reviewTextInput" rows="3" placeholder="Поделитесь впечатлением..." data-static-style="a225">${eh(myReview?.text || '')}</textarea>
+      <button class="btn btn-primary" data-onclick="submitReview()" data-static-style="a226">Отправить</button>
     </div>
-  ` : '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">Войдите, чтобы оставить отзыв</div>';
+  ` : '<div data-static-style="a227">Войдите, чтобы оставить отзыв</div>';
 
   container.innerHTML = reviewsHtml + formHtml;
 
@@ -4275,7 +4275,7 @@ async function showAnnotationDetail(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div style="font-size:11px;margin-bottom:4px;">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div style="display:flex;gap:4px;"><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},2)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`;
+  t.innerHTML = `<div data-static-style="a228">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div data-static-style="a229"><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},2)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`;
   t.style.left = (ann.position?.x || 10) + '%';
   t.style.top = ((ann.position?.y || 10) + 5) + '%';
   document.getElementById('pdfViewport').appendChild(t);
@@ -4288,7 +4288,7 @@ async function showNoteTooltip(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">${ICONS.bookmark} Заметка</div><div style="font-size:11px;margin-bottom:4px;">${eh(ann.note)}</div><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},1)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>`;
+  t.innerHTML = `<div data-static-style="a230">${ICONS.bookmark} Заметка</div><div data-static-style="a228">${eh(ann.note)}</div><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},1)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>`;
   t.style.left = (ann.position?.x || 15) + '%';
   t.style.top = ((ann.position?.y || 15) + 3) + '%';
   document.getElementById('pdfViewport').appendChild(t);
@@ -4369,14 +4369,14 @@ async function exportNotes() {
   const m = document.createElement('div');
   m.id = 'exportFmtModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  const btn = (fmt, label, desc) => `<button data-onclick="doExportNotes('${fmt}')" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;font-family:inherit;color:var(--text-primary);">
-    <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);font-size:13px;min-width:42px;">${fmt.toUpperCase()}</span>
-    <span><span style="font-size:13px;font-weight:600;display:block;">${label}</span><span style="font-size:11px;color:var(--text-muted);">${desc}</span></span>
+  const btn = (fmt, label, desc) => `<button data-onclick="doExportNotes('${fmt}')" data-static-style="a231">
+    <span data-static-style="a232">${fmt.toUpperCase()}</span>
+    <span><span data-static-style="a233">${label}</span><span data-static-style="a192">${desc}</span></span>
   </button>`;
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:380px;width:100%;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Экспорт заметок</h3>
-      <button data-onclick="closeModal('exportFmtModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">&times;</button>
+  m.innerHTML = `<div data-static-style="a234">
+    <div data-static-style="a126">
+      <h3 data-static-style="a127">Экспорт заметок</h3>
+      <button data-onclick="closeModal('exportFmtModal')" data-static-style="a128">&times;</button>
     </div>
     ${btn('pdf', 'PDF документ', 'Для печати и чтения')}
     ${btn('md', 'Markdown', 'Текст с разметкой')}
@@ -4426,10 +4426,10 @@ async function doExportNotes(fmt) {
 
 function exportNotesPdf(title, author, sorted) {
   const rows = sorted.map(a => `
-    <div style="margin-bottom:14px;page-break-inside:avoid;">
-      <div style="font-size:11px;color:#888;margin-bottom:3px;">Страница ${a.page} &middot; ${a.type === 'note' ? 'Заметка' : 'Выделение'}</div>
-      <div style="border-left:3px solid #00b4d8;padding-left:10px;font-size:13px;">${eh(a.text)}</div>
-      ${a.type === 'note' && a.note ? `<div style="margin-top:5px;font-size:13px;color:#333;"><b>Заметка:</b> ${eh(a.note)}</div>` : ''}
+    <div data-static-style="a235">
+      <div data-static-style="a236">Страница ${a.page} &middot; ${a.type === 'note' ? 'Заметка' : 'Выделение'}</div>
+      <div data-static-style="a237">${eh(a.text)}</div>
+      ${a.type === 'note' && a.note ? `<div data-static-style="a238"><b>Заметка:</b> ${eh(a.note)}</div>` : ''}
     </div>`).join('');
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Заметки: ${eh(title)}</title>
     <style>body{font-family:Arial,sans-serif;color:#111;max-width:720px;margin:24px auto;padding:0 16px;}
@@ -4450,7 +4450,7 @@ async function renderDetailNotes() {
 
   const ann = await getAnnotations(currentBookId);
   if (!ann.length) {
-    c.innerHTML = `<div class="mylist-empty"><div class="icon" style="font-size:48px;">${ICONS.bookmark}</div><p>Нет заметок</p></div>`;
+    c.innerHTML = `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.bookmark}</div><p>Нет заметок</p></div>`;
     return;
   }
 
@@ -4459,14 +4459,14 @@ async function renderDetailNotes() {
   const notes = ann.filter(a => a.type === 'note');
 
   const statsHtml = `
-    <div style="display:flex;gap:8px;margin-bottom:14px;font-size:11px;">
-      <div style="flex:1;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:18px;font-weight:700;color:#fbbf24;">${highlights.length}</div>
-        <div style="color:var(--text-muted);">Маркеров</div>
+    <div data-static-style="a240">
+      <div data-static-style="a241">
+        <div data-static-style="a242">${highlights.length}</div>
+        <div data-static-style="a243">Маркеров</div>
       </div>
-      <div style="flex:1;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:18px;font-weight:700;color:var(--accent);">${notes.length}</div>
-        <div style="color:var(--text-muted);">Заметок</div>
+      <div data-static-style="a244">
+        <div data-static-style="a245">${notes.length}</div>
+        <div data-static-style="a243">Заметок</div>
       </div>
     </div>
   `;
@@ -4484,15 +4484,15 @@ async function renderDetailNotes() {
 
     return `
       <div style="background:${bgTint};border:1px solid var(--border);border-left:3px solid ${stripColor};border-radius:8px;padding:12px;margin-bottom:8px;${cursor}" ${goAction}>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+        <div data-static-style="a246">
           <div style="font-size:10px;color:${stripColor};font-weight:600;">
             ${isNote ? 'ЗАМЕТКА' : 'МАРКЕР'} · Стр.${a.page}
           </div>
-          <button class="btn-sm danger" style="padding:2px 8px;font-size:10px;flex-shrink:0;" data-onclick="deleteAnnotation(${currentBookId},${a.id})" data-nonce="${sensitiveNonce()}" data-stop="1">${ICONS.trash}</button>
+          <button class="btn-sm danger" data-static-style="a247" data-onclick="deleteAnnotation(${currentBookId},${a.id})" data-nonce="${sensitiveNonce()}" data-stop="1">${ICONS.trash}</button>
         </div>
-        <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;font-style:italic;">«${eh(a.text.substring(0, 200))}${a.text.length > 200 ? '…' : ''}»</div>
+        <div data-static-style="a248">«${eh(a.text.substring(0, 200))}${a.text.length > 200 ? '…' : ''}»</div>
         ${a.note ? `
-          <div style="margin-top:8px;padding:8px;background:var(--bg-primary);border-radius:6px;font-size:12px;color:var(--text-primary);line-height:1.5;">
+          <div data-static-style="a249">
             ${eh(a.note)}
           </div>
         ` : ''}
@@ -4549,8 +4549,8 @@ function renderQuizQuestion() {
   const isAnswered = userAnswer !== -1;
 
   c.innerHTML = `<div class="quiz-container">
-    <div style="margin-bottom:16px;">
-      <span style="font-size:11px;color:var(--text-muted);">Вопрос ${currentQuiz.currentIndex + 1} из ${currentQuiz.questions.length}</span>
+    <div data-static-style="a091">
+      <span data-static-style="a192">Вопрос ${currentQuiz.currentIndex + 1} из ${currentQuiz.questions.length}</span>
     </div>
     <div class="quiz-question">${eh(q.q)}</div>
     <div class="quiz-options">
@@ -4686,30 +4686,30 @@ async function finishQuiz() {
       const correctText = q.options[correctIdx];
       const isCorrect = userIdx === correctIdx;
       return `<div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid ${isCorrect ? '#22c55e' : '#ef4444'};border-radius:var(--radius);padding:12px;margin-bottom:8px;text-align:left;">
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Вопрос ${idx + 1}</div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">${eh(q.q)}</div>
-        <div style="font-size:12px;margin-bottom:4px;">
-          <span style="color:var(--text-muted);">Ваш ответ:</span>
+        <div data-static-style="a250">Вопрос ${idx + 1}</div>
+        <div data-static-style="a251">${eh(q.q)}</div>
+        <div data-static-style="a252">
+          <span data-static-style="a243">Ваш ответ:</span>
           <span style="color:${isCorrect ? '#22c55e' : '#ef4444'};font-weight:500;">${eh(userText)} ${isCorrect ? ICONS.check : ICONS.x}</span>
         </div>
-        ${!isCorrect ? `<div style="font-size:12px;">
-          <span style="color:var(--text-muted);">Правильный:</span>
-          <span style="color:#22c55e;font-weight:500;">${eh(correctText)}</span>
+        ${!isCorrect ? `<div data-static-style="a253">
+          <span data-static-style="a243">Правильный:</span>
+          <span data-static-style="a254">${eh(correctText)}</span>
         </div>` : ''}
       </div>`;
     }).join('');
 
-    c.innerHTML = `<div class="quiz-result ${p >= 60 ? 'success' : 'partial'}" style="margin-bottom:16px;">
-      <div style="font-size:64px;margin-bottom:16px;">${p >= 80 ? ICONS.shield : ICONS.education}</div>
-      <div style="font-size:28px;font-weight:700;">${p}%</div>
-      <div style="font-size:14px;margin:8px 0;">${s}/${t}</div>
-      <button class="btn-quiz primary" data-onclick="retakeQuiz(${currentQuiz.bookId})" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px;">
-      <span style="display: inline-flex; align-items: center; line-height: 1;">${ICONS.refresh}</span>
-      <span style="display: inline-block; line-height: 1;">Заново</span>
+    c.innerHTML = `<div class="quiz-result ${p >= 60 ? 'success' : 'partial'}" data-static-style="a091">
+      <div data-static-style="a255">${p >= 80 ? ICONS.shield : ICONS.education}</div>
+      <div data-static-style="a256">${p}%</div>
+      <div data-static-style="a257">${s}/${t}</div>
+      <button class="btn-quiz primary" data-onclick="retakeQuiz(${currentQuiz.bookId})" data-static-style="a258">
+      <span data-static-style="a259">${ICONS.refresh}</span>
+      <span data-static-style="a260">Заново</span>
     </button>
       </div>
-    <div style="margin-top:20px;">
-      <h4 style="font-size:13px;margin-bottom:10px;color:var(--accent);">Разбор ответов</h4>
+    <div data-static-style="a261">
+      <h4 data-static-style="a224">Разбор ответов</h4>
       ${breakdown}
     </div>`;
   }
@@ -4896,16 +4896,16 @@ function startOnboardingTour() {
       width:min(340px, calc(100vw - 32px));background:var(--bg-elevated);border:1px solid var(--border);
       border-radius:16px;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,0.5);`;
     card.innerHTML = `
-      <div style="font-size:32px;margin-bottom:10px;">${step.emoji}</div>
-      <div style="font-size:17px;font-weight:800;color:var(--text-primary);margin-bottom:8px;">${step.title}</div>
-      <div style="font-size:13px;color:var(--text-secondary);line-height:1.55;margin-bottom:18px;">${step.text}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <div style="display:flex;gap:6px;">
+      <div data-static-style="a262">${step.emoji}</div>
+      <div data-static-style="a263">${step.title}</div>
+      <div data-static-style="a264">${step.text}</div>
+      <div data-static-style="a265">
+        <div data-static-style="a266">
           ${ONBOARDING_TOUR_STEPS.map((_, i) => `<div style="width:7px;height:7px;border-radius:50%;background:${i === idx ? 'var(--accent)' : 'var(--border)'};"></div>`).join('')}
         </div>
-        <div style="display:flex;gap:8px;">
-          <button id="tourSkip" style="background:none;border:none;color:var(--text-muted);font-family:inherit;font-size:13px;cursor:pointer;padding:8px;">Пропустить</button>
-          <button id="tourNext" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:9px 18px;border-radius:10px;">${idx === ONBOARDING_TOUR_STEPS.length - 1 ? 'Понятно!' : 'Далее'}</button>
+        <div data-static-style="a108">
+          <button id="tourSkip" data-static-style="a267">Пропустить</button>
+          <button id="tourNext" data-static-style="a268">${idx === ONBOARDING_TOUR_STEPS.length - 1 ? 'Понятно!' : 'Далее'}</button>
         </div>
       </div>`;
     overlay.appendChild(card);
@@ -4980,11 +4980,11 @@ function ensureReaderHasBook() {
   }
   stub.style.display = 'flex';
   stub.innerHTML = `
-    <div style="font-size:48px;opacity:0.5;">📖</div>
-    <div style="font-size:16px;color:var(--text-secondary);line-height:1.5;max-width:320px;">
+    <div data-static-style="a269">📖</div>
+    <div data-static-style="a270">
       Вы ещё не начали читать ни одну книгу.
     </div>
-    <button data-onclick="navigateTo('home')" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px 24px;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">
+    <button data-onclick="navigateTo('home')" data-static-style="a271">
       Выбрать книгу
     </button>`;
 }
@@ -5031,23 +5031,23 @@ function openForgotPassword() {
     document.body.appendChild(m);
   }
   m.innerHTML = `
-    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:100%;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <h3 style="font-size:17px;font-weight:800;color:var(--text-primary);">ÐÐ¾ÑÑÑÐ°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð°ÑÐ¾Ð»Ñ</h3>
-        <button data-onclick="closeModal('forgotPasswordModal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    <div data-static-style="a272">
+      <div data-static-style="a273">
+        <h3 data-static-style="a274">ÐÐ¾ÑÑÑÐ°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð°ÑÐ¾Ð»Ñ</h3>
+        <button data-onclick="closeModal('forgotPasswordModal')" data-static-style="a275">✕</button>
       </div>
       <div id="fpStep1">
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">Введите email, указанный при регистрации. Мы отправим код для сброса пароля.</p>
-        <input type="email" id="fpEmail" placeholder="Email" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:inherit;margin-bottom:14px;">
-        <button id="fpSendBtn" data-onclick="forgotPasswordSendCode()" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Отправить код</button>
+        <p data-static-style="a276">Введите email, указанный при регистрации. Мы отправим код для сброса пароля.</p>
+        <input type="email" id="fpEmail" placeholder="Email" data-static-style="a277">
+        <button id="fpSendBtn" data-onclick="forgotPasswordSendCode()" data-static-style="a278">Отправить код</button>
       </div>
-      <div id="fpStep2" style="display:none;">
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">Введите код из письма и новый пароль.</p>
-        <input type="text" id="fpCode" placeholder="Код из письма" inputmode="numeric" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:inherit;margin-bottom:10px;">
-        <input type="password" id="fpNewPass" placeholder="Новый пароль (мин. 8 символов)" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-family:inherit;margin-bottom:14px;">
-        <button id="fpResetBtn" data-onclick="forgotPasswordReset()" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Сбросить пароль</button>
+      <div id="fpStep2" data-static-style="a279">
+        <p data-static-style="a276">Введите код из письма и новый пароль.</p>
+        <input type="text" id="fpCode" placeholder="Код из письма" inputmode="numeric" data-static-style="a280">
+        <input type="password" id="fpNewPass" placeholder="Новый пароль (мин. 8 символов)" data-static-style="a277">
+        <button id="fpResetBtn" data-onclick="forgotPasswordReset()" data-static-style="a278">Сбросить пароль</button>
       </div>
-      <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:14px;line-height:1.4;">При потере пароля доступ к ранее зашифрованным заметкам не восстанавливается.</p>
+      <p data-static-style="a281">При потере пароля доступ к ранее зашифрованным заметкам не восстанавливается.</p>
     </div>`;
 }
 
@@ -5237,28 +5237,28 @@ function showPendingApprovalScreen() {
   }
   const hasLevel = state.currentUser && state.currentUser.cyber_level;
   overlay.innerHTML = `
-    <div style="max-width:420px;width:100%;text-align:center;">
-      <div style="font-size:44px;margin-bottom:14px;">⏳</div>
-      <h2 style="font-size:20px;font-weight:800;margin-bottom:10px;color:var(--text-primary);">Заявка на рассмотрении</h2>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">
+    <div data-static-style="a282">
+      <div data-static-style="a283">⏳</div>
+      <h2 data-static-style="a284">Заявка на рассмотрении</h2>
+      <p data-static-style="a285">
         Ваш email подтверждён. Теперь администратор должен одобрить доступ к библиотеке —
         обычно это занимает до 24 часов. Мы пришлём письмо на вашу почту, как только откроем доступ,
         так что эту страницу можно закрыть.
       </p>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:22px;line-height:1.5;">
+      <p data-static-style="a286">
         А пока вы можете пройти тест на уровень знаний — результат сохранится в вашем профиле.
       </p>
       ${hasLevel ? `
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--text-secondary);">
+        <div data-static-style="a287">
           Вы уже прошли тест уровня. Дождитесь одобрения администратора.
         </div>` : `
-        <button id="pendingStartTestBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:13px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;margin-bottom:12px;">Пройти тест на уровень знаний</button>
+        <button id="pendingStartTestBtn" data-static-style="a288">Пройти тест на уровень знаний</button>
       `}
-      <button id="pendingRefreshBtn" style="width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:11px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;margin-bottom:10px;">Проверить статус одобрения</button>
-      <button id="pendingLogoutBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px;">Выйти</button>
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);line-height:1.5;">
+      <button id="pendingRefreshBtn" data-static-style="a289">Проверить статус одобрения</button>
+      <button id="pendingLogoutBtn" data-static-style="a176">Выйти</button>
+      <div data-static-style="a290">
         При возникновении вопросов или проблем пишите на почту
-        <a href="mailto:support@aegis-sec-library.ru" style="color:var(--accent);text-decoration:none;">support@aegis-sec-library.ru</a>
+        <a href="mailto:support@aegis-sec-library.ru" data-static-style="a291">support@aegis-sec-library.ru</a>
       </div>
     </div>`;
 
@@ -5321,19 +5321,19 @@ function showVerifyEmailScreen(email) {
     document.body.appendChild(overlay);
   }
   overlay.innerHTML = `
-    <div style="max-width:400px;width:100%;text-align:center;">
-      <div style="font-size:40px;margin-bottom:12px;">✉️</div>
-      <h2 style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--text-primary);">Подтвердите email</h2>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-        Мы отправили код подтверждения на<br><b style="color:var(--text-primary);">${eh(email)}</b><br>
-        <span style="font-size:11px;color:var(--text-muted);">Проверьте папку «Спам», если письма нет</span>
+    <div data-static-style="a292">
+      <div data-static-style="a293">✉️</div>
+      <h2 data-static-style="a294">Подтвердите email</h2>
+      <p data-static-style="a295">
+        Мы отправили код подтверждения на<br><b data-static-style="a154">${eh(email)}</b><br>
+        <span data-static-style="a192">Проверьте папку «Спам», если письма нет</span>
       </p>
       <input type="text" id="verifyCodeInput" inputmode="numeric" maxlength="6" placeholder="000000"
-        style="width:100%;text-align:center;font-size:24px;letter-spacing:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);margin-bottom:14px;font-family:inherit;">
-      <button id="verifyCodeBtn" style="width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;margin-bottom:12px;">Подтвердить</button>
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
-        <button id="verifyResendBtn" style="background:none;border:none;color:var(--accent);cursor:pointer;font-family:inherit;font-size:12px;">Отправить код повторно</button>
-        <button id="verifyBackBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:inherit;font-size:12px;">Назад</button>
+        data-static-style="a296">
+      <button id="verifyCodeBtn" data-static-style="a297">Подтвердить</button>
+      <div data-static-style="a298">
+        <button id="verifyResendBtn" data-static-style="a299">Отправить код повторно</button>
+        <button id="verifyBackBtn" data-static-style="a176">Назад</button>
       </div>
     </div>`;
 
@@ -5717,11 +5717,11 @@ function showBiometricGate() {
   m.id = 'biometricGate';
   m.style.cssText = 'position:fixed;inset:0;z-index:7000;background:var(--bg-primary);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;';
   m.innerHTML = `
-    <div style="font-size:48px;margin-bottom:14px;">${ICONS.shield || '🛡️'}</div>
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Разблокировка</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:22px;max-width:300px;">Подтвердите вход по Face ID или отпечатку пальца.</p>
-    <button class="btn btn-primary" id="bioUnlockBtn" data-onclick="runBiometricUnlock()" style="padding:12px 28px;font-size:14px;margin-bottom:12px;">Разблокировать</button>
-    <button data-onclick="biometricGateFallback()" style="background:transparent;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-decoration:underline;">Войти паролем</button>
+    <div data-static-style="a300">${ICONS.shield || '🛡️'}</div>
+    <h2 data-static-style="a168">Разблокировка</h2>
+    <p data-static-style="a301">Подтвердите вход по Face ID или отпечатку пальца.</p>
+    <button class="btn btn-primary" id="bioUnlockBtn" data-onclick="runBiometricUnlock()" data-static-style="a302">Разблокировать</button>
+    <button data-onclick="biometricGateFallback()" data-static-style="a303">Войти паролем</button>
   `;
   document.body.appendChild(m);
   setTimeout(runBiometricUnlock, 350);
@@ -6041,31 +6041,31 @@ async function openChatHistory() {
   const m = document.createElement('div');
   m.id = 'chatHistoryModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">История диалогов</h3>
-      <button data-onclick="closeModal('chatHistoryModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+  m.innerHTML = `<div data-static-style="a304">
+    <div data-static-style="a126">
+      <h3 data-static-style="a127">История диалогов</h3>
+      <button data-onclick="closeModal('chatHistoryModal')" data-static-style="a128">✕</button>
     </div>
-    <div id="chatHistoryBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загружаю…</div>
+    <div id="chatHistoryBody" data-static-style="a129">Загружаю…</div>
   </div>`;
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
   try {
     const chats = await api.library.chats();
     const body = document.getElementById('chatHistoryBody');
-    if (!chats.length) { body.innerHTML = '<div style="padding:16px;color:var(--text-muted);">Сохранённых диалогов пока нет.</div>'; return; }
+    if (!chats.length) { body.innerHTML = '<div data-static-style="a130">Сохранённых диалогов пока нет.</div>'; return; }
     body.style.textAlign = 'left'; body.style.padding = '0';
     body.innerHTML = chats.map(c => `
-      <div style="display:flex;align-items:center;gap:8px;padding:11px 8px;border-bottom:1px solid var(--border);">
-        <div data-onclick="loadChatFromHistory(${c.id})" style="flex:1;cursor:pointer;">
-          <div style="font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${eh(c.title)}</div>
-          <div style="font-size:10px;color:var(--text-muted);">${c.message_count} сообщений</div>
+      <div data-static-style="a305">
+        <div data-onclick="loadChatFromHistory(${c.id})" data-static-style="a306">
+          <div data-static-style="a307">${eh(c.title)}</div>
+          <div data-static-style="a099">${c.message_count} сообщений</div>
         </div>
-        <button data-onclick="deleteChatFromHistory(${c.id})" data-nonce="${sensitiveNonce()}" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:15px;padding:4px 8px;">✕</button>
+        <button data-onclick="deleteChatFromHistory(${c.id})" data-nonce="${sensitiveNonce()}" data-static-style="a308">✕</button>
       </div>`).join('');
   } catch (_) {
     const body = document.getElementById('chatHistoryBody');
-    if (body) body.innerHTML = '<div style="padding:16px;color:#ef4444;">Не удалось загрузить историю.</div>';
+    if (body) body.innerHTML = '<div data-static-style="a137">Не удалось загрузить историю.</div>';
   }
 }
 
@@ -6345,12 +6345,12 @@ function renderRecommendations() {
   container.style.display = 'block';
   list.innerHTML = recs.map(b => `
     <div class="recommendation-card" data-onclick="openBookDetail(${b.id})">
-      <div style="font-size:32px;width:48px;height:64px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg, #1a2030, #1a1530);border-radius:8px;border:1px solid var(--border);flex-shrink:0;">
-        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}
+      <div data-static-style="a309">
+        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a310" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}
       </div>
       <div>
-        <div style="font-size:13px;font-weight:600;">${eh(b.title)}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${eh(b.author)} • ${b.rating}</div>
+        <div data-static-style="a311">${eh(b.title)}</div>
+        <div data-static-style="a192">${eh(b.author)} • ${b.rating}</div>
       </div>
     </div>
   `).join('');
@@ -6390,10 +6390,10 @@ function renderHome() {
     if (sorted.length === 0) {
       // Ничего не найдено — дружелюбное сообщение вместо пустоты
       if (all) all.innerHTML = `
-        <div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-muted);">
-          <div style="font-size:44px;margin-bottom:14px;opacity:0.6;">🔍</div>
-          <div style="font-size:15px;color:var(--text-secondary);margin-bottom:6px;">По запросу «${eh(q)}» ничего не найдено</div>
-          <div style="font-size:13px;">Попробуйте другие слова или проверьте раскладку клавиатуры</div>
+        <div data-static-style="a312">
+          <div data-static-style="a313">🔍</div>
+          <div data-static-style="a314">По запросу «${eh(q)}» ничего не найдено</div>
+          <div data-static-style="a315">Попробуйте другие слова или проверьте раскладку клавиатуры</div>
         </div>`;
       if (pager) pager.innerHTML = '';
     } else {
@@ -6446,15 +6446,15 @@ function renderBooksGoalWidget() {
   const pct = Math.min(100, Math.round(done / goal.count * 100));
   const periodLabel = goal.period === 'month' ? 'месяц' : goal.period === 'quarter' ? 'квартал' : 'год';
   wrap.innerHTML = `
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:14px;font-weight:700;">Цель: ${goal.count} книг за ${periodLabel}</div>
-        <div style="font-size:13px;color:var(--accent);font-weight:700;font-family:'JetBrains Mono',monospace;">${done}/${goal.count}</div>
+    <div data-static-style="a316">
+      <div data-static-style="a113">
+        <div data-static-style="a317">Цель: ${goal.count} книг за ${periodLabel}</div>
+        <div data-static-style="a318">${done}/${goal.count}</div>
       </div>
-      <div style="height:8px;background:var(--bg-primary);border-radius:4px;overflow:hidden;">
+      <div data-static-style="a200">
         <div style="height:100%;width:${pct}%;background:var(--accent-gradient);transition:width 0.4s;"></div>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">${pct >= 100 ? '🎉 Цель достигнута!' : `Осталось ${goal.count - done} — продолжайте!`}</div>
+      <div data-static-style="a319">${pct >= 100 ? '🎉 Цель достигнута!' : `Осталось ${goal.count - done} — продолжайте!`}</div>
     </div>`;
 }
 
@@ -6564,15 +6564,15 @@ function renderPaginatedBooks(id, books, query) {
     }
   }
   const numsHtml = nums.map(p =>
-    p === '...' ? `<span style="color:var(--text-muted);padding:0 2px;">…</span>` : btn(p, p, p === page, false)
+    p === '...' ? `<span data-static-style="a320">…</span>` : btn(p, p, p === page, false)
   ).join('');
   pager.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:18px;">
+    <div data-static-style="a321">
       ${btn(page - 1, '‹', false, page === 1)}
       ${numsHtml}
       ${btn(page + 1, '›', false, page === totalPages)}
     </div>
-    <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px;">
+    <div data-static-style="a322">
       Страница ${page} из ${totalPages} · всего книг: ${total}
     </div>`;
 }
@@ -6600,7 +6600,7 @@ function cardHTML(b, query, options) {
 
   const coverInner = b.has_cover
     ? `<img src="${api.books.coverUrl(b.id)}" alt="" loading="lazy"
-            style="width:100%;height:100%;object-fit:cover;"
+            data-static-style="a118"
             data-onerror="replaceWithFallback()" data-args="this" data-fallback="coverBg">`
     : `<div class="cover-bg">${ICONS.bookCover}</div>`;
 
@@ -6612,7 +6612,7 @@ function cardHTML(b, query, options) {
       <div class="rating-badge">${ICONS.star}${b.rating}</div>
       ${offlineBookIds.has(b.id) ? `<div class="offline-badge" title="Доступна оффлайн">${ICONS.cloudCheck}</div>` : ''}
       ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" style="width:${pct}%"></div>` : ''}
-      ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" style="position:absolute;top:6px;right:6px;z-index:3;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,0.6);color:#fff;font-family:inherit;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">&times;</button>` : ''}
+      ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" data-static-style="a323">&times;</button>` : ''}
     </div>
     <div class="book-card-meta">
       <div class="book-card-title" title="${eh(b.title)}">${eh(b.title)}</div>
@@ -6642,7 +6642,7 @@ function renderMyList() {
   });
   document.getElementById('mylistGrid').innerHTML = g[state.mylistTab]?.length
     ? g[state.mylistTab].map(b => cardHTML(b)).join('')
-    : `<div class="mylist-empty"><div class="icon" style="font-size:48px;">${ICONS.bookmark}</div><p>Пусто</p></div>`;
+    : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.bookmark}</div><p>Пусто</p></div>`;
 
   initDragAndDrop();
 }
@@ -6677,38 +6677,38 @@ function renderTrainingScreen() {
     if (lvl) {
       const info = getCyberLevelInfo(lvl);
       cyberLevelBlock = `
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);padding:16px;margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-            <div style="display:flex;width:48px;height:48px;align-items:center;justify-content:center;background:var(--accent-gradient);border-radius:12px;color:#fff;flex-shrink:0;">${info.icon.replace('width="20"','width="28"').replace('height="20"','height="28"')}</div>
-            <div style="flex:1;">
-              <div style="font-size:11px;color:var(--text-muted);">Твой уровень кибербезопасности</div>
-              <div style="font-size:16px;font-weight:700;color:var(--accent);">${eh(info.name)}</div>
+        <div data-static-style="a324">
+          <div data-static-style="a325">
+            <div data-static-style="a326">${info.icon.replace('width="20"','width="28"').replace('height="20"','height="28"')}</div>
+            <div data-static-style="a004">
+              <div data-static-style="a192">Твой уровень кибербезопасности</div>
+              <div data-static-style="a327">${eh(info.name)}</div>
             </div>
           </div>
-          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">
+          <div data-static-style="a328">
             Результат не устраивает? Можно пересдать — текущий заменится новым.
           </div>
-          <div style="display:flex;gap:8px;">
-            <button data-onclick="openCyberLevelModal()" style="flex:1;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-family:inherit;font-size:12px;cursor:pointer;">Подробнее</button>
-            <button data-onclick="restartOnboardingFromTraining()" style="flex:1;padding:10px;background:var(--accent-gradient);border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Пройти заново</button>
+          <div data-static-style="a108">
+            <button data-onclick="openCyberLevelModal()" data-static-style="a329">Подробнее</button>
+            <button data-onclick="restartOnboardingFromTraining()" data-static-style="a330">Пройти заново</button>
           </div>
         </div>
       `;
     } else {
       // Юзер не проходил тест — предлагаем пройти
       cyberLevelBlock = `
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xl);padding:16px;margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-            <div style="display:flex;width:48px;height:48px;align-items:center;justify-content:center;background:var(--accent-gradient);border-radius:12px;color:#fff;flex-shrink:0;">${ICONS.target.replace('width="22"','width="28"').replace('height="22"','height="28"')}</div>
-            <div style="flex:1;">
-              <div style="font-size:11px;color:var(--text-muted);">Тест уровня</div>
-              <div style="font-size:16px;font-weight:700;">Определи свой уровень</div>
+        <div data-static-style="a324">
+          <div data-static-style="a325">
+            <div data-static-style="a326">${ICONS.target.replace('width="22"','width="28"').replace('height="22"','height="28"')}</div>
+            <div data-static-style="a004">
+              <div data-static-style="a192">Тест уровня</div>
+              <div data-static-style="a145">Определи свой уровень</div>
             </div>
           </div>
-          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">
+          <div data-static-style="a328">
             20 вопросов из 5 тем кибербезопасности. Узнай, где у тебя пробелы и что подтянуть.
           </div>
-          <button data-onclick="restartOnboardingFromTraining()" style="width:100%;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 15px rgba(0,212,255,0.3);">Пройти тест уровня</button>
+          <button data-onclick="restartOnboardingFromTraining()" data-static-style="a331">Пройти тест уровня</button>
         </div>
       `;
     }
@@ -6720,7 +6720,7 @@ function renderTrainingScreen() {
         <div class="meta">${eh(bookCategoriesText(t.book))}</div>
         <span class="status ${t.completed ? 'status-completed' : 'status-pending'}">${t.completed ? ICONS.check + ' Пройдено' : ICONS.clock + ' Не пройдено'}</span>
       </div>`).join('')
-    : `<div class="mylist-empty"><div class="icon" style="font-size:48px;">${ICONS.education}</div><p>Нет тестов</p></div>`;
+    : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.education}</div><p>Нет тестов</p></div>`;
 
   document.getElementById('trainingList').innerHTML = cyberLevelBlock + listHtml;
 }
@@ -6791,7 +6791,7 @@ function renderProfile() {
       roleTag.parentNode.insertBefore(levelBadge, roleTag.nextSibling);
     }
     levelBadge.className = 'cyber-level-badge ' + u.cyber_level;
-    levelBadge.innerHTML = `<span style="display:inline-flex;vertical-align:middle;margin-right:4px;">${levelInfo.icon}</span>${eh(levelInfo.name)}`;
+    levelBadge.innerHTML = `<span data-static-style="a100">${levelInfo.icon}</span>${eh(levelInfo.name)}`;
     levelBadge.style.cursor = 'pointer';
     levelBadge.title = 'Нажми для просмотра подробных результатов';
     levelBadge.onclick = openCyberLevelModal;
@@ -6817,7 +6817,7 @@ function renderProfile() {
       const slot = document.getElementById('profileTestSlot');
       (slot || usernameLine.parentNode).appendChild(takeQuizBtn);
     }
-    takeQuizBtn.innerHTML = `<span style="display:inline-flex;vertical-align:middle;margin-right:10px;">${ICONS.target}</span>Пройти тест уровня кибербезопасности`;
+    takeQuizBtn.innerHTML = `<span data-static-style="a332">${ICONS.target}</span>Пройти тест уровня кибербезопасности`;
     takeQuizBtn.style.display = 'flex';
   } else if (takeQuizBtn) {
     // Юзер уже прошёл — кнопка не нужна
@@ -6827,7 +6827,7 @@ function renderProfile() {
   document.getElementById('statBooks').textContent = state.books.length;
   document.getElementById('statBookmarks').textContent = Object.keys(state.mylist).length;
   document.getElementById('statAchievements').textContent = (state.gamification.achievementsOwned || []).length;
-  document.getElementById('statStreak').innerHTML = getStreak() + '<span style="display:inline-flex;vertical-align:middle;margin-left:2px;color:#f97316;">' + ICONS.fire + '</span>';
+  document.getElementById('statStreak').innerHTML = getStreak() + '<span data-static-style="a333">' + ICONS.fire + '</span>';
 
   // Аватар: с сервера, если has_avatar; иначе буква
   const at = document.getElementById('profileAvatarText');
@@ -6896,7 +6896,7 @@ async function renderOfflineBooks() {
     books = await offlineStorage.listAll();
   } catch (e) {
     console.error('Ошибка чтения IndexedDB:', e);
-    container.innerHTML = '<div style="padding:16px;color:#ef4444;font-size:12px;">Не удалось прочитать оффлайн-хранилище</div>';
+    container.innerHTML = '<div data-static-style="a334">Не удалось прочитать оффлайн-хранилище</div>';
     return;
   }
 
@@ -6907,15 +6907,15 @@ async function renderOfflineBooks() {
     const usagePct = quota.quota > 0 ? (quota.usage / quota.quota * 100) : 0;
     const isWarning = usagePct > 80;
     quotaHtml = `
-      <div style="padding:12px 16px;background:var(--bg-primary);border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted);">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+      <div data-static-style="a335">
+        <div data-static-style="a336">
           <span>Использовано: ${formatBytes(quota.usage)}</span>
           <span>Доступно: ${formatBytes(quota.quota)}</span>
         </div>
-        <div style="width:100%;height:4px;background:var(--bg-card);border-radius:2px;overflow:hidden;">
+        <div data-static-style="a337">
           <div style="height:100%;width:${Math.min(usagePct, 100)}%;background:${isWarning ? '#f59e0b' : 'var(--accent-gradient)'};transition:width 0.5s;"></div>
         </div>
-        ${isWarning ? '<div style="color:#f59e0b;margin-top:6px;">Хранилище почти заполнено</div>' : ''}
+        ${isWarning ? '<div data-static-style="a338">Хранилище почти заполнено</div>' : ''}
       </div>
     `;
   }
@@ -6923,10 +6923,10 @@ async function renderOfflineBooks() {
   if (books.length === 0) {
     container.innerHTML = `
       ${quotaHtml}
-      <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px;">
-        <div style="font-size:32px;margin-bottom:8px;opacity:0.4;">${ICONS.cloudDownload}</div>
+      <div data-static-style="a339">
+        <div data-static-style="a340">${ICONS.cloudDownload}</div>
         <p>Нет скачанных книг</p>
-        <p style="font-size:10px;margin-top:6px;">Откройте книгу и нажмите «Сохранить оффлайн», чтобы читать без интернета</p>
+        <p data-static-style="a341">Откройте книгу и нажмите «Сохранить оффлайн», чтобы читать без интернета</p>
       </div>
     `;
     return;
@@ -6936,14 +6936,14 @@ async function renderOfflineBooks() {
   const rowsHtml = books.map(b => {
     const dateSaved = new Date(b.savedAt).toLocaleDateString('ru-RU');
     return `
-      <div class="settings-row" style="cursor:default;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${eh(b.title)}</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">
+      <div class="settings-row" data-static-style="a342">
+        <div data-static-style="a015">
+          <div data-static-style="a343">${eh(b.title)}</div>
+          <div data-static-style="a344">
             ${eh(b.author)} • ${(b.file_format || 'pdf').toUpperCase()} • Сохранено ${dateSaved}
           </div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
+        <div data-static-style="a194">
           <button class="btn-sm" data-onclick="openBookDetail(${b.id})" title="Открыть">${ICONS.eye}</button>
           <button class="btn-sm danger" data-onclick="removeBookOffline(${b.id})" title="Удалить">${ICONS.trash}</button>
         </div>
@@ -6957,88 +6957,88 @@ async function renderOfflineBooks() {
 // ========== ЭКРАН НАСТРОЕК ==========
 
 const USER_AGREEMENT_HTML = `
-  <h2 style="font-size:17px;font-weight:800;color:var(--text-primary);margin:0 0 12px;">Пользовательское соглашение (EULA)</h2>
-  <p style="margin-bottom:14px;">Пользовательское соглашение (далее — «Соглашение») регулирует отношения между Владельцем сервиса (далее — «Администрация») и физическим лицом (далее — «Пользователь») по использованию прогрессивного веб-приложения «Aegis» (далее — «Сервис»), представляющего собой библиотеку материалов по кибербезопасности.</p>
+  <h2 data-static-style="a345">Пользовательское соглашение (EULA)</h2>
+  <p data-static-style="a204">Пользовательское соглашение (далее — «Соглашение») регулирует отношения между Владельцем сервиса (далее — «Администрация») и физическим лицом (далее — «Пользователь») по использованию прогрессивного веб-приложения «Aegis» (далее — «Сервис»), представляющего собой библиотеку материалов по кибербезопасности.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">1. Общие положения</h3>
-  <p style="margin-bottom:8px;">1.1. <strong>Aegis</strong> — это PWA-сервис, предоставляющий доступ к структурированной библиотеке книг, статей, гайдов и исследовательских материалов в области информационной безопасности.</p>
-  <p style="margin-bottom:8px;">1.2. Использование Сервиса регулируется настоящим Соглашением, а также Политикой конфиденциальности.</p>
-  <p style="margin-bottom:8px;">1.3. Начиная использовать Сервис (установка PWA на устройство, авторизация или просмотр контента), Пользователь считается безоговорочно принявшим условия настоящего Соглашения. Если вы не согласны с условиями, вы обязаны прекратить использование Сервиса.</p>
+  <h3 data-static-style="a346">1. Общие положения</h3>
+  <p data-static-style="a347">1.1. <strong>Aegis</strong> — это PWA-сервис, предоставляющий доступ к структурированной библиотеке книг, статей, гайдов и исследовательских материалов в области информационной безопасности.</p>
+  <p data-static-style="a347">1.2. Использование Сервиса регулируется настоящим Соглашением, а также Политикой конфиденциальности.</p>
+  <p data-static-style="a347">1.3. Начиная использовать Сервис (установка PWA на устройство, авторизация или просмотр контента), Пользователь считается безоговорочно принявшим условия настоящего Соглашения. Если вы не согласны с условиями, вы обязаны прекратить использование Сервиса.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">2. Предмет соглашения и статус контента</h3>
-  <p style="margin-bottom:8px;">2.1. <strong>Образовательная цель:</strong> Сервис предоставляет материалы исключительно в образовательных, исследовательских и ознакомительных целях для специалистов и энтузиастов сферы кибербезопасности.</p>
-  <p style="margin-bottom:8px;">2.2. <strong>Авторские права:</strong> Весь контент, размещенный в библиотеке (тексты, обложки, дизайн, программный код PWA), является объектом интеллектуальной собственности Администрации или используется на основании лицензионных договоров с правообладателями.</p>
-  <p style="margin-bottom:8px;">2.3. <strong>Ограничения использования контента:</strong></p>
-  <p style="margin-bottom:8px;padding-left:12px;">— Пользователь вправе читать и цитировать материалы в личных образовательных целях в объемах, оправданных целью цитирования.<br>— <strong>Строго запрещается:</strong> воспроизведение, копирование, распространение, сдача в прокат, публичное воспроизведение материалов Сервиса или их фрагментов без письменного разрешения Администрации.</p>
-  <p style="margin-bottom:8px;">2.4. <strong>Пользовательский контент:</strong> Если функционал Сервиса позволяет оставлять комментарии или заметки (Пользовательский контент), Пользователь гарантирует, что этот контент не нарушает законодательство и права третьих лиц.</p>
+  <h3 data-static-style="a346">2. Предмет соглашения и статус контента</h3>
+  <p data-static-style="a347">2.1. <strong>Образовательная цель:</strong> Сервис предоставляет материалы исключительно в образовательных, исследовательских и ознакомительных целях для специалистов и энтузиастов сферы кибербезопасности.</p>
+  <p data-static-style="a347">2.2. <strong>Авторские права:</strong> Весь контент, размещенный в библиотеке (тексты, обложки, дизайн, программный код PWA), является объектом интеллектуальной собственности Администрации или используется на основании лицензионных договоров с правообладателями.</p>
+  <p data-static-style="a347">2.3. <strong>Ограничения использования контента:</strong></p>
+  <p data-static-style="a348">— Пользователь вправе читать и цитировать материалы в личных образовательных целях в объемах, оправданных целью цитирования.<br>— <strong>Строго запрещается:</strong> воспроизведение, копирование, распространение, сдача в прокат, публичное воспроизведение материалов Сервиса или их фрагментов без письменного разрешения Администрации.</p>
+  <p data-static-style="a347">2.4. <strong>Пользовательский контент:</strong> Если функционал Сервиса позволяет оставлять комментарии или заметки (Пользовательский контент), Пользователь гарантирует, что этот контент не нарушает законодательство и права третьих лиц.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">3. Функциональность PWA и офлайн-доступ</h3>
-  <p style="margin-bottom:8px;">3.1. Сервис использует технологии Progressive Web App (Service Workers, Cache API) для обеспечения офлайн-доступа к ранее открытым материалам.</p>
-  <p style="margin-bottom:8px;">3.2. Пользователь уведомлен, что:</p>
-  <p style="margin-bottom:8px;padding-left:12px;">— Офлайн-режим работает исключительно с кэшированными данными.<br>— Для синхронизации прогресса чтения и получения обновлений библиотеки требуется активное подключение к сети Интернет.<br>— Администрация не несет ответственности за потерю кэшированных данных при очистке памяти браузера Пользователем или сбое файловой системы устройства.</p>
+  <h3 data-static-style="a346">3. Функциональность PWA и офлайн-доступ</h3>
+  <p data-static-style="a347">3.1. Сервис использует технологии Progressive Web App (Service Workers, Cache API) для обеспечения офлайн-доступа к ранее открытым материалам.</p>
+  <p data-static-style="a347">3.2. Пользователь уведомлен, что:</p>
+  <p data-static-style="a348">— Офлайн-режим работает исключительно с кэшированными данными.<br>— Для синхронизации прогресса чтения и получения обновлений библиотеки требуется активное подключение к сети Интернет.<br>— Администрация не несет ответственности за потерю кэшированных данных при очистке памяти браузера Пользователем или сбое файловой системы устройства.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">4. Права и обязанности сторон</h3>
-  <p style="margin-bottom:8px;"><strong>Пользователь обязуется:</strong></p>
-  <p style="margin-bottom:8px;">4.1. Использовать полученные знания исключительно в законных целях. <strong>Пользователь осознает, что применение техник и инструментов, описанных в материалах библиотеки, для несанкционированного доступа к чужим информационным системам является уголовно наказуемым деянием.</strong></p>
-  <p style="margin-bottom:8px;">4.2. Не предпринимать действий, направленных на взлом, реверс-инжиниринг кода Сервиса, обход ограничений доступа (DRM/Tests) или нарушение нормальной работы PWA.</p>
-  <p style="margin-bottom:8px;">4.3. Не использовать автоматизированные скрипты (парсинг, граббинг) для массовой загрузки материалов библиотеки.</p>
-  <p style="margin-bottom:8px;"><strong>Администрация имеет право:</strong></p>
-  <p style="margin-bottom:8px;">4.4. Модерировать и удалять Пользовательский контент без объяснения причин.</p>
-  <p style="margin-bottom:8px;">4.5. Вносить изменения в каталог библиотеки, удалять или добавлять книги без предварительного уведомления Пользователя.</p>
-  <p style="margin-bottom:8px;">4.6. Ограничить доступ к Сервису для Пользователя в случае нарушения условий настоящего Соглашения.</p>
+  <h3 data-static-style="a346">4. Права и обязанности сторон</h3>
+  <p data-static-style="a347"><strong>Пользователь обязуется:</strong></p>
+  <p data-static-style="a347">4.1. Использовать полученные знания исключительно в законных целях. <strong>Пользователь осознает, что применение техник и инструментов, описанных в материалах библиотеки, для несанкционированного доступа к чужим информационным системам является уголовно наказуемым деянием.</strong></p>
+  <p data-static-style="a347">4.2. Не предпринимать действий, направленных на взлом, реверс-инжиниринг кода Сервиса, обход ограничений доступа (DRM/Tests) или нарушение нормальной работы PWA.</p>
+  <p data-static-style="a347">4.3. Не использовать автоматизированные скрипты (парсинг, граббинг) для массовой загрузки материалов библиотеки.</p>
+  <p data-static-style="a347"><strong>Администрация имеет право:</strong></p>
+  <p data-static-style="a347">4.4. Модерировать и удалять Пользовательский контент без объяснения причин.</p>
+  <p data-static-style="a347">4.5. Вносить изменения в каталог библиотеки, удалять или добавлять книги без предварительного уведомления Пользователя.</p>
+  <p data-static-style="a347">4.6. Ограничить доступ к Сервису для Пользователя в случае нарушения условий настоящего Соглашения.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">5. Отказ от ответственности</h3>
-  <p style="margin-bottom:8px;">5.1. <strong>«Как есть»:</strong> Сервис предоставляется на условиях «как есть» (as is). Администрация не предоставляет гарантий безошибочной и бесперебойной работы PWA.</p>
-  <p style="margin-bottom:8px;">5.2. <strong>Не гарантируется:</strong> Администрация не гарантирует, что материалы библиотеки подходят для достижения конкретных практических целей Пользователя. Техническая информация может устаревать ввиду быстрого развития технологий.</p>
-  <p style="margin-bottom:8px;">5.3. <strong>Ограничение ответственности:</strong> Администрация ни при каких обстоятельствах не несет ответственности за прямой или косвенный ущерб, причиненный Пользователю или третьим лицам в результате:</p>
-  <p style="margin-bottom:8px;padding-left:12px;">— Незаконного использования Пользователем информации, полученной в Сервисе (включая уголовное преследование за хакерскую деятельность);<br>— Ошибок и уязвимостей в программном обеспечении, описанном в книгах библиотеки.</p>
+  <h3 data-static-style="a346">5. Отказ от ответственности</h3>
+  <p data-static-style="a347">5.1. <strong>«Как есть»:</strong> Сервис предоставляется на условиях «как есть» (as is). Администрация не предоставляет гарантий безошибочной и бесперебойной работы PWA.</p>
+  <p data-static-style="a347">5.2. <strong>Не гарантируется:</strong> Администрация не гарантирует, что материалы библиотеки подходят для достижения конкретных практических целей Пользователя. Техническая информация может устаревать ввиду быстрого развития технологий.</p>
+  <p data-static-style="a347">5.3. <strong>Ограничение ответственности:</strong> Администрация ни при каких обстоятельствах не несет ответственности за прямой или косвенный ущерб, причиненный Пользователю или третьим лицам в результате:</p>
+  <p data-static-style="a348">— Незаконного использования Пользователем информации, полученной в Сервисе (включая уголовное преследование за хакерскую деятельность);<br>— Ошибок и уязвимостей в программном обеспечении, описанном в книгах библиотеки.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">6. Заключительные положения</h3>
-  <p style="margin-bottom:8px;">6.1. Администрация оставляет за собой право в одностороннем порядке изменять текст настоящего Соглашения. Изменения вступают в силу с момента их публикации в Сервисе.</p>
-  <p style="margin-bottom:0;">6.2. Продолжение использования Сервиса после внесения изменений означает согласие Пользователя с новой редакцией Соглашения.</p>
+  <h3 data-static-style="a346">6. Заключительные положения</h3>
+  <p data-static-style="a347">6.1. Администрация оставляет за собой право в одностороннем порядке изменять текст настоящего Соглашения. Изменения вступают в силу с момента их публикации в Сервисе.</p>
+  <p data-static-style="a349">6.2. Продолжение использования Сервиса после внесения изменений означает согласие Пользователя с новой редакцией Соглашения.</p>
 `;
 
 const PRIVACY_POLICY_HTML = `
-  <h2 style="font-size:17px;font-weight:800;color:var(--text-primary);margin:0 0 12px;">Политика конфиденциальности</h2>
-  <p style="margin-bottom:8px;"><strong>Прогрессивное веб-приложение «Aegis»</strong></p>
-  <p style="margin-bottom:8px;">Настоящая Политика конфиденциальности (далее — «Политика») определяет, какие данные собирает и обрабатывает сервис «Aegis» (далее — «Сервис» или «PWA»), как они используются и защищаются.</p>
-  <p style="margin-bottom:14px;">Мы серьезно относимся к конфиденциальности, особенно с учетом образовательной направленности нашего продукта в сфере кибербезопасности.</p>
+  <h2 data-static-style="a345">Политика конфиденциальности</h2>
+  <p data-static-style="a347"><strong>Прогрессивное веб-приложение «Aegis»</strong></p>
+  <p data-static-style="a347">Настоящая Политика конфиденциальности (далее — «Политика») определяет, какие данные собирает и обрабатывает сервис «Aegis» (далее — «Сервис» или «PWA»), как они используются и защищаются.</p>
+  <p data-static-style="a204">Мы серьезно относимся к конфиденциальности, особенно с учетом образовательной направленности нашего продукта в сфере кибербезопасности.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">1. Основные понятия</h3>
-  <p style="margin-bottom:8px;">1.1. <strong>PWA (Progressive Web App)</strong> — веб-приложение, которое работает в браузере Пользователя и может быть установлено на устройство для офлайн-доступа.</p>
-  <p style="margin-bottom:8px;">1.2. <strong>Персональные данные</strong> — любая информация, относящаяся к прямо или косвенно определенному или определяемому физическому лицу.</p>
-  <p style="margin-bottom:8px;">1.3. <strong>Обезличенные данные</strong> — данные, которые не могут быть использованы для идентификации конкретного Пользователя без дополнительной информации.</p>
-  <p style="margin-bottom:8px;">1.4. <strong>Service Worker</strong> — программный скрипт, работающий в фоновом режиме браузера и отвечающий за кэширование контента для офлайн-доступа.</p>
+  <h3 data-static-style="a346">1. Основные понятия</h3>
+  <p data-static-style="a347">1.1. <strong>PWA (Progressive Web App)</strong> — веб-приложение, которое работает в браузере Пользователя и может быть установлено на устройство для офлайн-доступа.</p>
+  <p data-static-style="a347">1.2. <strong>Персональные данные</strong> — любая информация, относящаяся к прямо или косвенно определенному или определяемому физическому лицу.</p>
+  <p data-static-style="a347">1.3. <strong>Обезличенные данные</strong> — данные, которые не могут быть использованы для идентификации конкретного Пользователя без дополнительной информации.</p>
+  <p data-static-style="a347">1.4. <strong>Service Worker</strong> — программный скрипт, работающий в фоновом режиме браузера и отвечающий за кэширование контента для офлайн-доступа.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">2. Какие данные мы собираем и зачем</h3>
-  <p style="margin-bottom:8px;">2.1. <strong>Данные для работы аккаунта (опционально):</strong> адрес электронной почты, никнейм, хэшированный пароль. Цель — идентификация Пользователя, синхронизация прогресса чтения и закладок между устройствами. Основание — исполнение договора.</p>
-  <p style="margin-bottom:8px;">2.2. <strong>Данные о прогрессе чтения:</strong> список прочитанных книг, страницы, закладки и текстовые заметки. Цель — продолжить чтение с того же места. Хранение — локально на устройстве (IndexedDB / LocalStorage); при использовании аккаунта — на сервере в зашифрованном виде.</p>
-  <p style="margin-bottom:8px;">2.3. <strong>Данные, собираемые автоматически (обезличенные):</strong> логи сервера (IP-адрес, тип браузера, дата и время запроса, HTTP-статус, объем данных) хранятся до 14 дней; данные PWA-кэша (манифест, иконки, шрифты). Аналитика: мы не используем Google Analytics или Яндекс.Метрику, не используем cookie слежения и не создаём цифровой отпечаток.</p>
-  <p style="margin-bottom:8px;">2.4. <strong>Данные для офлайн-доступа:</strong> текст, разметка и изображения открытых книг сохраняются в Cache API. Это техническая основа работы PWA. Вы можете очистить кэш через настройки браузера.</p>
+  <h3 data-static-style="a346">2. Какие данные мы собираем и зачем</h3>
+  <p data-static-style="a347">2.1. <strong>Данные для работы аккаунта (опционально):</strong> адрес электронной почты, никнейм, хэшированный пароль. Цель — идентификация Пользователя, синхронизация прогресса чтения и закладок между устройствами. Основание — исполнение договора.</p>
+  <p data-static-style="a347">2.2. <strong>Данные о прогрессе чтения:</strong> список прочитанных книг, страницы, закладки и текстовые заметки. Цель — продолжить чтение с того же места. Хранение — локально на устройстве (IndexedDB / LocalStorage); при использовании аккаунта — на сервере в зашифрованном виде.</p>
+  <p data-static-style="a347">2.3. <strong>Данные, собираемые автоматически (обезличенные):</strong> логи сервера (IP-адрес, тип браузера, дата и время запроса, HTTP-статус, объем данных) хранятся до 14 дней; данные PWA-кэша (манифест, иконки, шрифты). Аналитика: мы не используем Google Analytics или Яндекс.Метрику, не используем cookie слежения и не создаём цифровой отпечаток.</p>
+  <p data-static-style="a347">2.4. <strong>Данные для офлайн-доступа:</strong> текст, разметка и изображения открытых книг сохраняются в Cache API. Это техническая основа работы PWA. Вы можете очистить кэш через настройки браузера.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">3. Правовые основания обработки (GDPR / 152-ФЗ)</h3>
-  <p style="margin-bottom:8px;padding-left:12px;">— <strong>Согласие:</strong> при первой установке PWA или первом открытии книги.<br>— <strong>Исполнение договора:</strong> для сохранения закладок и прогресса.<br>— <strong>Законный интерес:</strong> базовая безопасность и обезличенная статистика.</p>
+  <h3 data-static-style="a346">3. Правовые основания обработки (GDPR / 152-ФЗ)</h3>
+  <p data-static-style="a348">— <strong>Согласие:</strong> при первой установке PWA или первом открытии книги.<br>— <strong>Исполнение договора:</strong> для сохранения закладок и прогресса.<br>— <strong>Законный интерес:</strong> базовая безопасность и обезличенная статистика.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">4. Cookie и Web Storage</h3>
-  <p style="margin-bottom:8px;">4.1. Сервис использует технические сессионные данные, необходимые для работы интерфейса.</p>
-  <p style="margin-bottom:8px;">4.2. <strong>Мы принципиально не используем:</strong> сторонние рекламные и трекинговые cookie; скрытый майнинг; сбор данных из буфера обмена без вашего действия.</p>
-  <p style="margin-bottom:8px;">4.3. Вы можете запретить Local Storage в настройках браузера, но это нарушит работу приложения (офлайн-чтение и сохранение прогресса).</p>
+  <h3 data-static-style="a346">4. Cookie и Web Storage</h3>
+  <p data-static-style="a347">4.1. Сервис использует технические сессионные данные, необходимые для работы интерфейса.</p>
+  <p data-static-style="a347">4.2. <strong>Мы принципиально не используем:</strong> сторонние рекламные и трекинговые cookie; скрытый майнинг; сбор данных из буфера обмена без вашего действия.</p>
+  <p data-static-style="a347">4.3. Вы можете запретить Local Storage в настройках браузера, но это нарушит работу приложения (офлайн-чтение и сохранение прогресса).</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">5. Передача данных третьим лицам</h3>
-  <p style="margin-bottom:8px;">5.1. Мы не продаем, не передаем и не раскрываем информацию о том, какие книги вы читаете и какие заметки оставляете.</p>
-  <p style="margin-bottom:8px;">5.2. <strong>Исключения:</strong> по законному запросу государственных органов РФ; хостинг- и CDN-провайдеру (исключительно для доставки файлов на ваше устройство).</p>
+  <h3 data-static-style="a346">5. Передача данных третьим лицам</h3>
+  <p data-static-style="a347">5.1. Мы не продаем, не передаем и не раскрываем информацию о том, какие книги вы читаете и какие заметки оставляете.</p>
+  <p data-static-style="a347">5.2. <strong>Исключения:</strong> по законному запросу государственных органов РФ; хостинг- и CDN-провайдеру (исключительно для доставки файлов на ваше устройство).</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">6. Безопасность данных</h3>
-  <p style="margin-bottom:8px;">6.1. Обмен данными по HTTPS (TLS 1.3); внедрены заголовки безопасности (CSP, HSTS); инфраструктура регулярно сканируется на уязвимости.</p>
-  <p style="margin-bottom:8px;">6.2. 100% безопасности в сети не существует. Рекомендуем использовать сложные пароли и не хранить чувствительную информацию в публичных заметках.</p>
+  <h3 data-static-style="a346">6. Безопасность данных</h3>
+  <p data-static-style="a347">6.1. Обмен данными по HTTPS (TLS 1.3); внедрены заголовки безопасности (CSP, HSTS); инфраструктура регулярно сканируется на уязвимости.</p>
+  <p data-static-style="a347">6.2. 100% безопасности в сети не существует. Рекомендуем использовать сложные пароли и не хранить чувствительную информацию в публичных заметках.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">7. Права Пользователя</h3>
-  <p style="margin-bottom:8px;padding-left:12px;">1. <strong>На доступ:</strong> запросить перечень хранимых данных.<br>2. <strong>На удаление:</strong> потребовать удалить аккаунт и связанные данные.<br>3. <strong>На возражение:</strong> отказаться от уведомлений.<br>4. <strong>На локальное удаление:</strong> стереть данные PWA через «Очистить историю» → «Данные сайтов».</p>
-  <p style="margin-bottom:8px;">Для реализации прав напишите на <strong>support@aegis-sec-library.ru</strong> с темой «Запрос конфиденциальности». Мы ответим в течение 10 рабочих дней. Возможно, потребуется подтвердить вашу личность.</p>
+  <h3 data-static-style="a346">7. Права Пользователя</h3>
+  <p data-static-style="a348">1. <strong>На доступ:</strong> запросить перечень хранимых данных.<br>2. <strong>На удаление:</strong> потребовать удалить аккаунт и связанные данные.<br>3. <strong>На возражение:</strong> отказаться от уведомлений.<br>4. <strong>На локальное удаление:</strong> стереть данные PWA через «Очистить историю» → «Данные сайтов».</p>
+  <p data-static-style="a347">Для реализации прав напишите на <strong>support@aegis-sec-library.ru</strong> с темой «Запрос конфиденциальности». Мы ответим в течение 10 рабочих дней. Возможно, потребуется подтвердить вашу личность.</p>
 
-  <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:18px 0 8px;">8. Изменения Политики</h3>
-  <p style="margin-bottom:8px;">8.1. Мы можем вносить изменения. При существенных изменениях уведомим через интерфейс приложения.</p>
-  <p style="margin-bottom:0;">8.2. Новая редакция вступает в силу с момента публикации.</p>
+  <h3 data-static-style="a346">8. Изменения Политики</h3>
+  <p data-static-style="a347">8.1. Мы можем вносить изменения. При существенных изменениях уведомим через интерфейс приложения.</p>
+  <p data-static-style="a349">8.2. Новая редакция вступает в силу с момента публикации.</p>
 `;
 
 const SETTINGS_TABS = [
@@ -7081,10 +7081,10 @@ function openSettingsTab(tabId) {
 
 async function renderSettingsStorageTab(c) {
   c.innerHTML = `
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Данные и память</h3>
-    <div id="storageStatsContent" style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">
+    <h3 data-static-style="a350">Данные и память</h3>
+    <div id="storageStatsContent" data-static-style="a351">
       ${ICONS.iconDatabase}
-      <div style="margin-top:8px;">Подсчёт...</div>
+      <div data-static-style="a352">Подсчёт...</div>
     </div>
   `;
 
@@ -7098,40 +7098,40 @@ async function renderSettingsStorageTab(c) {
   cont.style.textAlign = 'left';
   cont.style.padding = '0';
   cont.innerHTML = `
-    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
-        <div style="font-size:11px;font-weight:600;color:var(--text-muted);">ИСПОЛЬЗОВАНО</div>
-        <div style="font-size:14px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${formatBytes(stats.used)}</div>
+    <div data-static-style="a353">
+      <div data-static-style="a354">
+        <div data-static-style="a355">ИСПОЛЬЗОВАНО</div>
+        <div data-static-style="a356">${formatBytes(stats.used)}</div>
       </div>
-      <div style="height:8px;background:var(--bg-card);border-radius:4px;overflow:hidden;margin-bottom:6px;">
+      <div data-static-style="a357">
         <div style="height:100%;width:${usedPct}%;background:var(--accent-gradient);transition:width 0.3s;"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
+      <div data-static-style="a358">
         <span>${usedPct}% от доступного</span>
         <span>из ${formatBytes(stats.quota)}</span>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:16px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${formatBytes(stats.cacheSize)}</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Кэш приложения</div>
+    <div data-static-style="a359">
+      <div data-static-style="a360">
+        <div data-static-style="a361">${formatBytes(stats.cacheSize)}</div>
+        <div data-static-style="a344">Кэш приложения</div>
       </div>
-      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:16px;font-weight:700;color:#a855f7;font-family:'JetBrains Mono',monospace;">${stats.cacheCount}</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Файлов в кэше</div>
+      <div data-static-style="a360">
+        <div data-static-style="a362">${stats.cacheCount}</div>
+        <div data-static-style="a344">Файлов в кэше</div>
       </div>
     </div>
 
     <!-- Тумблер «только Wi-Fi» -->
-    <div class="set-row" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Скачивать только по Wi-Fi</div>
-          <div style="font-size:10px;color:var(--text-muted);">Экономия мобильного трафика</div>
+    <div class="set-row" data-static-style="a363">
+      <div data-static-style="a364">
+        <div data-static-style="a004">
+          <div data-static-style="a365">Скачивать только по Wi-Fi</div>
+          <div data-static-style="a099">Экономия мобильного трафика</div>
         </div>
-        <label class="toggle-switch" style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;cursor:pointer;">
-          <input type="checkbox" id="wifiOnlyToggle" ${wifiOnly ? 'checked' : ''} data-onchange="onWifiOnlyToggle()" data-args="this" style="opacity:0;width:0;height:0;position:absolute;">
+        <label class="toggle-switch" data-static-style="a366">
+          <input type="checkbox" id="wifiOnlyToggle" ${wifiOnly ? 'checked' : ''} data-onchange="onWifiOnlyToggle()" data-args="this" data-static-style="a367">
           <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${wifiOnly ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;">
             <span style="position:absolute;height:18px;width:18px;left:${wifiOnly ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
           </span>
@@ -7140,14 +7140,14 @@ async function renderSettingsStorageTab(c) {
     </div>
 
     <!-- Тумблер автопредзагрузки -->
-    <div class="set-row" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px;">Автосохранение книг офлайн</div>
-          <div style="font-size:10px;color:var(--text-muted);">Начатые книги автоматически скачиваются по Wi-Fi</div>
+    <div class="set-row" data-static-style="a363">
+      <div data-static-style="a364">
+        <div data-static-style="a004">
+          <div data-static-style="a365">Автосохранение книг офлайн</div>
+          <div data-static-style="a099">Начатые книги автоматически скачиваются по Wi-Fi</div>
         </div>
-        <label class="toggle-switch" style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;cursor:pointer;">
-          <input type="checkbox" id="autoPreloadToggle" ${isAutoPreloadEnabled() ? 'checked' : ''} data-onchange="onAutoPreloadToggle()" data-args="this" style="opacity:0;width:0;height:0;position:absolute;">
+        <label class="toggle-switch" data-static-style="a366">
+          <input type="checkbox" id="autoPreloadToggle" ${isAutoPreloadEnabled() ? 'checked' : ''} data-onchange="onAutoPreloadToggle()" data-args="this" data-static-style="a367">
           <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${isAutoPreloadEnabled() ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;">
             <span style="position:absolute;height:18px;width:18px;left:${isAutoPreloadEnabled() ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
           </span>
@@ -7155,20 +7155,20 @@ async function renderSettingsStorageTab(c) {
       </div>
     </div>
 
-    <button class="set-save-btn" data-onclick="exportAllUserData()" data-nonce="${sensitiveNonce()}" style="background:rgba(0,212,255,0.12);color:var(--accent);border:1px solid rgba(0,212,255,0.4);margin-top:14px;">
+    <button class="set-save-btn" data-onclick="exportAllUserData()" data-nonce="${sensitiveNonce()}" data-static-style="a368">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       <span>Скачать все мои данные</span>
     </button>
-    <div style="margin-top:8px;font-size:10px;color:var(--text-muted);line-height:1.5;">
+    <div data-static-style="a369">
       Выгрузка всех ваших данных (профиль, списки, заметки, прогресс, результаты тестов) одним JSON-файлом.
     </div>
 
-    <button class="set-save-btn" data-onclick="confirmClearCache()" style="background:#ef444425;color:#ef4444;border:1px solid #ef444466;margin-top:14px;">
+    <button class="set-save-btn" data-onclick="confirmClearCache()" data-static-style="a370">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
       <span>Очистить кэш</span>
     </button>
 
-    <div style="margin-top:10px;font-size:10px;color:var(--text-muted);line-height:1.5;">
+    <div data-static-style="a371">
       После очистки книги придётся скачать заново при следующем чтении. Прогресс чтения, заметки и достижения сохранятся.
     </div>
   `;
@@ -7214,9 +7214,9 @@ function renderSettingsTabContent() {
   }else {
     const tab = SETTINGS_TABS.find(t => t.id === settingsCurrentTab);
     c.innerHTML = `
-      <div style="text-align:center;padding:32px 12px;color:var(--text-muted);">
-        <div style="font-size:14px;font-weight:600;margin-bottom:6px;">${tab ? tab.label : ''}</div>
-        <div style="font-size:12px;">Раздел будет доступен в ближайшее время</div>
+      <div data-static-style="a372">
+        <div data-static-style="a373">${tab ? tab.label : ''}</div>
+        <div data-static-style="a253">Раздел будет доступен в ближайшее время</div>
       </div>
     `;
   }
@@ -7224,47 +7224,47 @@ function renderSettingsTabContent() {
 
 function renderSettingsHelpTab(c) {
   c.innerHTML = `
-    <div style="max-width:560px;">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Знакомство с приложением</div>
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+    <div data-static-style="a374">
+      <div data-static-style="a375">
+        <div data-static-style="a376">Знакомство с приложением</div>
+        <p data-static-style="a377">
           Короткий тур по основным разделам: библиотека, тестирование, AI-ассистент и схемы атак.
         </p>
-        <button data-onclick="replayOnboardingTour()" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+        <button data-onclick="replayOnboardingTour()" data-static-style="a378">
           Пройти обучение заново
         </button>
       </div>
 
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Установка приложения</div>
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+      <div data-static-style="a375">
+        <div data-static-style="a376">Установка приложения</div>
+        <p data-static-style="a377">
           Установите Aegis на телефон или планшет для быстрого доступа с домашнего экрана.
         </p>
-        <button data-onclick="triggerInstall()" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;border-radius:10px;padding:11px 16px;color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
+        <button data-onclick="triggerInstall()" data-static-style="a379">
           Установить приложение
         </button>
       </div>
 
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;">
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">Связь с поддержкой</div>
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+      <div data-static-style="a375">
+        <div data-static-style="a380">Связь с поддержкой</div>
+        <p data-static-style="a377">
           При возникновении вопросов или проблем пишите на почту:
         </p>
-        <a href="mailto:support@aegis-sec-library.ru" style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--accent);text-decoration:none;font-size:13px;font-weight:600;">
+        <a href="mailto:support@aegis-sec-library.ru" data-static-style="a381">
           support@aegis-sec-library.ru
         </a>
       </div>
 
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;">
-        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Правовые документы</div>
-        <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;">
+      <div data-static-style="a382">
+        <div data-static-style="a376">Правовые документы</div>
+        <p data-static-style="a377">
           Условия использования платформы Aegis и порядок обработки данных.
         </p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button data-onclick="openUserAgreement()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+        <div data-static-style="a093">
+          <button data-onclick="openUserAgreement()" data-static-style="a383">
             Пользовательское соглашение
           </button>
-          <button data-onclick="openPrivacyPolicy()" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+          <button data-onclick="openPrivacyPolicy()" data-static-style="a383">
             Политика конфиденциальности
           </button>
         </div>
@@ -7281,15 +7281,15 @@ function _openLegalModal(titleText, html) {
     document.body.appendChild(m);
   }
   m.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <div style="font-size:16px;font-weight:700;color:var(--text-primary);">${eh(titleText)}</div>
-      <button data-onclick="closeModal('legalDocModal')" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;flex-shrink:0;">✕</button>
+    <div data-static-style="a384">
+      <div data-static-style="a385">${eh(titleText)}</div>
+      <button data-onclick="closeModal('legalDocModal')" data-static-style="a386">✕</button>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:20px;font-size:14px;color:var(--text-secondary);line-height:1.7;max-width:680px;margin:0 auto;width:100%;-webkit-overflow-scrolling:touch;">
+    <div data-static-style="a387">
       ${html}
     </div>
-    <div style="padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0;">
-      <button data-onclick="closeModal('legalDocModal')" style="width:100%;max-width:680px;margin:0 auto;display:block;background:var(--accent);border:none;color:#fff;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Закрыть</button>
+    <div data-static-style="a388">
+      <button data-onclick="closeModal('legalDocModal')" data-static-style="a389">Закрыть</button>
     </div>`;
 }
 
@@ -7312,39 +7312,39 @@ function renderSettingsPrivacyTab(c) {
   ];
 
   c.innerHTML = `
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Приватность</h3>
+    <h3 data-static-style="a350">Приватность</h3>
 
-    <div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">
+    <div data-static-style="a390">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-static-style="a391"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div data-static-style="a392">
         В публичном профиле ваш email показывается замаскированным (например i***n@mail.ru). Приватный профиль скрыт от всех.
       </div>
     </div>
 
     <div class="set-row">
       <label>Отображение профиля</label>
-      <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:6px;">
+      <div data-static-style="a393">
         ${options.map(opt => `
           <button data-onclick="setPrivacyVisibility('${opt.value}')" style="text-align:left;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${current === opt.value ? 'var(--accent-gradient)' : 'transparent'};border:none;border-radius:8px;cursor:pointer;font-family:inherit;color:${current === opt.value ? '#fff' : 'var(--text-primary)'};">
             <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${current === opt.value ? '#fff' : 'var(--border-light)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
-              ${current === opt.value ? '<div style="width:8px;height:8px;border-radius:50%;background:#fff;"></div>' : ''}
+              ${current === opt.value ? '<div data-static-style="a394"></div>' : ''}
             </div>
-            <div style="flex:1;">
-              <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${opt.label}</div>
-              <div style="font-size:11px;opacity:0.8;line-height:1.4;">${opt.desc}</div>
+            <div data-static-style="a004">
+              <div data-static-style="a395">${opt.label}</div>
+              <div data-static-style="a396">${opt.desc}</div>
             </div>
           </button>
         `).join('')}
       </div>
     </div>
 
-    <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
-      <label style="font-size:12px;color:#ef4444;font-weight:700;display:block;margin-bottom:8px;">Опасная зона</label>
-      <button data-onclick="confirmDeleteAccount()" data-nonce="${sensitiveNonce()}" class="set-save-btn" style="background:#ef444418;color:#ef4444;border:1px solid #ef444455;">
+    <div data-static-style="a397">
+      <label data-static-style="a398">Опасная зона</label>
+      <button data-onclick="confirmDeleteAccount()" data-nonce="${sensitiveNonce()}" class="set-save-btn" data-static-style="a399">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         <span>Удалить аккаунт</span>
       </button>
-      <div style="margin-top:8px;font-size:10px;color:var(--text-muted);line-height:1.5;">
+      <div data-static-style="a369">
         Безвозвратно удаляет аккаунт и все данные: списки, заметки, прогресс, результаты тестов, коллекции.
       </div>
     </div>
@@ -7357,14 +7357,14 @@ function confirmDeleteAccount() {
   const m = document.createElement('div');
   m.id = 'deleteAccModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid #ef444455;border-radius:16px;padding:22px;max-width:400px;width:100%;">
-    <h3 style="font-size:16px;font-weight:700;color:#ef4444;margin-bottom:10px;">Удалить аккаунт?</h3>
-    <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">Это действие необратимо. Все ваши данные будут удалены навсегда. Для подтверждения введите пароль и слово <b style="color:var(--text-primary);">УДАЛИТЬ</b>.</p>
-    <input id="delAccPassword" type="password" placeholder="Пароль" style="width:100%;padding:11px 14px;margin-bottom:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;">
-    <input id="delAccConfirm" type="text" placeholder="Введите УДАЛИТЬ" style="width:100%;padding:11px 14px;margin-bottom:14px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:14px;">
-    <div style="display:flex;gap:8px;">
-      <button data-onclick="closeModal('deleteAccModal')" style="flex:1;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Отмена</button>
-      <button data-onclick="doDeleteAccount()" data-nonce="${sensitiveNonce()}" style="flex:1;padding:12px;background:#ef4444;border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Удалить</button>
+  m.innerHTML = `<div data-static-style="a400">
+    <h3 data-static-style="a401">Удалить аккаунт?</h3>
+    <p data-static-style="a402">Это действие необратимо. Все ваши данные будут удалены навсегда. Для подтверждения введите пароль и слово <b data-static-style="a154">УДАЛИТЬ</b>.</p>
+    <input id="delAccPassword" type="password" placeholder="Пароль" data-static-style="a403">
+    <input id="delAccConfirm" type="text" placeholder="Введите УДАЛИТЬ" data-static-style="a404">
+    <div data-static-style="a108">
+      <button data-onclick="closeModal('deleteAccModal')" data-static-style="a405">Отмена</button>
+      <button data-onclick="doDeleteAccount()" data-nonce="${sensitiveNonce()}" data-static-style="a406">Удалить</button>
     </div>
   </div>`;
   m.onclick = (e) => { if (e.target === m) m.remove(); };
@@ -7457,12 +7457,12 @@ function renderSettingsPersonalizationTab(c) {
   const fontScale = getReaderFontScale();
 
   c.innerHTML = `
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Персонализация</h3>
+    <h3 data-static-style="a350">Персонализация</h3>
 
     <!-- Тема -->
     <div class="set-row">
       <label>Тема приложения</label>
-      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+      <div data-static-style="a407">
         <button data-onclick="setAppTheme('dark');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'dark' ? 'active' : ''}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'dark' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'dark' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">
           ${ICONS.themeMoon}<span>Тёмная</span>
         </button>
@@ -7475,7 +7475,7 @@ function renderSettingsPersonalizationTab(c) {
     <!-- Карточек в ряд -->
     <div class="set-row">
       <label>Карточек книг в ряд</label>
-      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+      <div data-static-style="a407">
         ${[2, 3, 4].map(n => `
           <button data-onclick="setGridSize(${n})" style="flex:1;padding:10px;background:${currentGrid === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentGrid === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">
             ${n}
@@ -7487,49 +7487,49 @@ function renderSettingsPersonalizationTab(c) {
     <!-- Предпросмотр -->
     <div class="set-row">
       <label>Предпросмотр</label>
-      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;">
+      <div data-static-style="a408">
         <div id="gridPreview" style="display:grid;grid-template-columns:repeat(${currentGrid},1fr);gap:6px;">
           ${Array.from({length: currentGrid * 2}, () => `
-            <div style="aspect-ratio:2/3;background:var(--accent-gradient);opacity:0.6;border-radius:6px;display:flex;align-items:center;justify-content:center;">
+            <div data-static-style="a409">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
             </div>
           `).join('')}
         </div>
       </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Изменения применяются ко всему каталогу</div>
+      <div data-static-style="a410">Изменения применяются ко всему каталогу</div>
     </div>
 
     <!-- Цель чтения -->
     <div class="set-row">
       <label>Цель чтения (страниц в день)</label>
-      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+      <div data-static-style="a407">
         ${[10, 20, 30, 50].map(n => `
           <button data-onclick="setReadingGoal(${n})" style="flex:1;padding:10px;background:${goal === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${goal === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;">
             ${n}
           </button>
         `).join('')}
       </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Цель отображается в профиле и тепловой карте</div>
+      <div data-static-style="a410">Цель отображается в профиле и тепловой карте</div>
     </div>
 
     <!-- Цель по книгам за период -->
     <div class="set-row">
       <label>Цель: сколько книг прочитать</label>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Выберите количество книг и период</div>
+      <div data-static-style="a411">Выберите количество книг и период</div>
 
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">Количество книг</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+      <div data-static-style="a412">Количество книг</div>
+      <div data-static-style="a413">
         ${[5, 10, 15, 20, 30].map(n => {
           const sel = (getBooksGoal()?.count) === n;
           return `<button type="button" data-onclick="selectBooksGoalCount(${n})" data-args="this" class="bg-count-btn" style="min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${n}</button>`;
         }).join('')}
       </div>
 
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">Или своё число</div>
-      <input id="booksGoalCount" type="number" inputmode="numeric" min="1" max="200" value="${(getBooksGoal()?.count) || ''}" placeholder="например, 12" style="width:100%;box-sizing:border-box;padding:14px 16px;margin-bottom:14px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:16px;">
+      <div data-static-style="a412">Или своё число</div>
+      <input id="booksGoalCount" type="number" inputmode="numeric" min="1" max="200" value="${(getBooksGoal()?.count) || ''}" placeholder="например, 12" data-static-style="a414">
 
-      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">За какой период</div>
-      <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <div data-static-style="a412">За какой период</div>
+      <div data-static-style="a415">
         ${[{v:'month',l:'Месяц'},{v:'quarter',l:'Квартал'},{v:'year',l:'Год'}].map(o => {
           const cur = getBooksGoal()?.period || 'quarter';
           const sel = cur === o.v;
@@ -7537,22 +7537,22 @@ function renderSettingsPersonalizationTab(c) {
         }).join('')}
       </div>
 
-      <button data-onclick="saveBooksGoalFromUI()" class="set-save-btn" style="width:100%;">Сохранить цель</button>
-      ${getBooksGoal() ? `<button data-onclick="setBooksGoal(0)" class="set-save-btn" style="width:100%;background:#ef444418;color:#ef4444;border:1px solid #ef444455;margin-top:8px;">Снять цель</button>` : ''}
-      <div style="font-size:10px;color:var(--text-muted);margin-top:8px;">Прогресс-бар появится на главной странице</div>
+      <button data-onclick="saveBooksGoalFromUI()" class="set-save-btn" data-static-style="a416">Сохранить цель</button>
+      ${getBooksGoal() ? `<button data-onclick="setBooksGoal(0)" class="set-save-btn" data-static-style="a417">Снять цель</button>` : ''}
+      <div data-static-style="a418">Прогресс-бар появится на главной странице</div>
     </div>
 
     <!-- Размер шрифта читалки -->
     <div class="set-row">
       <label>Размер шрифта в читалке</label>
-      <div style="display:flex;gap:8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:4px;">
+      <div data-static-style="a407">
         ${[{p:90,l:'А-'},{p:100,l:'А'},{p:115,l:'А+'},{p:130,l:'А++'}].map(o => `
           <button data-onclick="setReaderFontScale(${o.p})" style="flex:1;padding:10px;background:${fontScale === o.p ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${fontScale === o.p ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">
             ${o.l}
           </button>
         `).join('')}
       </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Масштаб страницы при открытии книги</div>
+      <div data-static-style="a410">Масштаб страницы при открытии книги</div>
     </div>
   `;
 }
@@ -7568,9 +7568,9 @@ function setGridSize(n) {
 
 function renderSettingsSecurityTab(c) {
   c.innerHTML = `
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Смена пароля</h3>
+    <h3 data-static-style="a350">Смена пароля</h3>
 
-    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+    <div data-static-style="a419">
       Для смены пароля введи текущий пароль и новый пароль. Новый пароль должен быть не короче 8 символов и отличаться от текущего.
     </div>
 
@@ -7589,16 +7589,16 @@ function renderSettingsSecurityTab(c) {
       <input type="password" id="setNewPasswordConfirm" autocomplete="new-password" placeholder="Ещё раз новый пароль" maxlength="128">
     </div>
 
-    <div id="setPasswordError" style="font-size:11px;color:#ef4444;margin-bottom:10px;min-height:14px;"></div>
+    <div id="setPasswordError" data-static-style="a420"></div>
 
     <button class="set-save-btn" data-onclick="saveSettingsPassword()">
       ${ICONS.iconSave}<span>Изменить пароль</span>
     </button>
 
-    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--accent);">Смена email</h3>
-      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
-        Текущий email: <strong style="color:var(--text-secondary);">${eh(state.currentUser?.email || 'не указан')}</strong>.
+    <div data-static-style="a421">
+      <h3 data-static-style="a422">Смена email</h3>
+      <div data-static-style="a423">
+        Текущий email: <strong data-static-style="a424">${eh(state.currentUser?.email || 'не указан')}</strong>.
         На новый адрес придёт код подтверждения.
       </div>
 
@@ -7611,30 +7611,30 @@ function renderSettingsSecurityTab(c) {
           <label>Пароль (для подтверждения)</label>
           <input type="password" id="setEmailPassword" autocomplete="current-password" placeholder="Ваш пароль">
         </div>
-        <div id="setEmailError" style="font-size:11px;color:#ef4444;margin-bottom:10px;min-height:14px;"></div>
+        <div id="setEmailError" data-static-style="a420"></div>
         <button class="set-save-btn" data-onclick="requestEmailChangeUI()">Отправить код подтверждения</button>
       </div>
 
-      <div id="emailStep2" style="display:none;">
-        <div style="font-size:11px;color:#10b981;margin-bottom:10px;">Код отправлен на новый адрес. Введите его ниже.</div>
+      <div id="emailStep2" data-static-style="a279">
+        <div data-static-style="a425">Код отправлен на новый адрес. Введите его ниже.</div>
         <div class="set-row">
           <label>Код из письма</label>
           <input type="text" inputmode="numeric" id="setEmailCode" placeholder="6-значный код" maxlength="6">
         </div>
-        <div id="setEmailError2" style="font-size:11px;color:#ef4444;margin-bottom:10px;min-height:14px;"></div>
+        <div id="setEmailError2" data-static-style="a420"></div>
         <button class="set-save-btn" data-onclick="confirmEmailChangeUI()">Подтвердить смену email</button>
-        <button class="set-save-btn" data-onclick="renderSettingsSecurityTab(document.getElementById('settingsContent'))" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);margin-top:8px;">Отмена</button>
+        <button class="set-save-btn" data-onclick="renderSettingsSecurityTab(document.getElementById('settingsContent'))" data-static-style="a426">Отмена</button>
       </div>
     </div>
 
-    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;color:var(--accent);">Вход по биометрии</h3>
-      <div style="font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:12px;">
+    <div data-static-style="a421">
+      <h3 data-static-style="a427">Вход по биометрии</h3>
+      <div data-static-style="a423">
         Быстрая разблокировка приложения по Face ID или отпечатку пальца. При включении система запросит разрешение на использование биометрии. Данные хранятся только на этом устройстве.
       </div>
       ${biometricAuth.supported()
         ? `<button class="set-save-btn" data-onclick="toggleBiometricFromSettings()" ${biometricAuth.isEnabled() ? 'style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);"' : ''}>${biometricAuth.isEnabled() ? 'Отключить биометрию' : 'Включить вход по биометрии'}</button>`
-        : `<div style="font-size:11px;color:var(--text-muted);">Биометрия не поддерживается этим устройством или браузером.</div>`}
+        : `<div data-static-style="a192">Биометрия не поддерживается этим устройством или браузером.</div>`}
     </div>
   `;
 }
@@ -7705,16 +7705,16 @@ async function saveSettingsPassword() {
 function renderSettingsInfoTab(c) {
   const u = state.currentUser;
   c.innerHTML = `
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--accent);">Информация о профиле</h3>
+    <h3 data-static-style="a350">Информация о профиле</h3>
 
     <!-- Аватар -->
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;">
-      <div class="profile-avatar-lg" style="width:64px;height:64px;font-size:22px;cursor:pointer;flex-shrink:0;" data-onclick="clickElement('settingsAvatarUpload')">
+    <div data-static-style="a428">
+      <div class="profile-avatar-lg" data-static-style="a429" data-onclick="clickElement('settingsAvatarUpload')">
         <span id="settingsAvatarText">U</span>
-        <img id="settingsAvatarImg" style="display:none;">
+        <img id="settingsAvatarImg" data-static-style="a279">
       </div>
-      <input type="file" id="settingsAvatarUpload" accept="image/*" style="display:none;" data-onchange="uploadAvatar()" data-args="event">
-      <div style="flex:1;font-size:11px;color:var(--text-muted);">
+      <input type="file" id="settingsAvatarUpload" accept="image/*" data-static-style="a279" data-onchange="uploadAvatar()" data-args="event">
+      <div data-static-style="a430">
         Кликни на аватар чтобы загрузить новое фото<br>
         (JPEG/PNG/WEBP, до 2 МБ)
       </div>
@@ -7723,8 +7723,8 @@ function renderSettingsInfoTab(c) {
     <!-- Никнейм (только просмотр пока) -->
     <div class="set-row">
       <label>Никнейм (логин)</label>
-      <input type="text" id="setUsername" value="${eh(u.name || '')}" disabled style="opacity:0.6;cursor:not-allowed;">
-      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Изменение никнейма пока не поддерживается</div>
+      <input type="text" id="setUsername" value="${eh(u.name || '')}" disabled data-static-style="a431">
+      <div data-static-style="a410">Изменение никнейма пока не поддерживается</div>
     </div>
 
     <!-- ФИО -->
@@ -7750,7 +7750,7 @@ function renderSettingsInfoTab(c) {
         <option value="ЦВВ">ЦВВ</option>
         <option value="__other__">Другое...</option>
       </select>
-      <input type="text" id="setDepartmentOther" placeholder="Введите название" maxlength="64" style="margin-top:8px;display:none;">
+      <input type="text" id="setDepartmentOther" placeholder="Введите название" maxlength="64" data-static-style="a432">
     </div>
 
     <button class="set-save-btn" data-onclick="saveSettingsInfo()">
@@ -7926,12 +7926,12 @@ async function showMyStatsModal() {
   const modal = document.createElement('div');
   modal.id = 'myStatsModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:22px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-      <h2 style="font-size:18px;font-weight:800;color:var(--accent);">Моя статистика</h2>
-      <button id="myStatsClose" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;width:32px;height:32px;border-radius:50%;">✕</button>
+  modal.innerHTML = `<div data-static-style="a433">
+    <div data-static-style="a434">
+      <h2 data-static-style="a435">Моя статистика</h2>
+      <button id="myStatsClose" data-static-style="a436">✕</button>
     </div>
-    <div id="myStatsBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:24px;">Считаю…</div>
+    <div id="myStatsBody" data-static-style="a437">Считаю…</div>
   </div>`;
   document.body.appendChild(modal);
   document.getElementById('myStatsClose').onclick = () => modal.remove();
@@ -7978,9 +7978,9 @@ async function showMyStatsModal() {
   const planned = statuses.filter(s => s === 'planned').length;
 
   const card = (val, label, color) => `
-    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+    <div data-static-style="a438">
       <div style="font-size:24px;font-weight:800;color:${color};font-family:'JetBrains Mono',monospace;">${val}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${label}</div>
+      <div data-static-style="a439">${label}</div>
     </div>`;
 
   const body = document.getElementById('myStatsBody');
@@ -7989,39 +7989,39 @@ async function showMyStatsModal() {
   body.style.padding = '0';
   body.style.color = 'var(--text-primary)';
   body.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;">
+    <div data-static-style="a440">
       ${card(totalPages, 'страниц прочитано', 'var(--accent)')}
       ${card(hours + ' ч', 'примерно времени', '#a855f7')}
       ${card(activeDays, 'активных дней', '#10b981')}
       ${card(avgQuiz !== null ? avgQuiz + '%' : '—', 'средний балл тестов', '#f59e0b')}
     </div>
 
-    <div style="margin-bottom:18px;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Динамика по неделям</div>
-      <div style="display:flex;align-items:flex-end;gap:4px;height:90px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:10px;">
-        ${weeks.map(w => `<div title="${w} стр." style="flex:1;min-width:4px;height:${Math.max(4, Math.round(w / maxWeek * 70))}px;background:var(--accent-gradient);border-radius:3px 3px 0 0;"></div>`).join('') || '<div style="margin:auto;color:var(--text-muted);font-size:11px;">Нет данных</div>'}
+    <div data-static-style="a441">
+      <div data-static-style="a442">Динамика по неделям</div>
+      <div data-static-style="a443">
+        ${weeks.map(w => `<div title="${w} стр." style="flex:1;min-width:4px;height:${Math.max(4, Math.round(w / maxWeek * 70))}px;background:var(--accent-gradient);border-radius:3px 3px 0 0;"></div>`).join('') || '<div data-static-style="a444">Нет данных</div>'}
       </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Сумма страниц за каждую неделю (90 дней)</div>
+      <div data-static-style="a410">Сумма страниц за каждую неделю (90 дней)</div>
     </div>
 
-    <div style="margin-bottom:18px;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Любимые категории</div>
+    <div data-static-style="a441">
+      <div data-static-style="a442">Любимые категории</div>
       ${topCats.length ? topCats.map(([cat, n]) => {
         const pct = Math.round(n / topCats[0][1] * 100);
-        return `<div style="margin-bottom:8px;">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>${eh(cat)}</span><span style="color:var(--text-muted);">${n}</span></div>
-          <div style="height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
+        return `<div data-static-style="a347">
+          <div data-static-style="a445"><span>${eh(cat)}</span><span data-static-style="a243">${n}</span></div>
+          <div data-static-style="a446"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
         </div>`;
-      }).join('') : '<div style="font-size:11px;color:var(--text-muted);">Добавь книги в список, чтобы увидеть категории</div>'}
+      }).join('') : '<div data-static-style="a192">Добавь книги в список, чтобы увидеть категории</div>'}
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+    <div data-static-style="a447">
       ${card(reading, 'читаю', '#3b82f6')}
       ${card(completed, 'прочитано', '#10b981')}
       ${card(planned, 'в планах', '#a855f7')}
     </div>
 
-    <div style="margin-top:16px;font-size:11px;color:var(--text-muted);text-align:center;">
+    <div data-static-style="a448">
       Тестов пройдено: ${passedCount} из ${attempts.length} · Цель: ${goal} стр./день
     </div>
   `;
@@ -8048,7 +8048,7 @@ function updateAvatar(id) {
 async function loadAndRenderLeaderboard() {
   const container = document.getElementById('adLeaderboard');
   if (!container) return;
-  container.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">Загрузка...</div>';
+  container.innerHTML = '<div data-static-style="a449">Загрузка...</div>';
   try {
     const lb = await api.library.leaderboard(50);
     container.innerHTML = `<div class="table-wrap"><table>
@@ -8057,19 +8057,19 @@ async function loadAndRenderLeaderboard() {
         ${lb.map((u, i) => {
           // Скрывшие профиль участвуют анонимно; свою строку подсвечиваем
           const name = u.is_hidden ? 'Участник' : (u.full_name || u.username);
-          const style = u.is_self ? ' style="background:rgba(0,212,255,0.08);"' : '';
-          const muted = u.is_hidden ? ' style="color:var(--text-muted);"' : '';
+          const style = u.is_self ? ' data-static-style="a450"' : '';
+          const muted = u.is_hidden ? ' data-static-style="a243"' : '';
           return `<tr${style}>
           <td>${u.place || i + 1}</td>
           <td${muted}>${eh(name)}${u.is_self ? ' (вы)' : ''}</td>
           <td>${u.xp}</td>
-          <td>${u.streak_count}<span style="display:inline-flex;vertical-align:middle;margin-left:2px;color:#f97316;">${ICONS.fire}</span></td>
+          <td>${u.streak_count}<span data-static-style="a333">${ICONS.fire}</span></td>
         </tr>`;
         }).join('')}
       </tbody>
     </table></div>`;
   } catch (err) {
-    container.innerHTML = '<div style="padding:20px;color:#ef4444;">Не удалось загрузить лидерборд</div>';
+    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить лидерборд</div>';
   }
 }
 
@@ -8228,12 +8228,12 @@ async function showHeatmapDayDetails(date) {
   modal.id = 'heatmapDayModal';
   modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
   modal.innerHTML = `
-    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h3 style="font-size:15px;font-weight:700;color:var(--accent);">${formatHeatmapDate(date)}</h3>
-        <button id="heatmapDayCloseBtn" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;width:28px;height:28px;border-radius:50%;">✕</button>
+    <div data-static-style="a451">
+      <div data-static-style="a126">
+        <h3 data-static-style="a127">${formatHeatmapDate(date)}</h3>
+        <button id="heatmapDayCloseBtn" data-static-style="a452">✕</button>
       </div>
-      <div id="heatmapDayContent" style="font-size:12px;color:var(--text-secondary);text-align:center;padding:20px;">Загрузка...</div>
+      <div id="heatmapDayContent" data-static-style="a453">Загрузка...</div>
     </div>
   `;
   document.body.appendChild(modal);
@@ -8244,7 +8244,7 @@ async function showHeatmapDayDetails(date) {
     const data = await api.library.dayStats(date);
     document.getElementById('heatmapDayContent').innerHTML = renderHeatmapDayContent(data);
   } catch (e) {
-    document.getElementById('heatmapDayContent').innerHTML = `<div style="color:#ef4444;">Не удалось загрузить статистику</div>`;
+    document.getElementById('heatmapDayContent').innerHTML = `<div data-static-style="a454">Не удалось загрузить статистику</div>`;
   }
 }
 
@@ -8262,22 +8262,22 @@ function renderHeatmapDayContent(data) {
 
   if (!hasActivity) {
     return `
-      <div style="padding:32px 12px;text-align:center;">
-        <div style="font-size:32px;margin-bottom:6px;opacity:0.4;">💤</div>
-        <div style="color:var(--text-muted);font-size:12px;">В этот день активности не было</div>
+      <div data-static-style="a455">
+        <div data-static-style="a456">💤</div>
+        <div data-static-style="a457">В этот день активности не было</div>
       </div>
     `;
   }
 
   const statBox = (label, value, color = 'var(--accent)') => `
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+    <div data-static-style="a458">
       <div style="font-size:18px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;">${value}</div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${label}</div>
+      <div data-static-style="a344">${label}</div>
     </div>
   `;
 
   return `
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:14px;text-align:left;">
+    <div data-static-style="a459">
       ${statBox('Страниц', data.pages_read)}
       ${statBox('Тестов', data.quiz_attempts, '#a855f7')}
       ${statBox('Маркеров', data.highlights_count, '#fbbf24')}
@@ -8285,13 +8285,13 @@ function renderHeatmapDayContent(data) {
     </div>
 
     ${data.books.length > 0 ? `
-      <div style="text-align:left;margin-bottom:12px;">
-        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px;">КНИГИ В РАБОТЕ</div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
+      <div data-static-style="a460">
+        <div data-static-style="a461">КНИГИ В РАБОТЕ</div>
+        <div data-static-style="a462">
           ${data.books.map(b => `
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${eh(b.title)}</div>
-              <div style="color:var(--text-muted);font-size:10px;flex-shrink:0;">стр.${b.pages_at_end}</div>
+            <div data-static-style="a463">
+              <div data-static-style="a464">${eh(b.title)}</div>
+              <div data-static-style="a465">стр.${b.pages_at_end}</div>
             </div>
           `).join('')}
         </div>
@@ -8299,12 +8299,12 @@ function renderHeatmapDayContent(data) {
     ` : ''}
 
     ${data.quizzes.length > 0 ? `
-      <div style="text-align:left;">
-        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:6px;">ТЕСТЫ</div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
+      <div data-static-style="a466">
+        <div data-static-style="a461">ТЕСТЫ</div>
+        <div data-static-style="a462">
           ${data.quizzes.map(q => `
-            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${eh(q.book_title)}</div>
+            <div data-static-style="a463">
+              <div data-static-style="a464">${eh(q.book_title)}</div>
               <div style="color:${q.passed ? '#22c55e' : '#ef4444'};font-weight:700;font-size:11px;flex-shrink:0;">${q.percentage}%</div>
             </div>
           `).join('')}
@@ -8360,7 +8360,7 @@ function renderBookInfo() {
   }
   document.getElementById('detailTabInfo').innerHTML = `
     <div class="detail-content">
-      <div class="detail-cover">${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}</div>
+      <div class="detail-cover">${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}</div>
       <div class="detail-info">
         <div class="detail-title">${eh(b.title)}</div>
         <div class="detail-author">${eh(b.author)}</div>
@@ -8384,14 +8384,14 @@ function renderBookInfo() {
           ${(() => {
             const stage = findKillChainStageForBook(b);
             if (!stage) return '';
-            return `<button class="btn-detail" style="background:rgba(0,212,255,0.1);border:1px solid var(--accent);color:var(--accent);" data-onclick="openARWithScheme('killchain', ${stage.id})" title="Открыть схему Cyber Kill Chain на этапе «${eh(stage.nameRu)}»">${ICONS.target} Смотреть схему атаки</button>`;
+            return `<button class="btn-detail" data-static-style="a468" data-onclick="openARWithScheme('killchain', ${stage.id})" title="Открыть схему Cyber Kill Chain на этапе «${eh(stage.nameRu)}»">${ICONS.target} Смотреть схему атаки</button>`;
           })()}
-          ${isAdmin ? `<button class="btn-detail" style="background:linear-gradient(135deg,#00d4ff,#7c3aed);color:#fff;border:none;" data-onclick="openAdminBookModal(${b.id})">${ICONS.settings} Управление</button>` : ''}
-          <button class="btn-detail" style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.5);color:#c084fc;" data-onclick="openAddToCollection(${b.id})">${ICONS.bookmark || ''} В коллекцию</button>
+          ${isAdmin ? `<button class="btn-detail" data-static-style="a469" data-onclick="openAdminBookModal(${b.id})">${ICONS.settings} Управление</button>` : ''}
+          <button class="btn-detail" data-static-style="a470" data-onclick="openAddToCollection(${b.id})">${ICONS.bookmark || ''} В коллекцию</button>
         </div>
       </div>
     </div>
-    <div id="alsoReadSection" style="margin-top:28px;"></div>`;
+    <div id="alsoReadSection" data-static-style="a471"></div>`;
   loadAlsoRead(currentBookId);
 }
 
@@ -8402,15 +8402,15 @@ async function loadAlsoRead(bookId) {
     const books = await api.library.alsoRead(bookId, 8);
     if (!books || !books.length) { c.innerHTML = ''; return; }
     c.innerHTML = `
-      <div class="section-title" style="margin-bottom:12px;">Также читают</div>
-      <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;">
+      <div class="section-title" data-static-style="a472">Также читают</div>
+      <div data-static-style="a473">
         ${books.map(b => `
-          <div data-onclick="openBookDetail(${b.id})" style="flex:0 0 auto;width:120px;cursor:pointer;">
-            <div style="width:120px;height:160px;border-radius:10px;overflow:hidden;background:var(--bg-primary);border:1px solid var(--border);margin-bottom:6px;">
-              ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:32px;">📕</div>`}
+          <div data-onclick="openBookDetail(${b.id})" data-static-style="a474">
+            <div data-static-style="a475">
+              ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a118">` : `<div data-static-style="a476">📕</div>`}
             </div>
-            <div style="font-size:12px;font-weight:600;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${eh(b.title)}</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${eh(b.author)}</div>
+            <div data-static-style="a477">${eh(b.title)}</div>
+            <div data-static-style="a344">${eh(b.author)}</div>
           </div>
         `).join('')}
       </div>`;
@@ -8435,18 +8435,18 @@ async function openAddToCollection(bookId) {
   const rows = cols.map(col => {
     const has = (col.book_ids || []).includes(bookId);
     return `<button data-onclick="toggleBookInCollection(${col.id},${bookId},${has})" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${has ? 'var(--accent)' : 'var(--border)'};background:${has ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
-      <span>${eh(col.icon || '📁')} ${eh(col.name)}</span><span style="color:var(--accent);font-weight:700;">${has ? '✓' : '+'}</span>
+      <span>${eh(col.icon || '📁')} ${eh(col.name)}</span><span data-static-style="a478">${has ? '✓' : '+'}</span>
     </button>`;
   }).join('');
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">В коллекцию</h3>
-      <button data-onclick="closeModal('addToColModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+  m.innerHTML = `<div data-static-style="a479">
+    <div data-static-style="a126">
+      <h3 data-static-style="a127">В коллекцию</h3>
+      <button data-onclick="closeModal('addToColModal')" data-static-style="a128">✕</button>
     </div>
-    <div id="addToColRows">${rows || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">Пока нет коллекций</div>'}</div>
-    <div style="display:flex;gap:8px;margin-top:10px;">
-      <input id="newColName" placeholder="Новая коллекция" style="flex:1;padding:10px 12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:inherit;font-size:13px;">
-      <button data-onclick="createCollectionFromModal(${bookId})" style="padding:10px 14px;background:var(--accent-gradient);border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Создать</button>
+    <div id="addToColRows">${rows || '<div data-static-style="a480">Пока нет коллекций</div>'}</div>
+    <div data-static-style="a481">
+      <input id="newColName" placeholder="Новая коллекция" data-static-style="a482">
+      <button data-onclick="createCollectionFromModal(${bookId})" data-static-style="a483">Создать</button>
     </div>
   </div>`;
   m.onclick = (e) => { if (e.target === m) m.remove(); };
@@ -8481,15 +8481,15 @@ function renderDetailTraining() {
   if (!currentBookId) return;
   const isAdmin = state.currentUser?.role === 'admin';
   const adminBtn = isAdmin
-    ? `<button data-onclick="regenerateBookQuiz(${currentBookId})" data-nonce="${sensitiveNonce()}" id="regenQuizBtn" style="margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.5);border-radius:10px;color:#c084fc;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">${ICONS.sparkles || ''}<span>Пересоздать тест (ИИ)</span></button>`
+    ? `<button data-onclick="regenerateBookQuiz(${currentBookId})" data-nonce="${sensitiveNonce()}" id="regenQuizBtn" data-static-style="a484">${ICONS.sparkles || ''}<span>Пересоздать тест (ИИ)</span></button>`
     : '';
   const c = state.completedQuizzes[state.currentUser?.name] || [];
   if (c.includes(currentBookId)) {
     document.getElementById('detailTabTraining').innerHTML = `
-      <div style="text-align:center;padding:20px;">
-        <div style="font-size:48px;">${ICONS.check}</div>
+      <div data-static-style="a166">
+        <div data-static-style="a239">${ICONS.check}</div>
         <p>Пройдено!</p>
-        <button class="btn-quiz primary" data-onclick="startQuiz(${currentBookId})" style="display:inline-flex;align-items:center;justify-content:center;gap:6px;">${ICONS.refresh}<span>Заново</span></button>
+        <button class="btn-quiz primary" data-onclick="startQuiz(${currentBookId})" data-static-style="a485">${ICONS.refresh}<span>Заново</span></button>
         <div>${adminBtn}</div>
         </div>`;
   } else {
@@ -9051,10 +9051,10 @@ function showEpubSelectionPopup(selectedText, cfiRange, x, y, contents) {
   `;
 
   popup.innerHTML = `
-    <button id="epubBtnHighlight" style="background:transparent;border:none;color:#fbbf24;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;">
+    <button id="epubBtnHighlight" data-static-style="a486">
       ${ICONS.marker}<span>Маркер</span>
     </button>
-    <button id="epubBtnNote" style="background:transparent;border:none;color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;">
+    <button id="epubBtnNote" data-static-style="a487">
       ${ICONS.note}<span>Заметка</span>
     </button>
   `;
@@ -9300,15 +9300,15 @@ function openBookmarksList() {
   m.id = 'bookmarksListModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
   const rows = list.length
-    ? list.map(p => `<button data-onclick="jumpToBookmark(${p})" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
+    ? list.map(p => `<button data-onclick="jumpToBookmark(${p})" data-static-style="a488">
         <span>${ICONS.bookmark} Страница ${p}</span>
-        <span data-onclick="removeBookmark(${p})" data-stop="1" style="color:#ef4444;font-size:16px;padding:0 6px;">✕</span>
+        <span data-onclick="removeBookmark(${p})" data-stop="1" data-static-style="a489">✕</span>
       </button>`).join('')
-    : '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Закладок пока нет. Нажмите на флажок в панели, чтобы добавить.</div>';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:380px;width:100%;max-height:75vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Закладки</h3>
-      <button data-onclick="closeModal('bookmarksListModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+    : '<div data-static-style="a351">Закладок пока нет. Нажмите на флажок в панели, чтобы добавить.</div>';
+  m.innerHTML = `<div data-static-style="a490">
+    <div data-static-style="a126">
+      <h3 data-static-style="a127">Закладки</h3>
+      <button data-onclick="closeModal('bookmarksListModal')" data-static-style="a128">✕</button>
     </div>
     <div id="bookmarksListRows">${rows}</div>
   </div>`;
@@ -9384,23 +9384,23 @@ async function openReviewMode() {
   const m = document.createElement('div');
   m.id = 'reviewModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="max-width:460px;width:100%;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:16px;font-weight:800;color:#fff;">Повторение</h3>
-      <button data-onclick="closeModal('reviewModal')" style="background:rgba(255,255,255,0.1);border:none;color:#fff;cursor:pointer;font-size:18px;width:34px;height:34px;border-radius:50%;">✕</button>
+  m.innerHTML = `<div data-static-style="a491">
+    <div data-static-style="a126">
+      <h3 data-static-style="a492">Повторение</h3>
+      <button data-onclick="closeModal('reviewModal')" data-static-style="a493">✕</button>
     </div>
-    <div id="reviewBody" style="color:#fff;text-align:center;padding:30px;">Готовлю карточки…</div>
+    <div id="reviewBody" data-static-style="a494">Готовлю карточки…</div>
   </div>`;
   document.body.appendChild(m);
 
   const all = await buildFlashcards();
   if (!all.length) {
-    document.getElementById('reviewBody').innerHTML = '<div style="padding:30px;color:rgba(255,255,255,0.7);">Нет карточек. Делайте выделения и заметки в книгах — они станут карточками для повторения.</div>';
+    document.getElementById('reviewBody').innerHTML = '<div data-static-style="a495">Нет карточек. Делайте выделения и заметки в книгах — они станут карточками для повторения.</div>';
     return;
   }
   _reviewQueue = dueCards(all);
   if (!_reviewQueue.length) {
-    document.getElementById('reviewBody').innerHTML = `<div style="padding:30px;color:rgba(255,255,255,0.7);">На сегодня всё повторено! 🎉<br><br>Всего карточек: ${all.length}. Возвращайтесь завтра.</div>`;
+    document.getElementById('reviewBody').innerHTML = `<div data-static-style="a495">На сегодня всё повторено! 🎉<br><br>Всего карточек: ${all.length}. Возвращайтесь завтра.</div>`;
     return;
   }
   _reviewIdx = 0;
@@ -9411,20 +9411,20 @@ function renderReviewCard() {
   const body = document.getElementById('reviewBody');
   if (!body) return;
   if (_reviewIdx >= _reviewQueue.length) {
-    body.innerHTML = `<div style="padding:30px;color:#fff;">Сессия завершена! 🎉<br><br>Повторено карточек: ${_reviewQueue.length}</div>`;
+    body.innerHTML = `<div data-static-style="a496">Сессия завершена! 🎉<br><br>Повторено карточек: ${_reviewQueue.length}</div>`;
     return;
   }
   const c = _reviewQueue[_reviewIdx];
   body.innerHTML = `
-    <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:10px;">${_reviewIdx + 1} из ${_reviewQueue.length} · ${eh(c.bookTitle)}</div>
-    <div id="flashcard" data-onclick="flipFlashcard()" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:30px 22px;min-height:160px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:16px;">
-      <div id="flashFront" style="font-size:15px;line-height:1.5;color:var(--text-primary);">${eh(c.front)}</div>
-      <div id="flashBack" style="display:none;font-size:14px;line-height:1.5;color:var(--accent);">${eh(c.back)}</div>
+    <div data-static-style="a497">${_reviewIdx + 1} из ${_reviewQueue.length} · ${eh(c.bookTitle)}</div>
+    <div id="flashcard" data-onclick="flipFlashcard()" data-static-style="a498">
+      <div id="flashFront" data-static-style="a499">${eh(c.front)}</div>
+      <div id="flashBack" data-static-style="a500">${eh(c.back)}</div>
     </div>
-    <div id="flashHint" style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:14px;">Нажмите на карточку, чтобы увидеть ответ</div>
-    <div id="flashRating" style="display:none;gap:8px;">
-      <button data-onclick="rateCard(false)" style="flex:1;padding:14px;background:#ef444425;border:1px solid #ef444466;border-radius:10px;color:#ef4444;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Повторить ещё</button>
-      <button data-onclick="rateCard(true)" style="flex:1;padding:14px;background:#10b98125;border:1px solid #10b98166;border-radius:10px;color:#10b981;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Помню</button>
+    <div id="flashHint" data-static-style="a501">Нажмите на карточку, чтобы увидеть ответ</div>
+    <div id="flashRating" data-static-style="a502">
+      <button data-onclick="rateCard(false)" data-static-style="a503">Повторить ещё</button>
+      <button data-onclick="rateCard(true)" data-static-style="a504">Помню</button>
     </div>`;
 }
 
@@ -9509,12 +9509,12 @@ async function openTOC() {
   const m = document.createElement('div');
   m.id = 'tocModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);">Оглавление</h3>
-      <button data-onclick="closeModal('tocModal')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+  m.innerHTML = `<div data-static-style="a304">
+    <div data-static-style="a126">
+      <h3 data-static-style="a127">Оглавление</h3>
+      <button data-onclick="closeModal('tocModal')" data-static-style="a128">✕</button>
     </div>
-    <div id="tocPanelBody" style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Загружаю оглавление…</div>
+    <div id="tocPanelBody" data-static-style="a129">Загружаю оглавление…</div>
   </div>`;
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
@@ -9527,7 +9527,7 @@ function renderTocPanel() {
   if (!body) return;
   if (!_currentTOC || !_currentTOC.length) {
     body.style.textAlign = 'center';
-    body.innerHTML = '<div style="padding:16px;color:var(--text-muted);">В этой книге нет встроенного оглавления.</div>';
+    body.innerHTML = '<div data-static-style="a130">В этой книге нет встроенного оглавления.</div>';
     return;
   }
   const read = getTocRead(currentBookId);
@@ -9537,16 +9537,16 @@ function renderTocPanel() {
   body.style.textAlign = 'left';
   body.style.padding = '0';
   body.innerHTML = `
-    <div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px;"><span>Прогресс по главам</span><span>${doneCount}/${total} · ${pct}%</span></div>
-      <div style="height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
+    <div data-static-style="a472">
+      <div data-static-style="a505"><span>Прогресс по главам</span><span>${doneCount}/${total} · ${pct}%</span></div>
+      <div data-static-style="a446"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
     </div>
     ${_currentTOC.map((it, i) => {
       const isRead = read.includes(i);
-      return `<div style="display:flex;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid var(--border);">
+      return `<div data-static-style="a506">
         <button data-onclick="toggleTocRead(${currentBookId},${i})" title="Отметить прочитанным" style="width:22px;height:22px;flex-shrink:0;border-radius:6px;border:2px solid ${isRead ? 'var(--accent)' : 'var(--border-light)'};background:${isRead ? 'var(--accent)' : 'transparent'};color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;">${isRead ? '✓' : ''}</button>
         <div ${it.page ? `data-onclick="tocGoTo(${it.page})"` : ''} style="flex:1;cursor:${it.page ? 'pointer' : 'default'};font-size:13px;color:${isRead ? 'var(--text-muted)' : 'var(--text-primary)'};${isRead ? 'text-decoration:line-through;' : ''}">
-          ${eh(it.title)}${it.page ? `<span style="color:var(--text-muted);font-size:11px;"> · стр. ${it.page}</span>` : ''}
+          ${eh(it.title)}${it.page ? `<span data-static-style="a140"> · стр. ${it.page}</span>` : ''}
         </div>
       </div>`;
     }).join('')}`;
@@ -9598,7 +9598,7 @@ async function loadEpub(b) {
   try {
     await ensureEpubLoaded();
   } catch (e) {
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Не удалось загрузить EPUB-движок. Проверьте соединение.</div>';
+    container.innerHTML = '<div data-static-style="a507">Не удалось загрузить EPUB-движок. Проверьте соединение.</div>';
     return;
   }
 
@@ -9843,7 +9843,7 @@ function generateDemoPdf(b) {
   pdfTotalPages = state.readingProgress[b.id]?.totalPages || 10;
   pdfCurrentPage = Math.min(state.readingProgress[b.id]?.currentPage || 1, pdfTotalPages);
   updatePageIndicator();
-  document.getElementById('pdfPlaceholder').innerHTML = `<div style="font-size:48px;">${ICONS.bookCover}</div><p>${eh(b.title)}</p><p>Стр.${pdfCurrentPage}/${pdfTotalPages}</p>`;
+  document.getElementById('pdfPlaceholder').innerHTML = `<div data-static-style="a239">${ICONS.bookCover}</div><p>${eh(b.title)}</p><p>Стр.${pdfCurrentPage}/${pdfTotalPages}</p>`;
   renderAnnotations();
 }
 
@@ -10377,12 +10377,12 @@ function showInstallBanner() {
   banner.id = 'installBanner';
   banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:88px;z-index:2500;background:var(--bg-elevated);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
   banner.innerHTML = `
-    <div style="flex:1;">
-      <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Установить Aegis</div>
-      <div style="font-size:11px;color:var(--text-secondary);">Добавьте приложение на телефон для быстрого доступа</div>
+    <div data-static-style="a004">
+      <div data-static-style="a508">Установить Aegis</div>
+      <div data-static-style="a509">Добавьте приложение на телефон для быстрого доступа</div>
     </div>
-    <button id="installBannerBtn" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:9px 14px;border-radius:9px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Установить</button>
-    <button id="installBannerClose" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 4px;">✕</button>`;
+    <button id="installBannerBtn" data-static-style="a510">Установить</button>
+    <button id="installBannerClose" data-static-style="a511">✕</button>`;
   document.body.appendChild(banner);
   document.getElementById('installBannerBtn').onclick = triggerInstall;
   document.getElementById('installBannerClose').onclick = () => {
@@ -10423,21 +10423,21 @@ function showAndroidInstallInstructions() {
     document.body.appendChild(m);
   }
   m.innerHTML = `
-    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:360px;width:100%;border:1px solid var(--border);">
-      <div style="font-size:16px;font-weight:700;margin-bottom:14px;color:var(--text-primary);text-align:center;">Установка приложения</div>
-      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">
+    <div data-static-style="a512">
+      <div data-static-style="a513">Установка приложения</div>
+      <p data-static-style="a514">
         Если кнопка установки не сработала автоматически, установите вручную:
       </p>
-      <ol style="font-size:13px;color:var(--text-secondary);line-height:1.7;margin:0 0 16px;padding-left:20px;">
+      <ol data-static-style="a515">
         <li>Откройте сайт в браузере <strong>Chrome</strong> (не в Mi Браузере)</li>
         <li>Нажмите меню <strong>⋮</strong> в правом верхнем углу</li>
         <li>Выберите <strong>«Установить приложение»</strong> или <strong>«Добавить на главный экран»</strong></li>
         <li>Подтвердите установку</li>
       </ol>
-      <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:16px;">
+      <p data-static-style="a516">
         Если приложение не появилось на рабочем столе — проверьте список всех приложений (свайп вверх). В настройках Xiaomi включите «Добавлять значки на рабочий стол».
       </p>
-      <button data-onclick="closeModal('androidInstallModal')" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
+      <button data-onclick="closeModal('androidInstallModal')" data-static-style="a517">Понятно</button>
     </div>`;
 }
 
@@ -10450,14 +10450,14 @@ function showIOSInstallInstructions() {
     document.body.appendChild(m);
   }
   m.innerHTML = `
-    <div style="background:var(--bg-elevated);border-radius:14px;padding:22px;max-width:340px;width:100%;border:1px solid var(--border);text-align:center;">
-      <div style="font-size:16px;font-weight:700;margin-bottom:14px;color:var(--text-primary);">Установка на iPhone/iPad</div>
-      <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;text-align:left;">
-        1. Нажмите кнопку «Поделиться» <span style="display:inline-block;">⬆️</span> внизу Safari<br>
+    <div data-static-style="a518">
+      <div data-static-style="a519">Установка на iPhone/iPad</div>
+      <p data-static-style="a520">
+        1. Нажмите кнопку «Поделиться» <span data-static-style="a521">⬆️</span> внизу Safari<br>
         2. Выберите «На экран Домой»<br>
         3. Нажмите «Добавить»
       </p>
-      <button data-onclick="closeModal('iosInstallModal')" style="width:100%;background:var(--accent);border:none;color:#fff;padding:11px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;">Понятно</button>
+      <button data-onclick="closeModal('iosInstallModal')" data-static-style="a517">Понятно</button>
     </div>`;
 }
 
@@ -10674,13 +10674,13 @@ function showReaderAiPopup(title, loadingText) {
   const p = document.createElement('div');
   p.id = 'readerAiPopup';
   p.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  p.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:6px;">${ICONS.sparkles || ''}<span>${eh(title)}</span></h3>
-      <button data-onclick="closeModal('readerAiPopup')" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:50%;">✕</button>
+  p.innerHTML = `<div data-static-style="a522">
+    <div data-static-style="a126">
+      <h3 data-static-style="a523">${ICONS.sparkles || ''}<span>${eh(title)}</span></h3>
+      <button data-onclick="closeModal('readerAiPopup')" data-static-style="a524">✕</button>
     </div>
-    <div id="readerAiContent" style="font-size:13px;line-height:1.6;color:var(--text-primary);">
-      <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);"><span class="ai-spinner" style="width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:spin 0.7s linear infinite;"></span>${eh(loadingText)}</div>
+    <div id="readerAiContent" data-static-style="a525">
+      <div data-static-style="a526"><span class="ai-spinner" data-static-style="a527"></span>${eh(loadingText)}</div>
     </div>
   </div>`;
   p.onclick = (e) => { if (e.target === p) p.remove(); };
@@ -10700,7 +10700,7 @@ async function runReaderAi(prompt, title, loading) {
     if (el) el.innerHTML = (typeof mdAssistant === 'function') ? mdAssistant(text) : eh(text).replace(/\n/g, '<br>');
   } catch (err) {
     const el = document.getElementById('readerAiContent');
-    if (el) el.innerHTML = `<div style="color:#ef4444;">Не удалось получить ответ. ${err && err.status ? '(' + err.status + ')' : ''}</div>`;
+    if (el) el.innerHTML = `<div data-static-style="a454">Не удалось получить ответ. ${err && err.status ? '(' + err.status + ')' : ''}</div>`;
   }
 }
 
@@ -10912,16 +10912,16 @@ function renderRecommendDepts(book) {
   matches.sort((a, b) => b.hits - a.hits);
 
   if (!matches.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);">Нет явных совпадений по темам. Книга подходит для общего доступа.</div>';
+    el.innerHTML = '<div data-static-style="a243">Нет явных совпадений по темам. Книга подходит для общего доступа.</div>';
     return;
   }
-  el.innerHTML = '<div style="margin-bottom:8px;">Книга релевантна подразделениям:</div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+  el.innerHTML = '<div data-static-style="a347">Книга релевантна подразделениям:</div>' +
+    '<div data-static-style="a089">' +
     matches.map(m => `
-      <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:5px 10px;">
-        <span style="font-weight:600;color:var(--text-primary);">${m.code}</span>
-        <span style="font-size:10px;color:var(--text-muted);">${m.hits}</span>
-        <button data-onclick="markRequiredForDept(${book.id}, '${m.code}')" data-nonce="${sensitiveNonce()}" data-args="this" title="Сделать обязательной для ${m.code}" style="background:rgba(0,212,255,0.15);border:none;color:var(--accent);border-radius:5px;padding:2px 7px;cursor:pointer;font-size:10px;font-family:inherit;">★ обязательная</button>
+      <span data-static-style="a528">
+        <span data-static-style="a191">${m.code}</span>
+        <span data-static-style="a099">${m.hits}</span>
+        <button data-onclick="markRequiredForDept(${book.id}, '${m.code}')" data-nonce="${sensitiveNonce()}" data-args="this" title="Сделать обязательной для ${m.code}" data-static-style="a529">★ обязательная</button>
       </span>`).join('') +
     '</div>';
 }
@@ -11079,7 +11079,7 @@ async function showCategorySuggestions(containerId, query) {
   }
   const exactMatch = allCats.some(c => c.toLowerCase() === q);
   if (!exactMatch && query.length > 0) {
-    html += `<div class="cat-tag-suggestion-item" data-name="${eh(query)}" style="border-top:1px solid var(--border);font-style:italic;">+ Создать: «${eh(query)}»</div>`;
+    html += `<div class="cat-tag-suggestion-item" data-name="${eh(query)}" data-static-style="a530">+ Создать: «${eh(query)}»</div>`;
   }
   if (html === '') html = '<div class="cat-tag-suggestion-empty">Нет подходящих категорий</div>';
 
@@ -11299,11 +11299,11 @@ function showConfirmModal({ title, message, confirmText = 'OK', cancelText = 'О
   const confirmBtnText = danger ? '#fff' : '#000';
 
   modal.innerHTML = `
-    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:8px;color:var(--text-primary);">${eh(title)}</h3>
-      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:18px;line-height:1.5;">${eh(message)}</p>
-      <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button id="confirmCancelBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(cancelText)}</button>
+    <div data-static-style="a531">
+      <h3 data-static-style="a532">${eh(title)}</h3>
+      <p data-static-style="a533">${eh(message)}</p>
+      <div data-static-style="a534">
+        <button id="confirmCancelBtn" data-static-style="a535">${eh(cancelText)}</button>
         <button id="confirmOkBtn" style="background:${confirmBtnColor};border:none;color:${confirmBtnText};padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(confirmText)}</button>
       </div>
     </div>
@@ -11335,16 +11335,16 @@ function showPromptModal({ title, placeholder = '', value = '', confirmText = '�
   modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn 0.15s ease;';
 
   const field = multiline
-    ? `<textarea id="promptInput" rows="3" placeholder="${eh(placeholder)}" style="width:100%;resize:vertical;min-height:70px;">${eh(value)}</textarea>`
-    : `<input id="promptInput" type="text" placeholder="${eh(placeholder)}" value="${eh(value)}" style="width:100%;">`;
+    ? `<textarea id="promptInput" rows="3" placeholder="${eh(placeholder)}" data-static-style="a536">${eh(value)}</textarea>`
+    : `<input id="promptInput" type="text" placeholder="${eh(placeholder)}" value="${eh(value)}" data-static-style="a416">`;
 
   modal.innerHTML = `
-    <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:var(--text-primary);">${eh(title)}</h3>
+    <div data-static-style="a537">
+      <h3 data-static-style="a538">${eh(title)}</h3>
       ${field}
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
-        <button id="promptCancelBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(cancelText)}</button>
-        <button id="promptOkBtn" style="background:var(--accent-gradient);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">${eh(confirmText)}</button>
+      <div data-static-style="a539">
+        <button id="promptCancelBtn" data-static-style="a535">${eh(cancelText)}</button>
+        <button id="promptOkBtn" data-static-style="a540">${eh(confirmText)}</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -11681,7 +11681,7 @@ function renderAdminPanel() {
 
 async function renderDashboard() {
   const container = document.getElementById('adDashboard');
-  container.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">Загрузка...</div>';
+  container.innerHTML = '<div data-static-style="a449">Загрузка...</div>';
 
   try {
     const stats = await api.library.adminDashboard();
@@ -11714,38 +11714,38 @@ async function renderDashboard() {
       </div>`;
   } catch (err) {
     console.error('Ошибка загрузки дашборда:', err);
-    container.innerHTML = '<div style="padding:20px;color:#ef4444;">Не удалось загрузить статистику</div>';
+    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить статистику</div>';
   }
 }
 
 function renderAdminBooks() {
   document.getElementById('adBooks').innerHTML = `
-    <div style="display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;margin-bottom:10px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;gap:10px;">
-      <div style="display:flex;align-items:baseline;gap:8px;">
-        <div style="font-size:12px;color:var(--text-secondary);">Всего книг:</div>
-        <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${state.books.length}</div>
+    <div data-static-style="a541">
+      <div data-static-style="a542">
+        <div data-static-style="a543">Всего книг:</div>
+        <div data-static-style="a544">${state.books.length}</div>
       </div>
-      <button data-onclick="openBulkUploadModal()" style="background:var(--accent-gradient);border:none;color:#000;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="openBulkUploadModal()" data-static-style="a545">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/><path d="M12 5v8"/><path d="M8 9l4-4 4 4"/></svg>
         Массовая загрузка
       </button>
-      <button data-onclick="reindexAllBooksUI()" data-nonce="${sensitiveNonce()}" title="Переиндексировать текст всех книг для поиска" style="background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.4);color:var(--accent);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="reindexAllBooksUI()" data-nonce="${sensitiveNonce()}" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
         Индексировать поиск
       </button>
-      <button data-onclick="openAdminLogs()" title="Журнал действий администраторов" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="openAdminLogs()" title="Журнал действий администраторов" data-static-style="a547">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Журнал
       </button>
-      <button data-onclick="generateMissingCoversUI()" data-nonce="${sensitiveNonce()}" title="Создать обложки для книг без обложки" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="generateMissingCoversUI()" data-nonce="${sensitiveNonce()}" title="Создать обложки для книг без обложки" data-static-style="a547">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
         Обложки
       </button>
-      <button data-onclick="aiMatchArBooksUI()" data-nonce="${sensitiveNonce()}" title="ИИ подберёт книги к темам AR-схем" style="background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.4);color:#7b61ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="aiMatchArBooksUI()" data-nonce="${sensitiveNonce()}" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
         Подобрать книги для AR
       </button>
-      <button data-onclick="regenerateAllQuizzesUI()" data-nonce="${sensitiveNonce()}" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="regenerateAllQuizzesUI()" data-nonce="${sensitiveNonce()}" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
         Перегенерировать тесты
       </button>
@@ -11906,9 +11906,9 @@ function renderBulkUploadList() {
   };
 
   listEl.innerHTML = bulkUploadQueue.map((item, idx) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;font-size:11px;">
+    <div data-static-style="a550">
       <div style="width:20px;text-align:center;color:${statusColor[item.status]};font-weight:700;flex-shrink:0;">${statusIcon[item.status]}</div>
-      <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${eh(item.file.name)}">${eh(item.file.name)}</div>
+      <div data-static-style="a551" title="${eh(item.file.name)}">${eh(item.file.name)}</div>
       <div style="color:${statusColor[item.status]};font-size:10px;flex-shrink:0;">${eh(item.message)}</div>
     </div>
   `).join('');
@@ -12010,7 +12010,7 @@ async function startBulkUpload() {
 async function loadAndRenderAdminReviews() {
   const container = document.getElementById('adReviews');
   if (!container) return;
-  container.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">Загрузка отзывов...</div>';
+  container.innerHTML = '<div data-static-style="a449">Загрузка отзывов...</div>';
 
   try {
     const books = state.books;
@@ -12057,7 +12057,7 @@ async function loadAndRenderAdminReviews() {
         </table>
       </div>`;
   } catch (err) {
-    container.innerHTML = '<div style="padding:20px;color:#ef4444;">Не удалось загрузить отзывы</div>';
+    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить отзывы</div>';
   }
 }
 
@@ -12081,7 +12081,7 @@ async function deleteBook(id) {
 async function loadAndRenderAdminUsers() {
   const container = document.getElementById('adUsers');
   if (!container) return;
-  container.innerHTML = '<div style="padding:20px;color:var(--text-muted);font-size:12px;">Загрузка...</div>';
+  container.innerHTML = '<div data-static-style="a449">Загрузка...</div>';
   try {
     const users = await api.library.adminUsers();
 
@@ -12090,7 +12090,7 @@ async function loadAndRenderAdminUsers() {
 
     renderAdminUsersWithFilter();
   } catch (err) {
-    container.innerHTML = '<div style="padding:20px;color:#ef4444;">Не удалось загрузить пользователей</div>';
+    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить пользователей</div>';
   }
 }
 
@@ -12098,7 +12098,7 @@ function renderAdminUsersWithFilter() {
   const container = document.getElementById('adUsers');
   const users = state._adminUsers || [];
   if (!users.length) {
-    container.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Нет пользователей</div>';
+    container.innerHTML = '<div data-static-style="a209">Нет пользователей</div>';
     return;
   }
 
@@ -12127,38 +12127,38 @@ function renderAdminUsersWithFilter() {
   const totalAttempts = users.reduce((s, u) => s + (u.quiz_attempts || 0), 0);
 
   const miniDash = `
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:18px;font-weight:700;color:var(--accent);">${totalUsers}</div>
-        <div style="font-size:11px;color:var(--text-muted);">Всего пользователей</div>
+    <div data-static-style="a552">
+      <div data-static-style="a553">
+        <div data-static-style="a245">${totalUsers}</div>
+        <div data-static-style="a192">Всего пользователей</div>
       </div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:18px;font-weight:700;color:#22c55e;">${activeUsers}</div>
-        <div style="font-size:11px;color:var(--text-muted);">Активных</div>
+      <div data-static-style="a553">
+        <div data-static-style="a554">${activeUsers}</div>
+        <div data-static-style="a192">Активных</div>
       </div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:18px;font-weight:700;color:#fbbf24;">${totalCompleted}</div>
-        <div style="font-size:11px;color:var(--text-muted);">Книг прочитано (всеми)</div>
+      <div data-static-style="a553">
+        <div data-static-style="a242">${totalCompleted}</div>
+        <div data-static-style="a192">Книг прочитано (всеми)</div>
       </div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:18px;font-weight:700;color:#a855f7;">${totalAttempts}</div>
-        <div style="font-size:11px;color:var(--text-muted);">Попыток тестов</div>
+      <div data-static-style="a553">
+        <div data-static-style="a555">${totalAttempts}</div>
+        <div data-static-style="a192">Попыток тестов</div>
       </div>
     </div>
   `;
 
   const filterPanel = `
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <label style="font-size:11px;color:var(--text-muted);">Показать:</label>
-      <select id="adminUsersFilter" data-onchange="onAdminUsersFilterChange()" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;">
+    <div data-static-style="a556">
+      <label data-static-style="a192">Показать:</label>
+      <select id="adminUsersFilter" data-onchange="onAdminUsersFilterChange()" data-static-style="a557">
         <option value="all"${filter==='all'?' selected':''}>Все</option>
         <option value="top_books"${filter==='top_books'?' selected':''}>ТОП по прочитанным книгам</option>
         <option value="top_xp"${filter==='top_xp'?' selected':''}>ТОП по XP (активности)</option>
         <option value="top_perfect"${filter==='top_perfect'?' selected':''}>ТОП по тестам на 100%</option>
       </select>
       ${filter !== 'all' ? `
-        <label style="font-size:11px;color:var(--text-muted);margin-left:8px;">Размер ТОП:</label>
-        <select id="adminUsersLimit" data-onchange="onAdminUsersLimitChange()" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;">
+        <label data-static-style="a558">Размер ТОП:</label>
+        <select id="adminUsersLimit" data-onchange="onAdminUsersLimitChange()" data-static-style="a557">
           <option value="5"${limit===5?' selected':''}>5</option>
           <option value="10"${limit===10?' selected':''}>10</option>
           <option value="25"${limit===25?' selected':''}>25</option>
@@ -12166,7 +12166,7 @@ function renderAdminUsersWithFilter() {
         </select>
       ` : ''}
     </div>
-    ${title ? `<div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:10px;">${title}</div>` : ''}
+    ${title ? `<div data-static-style="a559">${title}</div>` : ''}
   `;
 
   const tableHtml = `
@@ -12193,7 +12193,7 @@ function renderAdminUsersWithFilter() {
         ${displayed.map((u, idx) => {
           const levelInfo = u.cyber_level ? getCyberLevelInfo(u.cyber_level) : null;
           return `<tr>
-            ${filter !== 'all' ? `<td style="font-weight:700;color:var(--accent);">${idx + 1}</td>` : ''}
+            ${filter !== 'all' ? `<td data-static-style="a560">${idx + 1}</td>` : ''}
             <td>${u.id}</td>
             <td>${eh(u.username)}</td>
             <td>${eh(u.full_name || '—')}</td>
@@ -12218,17 +12218,17 @@ function renderAdminUsersWithFilter() {
   `;
 
   const actionsBar = `
-    <div class="admin-actions-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-      <button data-onclick="openCreateUserModal()" title="Создать пользователя" style="background:rgba(0,212,255,0.12);border:1px solid rgba(0,212,255,0.4);color:#00d4ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+    <div class="admin-actions-bar" data-static-style="a561">
+      <button data-onclick="openCreateUserModal()" title="Создать пользователя" data-static-style="a562">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="11" x2="19" y2="17"/><line x1="16" y1="14" x2="22" y2="14"/></svg>
         Создать пользователя
       </button>
-      <button data-onclick="openPendingUsersModal()" title="Заявки на регистрацию" style="position:relative;background:rgba(123,97,255,0.12);border:1px solid rgba(123,97,255,0.4);color:#7b61ff;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="openPendingUsersModal()" title="Заявки на регистрацию" data-static-style="a563">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         Заявки
-        <span id="pendingUsersBadge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;font-size:10px;padding:1px 6px;font-weight:700;"></span>
+        <span id="pendingUsersBadge" data-static-style="a564"></span>
       </button>
-      <button data-onclick="openExportModal()" title="Выгрузка прочитанного в Excel" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);color:#22c55e;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+      <button data-onclick="openExportModal()" title="Выгрузка прочитанного в Excel" data-static-style="a565">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Excel
       </button>
@@ -12511,22 +12511,22 @@ function renderLevelChoices() {
   const cards = LEVEL_CHOICES.map((lvl, idx) => {
     const info = getCyberLevelInfo(lvl.code);
     return `
-      <button data-onclick="selectLevelSelf('${lvl.code}')" class="level-choice-card" style="text-align:left;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;font-family:inherit;display:flex;gap:12px;align-items:flex-start;transition:all 0.2s;">
-        <div style="flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);">${info.icon}</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">${idx + 1}. ${eh(lvl.name)}</div>
-          <div style="font-size:11px;color:var(--text-secondary);line-height:1.5;">${eh(lvl.description)}</div>
+      <button data-onclick="selectLevelSelf('${lvl.code}')" class="level-choice-card" data-static-style="a566">
+        <div data-static-style="a567">${info.icon}</div>
+        <div data-static-style="a004">
+          <div data-static-style="a568">${idx + 1}. ${eh(lvl.name)}</div>
+          <div data-static-style="a392">${eh(lvl.description)}</div>
         </div>
       </button>
     `;
   }).join('');
 
   const testCard = `
-    <button data-onclick="startOnboardingQuiz()" class="level-choice-card level-choice-test" style="text-align:left;background:var(--accent-gradient);border:none;border-radius:12px;padding:14px;cursor:pointer;font-family:inherit;display:flex;gap:12px;align-items:flex-start;color:#fff;margin-top:6px;">
-      <div style="flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">${ICONS.target}</div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">6. Хочу узнать (тест)</div>
-        <div style="font-size:11px;opacity:0.9;line-height:1.5;">20 вопросов по 5 темам кибербезопасности. ~7 минут.</div>
+    <button data-onclick="startOnboardingQuiz()" class="level-choice-card level-choice-test" data-static-style="a569">
+      <div data-static-style="a570">${ICONS.target}</div>
+      <div data-static-style="a004">
+        <div data-static-style="a571">6. Хочу узнать (тест)</div>
+        <div data-static-style="a572">20 вопросов по 5 темам кибербезопасности. ~7 минут.</div>
       </div>
     </button>
   `;
@@ -12709,13 +12709,13 @@ function renderOnboardingResult(result) {
   // Слабые темы
   const weakHtml = result.weak_topics.length > 0 ? `
     <div class="onboarding-weak-list">
-      <h4 style="display:flex;align-items:center;gap:6px;">${ICONS.warningTriangle} Стоит подтянуть</h4>
+      <h4 data-static-style="a573">${ICONS.warningTriangle} Стоит подтянуть</h4>
       <p>${result.weak_topics.map(t => eh(result.topic_scores.find(s => s.topic === t)?.topic_name || t)).join(', ')}</p>
     </div>
   ` : '';
 
   c.innerHTML = `
-    <div style="display:inline-flex;width:72px;height:72px;align-items:center;justify-content:center;background:var(--accent-gradient);border-radius:20px;color:#fff;margin-bottom:12px;box-shadow:var(--shadow-glow-strong);">${info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').replace('height="20"','height="40"')}</div>
+    <div data-static-style="a574">${info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').replace('height="20"','height="40"')}</div>
     <div class="onboarding-result-level gradient-text">${eh(result.level_name)}</div>
     <div class="onboarding-result-percentage">${result.overall_percentage}% правильных</div>
     <div class="onboarding-result-description">${eh(result.level_description)}</div>
@@ -12812,7 +12812,7 @@ function renderCyberLevelDetail(result) {
 
   const weakHtml = result.weak_topics.length > 0 ? `
     <div class="onboarding-weak-list">
-      <h4 style="display:flex;align-items:center;gap:6px;">${ICONS.warningTriangle} Стоит подтянуть</h4>
+      <h4 data-static-style="a573">${ICONS.warningTriangle} Стоит подтянуть</h4>
       <p>${result.weak_topics.map(t => eh(result.topic_scores.find(s => s.topic === t)?.topic_name || t)).join(', ')}</p>
     </div>
   ` : '';
@@ -12820,19 +12820,19 @@ function renderCyberLevelDetail(result) {
   const dateStr = result.assessed_at ? new Date(result.assessed_at).toLocaleDateString('ru-RU') : '';
 
   c.innerHTML = `
-    <div style="display:inline-flex;width:72px;height:72px;align-items:center;justify-content:center;background:var(--accent-gradient);border-radius:20px;color:#fff;margin-bottom:12px;box-shadow:var(--shadow-glow-strong);">${info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').replace('height="20"','height="40"')}</div>
+    <div data-static-style="a574">${info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').replace('height="20"','height="40"')}</div>
     <div class="onboarding-result-level gradient-text">${eh(info.name)}</div>
     <div class="onboarding-result-percentage">${result.overall_percentage}% правильных</div>
     <div class="onboarding-result-description">${eh(info.description)}</div>
-    ${dateStr ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">Тест пройден: ${dateStr}</div>` : ''}
+    ${dateStr ? `<div data-static-style="a575">Тест пройден: ${dateStr}</div>` : ''}
     <div class="onboarding-topics">
       <h3>По темам</h3>
       ${topicsHtml}
     </div>
     ${weakHtml}
-    <div style="display:flex;gap:10px;">
-      <button class="btn-onboarding-skip" data-onclick="navigateTo('profile')" style="flex:1;">Назад в профиль</button>
-      <button class="btn-onboarding-start" data-onclick="restartOnboarding()" style="flex:1;">Пройти заново</button>
+    <div data-static-style="a576">
+      <button class="btn-onboarding-skip" data-onclick="navigateTo('profile')" data-static-style="a004">Назад в профиль</button>
+      <button class="btn-onboarding-start" data-onclick="restartOnboarding()" data-static-style="a004">Пройти заново</button>
     </div>
   `;
 }
@@ -12849,14 +12849,14 @@ function restartOnboarding() {
 async function openBookAnalyticsModal(bookId) {
   const modal = document.getElementById('bookAnalyticsModal');
   const content = document.getElementById('bookAnalyticsContent');
-  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Загрузка...</div>';
+  content.innerHTML = '<div data-static-style="a577">Загрузка...</div>';
   modal.classList.remove('hidden');
   try {
     const data = await api.library.adminBookAnalytics(bookId);
     renderBookAnalytics(data);
   } catch (err) {
     console.error(err);
-    content.innerHTML = '<div style="color:#ef4444;padding:20px;">Не удалось загрузить аналитику</div>';
+    content.innerHTML = '<div data-static-style="a578">Не удалось загрузить аналитику</div>';
   }
 }
 
@@ -12867,11 +12867,11 @@ function closeBookAnalyticsModal() {
 function renderBookAnalytics(d) {
   const c = document.getElementById('bookAnalyticsContent');
   const basicHtml = `
-    <div style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">${eh(d.title)}</div>
-      <div style="font-size:11px;color:var(--text-muted);">${eh(d.author)} · ${eh((d.categories || []).join(', '))}</div>
+    <div data-static-style="a579">
+      <div data-static-style="a580">${eh(d.title)}</div>
+      <div data-static-style="a192">${eh(d.author)} · ${eh((d.categories || []).join(', '))}</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px;">
+    <div data-static-style="a581">
       ${statBox('Просмотры', d.views)}
       ${statBox('Скачивания', d.downloads)}
       ${statBox('Рейтинг', d.rating ? d.rating.toFixed(1) : '—')}
@@ -12879,9 +12879,9 @@ function renderBookAnalytics(d) {
     </div>
   `;
   const mylistHtml = `
-    <div style="margin-bottom:18px;">
-      <h4 style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;">В списках пользователей (${d.mylist.total})</h4>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+    <div data-static-style="a441">
+      <h4 data-static-style="a582">В списках пользователей (${d.mylist.total})</h4>
+      <div data-static-style="a583">
         ${miniStat('Читают', d.mylist.reading, '#10b981')}
         ${miniStat('В планах', d.mylist.planned, '#3b82f6')}
         ${miniStat('Завершено', d.mylist.completed, '#a78bfa')}
@@ -12891,9 +12891,9 @@ function renderBookAnalytics(d) {
     </div>
   `;
   const progressSummaryHtml = `
-    <div style="margin-bottom:14px;">
-      <h4 style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;">Прогресс читателей</h4>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+    <div data-static-style="a204">
+      <h4 data-static-style="a582">Прогресс читателей</h4>
+      <div data-static-style="a584">
         ${statBox('Начали', d.readers_started)}
         ${statBox('Завершили', d.readers_completed)}
         ${statBox('Средний %', d.avg_progress_pct + '%')}
@@ -12905,24 +12905,24 @@ function renderBookAnalytics(d) {
     const top = d.readers.slice(0, 10);
     const rows = top.map(r => `
       <tr>
-        <td style="padding:6px 8px;font-size:11px;">@${eh(r.username)}</td>
-        <td style="padding:6px 8px;font-size:11px;text-align:center;font-family:'JetBrains Mono',monospace;">${r.current_page} / ${r.total_pages}</td>
-        <td style="padding:6px 8px;font-size:11px;text-align:right;">
-          <div style="display:inline-block;width:60px;height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden;vertical-align:middle;margin-right:6px;">
+        <td data-static-style="a585">@${eh(r.username)}</td>
+        <td data-static-style="a586">${r.current_page} / ${r.total_pages}</td>
+        <td data-static-style="a587">
+          <div data-static-style="a588">
             <div style="height:100%;width:${r.progress_pct}%;background:var(--accent-gradient);"></div>
           </div>
-          <span style="font-family:'JetBrains Mono',monospace;">${r.progress_pct}%</span>
+          <span data-static-style="a589">${r.progress_pct}%</span>
         </td>
       </tr>
     `).join('');
     readersHtml = `
-      <div style="margin-bottom:18px;">
-        <h4 style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;">Кто читает (${d.readers.length}${d.readers.length > 10 ? ', показаны топ-10' : ''})</h4>
-        <table style="width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <thead><tr style="background:var(--bg-primary);">
-            <th style="padding:6px 8px;font-size:10px;font-weight:600;text-align:left;color:var(--text-muted);">Юзер</th>
-            <th style="padding:6px 8px;font-size:10px;font-weight:600;text-align:center;color:var(--text-muted);">Страница</th>
-            <th style="padding:6px 8px;font-size:10px;font-weight:600;text-align:right;color:var(--text-muted);">Прогресс</th>
+      <div data-static-style="a441">
+        <h4 data-static-style="a582">Кто читает (${d.readers.length}${d.readers.length > 10 ? ', показаны топ-10' : ''})</h4>
+        <table data-static-style="a590">
+          <thead><tr data-static-style="a591">
+            <th data-static-style="a592">Юзер</th>
+            <th data-static-style="a593">Страница</th>
+            <th data-static-style="a594">Прогресс</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -12930,22 +12930,22 @@ function renderBookAnalytics(d) {
     `;
   } else {
     readersHtml = `
-      <div style="margin-bottom:18px;text-align:center;padding:14px;background:var(--bg-primary);border-radius:8px;color:var(--text-muted);font-size:11px;">
+      <div data-static-style="a595">
         Никто пока не открыл эту книгу
       </div>
     `;
   }
   const quizHtml = d.quiz_attempts > 0 ? `
-    <div style="margin-bottom:18px;">
-      <h4 style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;">Активность по тестам</h4>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+    <div data-static-style="a441">
+      <h4 data-static-style="a582">Активность по тестам</h4>
+      <div data-static-style="a584">
         ${statBox('Попыток', d.quiz_attempts)}
         ${statBox('Прошли (≥60%)', d.quiz_passed)}
         ${statBox('Средний балл', d.quiz_avg_percentage + '%')}
       </div>
     </div>
   ` : `
-    <div style="margin-bottom:18px;text-align:center;padding:14px;background:var(--bg-primary);border-radius:8px;color:var(--text-muted);font-size:11px;">
+    <div data-static-style="a595">
       Никто пока не проходил тест по этой книге
     </div>
   `;
@@ -12953,16 +12953,16 @@ function renderBookAnalytics(d) {
 }
 
 function statBox(label, value) {
-  return `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">${eh(label)}</div>
-    <div style="font-size:18px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace;">${eh(String(value))}</div>
+  return `<div data-static-style="a458">
+    <div data-static-style="a596">${eh(label)}</div>
+    <div data-static-style="a597">${eh(String(value))}</div>
   </div>`;
 }
 
 function miniStat(label, value, color) {
-  return `<div style="text-align:center;padding:8px 4px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;">
+  return `<div data-static-style="a598">
     <div style="font-size:14px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;">${value}</div>
-    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${eh(label)}</div>
+    <div data-static-style="a599">${eh(label)}</div>
   </div>`;
 }
 
