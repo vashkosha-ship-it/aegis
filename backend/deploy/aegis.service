@@ -3,7 +3,7 @@ Description=Aegis backend (gunicorn + uvicorn workers)
 After=network.target postgresql.service redis-server.service
 # Redis нужен для rate limiting и очереди фоновых задач. Без него лимиты
 # считаются в памяти каждого воркера отдельно, а индексация книг не работает.
-Wants=redis-server.service
+Requires=redis-server.service
 
 [Service]
 User=www-data
