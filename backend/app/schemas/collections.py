@@ -1,5 +1,5 @@
 """Схемы пользовательских подборок книг."""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CollectionBookBrief(BaseModel):
@@ -7,8 +7,7 @@ class CollectionBookBrief(BaseModel):
     title: str
     author: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionPublic(BaseModel):
@@ -20,8 +19,7 @@ class CollectionPublic(BaseModel):
     book_ids: list[int] = Field(default_factory=list)
     books: list[CollectionBookBrief] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CollectionCreate(BaseModel):
