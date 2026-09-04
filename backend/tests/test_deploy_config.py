@@ -260,6 +260,18 @@ class TestHealthRouting:
         assert "NoNewPrivileges=true" in active
         assert "EnvironmentFile=/opt/aegis/backend/.env" in active
 
+    def test_backend_is_sandboxed(self):
+        active = _active_lines(BACKEND_SERVICE)
+
+        assert "User=www-data" in active
+        assert "Group=www-data" in active
+        assert "User=root" not in active
+        assert "NoNewPrivileges=true" in active
+        assert "PrivateTmp=true" in active
+        assert "ProtectSystem=full" in active
+        assert "ProtectHome=true" in active
+        assert "UMask=0027" in active
+
     def test_backend_requires_redis_service(self):
         service = BACKEND_SERVICE.read_text(encoding="utf-8")
 

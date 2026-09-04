@@ -26,5 +26,14 @@ ExecStart=/opt/aegis/backend/.venv/bin/gunicorn app.main:app \
 Restart=always
 RestartSec=3
 
+# Процесс принимает недоверенные HTTP-запросы и разбирает загружаемые файлы.
+# Эти ограничения не мешают записи в /opt/aegis/backend/storage, но закрывают
+# доступ к домашним каталогам и запрещают получение дополнительных привилегий.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+UMask=0027
+
 [Install]
 WantedBy=multi-user.target
