@@ -264,6 +264,9 @@ class TestHealthRouting:
         assert "Authorization: Bearer $HEALTH_TOKEN" in script
         assert '"206"' in script
         assert "Content-Range: bytes 0-" in script
+        assert "from app.db.session import AsyncSessionLocal" in script
+        assert "sudo -u www-data .venv/bin/python" in script
+        assert "neon_stack" not in script
 
     def test_worker_drops_root_privileges(self):
         active = _active_lines(WORKER_SERVICE)
