@@ -12,12 +12,14 @@
 | `aegis-security-headers.conf` | `/etc/nginx/snippets/` | CSP и заголовки безопасности |
 | `aegis.service` | `/etc/systemd/system/` | веб-приложение (gunicorn) |
 | `aegis-worker.service` | `/etc/systemd/system/` | фоновые задачи (индексация PDF) |
-| `20-aegis-retention.conf` | `/etc/systemd/journald.conf.d/` | ограничение размера и срока хранения системного журнала |
+| `20-aegis-retention.conf` | `/etc/systemd/journald.conf.d/` | лимит размера и срока хранения системного журнала |
 
 ## Зависимости
 
 - PostgreSQL — основная база
-- **Redis** — rate limiting и очередь фоновых задач
+- **Redis** — rate limiting и очередь фоновых задач. Без него лимиты считаются
+  в памяти каждого воркера отдельно (то есть фактический лимит умножается на
+  их число), а индексация книг не запускается вовсе
 - Python 3.12, venv в `/opt/aegis/backend/.venv`
 
 ## Порядок установки
@@ -30,7 +32,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
 # 2. Переменные окружения
-cp .env.example .env
+cp .env.example .env   # заполнить DATABASE_URL, SECRET_KEY, REDIS_URL, SMTP, CORS_ORIGINS
 
 # 3. База
 .venv/bin/alembic upgrade head
@@ -62,10 +64,12 @@ nginx -t && systemctl reload nginx
 certbot --nginx -d aegis-sec-library.ru -d www.aegis-sec-library.ru
 ```
 
+## Хранение журналов
+
 Ограничения journald действуют на весь системный журнал сервера, не только
 на Aegis. При первом применении можно однократно удалить старые архивные
-записи командой `journalctl --vacuum-size=500M`. Это необратимое удаление
-старых логов, поэтому сначала сохраните нужные записи инцидентов.
+записи командой `journalctl --vacuum-size=500M`. Это необратимо, поэтому
+сначала сохраните нужные записи инцидентов.
 
 Журнал административных действий приложения хранится 365 дней. Ежедневная
 задача `cleanup_expired_sessions` удаляет более старые записи вместе с
