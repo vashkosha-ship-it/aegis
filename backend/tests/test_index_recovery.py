@@ -36,7 +36,7 @@ async def test_extraction_failure_preserves_old_index(db, monkeypatch):
     monkeypatch.setattr(search_index, "_extract_pages", fail_extraction)
 
     with pytest.raises(search_index.IndexingError, match="broken PDF"):
-        await search_index.index_book_from_path(db, book_id, "unused.pdf")
+        await search_index.index_book_from_path(db, book.id, "unused.pdf")
 
     pages = (
         await db.scalars(
@@ -69,7 +69,7 @@ async def test_insert_failure_rolls_back_delete_and_page_count(db, monkeypatch):
     monkeypatch.setattr(db, "execute", fail_new_page_insert)
 
     with pytest.raises(RuntimeError, match="database interrupted"):
-        await search_index.index_book_from_path(db, book.id, "unused.pdf")
+        await search_index.index_book_from_path(db, book_id, "unused.pdf")
 
     pages = (
         await db.scalars(
