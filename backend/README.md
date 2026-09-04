@@ -9,7 +9,7 @@ FastAPI + PostgreSQL + JWT авторизация для библиотеки к
 ✅ Эндпоинты: книги (CRUD + поиск/фильтр/сортировка), прогресс чтения, MyList, отзывы, заметки, тесты, тепловая карта, админ-дашборд, лидерборд
 ✅ Серверная геймификация: XP, уровни, стрики, достижения
 ✅ CORS, OpenAPI/Swagger UI на `/docs`
-✅ Сид-скрипт: создаёт админа, демо-юзера и 4 книги
+✅ Безопасный seed: пароль администратора только из окружения; production требует явного разрешения
 ✅ Docker Compose для PostgreSQL и MinIO
 
 ## Что будет дальше
@@ -71,16 +71,39 @@ alembic revision --autogenerate -m "initial schema"
 alembic upgrade head
 ```
 
-### 4. Сидим начальные данные
+### 4. Добавляем начальные данные
+
+Seed не содержит паролей по умолчанию. Задайте отдельный пароль администратора
+через окружение; не сохраняйте его в `.env`, истории команд или репозитории.
+
+Linux/macOS:
 
 ```bash
+read -s -p "Пароль администратора: " SEED_ADMIN_PASSWORD
+echo
+export SEED_ADMIN_PASSWORD
 python -m scripts.seed
+unset SEED_ADMIN_PASSWORD
 ```
 
-Создадутся:
-- админ: `admin / admin123`
-- юзер: `user / user1234`
-- 4 книги, 4 достижения
+PowerShell:
+
+```powershell
+$secure = Read-Host "Пароль администратора" -AsSecureString
+$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+try {
+    $env:SEED_ADMIN_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
+    python -m scripts.seed
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
+    Remove-Item Env:SEED_ADMIN_PASSWORD
+}
+```
+
+В режиме разработки создаются администратор, демонстрационный пользователь,
+четыре книги и достижения. В production обычный запуск запрещён. Для первичной
+настройки используйте `--allow-production`: будут созданы только администратор
+и достижения, без демонстрационных данных.
 
 ### 5. Запускаем сервер
 
@@ -99,14 +122,16 @@ pytest tests/test_smoke.py -v
 ## Проверка вручную (curl)
 
 ```bash
-# Логин
+# Логин — PASSWORD задайте локально, не вставляйте реальный пароль в документацию
+read -s -p "Пароль: " PASSWORD; echo
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-# → {"access_token":"...","refresh_token":"...","token_type":"bearer"}
+  --data "$(printf '{"username":"admin","password":"%s"}' "$PASSWORD")"
+unset PASSWORD
+# → access_token в JSON; refresh-сессия устанавливается HttpOnly cookie
 
-# Список книг (публичный)
-curl http://localhost:8000/api/books
+# Список книг (требует access token)
+curl http://localhost:8000/api/books -H "Authorization: Bearer $TOKEN"
 
 # Профиль (нужен токен)
 TOKEN="<paste access_token here>"
@@ -121,7 +146,7 @@ curl http://localhost:8000/api/admin/dashboard -H "Authorization: Bearer $TOKEN"
 | Проблема исходника                          | Решение                                                              |
 |---------------------------------------------|-----------------------------------------------------------------------|
 | Пароли в открытом виде в `state.users`      | bcrypt (rounds=12) — `app/core/security.py`                          |
-| Авторизация только в localStorage           | JWT access (1 ч) + refresh (14 дн)                                   |
+| Кража долгоживущего токена через JavaScript | Refresh-сессия в HttpOnly cookie, access-токен короткоживущий          |
 | `users` приходят из JS-массива на клиенте   | PostgreSQL + миграции Alembic                                        |
 | Любой может создать книгу через `state`     | `POST /api/books` защищён `get_current_admin`                        |
 | Рейтинг книги — мутируемое поле в JS        | Пересчитывается на сервере из таблицы `reviews`                      |
