@@ -1,4 +1,5 @@
 [Unit]
+OnFailure=aegis-alert@%n.service
 Description=Aegis background worker (индексация PDF)
 After=network.target redis-server.service postgresql.service
 Requires=redis-server.service

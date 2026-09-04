@@ -1,0 +1,22 @@
+[Unit]
+Description=Send Aegis failure alert for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/aegis/backend
+EnvironmentFile=/opt/aegis/backend/.env
+Environment="HOME=/opt/aegis/backend"
+RuntimeDirectory=aegis-alerts
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+ExecStart=/opt/aegis/backend/.venv/bin/python -m app.service_alert %i
+
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
