@@ -98,8 +98,35 @@ fi
 
 # Постраничная загрузка PDF. Без Range-ответов книга качается целиком:
 # на файле в 150 МБ это минуты ожидания вместо секунд.
-book_id=$(sudo -u postgres psql -tAc \
-    "SELECT id FROM books WHERE pdf_storage_key IS NOT NULL LIMIT 1" neon_stack 2>/dev/null | tr -d '[:space:]')
+# Спрашиваем ту же базу, что использует приложение. Имя БД нельзя
+# хардкодить: на production оно может отличаться от примера в .env.example.
+book_id=$(
+    cd "$APP_DIR/backend" 2>/dev/null &&
+    sudo -u www-data .venv/bin/python - <<'PY' 2>/dev/null
+import asyncio
+
+from sqlalchemy import select
+
+from app.db.session import AsyncSessionLocal
+from app.models.book import Book
+
+
+async def main():
+    async with AsyncSessionLocal() as db:
+        book_id = await db.scalar(
+            select(Book.id)
+            .where(Book.pdf_storage_key.isnot(None))
+            .order_by(Book.id)
+            .limit(1)
+        )
+        if book_id is not None:
+            print(book_id)
+
+
+asyncio.run(main())
+PY
+)
+book_id=$(tr -d '[:space:]' <<<"$book_id")
 
 if [ -n "$book_id" ] && [ -n "$HEALTH_TOKEN" ]; then
     range_headers=$(curl -sS -D - -o /dev/null -r 0-1023 \
