@@ -28,7 +28,6 @@ from app.models.user import User, UserRole
 from app.schemas.auth import (
     AccessTokenOnly,
     ForgotPasswordRequest,
-    RefreshRequest,
     RegisterResponse,
     ResendCodeRequest,
     ResetPasswordRequest,
@@ -113,6 +112,7 @@ async def register(
     """Создать аккаунт читателя. Email обязателен — на него отправляется код подтверждения.
     Аккаунт неактивен до подтверждения email."""
     await _guard_email_send(payload.email, request)
+    await _record_email_send(payload.email, request)
 
     existing = await db.scalar(select(User).where(User.username == payload.username))
     if existing:
@@ -141,10 +141,11 @@ async def register(
 
     try:
         await send_verification_code(payload.email, code)
-        await _record_email_send(payload.email, request)
-    except EmailError:
-        # Письмо не ушло — аккаунт создан, но просим запросить код повторно
-        pass
+    except EmailError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Аккаунт создан, но письмо не отправлено. Запросите код повторно.",
+        ) from exc
 
     return RegisterResponse(
         detail="Account created. Verification code sent to email.",
@@ -209,6 +210,7 @@ async def resend_code(
 ) -> dict:
     """Выслать новый код подтверждения."""
     await _guard_email_send(payload.email, request)
+    await _record_email_send(payload.email, request)
 
     user = await db.scalar(select(User).where(User.email == payload.email))
     # Не раскрываем существование аккаунта
@@ -221,7 +223,6 @@ async def resend_code(
     await db.commit()
     try:
         await send_verification_code(payload.email, code)
-        await _record_email_send(payload.email, request)
     except EmailError as e:
         raise HTTPException(
             status_code=502, detail="Failed to send email. Try later."
@@ -265,15 +266,9 @@ async def login(
 async def refresh_token(
     request: Request,
     response: Response,
-    payload: RefreshRequest | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> AccessTokenOnly:
-    """Обменять refresh-токен на новую пару access+refresh.
-
-    Токен берётся из httpOnly-cookie. Тело запроса поддерживается для клиентов
-    без cookie (мобильная обёртка), но для них CSRF-проверка не нужна: они не
-    подвержены ей, потому что браузер за них ничего не отправляет автоматически.
-    """
+    """Обменять httpOnly refresh-cookie на новую пару access+refresh."""
     cookie_token = get_refresh_from_cookie(request)
 
     if cookie_token:
@@ -281,8 +276,6 @@ async def refresh_token(
         if not csrf_is_valid(request):
             raise HTTPException(status_code=403, detail="CSRF token mismatch")
         token = cookie_token
-    elif payload and payload.refresh_token:
-        token = payload.refresh_token
     else:
         raise HTTPException(status_code=401, detail="Refresh token missing")
 
@@ -413,6 +406,9 @@ async def forgot_password(
     (чтобы нельзя было перебором узнать, какие адреса зарегистрированы).
     """
     await _guard_email_send(payload.email, request)
+    # Считаем саму принятую попытку, а не только успешную SMTP-доставку.
+    # Иначе неизвестные адреса и сбои SMTP позволяют обходить IP-лимит.
+    await _record_email_send(payload.email, request)
 
     user = await db.scalar(select(User).where(User.email == payload.email))
     if user:
@@ -423,7 +419,6 @@ async def forgot_password(
         try:
             from app.services.email_service import send_password_reset_code
             await send_password_reset_code(user.email, code)
-            await _record_email_send(payload.email, request)
         except EmailError:
             pass
     return {"detail": "Если такой email зарегистрирован, на него отправлен код восстановления"}

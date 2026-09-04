@@ -94,12 +94,13 @@ window.AEGIS_ALLOWED_HANDLERS = Object.freeze({
    * позвать опасную, ведь удаление книги нужно настоящей кнопке в интерфейсе.
    */
   sensitive: [
-    'approvePendingUser', 'confirmDeleteAccount', 'deleteAdminUser',
-    'deleteAnnotation', 'deleteAnnotationFromTooltip', 'deleteBook',
-    'deleteChatFromHistory', 'deleteComment', 'deleteCurrentAvatar',
-    'deleteReview', 'deleteReviewAndRefresh', 'doDeleteAccount',
-    'exportAllUserData', 'regenerateAllQuizzesUI', 'regenerateBookQuiz',
-    'rejectPendingUser',
+    'aiMatchArBooksUI', 'approvePendingUser', 'confirmDeleteAccount',
+    'deleteAdminUser', 'deleteAnnotation', 'deleteAnnotationFromTooltip',
+    'deleteBook', 'deleteChatFromHistory', 'deleteComment',
+    'deleteCurrentAvatar', 'deleteReview', 'deleteReviewAndRefresh',
+    'doDeleteAccount', 'exportAllUserData', 'generateMissingCoversUI',
+    'markRequiredForDept', 'regenerateAllQuizzesUI', 'regenerateBookQuiz',
+    'reindexAllBooksUI', 'rejectPendingUser', 'startBulkUpload',
   ],
 
   /* События, возникающие БЕЗ действия пользователя, — отдельный, куда более

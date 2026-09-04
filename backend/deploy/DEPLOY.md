@@ -75,4 +75,9 @@ systemctl restart aegis aegis-worker
 systemctl is-active aegis aegis-worker redis-server
 journalctl -u aegis -n 30 --no-pager | grep -i error
 curl -sI https://aegis-sec-library.ru/ | grep -i content-security-policy
+bash /opt/aegis/backend/deploy/healthcheck.sh
 ```
+
+`/health` и `/ready` должны возвращать JSON backend, а не HTML главной
+страницы. `healthcheck.sh` проверяет не только HTTP 200, но и содержимое JSON,
+включая отдельный успешный статус Redis.

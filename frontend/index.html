@@ -1067,7 +1067,7 @@
         <div id="bulkUploadProgress" style="font-size:12px;color:var(--text-secondary);"></div>
         <div style="display:flex;gap:8px;">
           <button data-onclick="clearBulkUploadList()" id="bulkUploadClearBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;">Очистить</button>
-          <button data-onclick="startBulkUpload()" id="bulkUploadStartBtn" style="background:var(--accent-gradient);border:none;color:#000;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">Загрузить</button>
+          <button data-onclick="startBulkUpload()" data-nonce="${sensitiveNonce()}" id="bulkUploadStartBtn" style="background:var(--accent-gradient);border:none;color:#000;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">Загрузить</button>
         </div>
       </div>
     </div>

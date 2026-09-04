@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     SMTP_FROM: str = "Aegis <noreply@aegis.local>"
     SMTP_TLS: bool = True
     # Email администратора для уведомлений о новых заявках
-    ADMIN_NOTIFY_EMAIL: str = "vash.kosha@gmail.com"
+    ADMIN_NOTIFY_EMAIL: str = ""
     # База для ссылок в письмах (фронт)
     FRONTEND_BASE_URL: str = "http://localhost:5173"
 

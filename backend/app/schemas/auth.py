@@ -1,7 +1,7 @@
 """Pydantic schemas for authentication endpoints."""
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.user import UserRole
 
@@ -51,10 +51,6 @@ class AccessTokenOnly(BaseModel):
     token_type: str = "bearer"
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: str
-
-
 class UserPublic(BaseModel):
     id: int
     username: str
@@ -81,8 +77,7 @@ class UserPublic(BaseModel):
             data.has_avatar = bool(obj.avatar_url)
         return data
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(BaseModel):

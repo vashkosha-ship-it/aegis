@@ -28,10 +28,16 @@ async def _refresh(client, token: str | None = None):
     автоматически — и сервер требует CSRF-заголовок. Дублируем значение из
     cookie, как и настоящий фронт.
     """
-    csrf = client.cookies.get("aegis_csrf")
-    headers = {"X-CSRF-Token": csrf} if csrf else {}
-    body = {"refresh_token": token} if token else None
-    return await client.post("/auth/refresh", json=body, headers=headers)
+    if token is not None:
+        csrf = "test-csrf"
+        headers = {
+            "X-CSRF-Token": csrf,
+            "Cookie": f"aegis_refresh={token}; aegis_csrf={csrf}",
+        }
+    else:
+        csrf = client.cookies.get("aegis_csrf")
+        headers = {"X-CSRF-Token": csrf} if csrf else {}
+    return await client.post("/auth/refresh", json=None, headers=headers)
 
 
 class TestRefreshRotation:
@@ -75,14 +81,11 @@ class TestRefreshReuse:
         record.used_at = datetime.now(UTC) - timedelta(minutes=5)
         await db.commit()
 
-        # Чистим cookie: иначе сервер возьмёт из неё СВЕЖИЙ токен (cookie
-        # приоритетнее тела), и повторного использования не получится.
+        # Явно предъявляем старую cookie, не меняя свежую cookie клиента.
         client.cookies.clear()
 
         version_before = user.token_version
-        r2 = await client.post(
-            "/auth/refresh", json={"refresh_token": old_refresh}
-        )
+        r2 = await _refresh(client, old_refresh)
         assert r2.status_code == 401, r2.text
 
         await db.refresh(user)
@@ -90,10 +93,18 @@ class TestRefreshReuse:
 
         # Пара, выданная в r1, тоже больше не работает
         client.cookies.clear()
-        r3 = await client.post(
-            "/auth/refresh", json={"refresh_token": new_refresh}
-        )
+        r3 = await _refresh(client, new_refresh)
         assert r3.status_code == 401
+
+    async def test_body_token_without_cookie_is_rejected(self, client, db):
+        """Refresh-токен больше нельзя передавать через публичную JSON-схему."""
+        user = await make_user(db, username="bodytoken")
+        token = create_refresh_token(
+            user.id, token_version=user.token_version, jti="body-only"
+        )
+
+        r = await client.post("/auth/refresh", json={"refresh_token": token})
+        assert r.status_code == 401
 
 
 class TestLegacyTokens:

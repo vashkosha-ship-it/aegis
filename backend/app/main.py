@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.api import api_router
 from app.core.config import settings
@@ -29,6 +30,31 @@ READINESS_PROBE_FILENAME = ".readiness-probe"
 # бесполезен. Тогда /ready начнёт отдавать 503, и балансировщик выведет узел.
 QUEUE_REQUIRED_FOR_READINESS = False
 
+_KNOWN_UNSAFE_SECRET_KEYS = {
+    "change-me-to-a-long-random-string-min-32-chars",
+    "ci-test-secret-key-not-used-in-production",
+    "secret",
+    "changeme",
+}
+
+
+class SecurityConfigurationError(RuntimeError):
+    """Production-конфигурация криптографии небезопасна."""
+
+
+def validate_security_configuration() -> None:
+    """Не запускать production с предсказуемым ключом подписи JWT."""
+    if settings.DEBUG:
+        return
+
+    secret = settings.SECRET_KEY.strip()
+    if len(secret.encode("utf-8")) < 32 or secret.lower() in _KNOWN_UNSAFE_SECRET_KEYS:
+        raise SecurityConfigurationError(
+            "SECRET_KEY должен быть случайным значением длиной не менее 32 байт"
+        )
+    if settings.ALGORITHM != "HS256":
+        raise SecurityConfigurationError("Поддерживается только JWT-алгоритм HS256")
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -40,6 +66,10 @@ async def lifespan(_app: FastAPI):
     запросе — то есть уже на пользователе. В production init_rate_limit
     не даст запуститься вовсе.
     """
+    from app.services.email_service import validate_email_configuration
+
+    validate_security_configuration()
+    validate_email_configuration()
     await init_rate_limit()
 
     yield
@@ -61,28 +91,95 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Максимальный размер тела запроса — берём из настроек MAX_PDF_SIZE с запасом
-_MAX_REQUEST_BODY_BYTES = settings.MAX_PDF_SIZE_BYTES + 5 * 1024 * 1024  # +5 МБ для overhead multipart
+# Большой лимит нужен только PDF-upload. Обычному JSON-запросу незачем
+# разрешать тело размером с книгу: отдельные пределы снижают цену DoS-запроса.
+_DEFAULT_REQUEST_BODY_BYTES = 2 * 1024 * 1024
+_PDF_REQUEST_BODY_BYTES = settings.MAX_PDF_SIZE_BYTES + 5 * 1024 * 1024
+_COVER_REQUEST_BODY_BYTES = settings.MAX_COVER_SIZE_BYTES + 1 * 1024 * 1024
+_AVATAR_REQUEST_BODY_BYTES = 3 * 1024 * 1024
 
-class BodySizeLimitMiddleware(BaseHTTPMiddleware):
-    """Отклоняем запросы с слишком большим телом ДО того, как они начнут писаться.
-    
-    Защита от DoS: атакующий не сможет залить 10 ГБ и забить диск/память,
-    даже если внутренний save_stream правильно отвалится на лимите.
-    """
-    async def dispatch(self, request: Request, call_next):
-        content_length = request.headers.get("content-length")
-        if content_length:
+
+class _RequestBodyTooLarge(Exception):
+    pass
+
+
+class BodySizeLimitMiddleware:
+    """Ограничить тело и по заголовку, и по реально полученному потоку ASGI."""
+
+    def __init__(self, app: ASGIApp, max_bytes: int | None = None):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    def _limit_for_scope(self, scope: Scope) -> int:
+        if self.max_bytes is not None:
+            return self.max_bytes
+        path = scope.get("path", "")
+        if path.startswith("/api/books/") and path.endswith("/pdf"):
+            return _PDF_REQUEST_BODY_BYTES
+        if path.startswith("/api/books/") and path.endswith("/cover"):
+            return _COVER_REQUEST_BODY_BYTES
+        if path == "/api/me/avatar":
+            return _AVATAR_REQUEST_BODY_BYTES
+        return _DEFAULT_REQUEST_BODY_BYTES
+
+    def _error(self, status_code: int, detail: str) -> JSONResponse:
+        return JSONResponse(status_code=status_code, content={"detail": detail})
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        limit = self._limit_for_scope(scope)
+
+        content_lengths = [
+            value
+            for key, value in scope.get("headers", [])
+            if key.lower() == b"content-length"
+        ]
+        if len(content_lengths) > 1:
+            response = self._error(400, "Multiple Content-Length headers")
+            await response(scope, receive, send)
+            return
+        if content_lengths:
             try:
-                size = int(content_length)
-                if size > _MAX_REQUEST_BODY_BYTES:
-                    return JSONResponse(
-                        status_code=413,
-                        content={"detail": f"Request too large (max {_MAX_REQUEST_BODY_BYTES // (1024*1024)} MB)"},
-                    )
-            except ValueError:
-                pass  # некорректный заголовок — пропускаем, разберёмся ниже
-        return await call_next(request)
+                declared = int(content_lengths[0])
+                if declared < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                response = self._error(400, "Invalid Content-Length")
+                await response(scope, receive, send)
+                return
+            if declared > limit:
+                response = self._error(413, "Request too large")
+                await response(scope, receive, send)
+                return
+
+        received = 0
+        response_started = False
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > limit:
+                    raise _RequestBodyTooLarge
+            return message
+
+        async def tracked_send(message: Message) -> None:
+            nonlocal response_started
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, tracked_send)
+        except _RequestBodyTooLarge:
+            if response_started:
+                raise
+            response = self._error(413, "Request too large")
+            await response(scope, receive, send)
 
 
 app.add_middleware(BodySizeLimitMiddleware)

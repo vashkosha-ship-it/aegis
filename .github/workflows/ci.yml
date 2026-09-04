@@ -57,7 +57,6 @@ jobs:
       SECRET_KEY: ci-test-secret-key-not-used-in-production
       DEBUG: "false"
       CORS_ORIGINS: http://localhost:5173
-
     steps:
       - uses: actions/checkout@v4
 
@@ -167,6 +166,9 @@ jobs:
           npm install --no-save jsdom
           node tests/dispatcher.test.js
 
+      - name: Тест корректного выхода
+        run: node tests/api-logout.test.js
+
   security:
     runs-on: ubuntu-latest
     defaults:
@@ -230,8 +232,8 @@ jobs:
   # только вручную.
   #
   # Запускается вручную (Actions → Run workflow) и раз в неделю по расписанию.
-  # Без настроенных секретов задача пропускается, а не падает: иначе форк или
-  # чужой PR получал бы красную сборку из-за отсутствия чужих доступов.
+  # Для ручного и планового production-прогона отсутствие секретов — ошибка
+  # конфигурации, а не успешный skip. На обычных push/PR этот job не запускается.
   e2e:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
@@ -243,32 +245,33 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Проверить наличие настроек
-        id: config
         env:
           BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          USERNAME: ${{ secrets.E2E_USERNAME }}
+          PASSWORD: ${{ secrets.E2E_PASSWORD }}
         run: |
-          if [ -z "$BASE_URL" ]; then
-            echo "Секрет E2E_BASE_URL не задан — проверки пропущены"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+          missing=0
+          for name in BASE_URL USERNAME PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Не задан обязательный E2E-секрет: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
           fi
 
       - uses: actions/setup-node@v4
-        if: steps.config.outputs.ready == 'true'
         with:
           node-version: "20"
 
       - name: Установить зависимости
-        if: steps.config.outputs.ready == 'true'
         run: npm ci || npm install
 
       - name: Установить браузер
-        if: steps.config.outputs.ready == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Браузерные проверки
-        if: steps.config.outputs.ready == 'true'
         env:
           E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
           E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
@@ -276,7 +279,7 @@ jobs:
         run: npx playwright test
 
       - name: Отчёт при падении
-        if: failure() && steps.config.outputs.ready == 'true'
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report

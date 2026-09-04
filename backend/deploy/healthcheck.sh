@@ -114,21 +114,27 @@ fi
 # ---------------------------------------------------------------------------
 section "API"
 
+health_body=$(curl -s "$BASE/health" 2>/dev/null)
 health=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/health" 2>/dev/null)
-if [ "$health" = "200" ]; then
+if [ "$health" = "200" ] && grep -q '"status":"ok"' <<<"$health_body"; then
     ok "/health отвечает (процесс жив)"
 else
-    fail "/health вернул $health"
+    fail "/health не подтвердил состояние backend" \
+        "HTTP $health, ответ: $(echo "$health_body" | head -c 120)"
 fi
 
 # /ready проверяет зависимости: базу, Redis, хранилище. Одним запросом видно
 # то, ради чего раньше приходилось смотреть каждый сервис по отдельности.
 ready_body=$(curl -s "$BASE/ready" 2>/dev/null)
 ready_code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/ready" 2>/dev/null)
-if [ "$ready_code" = "200" ]; then
-    ok "/ready: все зависимости доступны"
+if [ "$ready_code" = "200" ] \
+    && grep -q '"database":{"ok":true' <<<"$ready_body" \
+    && grep -q '"redis":{"ok":true' <<<"$ready_body" \
+    && grep -q '"storage":{"ok":true' <<<"$ready_body"; then
+    ok "/ready: обязательные зависимости доступны"
 else
-    fail "/ready вернул $ready_code" "$(echo "$ready_body" | head -c 300)"
+    fail "/ready не подтвердил обязательные зависимости" \
+        "HTTP $ready_code, ответ: $(echo "$ready_body" | head -c 300)"
 fi
 
 # Каталог книг закрыт для неавторизованных — проверяем, что защита на месте

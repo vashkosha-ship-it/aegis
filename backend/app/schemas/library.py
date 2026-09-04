@@ -1,7 +1,7 @@
 """Pydantic schemas for reading progress, mylist, reviews, annotations."""
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.library import AnnotationType, MyListStatus
 
@@ -18,8 +18,7 @@ class ReadingProgressPublic(BaseModel):
     started: bool
     last_read_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MyListUpdate(BaseModel):
@@ -31,8 +30,7 @@ class MyListEntryPublic(BaseModel):
     status: MyListStatus
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReviewCreate(BaseModel):
@@ -48,8 +46,7 @@ class ReviewPublic(BaseModel):
     text: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AnnotationCreate(BaseModel):
@@ -70,8 +67,7 @@ class AnnotationPublic(BaseModel):
     position: dict
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HeatmapEntry(BaseModel):
