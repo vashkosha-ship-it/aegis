@@ -354,3 +354,16 @@ class TestFailureAlerts:
         assert "NoNewPrivileges=true" in active
         assert "ProtectSystem=strict" in active
         assert "UMask=0077" in active
+
+
+class TestNoInlineStylesInStaticMarkup:
+    """Статическая разметка должна работать без style-src unsafe-inline."""
+
+    def test_index_has_no_style_attributes(self):
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        offenders = [
+            number
+            for number, line in enumerate(html.splitlines(), start=1)
+            if re.search(r"\\sstyle\\s*=", line, re.IGNORECASE)
+        ]
+        assert not offenders, f"inline style в index.html: строки {offenders[:10]}"
