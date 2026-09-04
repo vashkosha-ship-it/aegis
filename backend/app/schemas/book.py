@@ -15,9 +15,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class BookBase(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     author: str = Field(min_length=1, max_length=255)
-    categories: list[str] = Field(default_factory=list)
-    description: str = ""
-    icon: str = "📘"
+    categories: list[str] = Field(default_factory=list, max_length=20)
+    description: str = Field(default="", max_length=20_000)
+    icon: str = Field(default="📘", max_length=64)
 
     @field_validator("categories")
     @classmethod
@@ -50,11 +50,11 @@ class BookCreate(BookBase):
 
 
 class BookUpdate(BaseModel):
-    title: str | None = Field(default=None, max_length=255)
-    author: str | None = Field(default=None, max_length=255)
-    categories: list[str] | None = None
-    description: str | None = None
-    icon: str | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    author: str | None = Field(default=None, min_length=1, max_length=255)
+    categories: list[str] | None = Field(default=None, max_length=20)
+    description: str | None = Field(default=None, max_length=20_000)
+    icon: str | None = Field(default=None, max_length=64)
 
     @field_validator("categories")
     @classmethod
