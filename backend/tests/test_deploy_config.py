@@ -25,6 +25,7 @@ NGINX_CONF = REPO / "backend" / "deploy" / "nginx-aegis.conf"
 BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
 WORKER_SERVICE = REPO / "backend" / "deploy" / "aegis-worker.service"
 HEALTHCHECK = REPO / "backend" / "deploy" / "healthcheck.sh"
+JOURNAL_CONF = REPO / "backend" / "deploy" / "20-aegis-retention.conf"
 
 
 def _active_lines(path: Path) -> list[str]:
@@ -59,11 +60,6 @@ def conf_lines() -> list[str]:
 
 class TestContentSecurityPolicy:
     def test_exactly_one_active_policy(self, conf_lines):
-        """Две одновременно действующие политики — источник путаницы.
-
-        Report-Only рядом с боевой допустим только на время наблюдения; если
-        он остался включённым, значит переход не довели до конца.
-        """
         active = [
             line for line in conf_lines
             if line.startswith("add_header Content-Security-Policy ")
@@ -76,7 +72,6 @@ class TestContentSecurityPolicy:
         assert not report_only, "Report-Only остался включённым"
 
     def test_script_src_forbids_inline(self, conf_lines):
-        """Ради этого и переписывались 335 обработчиков."""
         csp = _header_value(conf_lines, "Content-Security-Policy")
         assert csp, "нет действующей Content-Security-Policy"
 
@@ -85,17 +80,10 @@ class TestContentSecurityPolicy:
             None,
         )
         assert script_src, "в политике нет script-src"
-        assert "'unsafe-inline'" not in script_src, (
-            "script-src снова разрешает инлайновые скрипты — внедрённый в DOM "
-            "текст сможет выполниться"
-        )
-        assert "'unsafe-eval'" not in script_src, (
-            "script-src снова разрешает eval — диспетчер обработчиков в нём "
-            "не нуждается"
-        )
+        assert "'unsafe-inline'" not in script_src
+        assert "'unsafe-eval'" not in script_src
 
     def test_style_src_exception_is_narrow(self, conf_lines):
-        """'unsafe-inline' допустим только для стилей и только там."""
         csp = _header_value(conf_lines, "Content-Security-Policy")
         directives = {
             d.strip().split()[0]: d.strip()
@@ -121,9 +109,7 @@ class TestContentSecurityPolicy:
     )
     def test_restrictive_directives_present(self, conf_lines, directive, expected):
         csp = _header_value(conf_lines, "Content-Security-Policy")
-        assert f"{directive} {expected}" in csp, (
-            f"ожидалось {directive} {expected}"
-        )
+        assert f"{directive} {expected}" in csp
 
 
 class TestOtherSecurityHeaders:
@@ -143,19 +129,11 @@ class TestOtherSecurityHeaders:
         assert must_contain in value
 
     def test_hsts_has_no_preload(self, conf_lines):
-        """preload необратим: откатить попадание в список браузеров нельзя."""
         hsts = _header_value(conf_lines, "Strict-Transport-Security")
         assert "preload" not in hsts
 
 
 class TestScriptLoadingOrder:
-    """Порядок подключения — не косметика.
-
-    Реестр разрешённых обработчиков должен выполниться раньше диспетчера:
-    иначе список окажется пустым, и диспетчер молча отклонит все обработчики.
-    Интерфейс при этом выглядит целым, но не реагирует ни на что.
-    """
-
     @staticmethod
     @pytest.fixture(scope="class")
     def html() -> str:
@@ -165,20 +143,14 @@ class TestScriptLoadingOrder:
     def test_allowlist_loaded_before_dispatcher(self, html):
         allowlist = html.find("handler-allowlist.js")
         dispatcher = html.find("inline-handlers.js")
-
-        assert allowlist != -1, "реестр обработчиков не подключён"
-        assert dispatcher != -1, "диспетчер обработчиков не подключён"
-        assert allowlist < dispatcher, (
-            "реестр подключён после диспетчера — список будет пустым"
-        )
+        assert allowlist != -1
+        assert dispatcher != -1
+        assert allowlist < dispatcher
 
     def test_helpers_are_loaded(self, html):
-        assert "csp-helpers.js" in html, (
-            "не подключены функции-помощники: часть обработчиков не найдётся"
-        )
+        assert "csp-helpers.js" in html
 
     def test_all_referenced_scripts_exist(self, html):
-        """Опечатка в имени файла даёт 404 и молча ломает часть интерфейса."""
         missing = []
         for src in re.findall(r'<script[^>]+src="([^"]+)"', html):
             if src.startswith(("http://", "https://", "//")):
@@ -189,55 +161,32 @@ class TestScriptLoadingOrder:
 
 
 class TestNoInlineHandlersLeftInMarkup:
-    """CSP без 'unsafe-inline' и инлайновые обработчики несовместимы.
-
-    Если новый обработчик добавят по старой привычке, он просто не сработает
-    в браузере — без ошибки, которую легко заметить. Ловим здесь.
-    """
-
     HANDLER_RE = re.compile(r'\son(click|change|input|keydown|keyup|submit|error)\s*=')
 
     @pytest.mark.parametrize("filename", ["index.html", "app.js"])
     def test_no_inline_event_attributes(self, filename):
         path = INDEX_HTML.parent / filename
         text = path.read_text(encoding="utf-8")
-
         offenders = []
         for match in self.HANDLER_RE.finditer(text):
             line_no = text.count("\n", 0, match.start()) + 1
             offenders.append(f"{filename}:{line_no}")
-
-        assert not offenders, (
-            f"инлайновые обработчики не работают при текущей CSP: "
-            f"{offenders[:10]}"
-        )
+        assert not offenders, f"инлайновые обработчики: {offenders[:10]}"
 
 
 class TestNoStaleConfigs:
-    """Устаревшие копии конфигов путают при деплое.
-
-    Рабочие лежат в backend/deploy. Копии в корне репозитория и в backend/
-    остались от прежней схемы: править по ошибке начинали именно их, а на
-    сервер уезжало старое.
-    """
-
     @pytest.mark.parametrize(
         "stale",
         ["security-headers.conf", "backend/nginx-aegis.conf"],
     )
     def test_stale_config_removed(self, stale):
         path = REPO / stale
-        assert not path.exists(), (
-            f"{stale} — устаревшая копия. Рабочие конфиги в backend/deploy/"
-        )
+        assert not path.exists()
 
 
 class TestHealthRouting:
-    """Healthcheck не должен принимать HTML SPA за здоровый backend."""
-
     def test_nginx_proxies_health_endpoints(self):
         config = NGINX_CONF.read_text(encoding="utf-8")
-
         assert "location = /health" in config
         assert "proxy_pass http://127.0.0.1:8000/health" in config
         assert "location = /ready" in config
@@ -245,7 +194,6 @@ class TestHealthRouting:
 
     def test_healthcheck_validates_json_and_redis(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
-
         assert '\"status\":\"ok\"' in script
         assert '\"redis\":{\"ok\":true' in script
         assert '\"database\":{\"ok\":true' in script
@@ -253,7 +201,6 @@ class TestHealthRouting:
 
     def test_worker_drops_root_privileges(self):
         active = _active_lines(WORKER_SERVICE)
-
         assert "User=www-data" in active
         assert "Group=www-data" in active
         assert "User=root" not in active
@@ -262,7 +209,6 @@ class TestHealthRouting:
 
     def test_backend_is_sandboxed(self):
         active = _active_lines(BACKEND_SERVICE)
-
         assert "User=www-data" in active
         assert "Group=www-data" in active
         assert "User=root" not in active
@@ -274,5 +220,13 @@ class TestHealthRouting:
 
     def test_backend_requires_redis_service(self):
         service = BACKEND_SERVICE.read_text(encoding="utf-8")
-
         assert "Requires=redis-server.service" in service
+
+
+class TestLogRetention:
+    def test_journal_has_size_and_time_limits(self):
+        active = _active_lines(JOURNAL_CONF)
+        assert "[Journal]" in active
+        assert "SystemMaxUse=500M" in active
+        assert "RuntimeMaxUse=100M" in active
+        assert "MaxRetentionSec=30day" in active
