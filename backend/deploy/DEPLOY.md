@@ -15,6 +15,7 @@
 | `20-aegis-retention.conf` | `/etc/systemd/journald.conf.d/` | лимит размера и срока хранения системного журнала |
 | `aegis-backup.service`, `aegis-backup.timer` | `/etc/systemd/system/` | ежедневная резервная копия |
 | `backup.sh`, `RESTORE.md` | остаются в `/opt/aegis/backend/deploy/` | создание копии и инструкция восстановления |
+| `aegis-alert@.service` | `/etc/systemd/system/` | email при падении backend, worker или backup |
 
 ## Зависимости
 
@@ -44,7 +45,8 @@ apt install -y redis-server
 systemctl enable --now redis-server
 
 # 5. Сервисы
-cp deploy/aegis.service deploy/aegis-worker.service /etc/systemd/system/
+cp deploy/aegis.service deploy/aegis-worker.service deploy/aegis-alert@.service \
+  /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now aegis aegis-worker
 
@@ -82,6 +84,18 @@ certbot --nginx -d aegis-sec-library.ru -d www.aegis-sec-library.ru
 Журнал административных действий приложения хранится 365 дней. Ежедневная
 задача `cleanup_expired_sessions` удаляет более старые записи вместе с
 истёкшими exam/quiz/refresh-сессиями.
+
+## Уведомления о сбоях
+
+`aegis`, `aegis-worker` и `aegis-backup` вызывают
+`aegis-alert@.service` при переходе в failed. Письмо отправляется на
+`ADMIN_NOTIFY_EMAIL` через настроенный SMTP. Повтор одного и того же сервиса
+подавляется на 15 минут. Безопасная проверка без остановки приложения:
+
+```bash
+systemctl start aegis-alert@aegis.service.service
+journalctl -u aegis-alert@aegis.service.service -n 20 --no-pager
+```
 
 ## Резервные копии
 
