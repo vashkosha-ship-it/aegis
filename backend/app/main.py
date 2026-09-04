@@ -91,8 +91,13 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Максимальный размер тела запроса — берём из настроек MAX_PDF_SIZE с запасом
-_MAX_REQUEST_BODY_BYTES = settings.MAX_PDF_SIZE_BYTES + 5 * 1024 * 1024  # +5 МБ для overhead multipart
+# Большой лимит нужен только PDF-upload. Обычному JSON-запросу незачем
+# разрешать тело размером с книгу: отдельные пределы снижают цену DoS-запроса.
+_DEFAULT_REQUEST_BODY_BYTES = 2 * 1024 * 1024
+_PDF_REQUEST_BODY_BYTES = settings.MAX_PDF_SIZE_BYTES + 5 * 1024 * 1024
+_COVER_REQUEST_BODY_BYTES = settings.MAX_COVER_SIZE_BYTES + 1 * 1024 * 1024
+_AVATAR_REQUEST_BODY_BYTES = 3 * 1024 * 1024
+
 
 class _RequestBodyTooLarge(Exception):
     pass
@@ -101,9 +106,21 @@ class _RequestBodyTooLarge(Exception):
 class BodySizeLimitMiddleware:
     """Ограничить тело и по заголовку, и по реально полученному потоку ASGI."""
 
-    def __init__(self, app: ASGIApp, max_bytes: int = _MAX_REQUEST_BODY_BYTES):
+    def __init__(self, app: ASGIApp, max_bytes: int | None = None):
         self.app = app
         self.max_bytes = max_bytes
+
+    def _limit_for_scope(self, scope: Scope) -> int:
+        if self.max_bytes is not None:
+            return self.max_bytes
+        path = scope.get("path", "")
+        if path.startswith("/api/books/") and path.endswith("/pdf"):
+            return _PDF_REQUEST_BODY_BYTES
+        if path.startswith("/api/books/") and path.endswith("/cover"):
+            return _COVER_REQUEST_BODY_BYTES
+        if path == "/api/me/avatar":
+            return _AVATAR_REQUEST_BODY_BYTES
+        return _DEFAULT_REQUEST_BODY_BYTES
 
     def _error(self, status_code: int, detail: str) -> JSONResponse:
         return JSONResponse(status_code=status_code, content={"detail": detail})
@@ -112,6 +129,8 @@ class BodySizeLimitMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+
+        limit = self._limit_for_scope(scope)
 
         content_lengths = [
             value
@@ -131,7 +150,7 @@ class BodySizeLimitMiddleware:
                 response = self._error(400, "Invalid Content-Length")
                 await response(scope, receive, send)
                 return
-            if declared > self.max_bytes:
+            if declared > limit:
                 response = self._error(413, "Request too large")
                 await response(scope, receive, send)
                 return
@@ -144,7 +163,7 @@ class BodySizeLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
-                if received > self.max_bytes:
+                if received > limit:
                     raise _RequestBodyTooLarge
             return message
 
