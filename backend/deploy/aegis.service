@@ -1,4 +1,5 @@
 [Unit]
+OnFailure=aegis-alert@%n.service
 Description=Aegis backend (gunicorn + uvicorn workers)
 After=network.target postgresql.service redis-server.service
 # Redis нужен для rate limiting и очереди фоновых задач. Без него лимиты
