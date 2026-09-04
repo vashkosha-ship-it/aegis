@@ -21,6 +21,7 @@ from scripts import seed as seed_module
 
 SEED_PATH = Path(seed_module.__file__)
 SEED_SOURCE = SEED_PATH.read_text(encoding="utf-8")
+README_SOURCE = (SEED_PATH.parents[1] / "README.md").read_text(encoding="utf-8")
 
 
 def _code_string_literals(source: str) -> list[str]:
@@ -57,6 +58,14 @@ class TestNoHardcodedSecrets:
         offenders = [s for s in literals if leaked in s]
         assert not offenders, (
             f"в seed.py остался пароль по умолчанию {leaked!r}: {offenders}"
+        )
+
+    @pytest.mark.parametrize(
+        "leaked", ["admin123", "user1234", "changeme", "password123"]
+    )
+    def test_known_default_passwords_absent_from_readme(self, leaked):
+        assert leaked not in README_SOURCE, (
+            f"в backend/README.md опубликован пароль по умолчанию {leaked!r}"
         )
 
     def test_password_comes_from_environment(self):
