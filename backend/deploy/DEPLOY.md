@@ -132,6 +132,21 @@ curl -sI https://aegis-sec-library.ru/ | grep -i content-security-policy
 bash /opt/aegis/backend/deploy/healthcheck.sh
 ```
 
+Чтобы проверить не только авторизацию PDF, но и реальную частичную отдачу
+`206 Partial Content`, запустите проверку с краткоживущим access token
+отдельного пользователя только для чтения:
+
+```bash
+read -rsp "Healthcheck access token: " AEGIS_HEALTH_TOKEN
+echo
+export AEGIS_HEALTH_TOKEN
+bash /opt/aegis/backend/deploy/healthcheck.sh
+unset AEGIS_HEALTH_TOKEN
+```
+
+Токен не записывается в файл и не выводится на экран. Без книги с PDF или без
+токена healthcheck явно сообщает, что настоящая Range-проверка не выполнена.
+
 `/health` и `/ready` должны возвращать JSON backend, а не HTML главной
 страницы. `healthcheck.sh` проверяет не только HTTP 200, но и содержимое JSON,
 включая отдельный успешный статус Redis.

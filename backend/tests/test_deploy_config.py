@@ -257,6 +257,14 @@ class TestHealthRouting:
         assert '\"database\":{\"ok\":true' in script
         assert '\"storage\":{\"ok\":true' in script
 
+    def test_range_check_requires_auth_and_validates_206(self):
+        script = HEALTHCHECK.read_text(encoding="utf-8")
+
+        assert "AEGIS_HEALTH_TOKEN" in script
+        assert "Authorization: Bearer $HEALTH_TOKEN" in script
+        assert '"206"' in script
+        assert "Content-Range: bytes 0-" in script
+
     def test_worker_drops_root_privileges(self):
         active = _active_lines(WORKER_SERVICE)
 
