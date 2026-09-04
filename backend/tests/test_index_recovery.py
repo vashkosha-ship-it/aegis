@@ -36,7 +36,7 @@ async def test_extraction_failure_preserves_old_index(db, monkeypatch):
     monkeypatch.setattr(search_index, "_extract_pages", fail_extraction)
 
     with pytest.raises(search_index.IndexingError, match="broken PDF"):
-        await search_index.index_book_from_path(db, book.id, "unused.pdf")
+        await search_index.index_book_from_path(db, book_id, "unused.pdf")
 
     pages = (
         await db.scalars(
@@ -53,6 +53,7 @@ async def test_extraction_failure_preserves_old_index(db, monkeypatch):
 
 async def test_insert_failure_rolls_back_delete_and_page_count(db, monkeypatch):
     book = await _book_with_old_index(db)
+    book_id = book.id
 
     async def extract_new(_path):
         return ["новый текст один", "новый текст два", "новый текст три"]
@@ -73,11 +74,11 @@ async def test_insert_failure_rolls_back_delete_and_page_count(db, monkeypatch):
     pages = (
         await db.scalars(
             select(BookPage)
-            .where(BookPage.book_id == book.id)
+            .where(BookPage.book_id == book_id)
             .order_by(BookPage.page)
         )
     ).all()
-    restored_book = await db.get(Book, book.id)
+    restored_book = await db.get(Book, book_id)
     assert [page.content for page in pages] == [
         "старый текст один",
         "старый текст два",
