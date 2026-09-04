@@ -23,6 +23,7 @@ INDEX_HTML = REPO / "frontend" / "index.html"
 APP_JS = REPO / "frontend" / "app.js"
 NGINX_CONF = REPO / "backend" / "deploy" / "nginx-aegis.conf"
 BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
+WORKER_SERVICE = REPO / "backend" / "deploy" / "aegis-worker.service"
 HEALTHCHECK = REPO / "backend" / "deploy" / "healthcheck.sh"
 
 
@@ -249,6 +250,16 @@ class TestHealthRouting:
         assert '\"redis\":{\"ok\":true' in script
         assert '\"database\":{\"ok\":true' in script
         assert '\"storage\":{\"ok\":true' in script
+
+    def test_worker_drops_root_privileges(self):
+        service = WORKER_SERVICE.read_text(encoding="utf-8")
+        active = _active_lines(WORKER_SERVICE)
+
+        assert "User=www-data" in active
+        assert "Group=www-data" in active
+        assert "User=root" not in active
+        assert "NoNewPrivileges=true" in active
+        assert "EnvironmentFile=/opt/aegis/backend/.env" in active
 
     def test_backend_requires_redis_service(self):
         service = BACKEND_SERVICE.read_text(encoding="utf-8")
