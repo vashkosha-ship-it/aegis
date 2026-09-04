@@ -152,6 +152,16 @@ if redis-cli ping >/dev/null 2>&1; then
     ok "Redis отвечает"
     keys=$(redis-cli --scan --pattern 'rl:*' 2>/dev/null | wc -l)
     gray "    ключей rate limiting: $keys"
+
+    queued=$(redis-cli zcard arq:queue 2>/dev/null || echo "?")
+    gray "    задач в очереди ARQ: $queued"
+
+    metric_rows=$(redis-cli --raw hgetall aegis:worker:metrics 2>/dev/null || true)
+    if [ -n "$metric_rows" ]; then
+        ok "метрики фоновых задач записываются"
+    else
+        gray "  — метрик задач пока нет (появятся после первого запуска)"
+    fi
 else
     fail "Redis недоступен" "без него приложение не стартует в production"
 fi
