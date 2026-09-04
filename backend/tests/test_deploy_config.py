@@ -25,6 +25,7 @@ NGINX_CONF = REPO / "backend" / "deploy" / "nginx-aegis.conf"
 BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
 WORKER_SERVICE = REPO / "backend" / "deploy" / "aegis-worker.service"
 HEALTHCHECK = REPO / "backend" / "deploy" / "healthcheck.sh"
+JOURNAL_CONF = REPO / "backend" / "deploy" / "20-aegis-retention.conf"
 
 
 def _active_lines(path: Path) -> list[str]:
@@ -276,3 +277,15 @@ class TestHealthRouting:
         service = BACKEND_SERVICE.read_text(encoding="utf-8")
 
         assert "Requires=redis-server.service" in service
+
+
+class TestLogRetention:
+    """Системный журнал не должен бесконтрольно занимать диск."""
+
+    def test_journal_has_size_and_time_limits(self):
+        active = _active_lines(JOURNAL_CONF)
+
+        assert "[Journal]" in active
+        assert "SystemMaxUse=500M" in active
+        assert "RuntimeMaxUse=100M" in active
+        assert "MaxRetentionSec=30day" in active

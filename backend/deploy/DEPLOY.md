@@ -12,6 +12,7 @@
 | `aegis-security-headers.conf` | `/etc/nginx/snippets/` | CSP и заголовки безопасности |
 | `aegis.service` | `/etc/systemd/system/` | веб-приложение (gunicorn) |
 | `aegis-worker.service` | `/etc/systemd/system/` | фоновые задачи (индексация PDF) |
+| `20-aegis-retention.conf` | `/etc/systemd/journald.conf.d/` | лимит размера и срока хранения системного журнала |
 
 ## Зависимости
 
@@ -45,18 +46,34 @@ cp deploy/aegis.service deploy/aegis-worker.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now aegis aegis-worker
 
-# 6. Фронт: симлинк, чтобы git pull сразу обновлял сайт
+# 6. Ограничение systemd journal
+install -d -m 0755 /etc/systemd/journald.conf.d
+cp deploy/20-aegis-retention.conf /etc/systemd/journald.conf.d/
+systemctl restart systemd-journald
+
+# 7. Фронт: симлинк, чтобы git pull сразу обновлял сайт
 ln -s /opt/aegis/frontend /var/www/aegis
 
-# 7. Nginx
+# 8. Nginx
 cp deploy/nginx-aegis.conf /etc/nginx/sites-available/aegis
 cp deploy/aegis-security-headers.conf /etc/nginx/snippets/
 ln -sf /etc/nginx/sites-available/aegis /etc/nginx/sites-enabled/aegis
 nginx -t && systemctl reload nginx
 
-# 8. HTTPS
+# 9. HTTPS
 certbot --nginx -d aegis-sec-library.ru -d www.aegis-sec-library.ru
 ```
+
+## Хранение журналов
+
+Ограничения journald действуют на весь системный журнал сервера, не только
+на Aegis. При первом применении можно однократно удалить старые архивные
+записи командой `journalctl --vacuum-size=500M`. Это необратимо, поэтому
+сначала сохраните нужные записи инцидентов.
+
+Журнал административных действий приложения хранится 365 дней. Ежедневная
+задача `cleanup_expired_sessions` удаляет более старые записи вместе с
+истёкшими exam/quiz/refresh-сессиями.
 
 ## Обычный деплой
 

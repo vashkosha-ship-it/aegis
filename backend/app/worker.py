@@ -19,6 +19,7 @@ from sqlalchemy import delete, select
 from app.core.queue import redis_settings
 from app.core.storage import StorageNotFound, get_storage
 from app.db.session import AsyncSessionLocal
+from app.models.admin_log import AdminLog
 from app.models.book import Book
 from app.models.exam_session import ExamSession
 from app.models.quiz_session import QuizSession
@@ -105,6 +106,9 @@ async def index_all_books(ctx: dict) -> dict:
 # по ним разбирают инциденты (например, кто и когда предъявил украденный
 # refresh-токен), а место они занимают немного.
 KEEP_EXPIRED_DAYS = 7
+# Административный audit нужен для расследований дольше обычных сессий, но
+# бессрочное хранение увеличивает БД и сохраняет персональные данные без цели.
+KEEP_ADMIN_LOG_DAYS = 365
 
 
 async def cleanup_expired_sessions(ctx: dict) -> dict:
@@ -127,6 +131,11 @@ async def cleanup_expired_sessions(ctx: dict) -> dict:
                 delete(model).where(model.expires_at < cutoff)
             )
             removed[name] = result.rowcount or 0
+        audit_cutoff = datetime.now(UTC) - timedelta(days=KEEP_ADMIN_LOG_DAYS)
+        audit_result = await db.execute(
+            delete(AdminLog).where(AdminLog.created_at < audit_cutoff)
+        )
+        removed["admin_logs"] = audit_result.rowcount or 0
         await db.commit()
 
     total = sum(removed.values())
