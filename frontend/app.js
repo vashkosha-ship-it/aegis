@@ -8417,7 +8417,7 @@ async function openAddToCollection(bookId) {
   const rows = cols.map(col => {
     const has = (col.book_ids || []).includes(bookId);
     return `<button data-onclick="toggleBookInCollection(${col.id},${bookId},${has})" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${has ? 'var(--accent)' : 'var(--border)'};background:${has ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
-      <span>${col.icon || '📁'} ${eh(col.name)}</span><span style="color:var(--accent);font-weight:700;">${has ? '✓' : '+'}</span>
+      <span>${eh(col.icon || '📁')} ${eh(col.name)}</span><span style="color:var(--accent);font-weight:700;">${has ? '✓' : '+'}</span>
     </button>`;
   }).join('');
   m.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;">
