@@ -170,6 +170,9 @@ jobs:
       - name: Тест корректного выхода
         run: node tests/api-logout.test.js
 
+      - name: Тест экранирования пользовательского HTML
+        run: node tests/xss-escaping.test.js
+
   security:
     runs-on: ubuntu-latest
     defaults:
