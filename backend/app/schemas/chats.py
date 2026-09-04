@@ -1,5 +1,5 @@
 """Схемы истории диалогов с AI-ассистентом."""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChatMessageIn(BaseModel):
@@ -12,8 +12,7 @@ class ChatMessagePublic(BaseModel):
     role: str
     content: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChatSessionBrief(BaseModel):
@@ -23,8 +22,7 @@ class ChatSessionBrief(BaseModel):
     title: str
     message_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChatSessionFull(BaseModel):
@@ -32,8 +30,7 @@ class ChatSessionFull(BaseModel):
     title: str
     messages: list[ChatMessagePublic] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChatSessionCreate(BaseModel):
