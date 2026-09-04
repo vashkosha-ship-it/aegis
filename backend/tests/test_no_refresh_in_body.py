@@ -106,10 +106,8 @@ class TestNoRefreshInBody:
             f"в схеме всего {len(paths)} путей — проверка смотрит не туда"
         )
 
-        # Собираем только те схемы, на которые ссылаются ОТВЕТЫ. Перебирать
-        # все подряд нельзя: RefreshRequest содержит refresh_token законно —
-        # это тело запроса, клиент передаёт токен на вход. Направление здесь
-        # решает всё.
+        # Собираем схемы ответов отдельно, чтобы сообщение при регрессии точно
+        # указывало публичный контракт, из которого произошла утечка.
         used_in_responses: set[str] = set()
         for methods in paths.values():
             for operation in methods.values():
@@ -127,6 +125,9 @@ class TestNoRefreshInBody:
         ]
         assert not offenders, (
             f"схемы ответа объявляют refresh_token: {offenders}"
+        )
+        assert "refresh_token" not in str(schemas), (
+            "refresh_token снова появился в публичной OpenAPI-схеме"
         )
 
     async def test_refresh_token_absent_from_whole_schema(self):
