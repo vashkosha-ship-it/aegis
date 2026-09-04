@@ -78,6 +78,12 @@ class BookUpdate(BaseModel):
 
 
 class BookPublic(BookBase):
+    # Legacy-записи могли быть созданы до введения входных лимитов. Ответы
+    # остаются совместимыми; ограничения применяются к create/update.
+    categories: list[str]
+    description: str
+    icon: str
+
     id: int
     rating: Decimal
     views: int
