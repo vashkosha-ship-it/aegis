@@ -21,6 +21,7 @@ REPO = Path(__file__).resolve().parents[2]
 HEADERS_CONF = REPO / "backend" / "deploy" / "aegis-security-headers.conf"
 INDEX_HTML = REPO / "frontend" / "index.html"
 APP_JS = REPO / "frontend" / "app.js"
+STYLES_CSS = REPO / "frontend" / "styles.css"
 NGINX_CONF = REPO / "backend" / "deploy" / "nginx-aegis.conf"
 BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
 WORKER_SERVICE = REPO / "backend" / "deploy" / "aegis-worker.service"
@@ -367,3 +368,31 @@ class TestNoInlineStylesInStaticMarkup:
             if re.search(r"\\sstyle\\s*=", line, re.IGNORECASE)
         ]
         assert not offenders, f"inline style в index.html: строки {offenders[:10]}"
+
+
+class TestTemplateStyleExtraction:
+    """Неизменяемые стили шаблонов должны жить во внешнем stylesheet."""
+
+    def test_no_static_style_attributes_remain_in_app(self):
+        source = APP_JS.read_text(encoding="utf-8")
+        offenders = []
+        for match in re.finditer(r'\\sstyle="([^"]*)"', source):
+            if "${" not in match.group(1):
+                offenders.append(source.count("\\n", 0, match.start()) + 1)
+        assert not offenders, f"статические inline-style: строки {offenders[:10]}"
+
+    def test_every_static_style_reference_has_css_rule(self):
+        source = APP_JS.read_text(encoding="utf-8")
+        css = STYLES_CSS.read_text(encoding="utf-8")
+        references = set(re.findall(r'data-static-style="([a-z0-9-]+)"', source))
+        definitions = set(
+            re.findall(r'\\[data-static-style="([a-z0-9-]+)"\\]', css)
+        )
+        assert references
+        assert references <= definitions, (
+            f"нет CSS для data-static-style: {sorted(references - definitions)}"
+        )
+
+    def test_pwa_cache_version_updated(self):
+        service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
+        assert "aegis-cache-v200" in service_worker
