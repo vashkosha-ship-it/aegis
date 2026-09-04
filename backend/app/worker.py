@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import asynccontextmanager
+from time import monotonic
 from datetime import UTC, datetime, timedelta
 
 from arq import cron
@@ -31,6 +33,48 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger("aegis.worker")
+
+WORKER_METRICS_KEY = "aegis:worker:metrics"
+
+
+@asynccontextmanager
+async def _measure_job(ctx: dict, job_name: str):
+    """Записать счётчик, длительность и время последнего запуска задачи.
+
+    Метрики хранятся одним небольшим hash в том же Redis, что и ARQ. Сбой
+    записи метрик не должен превращать успешно выполненную индексацию в
+    ошибочную задачу.
+    """
+    started = monotonic()
+    status = "success"
+    try:
+        yield
+    except Exception:
+        status = "failed"
+        raise
+    finally:
+        duration = monotonic() - started
+        logger.info(
+            "worker_metric job=%s status=%s duration_seconds=%.3f",
+            job_name,
+            status,
+            duration,
+        )
+        redis = ctx.get("redis")
+        if redis is not None:
+            try:
+                await redis.hincrby(WORKER_METRICS_KEY, f"{job_name}:{status}", 1)
+                await redis.hset(
+                    WORKER_METRICS_KEY,
+                    mapping={
+                        f"{job_name}:last_status": status,
+                        f"{job_name}:last_duration_seconds": f"{duration:.3f}",
+                        f"{job_name}:last_finished_at": datetime.now(UTC).isoformat(),
+                    },
+                )
+            except Exception:  # noqa: BLE001 — метрики не ломают полезную работу
+                logger.exception("Не удалось записать метрики задачи %s", job_name)
+
 
 
 async def _index_one(book_id: int) -> int:
@@ -61,18 +105,21 @@ async def _index_one(book_id: int) -> int:
 
 async def index_book(ctx: dict, book_id: int) -> dict:
     """Задача: проиндексировать одну книгу."""
-    logger.info("Индексация книги %s — старт", book_id)
-    pages = await _index_one(book_id)
-    logger.info("Индексация книги %s — готово, страниц: %d", book_id, pages)
-    return {"book_id": book_id, "indexed_pages": pages}
+    async with _measure_job(ctx, "index_book"):
+        logger.info("Индексация книги %s — старт", book_id)
+        pages = await _index_one(book_id)
+        logger.info("Индексация книги %s — готово, страниц: %d", book_id, pages)
+        return {"book_id": book_id, "indexed_pages": pages}
 
 
 async def index_all_books(ctx: dict) -> dict:
-    """Задача: проиндексировать все книги с PDF.
+    """Задача: проиндексировать все книги с PDF."""
+    async with _measure_job(ctx, "index_all_books"):
+        return await _index_all_books()
 
-    Книги обрабатываются по одной: так пиковая память не зависит от размера
-    каталога, а сбой на одной книге не отменяет остальные.
-    """
+
+async def _index_all_books() -> dict:
+    """Проиндексировать каталог, продолжая работу после сбоя одной книги."""
     async with AsyncSessionLocal() as db:
         book_ids = list(
             (await db.scalars(select(Book.id).where(Book.pdf_storage_key.isnot(None)))).all()
@@ -112,12 +159,13 @@ KEEP_ADMIN_LOG_DAYS = 365
 
 
 async def cleanup_expired_sessions(ctx: dict) -> dict:
-    """Удалить истёкшие сессии экзаменов, тестов и refresh-токены.
+    """Удалить истёкшие сессии, токены и старые audit-записи."""
+    async with _measure_job(ctx, "cleanup_expired_sessions"):
+        return await _cleanup_expired_sessions()
 
-    Без этого таблицы растут бесконечно: записи создаются на каждый вход и
-    каждую попытку теста, но никогда не удаляются. На дистанции это раздувает
-    базу и замедляет выборки по токену.
-    """
+
+async def _cleanup_expired_sessions() -> dict:
+    """Реализация очистки с собственной транзакцией БД."""
     cutoff = datetime.now(UTC) - timedelta(days=KEEP_EXPIRED_DAYS)
     removed: dict[str, int] = {}
 
