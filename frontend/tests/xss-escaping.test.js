@@ -18,3 +18,19 @@ assert.doesNotMatch(
 );
 
 console.log('XSS escaping tests passed');
+
+assert.match(
+  appSource,
+  /function annotationPercent\(value, fallback\)/,
+  'Координаты аннотаций должны проходить числовую нормализацию',
+);
+assert.match(
+  appSource,
+  /function annotationColor\(value\)/,
+  'Цвет аннотации должен проверяться перед вставкой в style',
+);
+assert.doesNotMatch(
+  appSource,
+  /style="[^"]*\$\{a\.position\?/,
+  'Значения annotation.position не должны напрямую попадать в style',
+);

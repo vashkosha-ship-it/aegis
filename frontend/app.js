@@ -4238,16 +4238,34 @@ async function convertToNoteSave(ann, noteText) {
   }
 }
 
+function annotationPercent(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(100, Math.max(0, number)) : fallback;
+}
+
+function annotationColor(value) {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+    ? value
+    : '#fbbf24';
+}
+
 async function renderAnnotations() {
   if (isEpubMode) return;
   const layer = document.getElementById('annotationLayer');
   if (!layer || !currentBookId) return;
   const list = await getAnnotations(currentBookId);
   const onPage = list.filter(a => a.page === pdfCurrentPage);
-  layer.innerHTML = onPage.map(a => a.type === 'highlight'
-    ? `<div class="highlight-mark" style="left:${a.position?.x || 10}%;top:${a.position?.y || 10}%;width:${a.position?.w || 30}%;height:${a.position?.h || 3}%;background:${a.position?.color || '#fbbf24'}55;border-bottom:2px solid ${a.position?.color || '#fbbf24'};" title="${eh(a.text)}" data-onclick="showAnnotationDetail(${a.id})"></div>`
-    : `<div class="note-indicator" style="left:${a.position?.x || 15}%;top:${a.position?.y || 15}%;" data-onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</div>`
-  ).join('');
+  layer.innerHTML = onPage.map(a => {
+    const x = annotationPercent(a.position?.x, a.type === 'highlight' ? 10 : 15);
+    const y = annotationPercent(a.position?.y, a.type === 'highlight' ? 10 : 15);
+    if (a.type === 'highlight') {
+      const width = annotationPercent(a.position?.w, 30);
+      const height = annotationPercent(a.position?.h, 3);
+      const color = annotationColor(a.position?.color);
+      return `<div class="highlight-mark" style="left:${x}%;top:${y}%;width:${width}%;height:${height}%;background:${color}55;border-bottom:2px solid ${color};" title="${eh(a.text)}" data-onclick="showAnnotationDetail(${a.id})"></div>`;
+    }
+    return `<div class="note-indicator" style="left:${x}%;top:${y}%;" data-onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</div>`;
+  }).join('');
 }
 
 async function showAnnotationDetail(id) {

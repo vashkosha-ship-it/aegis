@@ -49,12 +49,24 @@ class ReviewPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AnnotationPosition(BaseModel):
+    """Координаты заметки внутри страницы, только безопасные CSS-значения."""
+
+    x: float = Field(default=10, ge=0, le=100)
+    y: float = Field(default=10, ge=0, le=100)
+    w: float = Field(default=30, gt=0, le=100)
+    h: float = Field(default=3, gt=0, le=100)
+    color: str = Field(default="#fbbf24", pattern=r"^#[0-9a-fA-F]{6}$")
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class AnnotationCreate(BaseModel):
     type: AnnotationType
     page: int = Field(ge=1)
     selected_text: str = Field(min_length=1, max_length=10_000)
     note_text: str | None = Field(default=None, max_length=5_000)
-    position: dict = Field(default_factory=dict)
+    position: AnnotationPosition = Field(default_factory=AnnotationPosition)
 
 
 class AnnotationPublic(BaseModel):
