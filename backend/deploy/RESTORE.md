@@ -30,10 +30,8 @@ cp -a /opt/aegis/backend/storage \
 
 ```bash
 cd /opt/aegis/backend
-set -a
-. ./.env
-set +a
-DATABASE_URL_PG="${DATABASE_URL_SYNC/postgresql+psycopg2:/postgresql:}"
+DATABASE_URL_PG=$(.venv/bin/python -c \
+  'from app.core.config import settings; print(settings.DATABASE_URL_SYNC.replace("postgresql+psycopg2:", "postgresql:"))')
 
 pg_restore --clean --if-exists --no-owner --no-privileges \
   --dbname="$DATABASE_URL_PG" "$BACKUP/database.dump"
