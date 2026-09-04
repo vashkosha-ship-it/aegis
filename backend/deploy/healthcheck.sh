@@ -17,6 +17,9 @@ set -uo pipefail
 DOMAIN="${AEGIS_DOMAIN:-aegis-sec-library.ru}"
 BASE="https://${DOMAIN}"
 APP_DIR="${AEGIS_DIR:-/opt/aegis}"
+# Опциональный access token отдельного read-only пользователя позволяет
+# проверить настоящий ответ 206. Значение не печатается и не сохраняется.
+HEALTH_TOKEN="${AEGIS_HEALTH_TOKEN:-}"
 
 failed=0
 checks=0
@@ -98,17 +101,29 @@ fi
 book_id=$(sudo -u postgres psql -tAc \
     "SELECT id FROM books WHERE pdf_storage_key IS NOT NULL LIMIT 1" neon_stack 2>/dev/null | tr -d '[:space:]')
 
-if [ -n "$book_id" ]; then
-    range_code=$(curl -s -o /dev/null -w '%{http_code}' -r 0-1023 \
-        "$BASE/api/books/$book_id/pdf" 2>/dev/null)
-    # 401 ожидаем без токена — важно, что не 200 и не 500
-    if [ "$range_code" = "401" ] || [ "$range_code" = "206" ]; then
-        ok "эндпоинт книги отвечает ($range_code)"
+if [ -n "$book_id" ] && [ -n "$HEALTH_TOKEN" ]; then
+    range_headers=$(curl -sS -D - -o /dev/null -r 0-1023 \
+        -H "Authorization: Bearer $HEALTH_TOKEN" \
+        "$BASE/api/books/$book_id/pdf" 2>/dev/null || true)
+    range_code=$(awk '/^HTTP\// { code=$2 } END { print code }' <<<"$range_headers")
+    if [ "$range_code" = "206" ] \
+        && grep -qi '^Content-Range: bytes 0-' <<<"$range_headers"; then
+        ok "PDF поддерживает authenticated Range (206)"
     else
-        fail "эндпоинт книги отвечает $range_code"
+        fail "authenticated Range не подтверждён (HTTP ${range_code:-нет ответа})" \
+            "задайте токен read-only пользователя в AEGIS_HEALTH_TOKEN"
     fi
+elif [ -n "$book_id" ]; then
+    unauth_code=$(curl -s -o /dev/null -w '%{http_code}' -r 0-1023 \
+        "$BASE/api/books/$book_id/pdf" 2>/dev/null)
+    if [ "$unauth_code" = "401" ]; then
+        ok "PDF требует авторизации"
+    else
+        fail "PDF без токена отвечает $unauth_code вместо 401"
+    fi
+    gray "  — для проверки ответа 206 задайте AEGIS_HEALTH_TOKEN"
 else
-    gray "  — книг с PDF не найдено, проверка Range пропущена"
+    gray "  — книг с PDF не найдено, authenticated Range проверить нельзя"
 fi
 
 # ---------------------------------------------------------------------------
