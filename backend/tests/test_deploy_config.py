@@ -26,6 +26,7 @@ BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
 WORKER_SERVICE = REPO / "backend" / "deploy" / "aegis-worker.service"
 HEALTHCHECK = REPO / "backend" / "deploy" / "healthcheck.sh"
 JOURNAL_CONF = REPO / "backend" / "deploy" / "20-aegis-retention.conf"
+ALERT_SERVICE = REPO / "backend" / "deploy" / "aegis-alert@.service"
 BACKUP_SCRIPT = REPO / "backend" / "deploy" / "backup.sh"
 BACKUP_SERVICE = REPO / "backend" / "deploy" / "aegis-backup.service"
 BACKUP_TIMER = REPO / "backend" / "deploy" / "aegis-backup.timer"
@@ -325,3 +326,20 @@ class TestBackupConfiguration:
         assert "pre-restore-neon-stack.dump" in document
         assert "storage.before-restore-" in document
         assert "systemctl stop aegis aegis-worker" in document
+
+
+class TestFailureAlerts:
+    @pytest.mark.parametrize(
+        "service_path",
+        [BACKEND_SERVICE, WORKER_SERVICE, BACKUP_SERVICE],
+    )
+    def test_important_services_have_failure_handler(self, service_path):
+        assert "OnFailure=aegis-alert@%n.service" in _active_lines(service_path)
+
+    def test_notifier_is_hardened_and_throttled(self):
+        active = _active_lines(ALERT_SERVICE)
+        assert "User=www-data" in active
+        assert "RuntimeDirectory=aegis-alerts" in active
+        assert "NoNewPrivileges=true" in active
+        assert "ProtectSystem=strict" in active
+        assert "UMask=0077" in active
