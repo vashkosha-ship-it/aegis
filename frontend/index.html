@@ -137,7 +137,7 @@
             <option value="ЦВВ">ЦВВ</option>
             <option value="__other__">Другое</option>
           </select>
-          <input type="text" id="authDepartmentOther" placeholder="Введите название подразделения" maxlength="64" class="hidden" style="margin-top:8px;">
+          <input type="text" id="authDepartmentOther" placeholder="Введите название подразделения" maxlength="64" class="hidden static-style-001">
         </div>
         <div class="form-group">
           <label>Пароль</label>
@@ -152,8 +152,8 @@
         <button type="submit" class="btn btn-primary auth-submit-btn" id="authSubmitBtn">
           <span id="authSubmitText">Войти</span>
         </button>
-        <div id="forgotPasswordHint" style="text-align:center;margin-top:12px;">
-          <button type="button" data-onclick="openForgotPassword()" style="background:none;border:none;color:var(--accent);font-family:inherit;font-size:13px;cursor:pointer;text-decoration:underline;">Забыли пароль?</button>
+        <div class="static-style-002" id="forgotPasswordHint">
+          <button class="static-style-003" type="button" data-onclick="openForgotPassword()">Забыли пароль?</button>
         </div>
       </form>
     </div>
@@ -172,13 +172,13 @@
           </svg>
         </div>
         <div class="logo-name">
-          AEGIS<span class="hide-mobile" style="font-weight:400;color:var(--text-secondary);"> STACK</span>
+          AEGIS<span class="hide-mobile static-style-004"> STACK</span>
         </div>
       </div>
       <div class="header-actions">
-        <span class="hidden" id="badgeHome" style="font-size:11px;font-weight:600;padding:7px 13px;border-radius:9px;background:rgba(0,212,255,0.12);color:var(--accent);border:1px solid rgba(0,212,255,0.2);">ADMIN</span>
+        <span class="hidden static-style-005" id="badgeHome">ADMIN</span>
         <div class="header-buttons-group">
-          <button class="header-icon-btn" id="btnOpenAssistant" data-onclick="navigateTo('assistant')" title="AI-ассистент" style="color:var(--accent);">
+          <button class="header-icon-btn static-style-006" id="btnOpenAssistant" data-onclick="navigateTo('assistant')" title="AI-ассистент">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
           </button>
           <button class="header-icon-btn btn-shortcuts-icon" data-onclick="openShortcutsModal()" title="Горячие клавиши">
@@ -202,7 +202,7 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </span>
         <input type="text" id="searchInput" placeholder="Поиск книг... (Enter — по тексту)" data-oninput="onSearchInput()" data-onkeydown="onSearchKeydown()" data-args-keydown="event">
-        <button data-onclick="runFullTextSearch()" title="Искать по содержимому книг" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--accent-gradient);border:none;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;">
+        <button class="static-style-007" data-onclick="runFullTextSearch()" title="Искать по содержимому книг">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
       </div>
@@ -221,7 +221,7 @@
       <div class="catalog-filters">
         <div class="catalog-filter-group">
           <label>Тема (множ. выбор)</label>
-          <div class="catalog-chips" id="catalogChips" style="margin-bottom:0;"></div>
+          <div class="catalog-chips static-style-008" id="catalogChips"></div>
         </div>
         <div class="catalog-filter-group">
           <label>Сортировка</label>
@@ -241,20 +241,20 @@
     </div>
 
     <!-- Секции книг -->
-    <div class="home-section" id="sectionRecommendations" style="display:none;">
+    <div class="home-section static-style-009" id="sectionRecommendations">
       <div class="section-title">Рекомендации</div>
-      <div id="recommendationsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div class="static-style-010" id="recommendationsList"></div>
     </div>
-    <div class="home-section" id="sectionResume" style="display:none;">
+    <div class="home-section static-style-009" id="sectionResume">
       <div class="section-title">Возобновить чтение</div>
-      <div id="resumeReadingCards" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div class="static-style-011" id="resumeReadingCards"></div>
     </div>
-    <div class="home-section" id="sectionBooksGoal" style="display:none;">
+    <div class="home-section static-style-009" id="sectionBooksGoal">
       <div id="booksGoalWidget"></div>
     </div>
-    <div class="home-section" id="sectionFavCategories" style="display:none;">
+    <div class="home-section static-style-009" id="sectionFavCategories">
       <div class="section-title">Избранные темы</div>
-      <div id="favCategoriesChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      <div class="static-style-012" id="favCategoriesChips"></div>
     </div>
     <div class="home-section" id="sectionContinue">
       <div class="section-title">Продолжить</div>
@@ -276,19 +276,19 @@
     <button class="fab-super-btn" data-onclick="openAddModal()">+</button>
   </div>
   <!-- ======================== МЕНЮ ВЫБОРА СХЕМЫ ======================== -->
-  <div class="modal-overlay hidden" id="arSchemeMenuModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
-    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:24px;max-width:520px;width:95%;max-height:90vh;overflow-y:auto;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+  <div class="modal-overlay hidden static-style-013" id="arSchemeMenuModal">
+    <div class="static-style-014">
+      <div class="static-style-015">
         <div>
-          <h3 style="font-size:18px;font-weight:700;">Интерактивные схемы атак</h3>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Изучай этапы атак в дополненной реальности</div>
+          <h3 class="static-style-016">Интерактивные схемы атак</h3>
+          <div class="static-style-017">Изучай этапы атак в дополненной реальности</div>
         </div>
-        <button class="btn-back" data-onclick="closeARSchemeMenu()" style="width:28px;height:28px;font-size:14px;">✕</button>
+        <button class="btn-back static-style-018" data-onclick="closeARSchemeMenu()">✕</button>
       </div>
 
       <!-- Cyber Kill Chain -->
       <button data-onclick="openARWithScheme('killchain')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:var(--accent-gradient);">
+        <div class="ar-menu-icon static-style-019">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 12h3"/><path d="M14 12h3"/></svg>
         </div>
         <div class="ar-menu-text">
@@ -300,7 +300,7 @@
 
       <!-- OWASP Top 10 -->
       <button data-onclick="openARWithScheme('owasp')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#ef4444,#f59e0b);font-weight:800;font-size:13px;">10</div>
+        <div class="ar-menu-icon static-style-020">10</div>
         <div class="ar-menu-text">
           <div class="ar-menu-title">OWASP Top 10</div>
           <div class="ar-menu-sub">Топ-10 рисков веб-приложений (2021)</div>
@@ -310,7 +310,7 @@
 
       <!-- Модель OSI -->
       <button data-onclick="openARWithScheme('osi')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#3b82f6,#10b981);">
+        <div class="ar-menu-icon static-style-021">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="3" rx="1"/><rect x="3" y="10.5" width="18" height="3" rx="1"/><rect x="3" y="17" width="18" height="3" rx="1"/></svg>
         </div>
         <div class="ar-menu-text">
@@ -322,7 +322,7 @@
 
       <!-- MITRE ATT&CK -->
       <button data-onclick="openARWithScheme('mitre')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#a855f7,#ef4444);">
+        <div class="ar-menu-icon static-style-022">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5z"/><path d="M9 12l2 2 4-4"/></svg>
         </div>
         <div class="ar-menu-text">
@@ -334,7 +334,7 @@
 
       <!-- NIST CSF -->
       <button data-onclick="openARWithScheme('nist')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#3b82f6,#a855f7);">
+        <div class="ar-menu-icon static-style-023">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
         </div>
         <div class="ar-menu-text">
@@ -346,7 +346,7 @@
 
       <!-- Incident Response -->
       <button data-onclick="openARWithScheme('ir')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#ef4444,#f59e0b);">
+        <div class="ar-menu-icon static-style-024">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 22v-4M2 12h6M22 12h-4"/><circle cx="12" cy="12" r="3"/></svg>
         </div>
         <div class="ar-menu-text">
@@ -358,7 +358,7 @@
 
       <!-- Defense in Depth -->
       <button data-onclick="openARWithScheme('did')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#10b981,#3b82f6);">
+        <div class="ar-menu-icon static-style-025">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5z"/><path d="M12 7v10M8 9v6M16 9v6"/></svg>
         </div>
         <div class="ar-menu-text">
@@ -370,7 +370,7 @@
 
       <!-- STRIDE -->
       <button data-onclick="openARWithScheme('stride')" class="ar-menu-btn">
-        <div class="ar-menu-icon" style="background:linear-gradient(135deg,#a855f7,#ef4444);font-weight:800;font-size:11px;">STR</div>
+        <div class="ar-menu-icon static-style-026">STR</div>
         <div class="ar-menu-text">
           <div class="ar-menu-title">STRIDE</div>
           <div class="ar-menu-sub">Модель угроз для разработчиков</div>
@@ -378,7 +378,7 @@
         <div class="ar-menu-arrow">→</div>
       </button>
 
-      <div style="margin-top:14px;padding:12px;background:var(--bg-primary);border-radius:var(--radius);font-size:11px;color:var(--text-muted);line-height:1.5;text-align:center;">
+      <div class="static-style-027">
         Откроется камера устройства. Схема накладывается поверх видео.
       </div>
     </div>
@@ -390,29 +390,29 @@
       <video class="ar-video" id="arVideo" autoplay playsinline muted></video>
       
       <!-- Контейнер для интерактивной схемы (заполняется JS) -->
-      <div id="arSchemeContainer" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></div>
-      <div style="position:absolute;top:0;left:0;right:0;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,0.6) 0%,transparent 100%);pointer-events:none;z-index:100;">
+      <div class="static-style-028" id="arSchemeContainer"></div>
+      <div class="static-style-029">
       <!-- Шапка с названием схемы и кнопкой закрытия -->
       
-        <div id="arSchemeTitle" style="color:#fff;font-size:14px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,0.8);"></div>
-        <button data-onclick="closeAR()" style="pointer-events:auto;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+        <div class="static-style-030" id="arSchemeTitle"></div>
+        <button class="static-style-031" data-onclick="closeAR()">✕</button>
       </div>
 
       <!-- Переключатель режима АТАКА / ЗАЩИТА -->
-      <div id="arViewModeToggle" style="position:absolute;top:60px;left:50%;transform:translateX(-50%);pointer-events:auto;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:3px;display:none;gap:2px;z-index:100;">
-        <button data-onclick="setKillChainViewMode('attack')" id="arViewBtnAttack" style="padding:6px 14px;background:rgba(239,68,68,0.4);border:none;border-radius:20px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+      <div class="static-style-032" id="arViewModeToggle">
+        <button class="static-style-033" data-onclick="setKillChainViewMode('attack')" id="arViewBtnAttack">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/></svg>
           АТАКА
         </button>
-        <button data-onclick="setKillChainViewMode('defense')" id="arViewBtnDefense" style="padding:6px 14px;background:transparent;border:none;border-radius:20px;color:rgba(255,255,255,0.6);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+        <button class="static-style-034" data-onclick="setKillChainViewMode('defense')" id="arViewBtnDefense">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           ЗАЩИТА
         </button>
       </div>
 
       <!-- Низ: кнопка смены камеры -->
-      <div style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);pointer-events:auto;z-index:100;">
-        <button data-onclick="switchARCamera()" style="padding:10px 16px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.2);border-radius:24px;color:#fff;font-family:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+      <div class="static-style-035">
+        <button class="static-style-036" data-onclick="switchARCamera()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4 23 10 17 10"/><path d="M1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           <span>Сменить камеру</span>
         </button>
@@ -475,41 +475,41 @@
         <button class="btn-back" data-onclick="navigateTo('home')">←</button>
         <div class="logo-name">Профиль</div>
       </div>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <button id="btnReviewMode" data-onclick="openReviewMode()" title="Повторение карточек" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;">
+      <div class="static-style-037">
+        <button class="static-style-038" id="btnReviewMode" data-onclick="openReviewMode()" title="Повторение карточек">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
         </button>
-        <button id="btnOpenStats" data-onclick="showMyStatsModal()" title="Моя статистика" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;">
+        <button class="static-style-038" id="btnOpenStats" data-onclick="showMyStatsModal()" title="Моя статистика">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         </button>
-        <button id="btnOpenSettings" data-onclick="navigateTo('settings')" title="Настройки" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;"></button>
+        <button class="static-style-038" id="btnOpenSettings" data-onclick="navigateTo('settings')" title="Настройки"></button>
       </div>
     </div>
     <div class="profile-header-card">
       <div class="profile-identity">
         <div class="profile-avatar-lg" data-onclick="clickElement('avatarUpload')">
           <span id="profileAvatarText">U</span>
-          <img id="profileAvatarImg" style="display:none;">
+          <img class="static-style-009" id="profileAvatarImg">
         </div>
-        <input type="file" id="avatarUpload" accept="image/*" style="display:none;" data-onchange="uploadAvatar()" data-args="event">
+        <input class="static-style-009" type="file" id="avatarUpload" accept="image/*" data-onchange="uploadAvatar()" data-args="event">
         <div class="profile-identity-names">
           <h2 id="profileDisplayName">Пользователь</h2>
         </div>
       </div>
       <div class="profile-info-block">
         <div class="role-tag" id="profileRoleTag">Читатель</div>
-        <div style="margin-top:6px;font-size:11px;color:var(--accent);display:inline-flex;align-items:center;gap:5px;">
-          <span id="profileStarIcon" style="display:inline-flex;align-items:center;"></span>
+        <div class="static-style-039">
+          <span class="static-style-040" id="profileStarIcon"></span>
           <span>Уровень <span id="profileLevel">1</span> • XP: <span id="profileXp">0</span>/<span id="profileXpNext">100</span></span>
         </div>
         <div class="xp-bar-container">
-          <div class="xp-bar-fill" id="xpBarFill" style="width:0%;"></div>
+          <div class="xp-bar-fill static-style-041" id="xpBarFill"></div>
         </div>
         <div class="profile-stats-row">
           <div class="profile-stat"><div class="val" id="statBooks">0</div><div class="lbl">Книг</div></div>
           <div class="profile-stat"><div class="val" id="statBookmarks">0</div><div class="lbl">Закладок</div></div>
           <div class="profile-stat"><div class="val" id="statAchievements">0</div><div class="lbl">Достижений</div></div>
-          <div class="profile-stat"><div class="val" id="statStreak">0</div><div class="lbl">Дней <span id="statStreakFlame" style="display:inline-flex;vertical-align:middle;"></span></div></div>
+          <div class="profile-stat"><div class="val" id="statStreak">0</div><div class="lbl">Дней <span class="static-style-042" id="statStreakFlame"></span></div></div>
         </div>
       </div>
       <div id="profileTestSlot"></div>
@@ -517,10 +517,10 @@
     <div class="settings-section">
       <h3>Сертификация</h3>
       <div class="settings-card">
-        <div style="padding:16px;">
-          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Пройдите аттестацию по теме (тест из 50 вопросов, нужно 85% правильных) и получите именной сертификат.</p>
-          <div id="certMineList" style="margin-bottom:12px;"></div>
-          <button data-onclick="openCertificationModal()" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:10px 18px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">Пройти аттестацию</button>
+        <div class="static-style-043">
+          <p class="static-style-044">Пройдите аттестацию по теме (тест из 50 вопросов, нужно 85% правильных) и получите именной сертификат.</p>
+          <div class="static-style-045" id="certMineList"></div>
+          <button class="static-style-046" data-onclick="openCertificationModal()">Пройти аттестацию</button>
         </div>
       </div>
     </div>
@@ -528,9 +528,9 @@
     <div class="settings-section" id="skillsRadarSection">
       <h3>Карта знаний по темам</h3>
       <div class="settings-card">
-        <div style="padding:16px;">
-          <canvas id="skillsRadarCanvas" style="max-width:100%;"></canvas>
-          <div id="skillsRadarEmpty" style="display:none;font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">
+        <div class="static-style-043">
+          <canvas class="static-style-047" id="skillsRadarCanvas"></canvas>
+          <div class="static-style-048" id="skillsRadarEmpty">
             Читай книги по разным темам, чтобы увидеть свой профиль знаний.
           </div>
         </div>
@@ -539,7 +539,7 @@
     <div class="settings-section">
       <h3>Тепловая карта чтения</h3>
       <div class="settings-card">
-        <div style="padding:16px;">
+        <div class="static-style-043">
           <div class="heatmap-container" id="heatmapContainer"></div>
           <div class="heatmap-legend">
             <span>Меньше</span>
@@ -556,7 +556,7 @@
     </div>
     <div class="settings-section">
       <h3>Достижения</h3>
-      <div id="achievementsList" style="display:flex;flex-wrap:wrap;gap:4px;padding:8px;"></div>
+      <div class="static-style-049" id="achievementsList"></div>
     </div>
   </div>
 <!-- ======================== НАСТРОЙКИ ======================== -->
@@ -569,27 +569,27 @@
     </div>
 
     <!-- Боковая навигация (vertical tabs) -->
-    <div class="settings-layout" style="padding:8px 16px 24px;">
+    <div class="settings-layout static-style-050">
 
-      <div class="settings-nav" style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:8px;">
+      <div class="settings-nav static-style-051">
 
-        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;padding:6px 8px 4px;">ПРОФИЛЬ</div>
+        <div class="static-style-052">ПРОФИЛЬ</div>
         <button data-onclick="openSettingsTab('info')" class="settings-tab" data-stab="info"></button>
         <button data-onclick="openSettingsTab('security')" class="settings-tab" data-stab="security"></button>
         <button data-onclick="openSettingsTab('privacy')" class="settings-tab" data-stab="privacy"></button>
 
-        <div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;padding:10px 8px 4px;">ПРИЛОЖЕНИЕ</div>
+        <div class="static-style-053">ПРИЛОЖЕНИЕ</div>
         <button data-onclick="openSettingsTab('storage')" class="settings-tab" data-stab="storage"></button>
         <button data-onclick="openSettingsTab('personalization')" class="settings-tab" data-stab="personalization"></button>
         <button data-onclick="openSettingsTab('help')" class="settings-tab" data-stab="help"></button>
       </div>
 
-      <div class="settings-content" id="settingsContent" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px;min-height:300px;">
+      <div class="settings-content static-style-054" id="settingsContent">
         <!-- Заполняется из JS -->
       </div>
 
-      <button class="btn-logout" data-onclick="logout()" style="margin-top:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
-        <span id="logoutIcon" style="display:inline-flex;"></span>
+      <button class="btn-logout static-style-055" data-onclick="logout()">
+        <span class="static-style-056" id="logoutIcon"></span>
         <span>Выйти из аккаунта</span>
       </button>
     </div>
@@ -599,7 +599,7 @@
   <div id="adminScreen" class="screen">
     <div class="admin-header">
       <button class="btn-back" data-onclick="navigateTo('home')">←</button>
-      <span style="font-weight:700;font-size:16px;">Админ-панель</span>
+      <span class="static-style-057">Админ-панель</span>
     </div>
     <div class="admin-tabs-nav">
       <div class="admin-tab-btn active" data-atab="dashboard">Дашборд</div>
@@ -632,9 +632,9 @@
           <canvas id="chartRetention" width="400" height="200"></canvas>
         </div>
       </div>
-      <div style="margin-top:24px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);">
-        <h4 style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;">Аналитика по конкретной книге</h4>
-        <select id="analyticsBookSelector" data-onchange="onAnalyticsBookSelected()" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-family:inherit;font-size:13px;">
+      <div class="static-style-058">
+        <h4 class="static-style-059">Аналитика по конкретной книге</h4>
+        <select class="static-style-060" id="analyticsBookSelector" data-onchange="onAnalyticsBookSelected()">
           <option value="">— выбрать книгу —</option>
         </select>
       </div>
@@ -646,7 +646,7 @@
   <div id="detailScreen" class="screen">
     <div class="detail-header">
       <button class="btn-back" data-onclick="navigateTo('home')">←</button>
-      <span style="font-weight:600;">О книге</span>
+      <span class="static-style-061">О книге</span>
     </div>
     <div class="detail-tabs" id="detailTabs">
       <div class="detail-tab active" data-dtab="info">Описание</div>
@@ -671,23 +671,23 @@
           <span class="book-format-badge" id="readerFormatBadge">PDF</span>
           <span class="page-indicator-top" id="pageIndicatorTop">1 / 1</span>
           <div class="reader-toolbar-actions">
-            <button class="btn-nav-page" id="btnPomodoro" data-onclick="togglePomodoro()" title="Pomodoro таймер" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;"></button>
-            <button class="btn-nav-page" id="btnPageBookmark" data-onclick="togglePageBookmark()" title="Закладка на странице" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+            <button class="btn-nav-page static-style-062" id="btnPomodoro" data-onclick="togglePomodoro()" title="Pomodoro таймер"></button>
+            <button class="btn-nav-page static-style-062" id="btnPageBookmark" data-onclick="togglePageBookmark()" title="Закладка на странице">
               <svg id="bookmarkIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             </button>
-            <button class="btn-nav-page" id="btnBookmarksList" data-onclick="openBookmarksList()" title="Мои закладки" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+            <button class="btn-nav-page static-style-062" id="btnBookmarksList" data-onclick="openBookmarksList()" title="Мои закладки">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
             </button>
-            <button class="btn-nav-page" id="btnTOC" data-onclick="openTOC()" title="Оглавление" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+            <button class="btn-nav-page static-style-062" id="btnTOC" data-onclick="openTOC()" title="Оглавление">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
             </button>
-            <button class="btn-nav-page" id="btnExportNotes" data-onclick="exportNotes()" title="Экспорт заметок" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;"></button>
-            <button class="btn-nav-page" id="btnChapterSummary" data-onclick="summarizeCurrentChapter()" title="Краткое содержание (ИИ)" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;">
+            <button class="btn-nav-page static-style-062" id="btnExportNotes" data-onclick="exportNotes()" title="Экспорт заметок"></button>
+            <button class="btn-nav-page static-style-062" id="btnChapterSummary" data-onclick="summarizeCurrentChapter()" title="Краткое содержание (ИИ)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
             </button>
-            <button class="btn-nav-page" id="btnReaderSearch" data-onclick="toggleReaderSearch()" title="Поиск по книге" style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;"></button>
-            <button class="btn-nav-page" id="btnReaderTheme" data-onclick="toggleReaderTheme()" title="Сменить тему" style="width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;"></button>
-            <button class="header-icon-btn btn-ai-icon" style="width:30px;height:30px;color:var(--accent);" data-onclick="toggleAIPanel()" title="AI-ассистент">
+            <button class="btn-nav-page static-style-063" id="btnReaderSearch" data-onclick="toggleReaderSearch()" title="Поиск по книге"></button>
+            <button class="btn-nav-page static-style-063" id="btnReaderTheme" data-onclick="toggleReaderTheme()" title="Сменить тему"></button>
+            <button class="header-icon-btn btn-ai-icon static-style-064" data-onclick="toggleAIPanel()" title="AI-ассистент">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
             </button>
           </div>
@@ -695,12 +695,12 @@
         <div class="book-name" id="readerBookName">Книга</div>
       </div>
       <!-- Панель поиска по книге -->
-      <div id="readerSearchPanel" style="display:none;background:var(--bg-elevated);border-bottom:1px solid var(--border);padding:8px 12px;align-items:center;gap:8px;flex-wrap:wrap;">
-        <input type="text" id="readerSearchInput" placeholder="Поиск в книге…" style="flex:1;min-width:120px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;outline:none;">
-        <span id="readerSearchStatus" style="font-size:11px;color:var(--text-muted);min-width:60px;text-align:center;">—</span>
-        <button id="readerSearchPrev" data-onclick="readerSearchPrev()" title="Предыдущее (Shift+Enter)" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;"></button>
-        <button id="readerSearchNext" data-onclick="readerSearchNext()" title="Следующее (Enter)" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;"></button>
-        <button id="readerSearchClose" data-onclick="closeReaderSearch()" title="Закрыть" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:6px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;"></button>
+      <div class="static-style-065" id="readerSearchPanel">
+        <input class="static-style-066" type="text" id="readerSearchInput" placeholder="Поиск в книге…">
+        <span class="static-style-067" id="readerSearchStatus">—</span>
+        <button class="static-style-068" id="readerSearchPrev" data-onclick="readerSearchPrev()" title="Предыдущее (Shift+Enter)"></button>
+        <button class="static-style-068" id="readerSearchNext" data-onclick="readerSearchNext()" title="Следующее (Enter)"></button>
+        <button class="static-style-068" id="readerSearchClose" data-onclick="closeReaderSearch()" title="Закрыть"></button>
       </div>
       <!-- Жестовые зоны и viewport -->
       <div class="reader-gesture-zone" id="readerGestureZone">
@@ -711,15 +711,15 @@
         <div id="pdfPlaceholder">Загрузка...</div>
         <canvas id="pdfCanvas" class="hidden"></canvas>
         <div class="annotation-layer" id="annotationLayer"></div>
-          <div class="text-layer" id="pdfTextLayer" style="position:absolute;top:0;left:0;pointer-events:auto;"></div>
-        <div id="selectionToolbar" class="selection-toolbar" style="display:none;position:absolute;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:5px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.4);gap:4px;align-items:center;flex-wrap:wrap;max-width:300px;">
-          <button title="Жёлтый маркер" data-onclick="highlightSelection('#fbbf24')" style="width:24px;height:24px;border-radius:50%;background:#fbbf24;border:2px solid transparent;cursor:pointer;"></button>
-          <button title="Зелёный маркер" data-onclick="highlightSelection('#10b981')" style="width:24px;height:24px;border-radius:50%;background:#10b981;border:2px solid transparent;cursor:pointer;"></button>
-          <button title="Розовый маркер" data-onclick="highlightSelection('#ec4899')" style="width:24px;height:24px;border-radius:50%;background:#ec4899;border:2px solid transparent;cursor:pointer;"></button>
-          <div style="width:1px;height:20px;background:var(--border);"></div>
-          <button id="btnPdfNote" data-onclick="addNoteToSelection()" style="background:transparent;border:none;color:var(--accent);padding:5px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">Заметка</button>
-          <button data-onclick="lookupSelectionWord()" style="background:transparent;border:none;color:#60a5fa;padding:5px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">Словарь</button>
-          <button data-onclick="explainSelectionTerm()" style="background:transparent;border:none;color:#a855f7;padding:5px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;">Объяснить</button>
+          <div class="text-layer static-style-069" id="pdfTextLayer"></div>
+        <div id="selectionToolbar" class="selection-toolbar static-style-070">
+          <button class="static-style-071" title="Жёлтый маркер" data-onclick="highlightSelection('#fbbf24')"></button>
+          <button class="static-style-072" title="Зелёный маркер" data-onclick="highlightSelection('#10b981')"></button>
+          <button class="static-style-073" title="Розовый маркер" data-onclick="highlightSelection('#ec4899')"></button>
+          <div class="static-style-074"></div>
+          <button class="static-style-075" id="btnPdfNote" data-onclick="addNoteToSelection()">Заметка</button>
+          <button class="static-style-076" data-onclick="lookupSelectionWord()">Словарь</button>
+          <button class="static-style-077" data-onclick="explainSelectionTerm()">Объяснить</button>
         </div>
       </div>
         <!-- EPUB viewport -->
@@ -749,17 +749,17 @@
   <div class="pomodoro-container" id="pomodoroContainer">
     <div class="pomodoro-timer" id="pomodoroTimer">25:00</div>
     <button class="pomodoro-btn" id="pomodoroStart" data-onclick="startPomodoro()" title="Старт"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>
-    <button class="pomodoro-btn" id="pomodoroPause" data-onclick="pausePomodoro()" style="display:none;" title="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    <button class="pomodoro-btn static-style-009" id="pomodoroPause" data-onclick="pausePomodoro()" title="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
     <button class="pomodoro-btn" id="pomodoroReset" data-onclick="resetPomodoro()" title="Сброс"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
-    <span style="font-size:10px;color:var(--text-muted);" id="pomodoroStatus">Готов к работе</span>
+    <span class="static-style-078" id="pomodoroStatus">Готов к работе</span>
   </div>
 
   <!-- ======================== AI ПАНЕЛЬ ======================== -->
   <div class="overlay" id="aiOverlay" data-onclick="closeAIPanel()"></div>
   <div class="ai-panel" id="aiPanel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:15px;display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>AI-ассистент</h3>
-      <button class="btn-back" data-onclick="closeAIPanel()" style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="static-style-079">
+      <h3 class="static-style-080"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/></svg>AI-ассистент</h3>
+      <button class="btn-back static-style-081" data-onclick="closeAIPanel()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="ai-chat" id="aiChat"></div>
     <div class="ai-input-row">
@@ -778,9 +778,9 @@
   <!-- ======================== ГОРЯЧИЕ КЛАВИШИ (МОДАЛКА) ======================== -->
   <div class="overlay" id="shortcutsOverlay" data-onclick="closeShortcutsModal()"></div>
   <div class="shortcuts-modal" id="shortcutsModal">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <h3 style="font-size:16px;color:var(--accent);">⌨️ Горячие клавиши</h3>
-      <button class="btn-back" data-onclick="closeShortcutsModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+    <div class="static-style-015">
+      <h3 class="static-style-082">⌨️ Горячие клавиши</h3>
+      <button class="btn-back static-style-018" data-onclick="closeShortcutsModal()">✕</button>
     </div>
     <div class="shortcut-row"><span>Поиск / Командная палитра</span><span class="shortcut-key">Ctrl+K</span></div>
     <div class="shortcut-row"><span>Следующая страница</span><span class="shortcut-key">→ / Space</span></div>
@@ -832,9 +832,9 @@
   <!-- ======================== МОДАЛЬНЫЕ ОКНА ======================== -->
   
   <!-- Добавление книги -->
-  <div class="modal-overlay hidden" id="addModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;">
-    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:500px;width:95%;border:1px solid var(--border);">
-      <h3 style="margin-bottom:16px;">Новая книга</h3>
+  <div class="modal-overlay hidden static-style-083" id="addModal">
+    <div class="static-style-084">
+      <h3 class="static-style-085">Новая книга</h3>
       
       <div class="form-group">
         <label>Название</label>
@@ -849,14 +849,14 @@
       <div class="form-group">
         <label>Категории</label>
         <div id="newCategoriesContainer" class="cat-tags-container"></div>
-        <div style="font-size:10px; color:var(--text-muted); margin-top:6px;">
+        <div class="static-style-086">
           Начни печатать — появятся подсказки. Enter — добавить как тэг.
         </div>
       </div>
       
       <div class="form-group">
         <label>Описание</label>
-        <textarea id="newDescription" rows="4" placeholder="Краткое описание книги" style="width:100%; padding:10px 12px; background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-family:inherit; font-size:13px; resize:vertical;"></textarea>
+        <textarea class="static-style-087" id="newDescription" rows="4" placeholder="Краткое описание книги"></textarea>
       </div>
       
       <div class="form-group">
@@ -869,55 +869,55 @@
         <input type="file" id="newBookFile" accept=".pdf,.epub">
       </div>
       
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <button data-onclick="closeAddModal()" style="flex:1; padding:12px; border-radius:10px; background:var(--bg-primary); border:1px solid var(--border); color:var(--text-secondary); cursor:pointer;">Отмена</button>
-        <button id="saveBookBtn" style="flex:1; padding:12px; border-radius:10px; background:var(--accent-gradient); border:none; color:#fff; cursor:pointer;">Добавить</button>
+      <div class="static-style-088">
+        <button class="static-style-089" data-onclick="closeAddModal()">Отмена</button>
+        <button class="static-style-090" id="saveBookBtn">Добавить</button>
       </div>
     </div>
   </div>
 <!-- Редактирование профиля -->
-  <div class="modal-overlay hidden" id="editProfileModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
-    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:420px;width:95%;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h3 style="font-size:16px;">Редактировать профиль</h3>
-        <button class="btn-back" data-onclick="closeEditProfileModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+  <div class="modal-overlay hidden static-style-091" id="editProfileModal">
+    <div class="static-style-092">
+      <div class="static-style-079">
+        <h3 class="static-style-093">Редактировать профиль</h3>
+        <button class="btn-back static-style-018" data-onclick="closeEditProfileModal()">✕</button>
       </div>
       <div class="form-group">
         <label>Отображаемое имя</label>
         <input type="text" id="editFullName" placeholder="Введите имя" maxlength="128">
       </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:14px;">
+      <div class="static-style-094">
         Логин (username) изменить нельзя.
       </div>
-      <div id="editAvatarSection" style="margin-bottom:14px;">
-        <button data-onclick="deleteCurrentAvatar()" data-nonce="${sensitiveNonce()}" id="deleteAvatarBtn" style="width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid #ef4444;color:#ef4444;font-family:inherit;font-size:12px;cursor:pointer;">Удалить аватар</button>
+      <div class="static-style-095" id="editAvatarSection">
+        <button class="static-style-096" data-onclick="deleteCurrentAvatar()" data-nonce="${sensitiveNonce()}" id="deleteAvatarBtn">Удалить аватар</button>
       </div>
-      <div style="display:flex;gap:10px;">
-        <button data-onclick="closeEditProfileModal()" style="flex:1;padding:12px;border-radius:10px;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-secondary);cursor:pointer;">Отмена</button>
-        <button data-onclick="saveProfileEdits()" id="saveProfileBtn" style="flex:1;padding:12px;border-radius:10px;background:var(--accent-gradient);border:none;color:#fff;cursor:pointer;">Сохранить</button>
+      <div class="static-style-097">
+        <button class="static-style-098" data-onclick="closeEditProfileModal()">Отмена</button>
+        <button class="static-style-099" data-onclick="saveProfileEdits()" id="saveProfileBtn">Сохранить</button>
       </div>
     </div>
   </div>
   <!-- ======================== АНАЛИТИКА КНИГИ ======================== -->
-  <div class="modal-overlay hidden" id="bookAnalyticsModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
-    <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:720px;width:95%;max-height:90vh;overflow-y:auto;border:1px solid var(--border);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h3 style="font-size:16px;">Аналитика книги</h3>
-        <button class="btn-back" data-onclick="closeBookAnalyticsModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+  <div class="modal-overlay hidden static-style-091" id="bookAnalyticsModal">
+    <div class="static-style-100">
+      <div class="static-style-079">
+        <h3 class="static-style-093">Аналитика книги</h3>
+        <button class="btn-back static-style-018" data-onclick="closeBookAnalyticsModal()">✕</button>
       </div>
-      <div id="bookAnalyticsContent" style="font-size:13px;">Загрузка...</div>
+      <div class="static-style-101" id="bookAnalyticsContent">Загрузка...</div>
     </div>
   </div>
   <!-- Управление книгой (админ) -->
-<div class="modal-overlay hidden" id="adminBookModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
-  <div style="background:var(--bg-elevated);border-radius:var(--radius-xl);padding:20px;max-width:560px;width:95%;border:1px solid var(--border);max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="font-size:16px;">Управление книгой</h3>
-      <button class="btn-back" data-onclick="closeAdminBookModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+<div class="modal-overlay hidden static-style-102" id="adminBookModal">
+  <div class="static-style-103">
+    <div class="static-style-079">
+      <h3 class="static-style-093">Управление книгой</h3>
+      <button class="btn-back static-style-018" data-onclick="closeAdminBookModal()">✕</button>
     </div>
     
-    <div class="settings-section" style="margin-bottom:16px;">
-      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent);">Поля карточки</h3>
+    <div class="settings-section static-style-085">
+      <h3 class="static-style-104">Поля карточки</h3>
       
       <div class="form-group">
         <label>Название</label>
@@ -932,51 +932,51 @@
       <div class="form-group">
         <label>Категории</label>
         <div id="adminCategoriesContainer" class="cat-tags-container"></div>
-        <div style="font-size:10px; color:var(--text-muted); margin-top:6px;">
+        <div class="static-style-086">
           Начни печатать — появятся подсказки. Enter — добавить как тэг.
         </div>
       </div>
       
       <div class="form-group">
         <label>Описание</label>
-        <textarea id="adminEditDescription" rows="3" style="resize:vertical;"></textarea>
+        <textarea class="static-style-105" id="adminEditDescription" rows="3"></textarea>
       </div>
       
       <div class="form-group">
         <label>Иконка (эмодзи, fallback вместо обложки)</label>
-        <input type="text" id="adminEditIcon" maxlength="4" style="width:80px;text-align:center;font-size:18px;">
+        <input class="static-style-106" type="text" id="adminEditIcon" maxlength="4">
       </div>
       
-      <button class="btn btn-primary" id="adminSaveFieldsBtn" style="margin-top:6px;">Сохранить поля</button>
+      <button class="btn btn-primary static-style-107" id="adminSaveFieldsBtn">Сохранить поля</button>
     </div>
     
-    <div class="settings-section" style="margin-bottom:16px;">
-      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent);">Файл книги (PDF/EPUB)</h3>
-      <div id="adminFileStatus" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <input type="file" id="adminBookFileInput" accept=".pdf,.epub" style="flex:1;min-width:200px;">
+    <div class="settings-section static-style-085">
+      <h3 class="static-style-104">Файл книги (PDF/EPUB)</h3>
+      <div class="static-style-108" id="adminFileStatus"></div>
+      <div class="static-style-109">
+        <input class="static-style-110" type="file" id="adminBookFileInput" accept=".pdf,.epub">
         <button class="btn-sm" id="adminUploadFileBtn">Загрузить</button>
         <button class="btn-sm danger" id="adminDeleteFileBtn">Удалить</button>
       </div>
     </div>
     
-    <div class="settings-section" style="margin-bottom:16px;">
-      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent);">Обложка</h3>
-      <div id="adminCoverStatus" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <input type="file" id="adminCoverFile" accept="image/jpeg,image/png,image/webp" style="flex:1;min-width:200px;">
+    <div class="settings-section static-style-085">
+      <h3 class="static-style-104">Обложка</h3>
+      <div class="static-style-108" id="adminCoverStatus"></div>
+      <div class="static-style-109">
+        <input class="static-style-110" type="file" id="adminCoverFile" accept="image/jpeg,image/png,image/webp">
         <button class="btn-sm" id="adminUploadCoverBtn">Загрузить</button>
         <button class="btn-sm danger" id="adminDeleteCoverBtn">Удалить</button>
       </div>
     </div>
     
-    <div class="settings-section" style="margin-bottom:8px;">
-      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent);">Кому порекомендовать</h3>
-      <div id="adminRecommendDepts" style="font-size:12px;color:var(--text-secondary);"></div>
+    <div class="settings-section static-style-111">
+      <h3 class="static-style-104">Кому порекомендовать</h3>
+      <div class="static-style-112" id="adminRecommendDepts"></div>
     </div>
 
-    <div class="settings-section" style="margin-bottom:8px;">
-      <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;color:#ef4444;">Опасная зона</h3>
+    <div class="settings-section static-style-111">
+      <h3 class="static-style-113">Опасная зона</h3>
       <button class="btn-logout" id="adminDeleteBookBtn">Удалить книгу полностью</button>
     </div>
   </div>
@@ -985,15 +985,15 @@
   <div id="onboardingScreen" class="screen">
     <!-- Шаг 1: приветствие -->
     <div id="onboardingWelcome">
-        <div style="text-align:center;margin-bottom:20px;">
-          <h2 style="font-size:22px;font-weight:800;margin-bottom:8px;">Какой у тебя уровень?</h2>
-          <p style="font-size:13px;color:var(--text-muted);max-width:480px;margin:0 auto;line-height:1.5;">
+        <div class="static-style-114">
+          <h2 class="static-style-115">Какой у тебя уровень?</h2>
+          <p class="static-style-116">
             Выбери уровень, который описывает тебя лучше всего. Если сомневаешься — пройди тест из 20 вопросов.
           </p>
         </div>
-        <div id="levelChoiceList" style="display:flex;flex-direction:column;gap:10px;max-width:540px;margin:0 auto 16px auto;"></div>
-        <div style="text-align:center;">
-          <button data-onclick="skipOnboarding()" style="background:transparent;border:none;color:var(--text-muted);font-family:inherit;font-size:12px;cursor:pointer;text-decoration:underline;">Пропустить</button>
+        <div class="static-style-117" id="levelChoiceList"></div>
+        <div class="static-style-118">
+          <button class="static-style-119" data-onclick="skipOnboarding()">Пропустить</button>
         </div>
       </div>
 
@@ -1041,33 +1041,33 @@
 <script defer src="inline-boot.js"></script>
 
 <!-- ======================== МАССОВАЯ ЗАГРУЗКА КНИГ ======================== -->
-  <div class="modal-overlay hidden" id="bulkUploadModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1500;display:flex;align-items:center;justify-content:center;padding:16px;">
-    <div style="background:var(--bg-elevated);border-radius:14px;padding:20px;max-width:520px;width:95%;border:1px solid var(--border);max-height:90vh;overflow-y:auto;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <h3 style="font-size:16px;font-weight:700;">Массовая загрузка книг</h3>
-        <button class="btn-back" data-onclick="closeBulkUploadModal()" style="width:28px;height:28px;font-size:14px;">✕</button>
+  <div class="modal-overlay hidden static-style-091" id="bulkUploadModal">
+    <div class="static-style-120">
+      <div class="static-style-079">
+        <h3 class="static-style-121">Массовая загрузка книг</h3>
+        <button class="btn-back static-style-018" data-onclick="closeBulkUploadModal()">✕</button>
       </div>
 
-      <div id="bulkUploadDropZone" style="border:2px dashed var(--border);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-primary);">
-        <div style="font-size:36px;margin-bottom:8px;">📁</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Перетащи файлы сюда</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">или нажми для выбора</div>
-        <div style="font-size:10px;color:var(--text-muted);">PDF, EPUB · до 150 МБ каждый</div>
-        <input type="file" id="bulkUploadInput" multiple accept=".pdf,.epub" style="display:none;">
+      <div class="static-style-122" id="bulkUploadDropZone">
+        <div class="static-style-123">📁</div>
+        <div class="static-style-124">Перетащи файлы сюда</div>
+        <div class="static-style-125">или нажми для выбора</div>
+        <div class="static-style-078">PDF, EPUB · до 150 МБ каждый</div>
+        <input class="static-style-009" type="file" id="bulkUploadInput" multiple accept=".pdf,.epub">
       </div>
 
-      <div id="bulkUploadCategoryPanel" style="display:none;margin-top:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;">Применить категорию ко всем (опционально):</label>
-        <input type="text" id="bulkUploadCategory" placeholder="Например: Технический оффенсив" maxlength="64" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-family:inherit;font-size:12px;outline:none;">
+      <div class="static-style-126" id="bulkUploadCategoryPanel">
+        <label class="static-style-127">Применить категорию ко всем (опционально):</label>
+        <input class="static-style-128" type="text" id="bulkUploadCategory" placeholder="Например: Технический оффенсив" maxlength="64">
       </div>
 
-      <div id="bulkUploadList" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;"></div>
+      <div class="static-style-129" id="bulkUploadList"></div>
 
-      <div id="bulkUploadActions" style="display:none;margin-top:14px;gap:8px;justify-content:space-between;align-items:center;">
-        <div id="bulkUploadProgress" style="font-size:12px;color:var(--text-secondary);"></div>
-        <div style="display:flex;gap:8px;">
-          <button data-onclick="clearBulkUploadList()" id="bulkUploadClearBtn" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;">Очистить</button>
-          <button data-onclick="startBulkUpload()" data-nonce="${sensitiveNonce()}" id="bulkUploadStartBtn" style="background:var(--accent-gradient);border:none;color:#000;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;">Загрузить</button>
+      <div class="static-style-130" id="bulkUploadActions">
+        <div class="static-style-112" id="bulkUploadProgress"></div>
+        <div class="static-style-131">
+          <button class="static-style-132" data-onclick="clearBulkUploadList()" id="bulkUploadClearBtn">Очистить</button>
+          <button class="static-style-133" data-onclick="startBulkUpload()" data-nonce="${sensitiveNonce()}" id="bulkUploadStartBtn">Загрузить</button>
         </div>
       </div>
     </div>
@@ -1080,21 +1080,21 @@
         <button class="btn-back" data-onclick="navigateTo('home')">←</button>
         <div class="logo-name">AI-ассистент</div>
       </div>
-      <div style="display:flex;gap:2px;align-items:center;">
-        <button id="btnNewChat" data-onclick="startNewChat()" title="Новый диалог" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px;">
+      <div class="static-style-134">
+        <button class="static-style-135" id="btnNewChat" data-onclick="startNewChat()" title="Новый диалог">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
         </button>
-        <button id="btnChatHistory" data-onclick="openChatHistory()" title="История диалогов" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px;">
+        <button class="static-style-135" id="btnChatHistory" data-onclick="openChatHistory()" title="История диалогов">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
         </button>
-        <button id="btnClearAssistant" data-onclick="clearAssistantChat()" title="Очистить" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:6px;">
+        <button class="static-style-135" id="btnClearAssistant" data-onclick="clearAssistantChat()" title="Очистить">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
         </button>
       </div>
     </div>
 
-    <div class="assistant-body" style="padding:0 12px 12px;">
-      <div id="assistantMessages" style="flex:1;overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;gap:10px;min-height:0;"></div>
+    <div class="assistant-body static-style-136">
+      <div class="static-style-137" id="assistantMessages"></div>
 
       <div class="assistant-quick-chips">
         <span class="ai-quick-chip" data-onclick="assistantQuick('summary')">Саммари</span>
@@ -1104,9 +1104,9 @@
         <span class="ai-quick-chip" data-onclick="assistantQuick('exam')">К экзамену</span>
       </div>
 
-      <div id="assistantInputBar" style="display:flex;gap:8px;align-items:flex-end;padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;">
-        <textarea id="assistantInput" placeholder="Спроси что-нибудь..." maxlength="4000" rows="1" style="flex:1;background:transparent;border:none;color:var(--text-primary);font-family:inherit;font-size:13px;outline:none;resize:none;max-height:120px;padding:6px;"></textarea>
-        <button id="assistantSendBtn" data-onclick="sendAssistantMessage()" style="background:var(--accent-gradient);border:none;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"></button>
+      <div class="static-style-138" id="assistantInputBar">
+        <textarea class="static-style-139" id="assistantInput" placeholder="Спроси что-нибудь..." maxlength="4000" rows="1"></textarea>
+        <button class="static-style-140" id="assistantSendBtn" data-onclick="sendAssistantMessage()"></button>
       </div>
     </div>
   </div>
