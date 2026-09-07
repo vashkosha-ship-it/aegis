@@ -95,12 +95,12 @@ vm.runInContext(source, context);
   assert.equal(await context.addHighlight(42, '', 1, {}), null);
   assert.ok(toasts.includes('Слишком длинный фрагмент (максимум 10000 символов)'));
 
-  await context.deleteAnnotation(42, 7);
+  assert.equal(await context.deleteAnnotation(42, 7), true);
   assert.deepEqual(deleted, [7]);
   assert.equal(notesRenderCount, 1);
 
   rejectDelete = true;
-  await context.deleteAnnotation(42, 9);
+  assert.equal(await context.deleteAnnotation(42, 9), false);
   assert.ok(toasts.includes('Нельзя удалить чужую аннотацию'));
 
   assert.doesNotMatch(appSource, /const annotationsCache|async function adaptAnnotation|async function addHighlight|async function addNote|async function deleteAnnotation/);
