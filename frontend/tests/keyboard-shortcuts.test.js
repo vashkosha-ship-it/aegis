@@ -15,6 +15,8 @@ const swSource = fs.readFileSync(path.join(frontendDir, 'sw.js'), 'utf8');
 const dom = new JSDOM(`
   <div id="selectionToolbar"></div>
   <div id="shortcutsModal"></div>
+  <div id="shortcutsOverlay"></div>
+  <input id="searchInput">
   <div class="note-tooltip"></div>
 `);
 const calls = [];
@@ -25,7 +27,6 @@ const context = vm.createContext({
   arActive: false,
   closeReader: record('closeReader'),
   navigateTo: record('navigateTo'),
-  openCommandPalette: record('openCommandPalette'),
   toggleAIPanel: record('toggleAIPanel'),
   goToPrevPage: record('goToPrevPage'),
   goToNextPage: record('goToNextPage'),
@@ -33,9 +34,7 @@ const context = vm.createContext({
   exportNotes: record('exportNotes'),
   closeAIPanel: record('closeAIPanel'),
   closeCatalogPanel: record('closeCatalogPanel'),
-  closeShortcutsModal: record('closeShortcutsModal'),
   closeAR: record('closeAR'),
-  openShortcutsModal: record('openShortcutsModal'),
   setTimeout: callback => {
     callback();
     return 1;
@@ -59,11 +58,11 @@ assert.deepEqual(calls.pop(), ['navigateTo', 'home']);
 
 context.state.currentScreen = 'reader';
 press('k', { ctrlKey: true });
-assert.deepEqual(calls.splice(-3), [
+assert.deepEqual(calls.splice(-2), [
   ['closeReader'],
   ['navigateTo', 'home'],
-  ['openCommandPalette'],
 ]);
+assert.equal(dom.window.document.activeElement.id, 'searchInput');
 
 press('ArrowRight');
 assert.deepEqual(calls.pop(), ['goToNextPage']);
@@ -79,10 +78,16 @@ assert.ok(calls.some(call => call[0] === 'closeAIPanel'));
 assert.ok(calls.some(call => call[0] === 'closeCatalogPanel'));
 
 context.state.currentScreen = 'home';
+dom.window.document.getElementById('searchInput').blur();
 press('?');
-assert.deepEqual(calls.pop(), ['openShortcutsModal']);
+assert.ok(dom.window.document.getElementById('shortcutsModal').classList.contains('show'));
+assert.ok(dom.window.document.getElementById('shortcutsOverlay').classList.contains('show'));
+press('?');
+assert.ok(!dom.window.document.getElementById('shortcutsModal').classList.contains('show'));
+assert.ok(!dom.window.document.getElementById('shortcutsOverlay').classList.contains('show'));
 
-assert.doesNotMatch(appSource, /\/\/ ========== KEYBOARD SHORTCUTS ==========/);
+assert.doesNotMatch(appSource, /function (open|close)ShortcutsModal|function openCommandPalette/);
+assert.match(source, /function openCommandPalette/);
 assert.ok(
   indexSource.indexOf('src="keyboard-shortcuts.js"') < indexSource.indexOf('src="app.js"'),
   'keyboard-shortcuts.js должен подключаться раньше app.js',

@@ -10872,26 +10872,6 @@ function aiQuick(action) {
   assistantHandleQuick(assistantSurface('reader'), action);
 }
 
-// ========== SHORTCUTS MODAL ==========
-function openShortcutsModal() {
-  document.getElementById('shortcutsModal').classList.add('show');
-  document.getElementById('shortcutsOverlay').classList.add('show');
-}
-
-function closeShortcutsModal() {
-  document.getElementById('shortcutsModal').classList.remove('show');
-  document.getElementById('shortcutsOverlay').classList.remove('show');
-}
-
-// ========== COMMAND PALETTE ==========
-function openCommandPalette() {
-  const input = document.getElementById('searchInput');
-  if (input) {
-    input.focus();
-    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
-
 // ========== ADMIN PANEL ==========
 document.querySelectorAll('.admin-tab-btn').forEach(t => t.addEventListener('click', function () {
   document.querySelectorAll('.admin-tab-btn').forEach(x => x.classList.remove('active'));
