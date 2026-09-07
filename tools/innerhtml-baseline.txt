@@ -5,22 +5,29 @@
 #
 # Пересобрать: python tools/audit_innerhtml.py --baseline
 
+app.js	(() => { const stage = findKillChainStageForBook(b); if (!stage) return ''; return `<button class="btn-detail" data-stat
+app.js	(stage.defenseTools && stage.defenseTools.length) ? `
 app.js	AR_3D.pyramid
 app.js	ICONS[tab.icon]
 app.js	ONBOARDING_TOUR_STEPS.map((_, i) => `<div style="width:7px
-app.js	[1,2,3,4,5].map(i => `<span class="star" style="cursor:pointer
+app.js	[1,2,3,4,5].map(i => `<span class="star" data-static-style="a106" data-onclick="setFinishReviewStar(${i})">${renderStarS
 app.js	[2, 3, 4].map(n => `
-app.js	_currentTOC.map((it, i) => { const isRead = read.includes(i); return `<div style="display:flex
+app.js	_currentTOC.map((it, i) => { const isRead = read.includes(i); return `<div data-static-style="a506">
 app.js	_reviewIdx + 1
 app.js	_reviewQueue.length
 app.js	adminBtn
+app.js	adminStats
 app.js	all.length
 app.js	allReviews.map(r => `
 app.js	ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button
 app.js	arrows
-app.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" style="width:100%
+app.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a310" data-onerror="replaceWithFallback(
+app.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback(
+app.js	b.has_file ? (offlineBookIds.has(b.id) ? `<button class="btn-detail offline-btn-saved" data-onclick="removeBookOffline($
+app.js	b.rating
 app.js	biometricAuth.supported() ? `<button class="set-save-btn" data-onclick="toggleBiometricFromSettings()" ${biometricAuth.i
 app.js	book ? eh(book.title) : 'Эта книга'
+app.js	bookCategoriesText(b)
 app.js	books.map(b => `
 app.js	breakdown
 app.js	btn('csv', 'CSV', 'Таблица для Excel')
@@ -46,7 +53,7 @@ app.js	cx
 app.js	cy
 app.js	cy + 14
 app.js	cy - 6
-app.js	dateStr ? `<div style="font-size:11px
+app.js	dateStr ? `<div data-static-style="a575">Тест пройден: ${dateStr}</div>` : ''
 app.js	done
 app.js	doneCount
 app.js	encodeURIComponent(c.category).replace(/'/g, '')
@@ -56,11 +63,13 @@ app.js	formatBytes(stats.cacheSize)
 app.js	formatBytes(stats.quota)
 app.js	formatBytes(stats.used)
 app.js	formatHeatmapDate(date)
+app.js	formatLabel
 app.js	goal.count
 app.js	hasLevel ? `
 app.js	html
 app.js	info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').rep
 app.js	inner
+app.js	isAdmin ? `<button class="btn-detail" data-static-style="a469" data-onclick="openAdminBookModal(${b.id})">${ICONS.settin
 app.js	items
 app.js	labels
 app.js	layers
@@ -86,7 +95,7 @@ app.js	res.hits.map(h => `
 app.js	res.total
 app.js	result.overall_percentage
 app.js	rows
-app.js	rows || '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;">Пока нет коллекций</div>'
+app.js	rows || '<div data-static-style="a480">Пока нет коллекций</div>'
 app.js	s
 app.js	s.done
 app.js	s.errors ? `, ошибок: ${s.errors}` : ''
@@ -94,7 +103,8 @@ app.js	s.indexed_pages
 app.js	safeTag
 app.js	segs
 app.js	sensitiveNonce()
-app.js	stage.attacker.map(a => `<li style="margin-bottom:6px
+app.js	stage.attacker.map(a => `<li data-static-style="a087">${eh(a)}</li>`).join('')
+app.js	stage.defender.map(d => `<li data-static-style="a087">${eh(d)}</li>`).join('')
 app.js	stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'
 app.js	stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'
 app.js	stage.defenseMethod ? stage.defenseMethod.color : '#666'
@@ -122,7 +132,7 @@ app.js	tab.label
 app.js	topicsHtml
 app.js	total
 app.js	totalPages
-app.js	u.department ? `<div style="font-size:11px
+app.js	u.department ? `<div data-static-style="a193">${eh(u.department)}</div>` : ''
 app.js	usedPct
 app.js	weakHtml
 app.js	weeks.map(w => `<div title="${w} стр." style="flex:1
