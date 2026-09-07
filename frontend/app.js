@@ -2642,54 +2642,6 @@ function getRecommendations(limit = 5) {
     .map(x => x.b);
 }
 
-// ========== DRAG AND DROP FOR MYLIST ==========
-let draggedBookId = null;
-
-function initDragAndDrop() {
-  const grid = document.getElementById('mylistGrid');
-  if (!grid) return;
-
-  grid.addEventListener('dragstart', (e) => {
-    const card = e.target.closest('.book-card-compact');
-    if (!card) return;
-    draggedBookId = parseInt(card.dataset.bookId);
-    card.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', draggedBookId);
-  });
-
-  grid.addEventListener('dragend', (e) => {
-    const card = e.target.closest('.book-card-compact');
-    if (card) card.classList.remove('dragging');
-    draggedBookId = null;
-    document.querySelectorAll('.mylist-tab').forEach(t => t.classList.remove('drag-over'));
-  });
-
-  document.querySelectorAll('.mylist-tab').forEach(tab => {
-    tab.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      tab.classList.add('drag-over');
-    });
-
-    tab.addEventListener('dragleave', () => {
-      tab.classList.remove('drag-over');
-    });
-
-    tab.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      tab.classList.remove('drag-over');
-      const bookId = parseInt(e.dataTransfer.getData('text/plain'));
-      const newStatus = tab.dataset.mylist;
-      if (bookId && newStatus) {
-        await updateBookStatus(bookId, newStatus);
-        renderMyList();
-        showToast('Статус обновлён');
-      }
-    });
-  });
-}
-
 // ========== REVIEWS CACHE ==========
 const reviewsCache = {};
 
