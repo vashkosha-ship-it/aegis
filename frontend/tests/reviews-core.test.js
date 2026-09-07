@@ -18,6 +18,7 @@ const dom = new JSDOM(`
     <button class="star"></button>
     <button class="star"></button>
   </div>
+  <div id="detailTabReviews"></div>
 `);
 
 let reviewLoads = 0;
@@ -45,10 +46,13 @@ const api = {
   books: {
     get: async bookId => ({ id: bookId, title: 'Updated' }),
   },
+  users: {
+    avatarUrl: userId => `/api/users/${userId}/avatar`,
+  },
 };
 
 const state = {
-  currentUser: { name: 'alice' },
+  currentUser: { id: 3, name: 'alice', role: 'user' },
   currentScreen: 'home',
   currentBook: null,
   books: [{ id: 42, title: 'Old' }],
@@ -57,13 +61,21 @@ const context = {
   document: dom.window.document,
   api,
   state,
-  currentBookId: null,
+  currentBookId: 42,
   adaptBookFromApi: value => ({ ...value, adapted: true }),
+  eh: value => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;'),
   showToast: message => toasts.push(message),
+  showListSkeleton: () => {},
+  sensitiveNonce: () => 'test-nonce',
   refreshGamificationFromApi: () => {},
   renderReviews: () => {},
   renderBookInfo: () => {},
-  ICONS: { star: '★', starEmpty: '☆' },
+  ICONS: { star: '★', starEmpty: '☆', trash: '×' },
   console,
 };
 vm.createContext(context);
@@ -94,9 +106,22 @@ vm.runInContext(source, context);
   assert.deepEqual(deleted, [7]);
   assert.ok(toasts.includes('Отзыв удалён'));
 
-  assert.doesNotMatch(appSource, /const reviewsCache|async function getReviews|function setReviewStar/);
+  await context.renderReviews();
+  const reviewPanel = dom.window.document.getElementById('detailTabReviews');
+  assert.match(reviewPanel.textContent, /alice/);
+  assert.match(reviewPanel.textContent, /Обновить мой отзыв/);
+  assert.equal(reviewPanel.querySelectorAll('.star-input .star').length, 5);
+
+  context.setReviewStar(4);
+  reviewPanel.querySelector('#reviewTextInput').value = 'Обновлено';
+  context.submitReview();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.deepEqual(added[added.length - 1], [42, 4, 'Обновлено']);
+
+  assert.doesNotMatch(appSource, /const reviewsCache|async function getReviews|function setReviewStar|async function renderReviews|function submitReview/);
   assert.ok(indexSource.indexOf('reviews-core.js') < indexSource.indexOf('app.js'));
-  assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v216'/);
+  assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v217'/);
   assert.match(workerSource, /['"]\/reviews-core\.js['"]/);
   console.log('Reviews core tests passed');
 })().catch(error => {

@@ -14,7 +14,11 @@ import sys
 from pathlib import Path
 
 FRONTEND = Path("frontend")
-SOURCES = [FRONTEND / "app.js", FRONTEND / "index.html"]
+SOURCES = [
+    FRONTEND / "app.js",
+    FRONTEND / "reviews-core.js",
+    FRONTEND / "index.html",
+]
 OUT = FRONTEND / "handler-allowlist.js"
 
 # Обработчики, добавляемые не из разметки, а из кода
