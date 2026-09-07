@@ -17,6 +17,7 @@ FRONTEND = Path("frontend")
 SOURCES = [
     FRONTEND / "app.js",
     FRONTEND / "annotations-ui.js",
+    FRONTEND / "quiz-core.js",
     FRONTEND / "book-discussion.js",
     FRONTEND / "reviews-core.js",
     FRONTEND / "index.html",
