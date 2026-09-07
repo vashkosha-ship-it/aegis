@@ -56,7 +56,7 @@ vm.runInContext(source, context);
 
 (async () => {
   assert.equal(await context.loadCompletedQuizzesFromApi(), true);
-  assert.deepEqual(context.state.completedQuizzes.alice, [8]);
+  assert.deepEqual(Array.from(context.state.completedQuizzes.alice), [8]);
 
   await context.startQuiz(42);
   assert.deepEqual(apiCalls[0], ['quiz', 42]);
@@ -69,7 +69,7 @@ vm.runInContext(source, context);
   await context.finishQuiz();
 
   assert.deepEqual(apiCalls[1], ['submit', 42, [0, 0], 'session-1']);
-  assert.deepEqual(context.state.completedQuizzes.alice, [8, 42]);
+  assert.deepEqual(Array.from(context.state.completedQuizzes.alice), [8, 42]);
   assert.equal(gamificationRefreshes, 1);
   assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /60%/);
   assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /&lt;Нет&gt;/);
