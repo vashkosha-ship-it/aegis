@@ -3,22 +3,6 @@ let epubRendition = null;
 let epubBook = null;
 let isEpubMode = false;
 
-// ========== ТЕМА ВСЕГО ПРИЛОЖЕНИЯ ==========
-const APP_THEME_KEY = 'aegis_app_theme';
-
-const GRID_SIZE_KEY = 'aegis_grid_size';
-
-function getGridSize() {
-  const v = parseInt(localStorage.getItem(GRID_SIZE_KEY), 10);
-  return [2, 3, 4].includes(v) ? v : 2;
-}
-
-function applyGridSize(size) {
-  if (![2, 3, 4].includes(size)) size = 2;
-  document.documentElement.style.setProperty('--books-grid-columns', String(size));
-  localStorage.setItem(GRID_SIZE_KEY, String(size));
-}
-
 // ========== ДАННЫЕ И ПАМЯТЬ ==========
 const WIFI_ONLY_KEY = 'aegis_wifi_only';
 
@@ -101,40 +85,6 @@ async function clearAllAppCache() {
     await caches.delete(name);
   }
 }
-
-// Применяем сетку сразу при загрузке
-applyGridSize(getGridSize());
-
-function getAppTheme() {
-  return localStorage.getItem(APP_THEME_KEY) || 'dark';
-}
-
-function applyAppTheme(theme) {
-  if (theme !== 'light') theme = 'dark';
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem(APP_THEME_KEY, theme);
-
-  // Обновляем кнопки переключателя если они есть на странице
-  const btnDark = document.getElementById('appThemeBtnDark');
-  const btnLight = document.getElementById('appThemeBtnLight');
-  if (btnDark && btnLight) {
-    if (theme === 'dark') {
-      btnDark.classList.add('active');
-      btnLight.classList.remove('active');
-    } else {
-      btnLight.classList.add('active');
-      btnDark.classList.remove('active');
-    }
-  }
-}
-
-function setAppTheme(theme) {
-  applyAppTheme(theme);
-  showToast(theme === 'light' ? 'Светлая тема' : 'Тёмная тема');
-}
-
-// Применяем тему сразу при загрузке скрипта (до рендера)
-applyAppTheme(getAppTheme());
 
 function icon(name) {
   return ICONS[name] || '';
