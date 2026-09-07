@@ -72,7 +72,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /function renderAnalytics|function openBookAnalyticsModal|let analyticsCharts/);
   assert.ok(indexSource.indexOf('analytics.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/analytics\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v223/);
+  assert.match(workerSource, /aegis-cache-v224/);
   console.log('Analytics tests passed');
 })().catch(error => {
   console.error(error);
