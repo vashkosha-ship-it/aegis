@@ -2,6 +2,24 @@
 
 /* Глобальные сочетания клавиш приложения. */
 
+/* Окно подсказок и фокус командного поиска относятся к клавиатурной навигации. */
+function openShortcutsModal() {
+  document.getElementById('shortcutsModal')?.classList.add('show');
+  document.getElementById('shortcutsOverlay')?.classList.add('show');
+}
+
+function closeShortcutsModal() {
+  document.getElementById('shortcutsModal')?.classList.remove('show');
+  document.getElementById('shortcutsOverlay')?.classList.remove('show');
+}
+
+function openCommandPalette() {
+  const input = document.getElementById('searchInput');
+  if (!input) return;
+  input.focus();
+  input.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+}
+
 // ========== KEYBOARD SHORTCUTS ==========
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -37,12 +55,13 @@ document.addEventListener('keydown', e => {
     closeCatalogPanel();
     closeShortcutsModal();
     if (arActive) closeAR();
-    document.getElementById('selectionToolbar').style.display = 'none';
+    const selectionToolbar = document.getElementById('selectionToolbar');
+    if (selectionToolbar) selectionToolbar.style.display = 'none';
     document.querySelectorAll('.note-tooltip').forEach(el => el.remove());
   }
   if (e.key === '?' && !e.ctrlKey && !e.metaKey && document.activeElement === document.body) {
     e.preventDefault();
-    if (document.getElementById('shortcutsModal').classList.contains('show')) {
+    if (document.getElementById('shortcutsModal')?.classList.contains('show')) {
       closeShortcutsModal();
     } else {
       openShortcutsModal();
