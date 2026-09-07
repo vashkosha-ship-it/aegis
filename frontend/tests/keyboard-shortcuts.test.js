@@ -78,6 +78,7 @@ assert.ok(calls.some(call => call[0] === 'closeAIPanel'));
 assert.ok(calls.some(call => call[0] === 'closeCatalogPanel'));
 
 context.state.currentScreen = 'home';
+dom.window.document.getElementById('searchInput').blur();
 press('?');
 assert.ok(dom.window.document.getElementById('shortcutsModal').classList.contains('show'));
 assert.ok(dom.window.document.getElementById('shortcutsOverlay').classList.contains('show'));
