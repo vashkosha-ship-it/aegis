@@ -62,7 +62,9 @@ vm.runInContext(source, context);
   assert.equal(layer.children.length, 2);
   assert.match(layer.innerHTML, /left:0%/);
   assert.match(layer.innerHTML, /top:100%/);
-  assert.match(layer.innerHTML, /title="&lt;опасный&gt;"/);
+  const highlight = layer.querySelector('.highlight-mark');
+  assert.equal(highlight.getAttribute('title'), '<опасный>');
+  assert.equal(layer.querySelector('опасный'), null);
 
   await context.showAnnotationDetail(1);
   let tooltip = dom.window.document.querySelector('.note-tooltip');
