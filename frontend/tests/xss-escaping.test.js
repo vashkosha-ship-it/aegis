@@ -36,26 +36,31 @@ assert.doesNotMatch(
 );
 
 
+const favoritesSource = fs.readFileSync(
+  path.join(__dirname, '..', 'favorite-categories.js'),
+  'utf8',
+);
+
 assert.match(
   appSource,
-  /function renderFavCategories\(\)/,
-  'Главная страница не должна вызывать отсутствующий renderFavCategories',
+  /renderFavCategories\(\)/,
+  'Главная страница должна вызывать renderer избранных категорий',
 );
 assert.match(
-  appSource,
+  favoritesSource,
+  /function renderFavCategories\(\)/,
+  'Renderer избранных категорий должен быть определён в отдельном модуле',
+);
+assert.match(
+  favoritesSource,
   /function getFavCategories\(\)/,
   'Чтение избранных категорий должно быть определено',
 );
 assert.match(
-  appSource,
+  favoritesSource,
   /function renderFavCatsPicker\(\)/,
   'Окно выбора категорий должно иметь функцию рендера',
 );
-
-const favoritesStart = appSource.indexOf('// ===== Избранные категории =====');
-const favoritesEnd = appSource.indexOf('function renderHome()', favoritesStart);
-assert.ok(favoritesStart >= 0 && favoritesEnd > favoritesStart);
-const favoritesSource = appSource.slice(favoritesStart, favoritesEnd);
 assert.doesNotMatch(
   favoritesSource,
   /\.innerHTML\s*=|onclick=/,
