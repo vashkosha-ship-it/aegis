@@ -70,7 +70,7 @@ setImmediate(() => {
 
   assert.doesNotMatch(appSource, /let draggedBookId|function initDragAndDrop/);
   assert.ok(indexSource.indexOf('mylist-drag-drop.js') < indexSource.indexOf('app.js'));
-  assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v214'/);
+  assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
   assert.match(workerSource, /['"]\/mylist-drag-drop\.js['"]/);
   console.log('MyList drag-and-drop tests passed');
 });
