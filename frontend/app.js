@@ -11105,56 +11105,6 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
     btn.textContent = originalText;
   }
 });
-// ========== ONLINE/OFFLINE BANNER ==========
-function ensureOfflineBanner() {
-  let banner = document.getElementById('offlineBanner');
-  if (banner) return banner;
-  banner = document.createElement('div');
-  banner.id = 'offlineBanner';
-  banner.style.cssText = `
-    position: fixed; top: 0; left: 0; right: 0;
-    background: linear-gradient(135deg, #f59e0b, #ec4899);
-    color: #fff; text-align: center; padding: 8px 16px;
-    font-size: 12px; font-weight: 600; z-index: 9999;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3); display: none;
-    transition: transform 0.3s; transform: translateY(-100%);
-  `;
-  banner.textContent = 'Нет интернета — работаете в офлайн-режиме';
-  document.body.appendChild(banner);
-  return banner;
-}
-
-function updateOnlineStatus() {
-  const banner = ensureOfflineBanner();
-  if (navigator.onLine) {
-    banner.style.transform = 'translateY(-100%)';
-    setTimeout(() => { banner.style.display = 'none'; }, 300);
-  } else {
-    banner.style.display = 'block';
-    requestAnimationFrame(() => { banner.style.transform = 'translateY(0)'; });
-  }
-}
-
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
-// Проверим сразу при загрузке (на случай если стартовали без сети)
-updateOnlineStatus();
-
-// ========== TOAST ==========
-function showToast(m) {
-  const ex = document.querySelector('.toast');
-  if (ex) ex.remove();
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = m;
-  document.body.appendChild(t);
-  setTimeout(() => {
-    t.style.opacity = '0';
-    t.style.transition = 'opacity 0.3s';
-    setTimeout(() => t.remove(), 300);
-  }, 2500);
-}
-
 // ========== AI PANEL (читалка) — на общем бэкенд-движке ==========
 let readerAiMessages = [];
 let readerAiBusy = false;
