@@ -46,6 +46,9 @@ const api = {
   books: {
     get: async bookId => ({ id: bookId, title: 'Updated' }),
   },
+  users: {
+    avatarUrl: userId => `/api/users/${userId}/avatar`,
+  },
 };
 
 const state = {
