@@ -39,7 +39,7 @@ assert.ok(
   indexSource.indexOf('src="loading-ui.js"') < indexSource.indexOf('src="app.js"'),
   'loading-ui.js должен подключаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v211'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v212'/);
 assert.match(swSource, /'\/loading-ui\.js'/);
 
 console.log('Loading UI tests passed');

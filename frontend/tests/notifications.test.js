@@ -58,7 +58,7 @@ assert.ok(
   indexSource.indexOf('src="notifications.js"') < indexSource.indexOf('src="app.js"'),
   'notifications.js должен загружаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v211'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v212'/);
 assert.match(swSource, /'\/notifications\.js'/);
 
 console.log('Notifications tests passed');
