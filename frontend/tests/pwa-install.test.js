@@ -57,7 +57,7 @@ dom.window.dispatchEvent(installEvent);
     indexSource.indexOf('src="pwa-install.js"') < indexSource.indexOf('src="app.js"'),
     'pwa-install.js должен подключаться раньше app.js',
   );
-  assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v209'/);
+  assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v210'/);
   assert.match(swSource, /'\/pwa-install\.js'/);
 
   console.log('PWA install tests passed');
