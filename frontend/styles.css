@@ -2813,3 +2813,102 @@ select[multiple] option:hover {
 .static-style-138 { display:flex;gap:8px;align-items:flex-end;padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px; }
 .static-style-139 { flex:1;background:transparent;border:none;color:var(--text-primary);font-family:inherit;font-size:13px;outline:none;resize:none;max-height:120px;padding:6px; }
 .static-style-140 { background:var(--accent-gradient);border:none;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0; }
+
+
+/* Избранные категории на главной */
+.fav-category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: 600 12px inherit;
+  cursor: pointer;
+}
+
+.fav-category-chip.is-active {
+  border-color: transparent;
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+.fav-categories-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.fav-categories-panel {
+  width: 100%;
+  max-width: 440px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-elevated);
+}
+
+.fav-categories-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.fav-categories-header h3 {
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fav-categories-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.fav-category-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fav-category-option.is-active {
+  border-color: var(--accent);
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.fav-category-marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.fav-categories-empty {
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
