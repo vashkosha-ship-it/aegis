@@ -3546,3 +3546,35 @@ select[multiple] option:hover {
   padding: 20px;
   background: rgba(0, 0, 0, 0.7);
 }
+
+
+/* Сетевой статус */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  visibility: hidden;
+  transform: translateY(-100%);
+  transition: transform 0.3s, visibility 0s linear 0.3s;
+  pointer-events: none;
+}
+
+.offline-banner.is-visible {
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+
+.toast.is-hiding {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
