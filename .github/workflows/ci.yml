@@ -129,7 +129,8 @@ jobs:
         # Полноценного сборщика у фронта нет, но синтаксическую ошибку
         # в собственных JS-файлах поймать стоит — она кладёт весь интерфейс.
         run: |
-          for f in app.js favorite-categories.js vendor-loader.js icons.js api.js sw.js offline-storage.js \
+          for f in app.js favorite-categories.js vendor-loader.js icons.js appearance-settings.js \
+                   api.js sw.js offline-storage.js \
                    inline-handlers.js handler-allowlist.js csp-helpers.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
@@ -178,6 +179,9 @@ jobs:
 
       - name: Тест реестра SVG-иконок
         run: node tests/icons.test.js
+
+      - name: Тест настроек внешнего вида
+        run: node tests/appearance-settings.test.js
 
   security:
     runs-on: ubuntu-latest
