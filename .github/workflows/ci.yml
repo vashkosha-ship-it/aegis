@@ -130,7 +130,7 @@ jobs:
         # в собственных JS-файлах поймать стоит — она кладёт весь интерфейс.
         run: |
           for f in app.js favorite-categories.js vendor-loader.js icons.js appearance-settings.js \
-                   offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js api.js sw.js offline-storage.js \
+                   offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
                    inline-handlers.js handler-allowlist.js csp-helpers.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
@@ -206,6 +206,9 @@ jobs:
 
       - name: Тест установки PWA
         run: node tests/pwa-install.test.js
+
+      - name: Тест onboarding-тура
+        run: node tests/onboarding-tour.test.js
 
   security:
     runs-on: ubuntu-latest

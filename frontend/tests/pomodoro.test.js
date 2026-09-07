@@ -63,7 +63,7 @@ assert.ok(
   indexSource.indexOf('src="pomodoro.js"') < indexSource.indexOf('src="app.js"'),
   'pomodoro.js должен загружаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v212'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
 assert.match(swSource, /'\/pomodoro\.js'/);
 
 console.log('Pomodoro tests passed');

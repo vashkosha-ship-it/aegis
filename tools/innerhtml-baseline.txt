@@ -9,7 +9,6 @@ app.js	(() => { const stage = findKillChainStageForBook(b); if (!stage) return '
 app.js	(stage.defenseTools && stage.defenseTools.length) ? `
 app.js	AR_3D.pyramid
 app.js	ICONS[tab.icon]
-app.js	ONBOARDING_TOUR_STEPS.map((_, i) => `<div style="width:7px
 app.js	[1,2,3,4,5].map(i => `<span class="star" data-static-style="a106" data-onclick="setFinishReviewStar(${i})">${renderStarS
 app.js	[2, 3, 4].map(n => `
 app.js	_currentTOC.map((it, i) => { const isRead = read.includes(i); return `<div data-static-style="a506">
@@ -123,9 +122,6 @@ app.js	stats.total_users
 app.js	stats.total_views
 app.js	statusColor[item.status]
 app.js	statusIcon[item.status]
-app.js	step.emoji
-app.js	step.text
-app.js	step.title
 app.js	t
 app.js	tab ? tab.label : ''
 app.js	tab.label

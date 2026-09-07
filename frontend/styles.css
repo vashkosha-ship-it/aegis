@@ -3665,3 +3665,99 @@ textarea.app-dialog-input {
 .pomodoro-btn.is-hidden {
   display: none;
 }
+
+
+/* Одноразовый onboarding-тур. Геометрия подсветки вычисляется в JS,
+   всё остальное остаётся в CSP-совместимом stylesheet. */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  background: rgb(0 0 0 / 70%);
+  transition: opacity 0.2s;
+}
+
+.tour-spotlight {
+  position: absolute;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 70%), 0 0 0 2px var(--accent);
+  transition: all 0.25s;
+  pointer-events: none;
+}
+
+.tour-card {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(340px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 50%);
+}
+
+.tour-emoji {
+  margin-bottom: 10px;
+  font-size: 32px;
+}
+
+.tour-title {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.tour-text {
+  margin-bottom: 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.tour-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tour-dots,
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tour-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.tour-dot.is-active {
+  background: var(--accent);
+}
+
+.tour-button {
+  border: 0;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tour-button--skip {
+  padding: 8px;
+  color: var(--text-muted);
+  background: none;
+}
+
+.tour-button--next {
+  padding: 9px 18px;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d4ff, #7b61ff);
+}

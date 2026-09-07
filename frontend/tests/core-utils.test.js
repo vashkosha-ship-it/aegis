@@ -42,7 +42,7 @@ assert.ok(
   indexSource.indexOf('src="core-utils.js"') < indexSource.indexOf('src="app.js"'),
   'core-utils.js должен подключаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v212'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
 assert.match(swSource, /'\/core-utils\.js'/);
 
 console.log('Core utilities tests passed');
