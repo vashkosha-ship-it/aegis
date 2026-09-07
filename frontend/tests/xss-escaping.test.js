@@ -34,3 +34,30 @@ assert.doesNotMatch(
   /style="[^"]*\$\{a\.position\?/,
   'Значения annotation.position не должны напрямую попадать в style',
 );
+
+
+assert.match(
+  appSource,
+  /function renderFavCategories\(\)/,
+  'Главная страница не должна вызывать отсутствующий renderFavCategories',
+);
+assert.match(
+  appSource,
+  /function getFavCategories\(\)/,
+  'Чтение избранных категорий должно быть определено',
+);
+assert.match(
+  appSource,
+  /function renderFavCatsPicker\(\)/,
+  'Окно выбора категорий должно иметь функцию рендера',
+);
+
+const favoritesStart = appSource.indexOf('// ===== Избранные категории =====');
+const favoritesEnd = appSource.indexOf('function renderHome()', favoritesStart);
+assert.ok(favoritesStart >= 0 && favoritesEnd > favoritesStart);
+const favoritesSource = appSource.slice(favoritesStart, favoritesEnd);
+assert.doesNotMatch(
+  favoritesSource,
+  /\.innerHTML\s*=|onclick=/,
+  'Избранные категории должны строиться безопасными DOM-операциями',
+);
