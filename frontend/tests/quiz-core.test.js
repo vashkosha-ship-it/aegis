@@ -68,7 +68,10 @@ vm.runInContext(source, context);
   context.answerQuiz(0);
   await context.finishQuiz();
 
-  assert.deepEqual(apiCalls[1], ['submit', 42, [0, 0], 'session-1']);
+  assert.equal(apiCalls[1][0], 'submit');
+  assert.equal(apiCalls[1][1], 42);
+  assert.deepEqual(Array.from(apiCalls[1][2]), [0, 0]);
+  assert.equal(apiCalls[1][3], 'session-1');
   assert.deepEqual(Array.from(context.state.completedQuizzes.alice), [8, 42]);
   assert.equal(gamificationRefreshes, 1);
   assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /60%/);
