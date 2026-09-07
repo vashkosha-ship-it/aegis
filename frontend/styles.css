@@ -3578,3 +3578,83 @@ select[multiple] option:hover {
   opacity: 0;
   transition: opacity 0.3s;
 }
+
+
+/* Универсальные confirm/prompt окна */
+.app-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  animation: fadeIn 0.15s ease;
+}
+
+.app-dialog-panel {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.app-dialog-title {
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.app-dialog-message {
+  margin-bottom: 18px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.app-dialog-input {
+  width: 100%;
+  min-height: 40px;
+}
+
+textarea.app-dialog-input {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.app-dialog-button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font: 600 12px inherit;
+  cursor: pointer;
+}
+
+.app-dialog-button--cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.app-dialog-button--confirm {
+  border: 0;
+  background: var(--accent-gradient);
+  color: #fff;
+}
+
+.app-dialog-button--confirm.is-danger {
+  background: #ef4444;
+  color: #fff;
+}
