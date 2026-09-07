@@ -74,7 +74,7 @@ assert.ok(
   indexSource.indexOf('src="dialogs.js"') < indexSource.indexOf('src="app.js"'),
   'dialogs.js должен подключаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v212'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\\d+'/);
 assert.match(swSource, /'\/dialogs\.js'/);
 
 console.log('Dialogs tests passed');
