@@ -3513,64 +3513,6 @@ async function deleteComment(commentId) {
   });
 }
 
-async function renderReviews() {
-  const container = document.getElementById('detailTabReviews');
-  if (!container || !currentBookId) return;
-
-  showListSkeleton('detailTabReviews', 2);
-
-  const reviews = await getReviews(currentBookId);
-  const me = state.currentUser;
-  const myReview = me ? reviews.find(r => r._userId === me.id) : null;
-
-  const reviewsHtml = reviews.length === 0
-    ? '<div data-static-style="a219">Пока нет отзывов. Будьте первым!</div>'
-    : reviews.map(r => {
-        const canDelete = me && (r._userId === me.id || me.role === 'admin');
-        const dateStr = new Date(r.date).toLocaleDateString('ru-RU');
-        return `<div class="review-card">
-          <div class="review-header">
-            <div class="review-user">
-              <div class="review-avatar"><img src="${api.users.avatarUrl(r._userId)}" alt="" data-onerror="replaceWithFallback()" data-args="this" data-fallback="text" data-fallback-text="${eh(r.avatar)}" data-fallback-class="review-avatar-fallback" data-static-style="a220"></div>
-              <div>
-                <div data-static-style="a221">${eh(r.user)}</div>
-                <div class="review-date">${dateStr}</div>
-              </div>
-            </div>
-            <div class="review-rating">
-              ${[1,2,3,4,5].map(i => `<span class="star ${i <= r.rating ? 'filled' : ''}">${renderStarSVG(i <= r.rating)}</span>`).join('')}
-            </div>
-          </div>
-          <div class="review-text">${eh(r.text || '')}</div>
-          ${canDelete ? `<button class="btn-sm danger" data-static-style="a222" data-onclick="deleteReview(${currentBookId}, ${r.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash} Удалить</button>` : ''}
-        </div>`;
-      }).join('');
-
-  const formHtml = me ? `
-    <div id="reviewForm" data-static-style="a223">
-      <h4 data-static-style="a224">${myReview ? 'Обновить мой отзыв' : 'Оставить отзыв'}</h4>
-      <div class="star-input">
-        ${[1,2,3,4,5].map(i => `<span class="star ${i <= (myReview?.rating || 0) ? 'filled' : ''}" data-onclick="setReviewStar(${i})">${renderStarSVG(i <= (myReview?.rating || 0))}</span>`).join('')}
-      </div>
-      <textarea id="reviewTextInput" rows="3" placeholder="Поделитесь впечатлением..." data-static-style="a225">${eh(myReview?.text || '')}</textarea>
-      <button class="btn btn-primary" data-onclick="submitReview()" data-static-style="a226">Отправить</button>
-    </div>
-  ` : '<div data-static-style="a227">Войдите, чтобы оставить отзыв</div>';
-
-  container.innerHTML = reviewsHtml + formHtml;
-
-  if (myReview) reviewRating = myReview.rating;
-  else reviewRating = 0;
-}
-
-function submitReview() {
-  if (!state.currentUser) return showToast('Войдите, чтобы оставить отзыв');
-  if (!currentBookId) return;
-  if (reviewRating < 1 || reviewRating > 5) return showToast('Поставьте оценку от 1 до 5 звёзд');
-  const text = document.getElementById('reviewTextInput').value.trim();
-  addReview(currentBookId, reviewRating, text);
-}
-
 // ========== ANNOTATIONS ==========
 const annotationsCache = {};
 
