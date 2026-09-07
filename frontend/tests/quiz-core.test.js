@@ -61,6 +61,7 @@ vm.runInContext(source, context);
   await context.startQuiz(42);
   assert.deepEqual(apiCalls[0], ['quiz', 42]);
   assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /&lt;Первый\?&gt;/);
+  assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /&lt;Нет&gt;/);
   assert.doesNotMatch(dom.window.document.getElementById('detailTabTraining').innerHTML, /<Первый\?>/);
 
   context.answerQuiz(0);
@@ -75,7 +76,6 @@ vm.runInContext(source, context);
   assert.deepEqual(Array.from(context.state.completedQuizzes.alice), [8, 42]);
   assert.equal(gamificationRefreshes, 1);
   assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /60%/);
-  assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /&lt;Нет&gt;/);
 
   assert.doesNotMatch(appSource, /function renderQuizQuestion|async function startQuiz|async function finishQuiz/);
   assert.ok(indexSource.indexOf('quiz-core.js') < indexSource.indexOf('app.js'));
