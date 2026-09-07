@@ -131,7 +131,7 @@ jobs:
         run: |
           for f in app.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js favorite-categories.js mylist-drag-drop.js book-discussion.js reviews-core.js vendor-loader.js icons.js appearance-settings.js \
                    offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
-                   inline-handlers.js handler-allowlist.js csp-helpers.js; do
+                   inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
               node --check "$f"
@@ -153,7 +153,7 @@ jobs:
         # Так же, как с подстановками в innerHTML: разом их не вычистить, но
         # расти они не должны. Уменьшать порог по мере исправлений.
         working-directory: .
-        run: npx --no-install eslint frontend --max-warnings 54
+        run: npx --no-install eslint frontend --max-warnings 51
 
       - name: Новых неэкранированных подстановок нет
         # Присваиваний innerHTML во фронте больше сотни, переписать их разом
@@ -179,6 +179,9 @@ jobs:
 
       - name: Тест книжных тестов
         run: node tests/quiz-core.test.js
+
+      - name: Тест аналитики
+        run: node tests/analytics.test.js
 
       - name: Тест ядра аннотаций
         run: node tests/annotations-core.test.js
