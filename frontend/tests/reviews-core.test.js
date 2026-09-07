@@ -121,7 +121,7 @@ vm.runInContext(source, context);
 
   assert.doesNotMatch(appSource, /const reviewsCache|async function getReviews|function setReviewStar|async function renderReviews|function submitReview/);
   assert.ok(indexSource.indexOf('reviews-core.js') < indexSource.indexOf('app.js'));
-  assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v216'/);
+  assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v217'/);
   assert.match(workerSource, /['"]\/reviews-core\.js['"]/);
   console.log('Reviews core tests passed');
 })().catch(error => {
