@@ -749,7 +749,7 @@
   <div class="pomodoro-container" id="pomodoroContainer">
     <div class="pomodoro-timer" id="pomodoroTimer">25:00</div>
     <button class="pomodoro-btn" id="pomodoroStart" data-onclick="startPomodoro()" title="Старт"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></button>
-    <button class="pomodoro-btn static-style-009" id="pomodoroPause" data-onclick="pausePomodoro()" title="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+    <button class="pomodoro-btn is-hidden" id="pomodoroPause" data-onclick="pausePomodoro()" title="Пауза"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
     <button class="pomodoro-btn" id="pomodoroReset" data-onclick="resetPomodoro()" title="Сброс"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
     <span class="static-style-078" id="pomodoroStatus">Готов к работе</span>
   </div>
@@ -1043,6 +1043,7 @@
 <script defer src="core-utils.js"></script>
 <script defer src="notifications.js"></script>
 <script defer src="dialogs.js"></script>
+<script defer src="pomodoro.js"></script>
 <script defer src="pwa-install.js"></script>
 <script defer src="app.js"></script>
 <script defer src="csp-helpers.js"></script>
