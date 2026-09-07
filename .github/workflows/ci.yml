@@ -129,7 +129,7 @@ jobs:
         # Полноценного сборщика у фронта нет, но синтаксическую ошибку
         # в app.js/api.js/sw.js поймать стоит — она кладёт весь интерфейс.
         run: |
-          for f in app.js api.js sw.js offline-storage.js \
+          for f in app.js favorite-categories.js api.js sw.js offline-storage.js \
                    inline-handlers.js handler-allowlist.js csp-helpers.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
