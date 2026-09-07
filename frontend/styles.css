@@ -3517,3 +3517,32 @@ select[multiple] option:hover {
   font-size: 12px;
   text-align: center;
 }
+
+
+/* Установка PWA */
+.install-banner {
+  position: fixed;
+  right: 12px;
+  bottom: 88px;
+  left: 12px;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.install-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.7);
+}
