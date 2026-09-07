@@ -16,6 +16,7 @@ from pathlib import Path
 FRONTEND = Path("frontend")
 SOURCES = [
     FRONTEND / "app.js",
+    FRONTEND / "book-discussion.js",
     FRONTEND / "reviews-core.js",
     FRONTEND / "index.html",
 ]

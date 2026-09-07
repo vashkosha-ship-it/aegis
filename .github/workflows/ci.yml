@@ -129,7 +129,7 @@ jobs:
         # Полноценного сборщика у фронта нет, но синтаксическую ошибку
         # в собственных JS-файлах поймать стоит — она кладёт весь интерфейс.
         run: |
-          for f in app.js favorite-categories.js mylist-drag-drop.js reviews-core.js vendor-loader.js icons.js appearance-settings.js \
+          for f in app.js favorite-categories.js mylist-drag-drop.js book-discussion.js reviews-core.js vendor-loader.js icons.js appearance-settings.js \
                    offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
                    inline-handlers.js handler-allowlist.js csp-helpers.js; do
             if [ -f "$f" ]; then
@@ -173,6 +173,9 @@ jobs:
 
       - name: Тест экранирования пользовательского HTML
         run: node tests/xss-escaping.test.js
+
+      - name: Тест обсуждений книги
+        run: node tests/book-discussion.test.js
 
       - name: Тест ядра отзывов
         run: node tests/reviews-core.test.js
