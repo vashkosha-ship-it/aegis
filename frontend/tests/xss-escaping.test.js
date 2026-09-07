@@ -5,6 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+const annotationsUiSource = fs.readFileSync(
+  path.join(__dirname, '..', 'annotations-ui.js'),
+  'utf8',
+);
 
 assert.match(
   appSource,
@@ -20,17 +24,17 @@ assert.doesNotMatch(
 console.log('XSS escaping tests passed');
 
 assert.match(
-  appSource,
+  annotationsUiSource,
   /function annotationPercent\(value, fallback\)/,
   'Координаты аннотаций должны проходить числовую нормализацию',
 );
 assert.match(
-  appSource,
+  annotationsUiSource,
   /function annotationColor\(value\)/,
   'Цвет аннотации должен проверяться перед вставкой в style',
 );
 assert.doesNotMatch(
-  appSource,
+  annotationsUiSource,
   /style="[^"]*\$\{a\.position\?/,
   'Значения annotation.position не должны напрямую попадать в style',
 );
