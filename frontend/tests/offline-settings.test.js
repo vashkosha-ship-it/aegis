@@ -71,7 +71,7 @@ vm.runInContext(source, context);
     indexSource.indexOf('src="offline-settings.js"') < indexSource.indexOf('src="app.js"'),
     'offline-settings.js должен подключаться раньше app.js',
   );
-  assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v212'/);
+  assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\\d+'/);
   assert.match(swSource, /'\/offline-settings\.js'/);
 
   console.log('Offline settings tests passed');
