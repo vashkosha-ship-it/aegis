@@ -93,6 +93,7 @@ async function deleteAnnotation(bookId, annId) {
     delete annotationsCache[bookId];
     if (currentBookId === bookId) await renderAnnotations();
     if (state.currentScreen === 'detail' && state.detailTab === 'notes') renderDetailNotes();
+    return true;
   } catch (err) {
     if (err instanceof api.ApiError) {
       if (err.status === 403) showToast('Нельзя удалить чужую аннотацию');
@@ -100,5 +101,6 @@ async function deleteAnnotation(bookId, annId) {
     } else {
       showToast('Сервер недоступен');
     }
+    return false;
   }
 }
