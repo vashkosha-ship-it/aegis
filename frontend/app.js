@@ -2425,7 +2425,6 @@ let _pdfRenderToken = 0;       // токен последнего запроса
 let readerCurrentPageText = '';  // текст текущей страницы для AI-ассистента
 let epubCurrentPage = 1, epubTotalPages = 0;
 let currentQuiz = { bookId: null, questions: [], currentIndex: 0, score: 0, answers: [] };
-let pomodoroInterval = null, pomodoroSeconds = 25 * 60, pomodoroRunning = false, pomodoroMode = 'work';
 let analyticsCharts = {};
 
 function saveState() {
@@ -4179,39 +4178,6 @@ async function renderDetailNotes() {
     tabEl.textContent = `Заметки${ann.length ? ` (${ann.length})` : ''}`;
   }
 }
-
-// ========== POMODORO TIMER ==========
-function togglePomodoro() { document.getElementById('pomodoroContainer').classList.toggle('show'); }
-function updatePomodoroDisplay() { const m = Math.floor(pomodoroSeconds / 60), s = pomodoroSeconds % 60; document.getElementById('pomodoroTimer').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`; }
-function startPomodoro() {
-  if (pomodoroRunning) return;
-  pomodoroRunning = true;
-  document.getElementById('pomodoroStart').style.display = 'none';
-  document.getElementById('pomodoroPause').style.display = 'inline-block';
-  document.getElementById('pomodoroStatus').textContent = pomodoroMode === 'work' ? 'Фокус' : 'Перерыв';
-  pomodoroInterval = setInterval(() => {
-    pomodoroSeconds--;
-    updatePomodoroDisplay();
-    if (pomodoroSeconds <= 0) {
-      clearInterval(pomodoroInterval);
-      pomodoroRunning = false;
-      if (pomodoroMode === 'work') {
-        pomodoroMode = 'break';
-        pomodoroSeconds = 5 * 60;
-        showToast('Перерыв!');
-      } else {
-        pomodoroMode = 'work';
-        pomodoroSeconds = 25 * 60;
-        showToast('Работаем!');
-      }
-      document.getElementById('pomodoroStart').style.display = 'inline-block';
-      document.getElementById('pomodoroPause').style.display = 'none';
-      updatePomodoroDisplay();
-    }
-  }, 1000);
-}
-function pausePomodoro() { clearInterval(pomodoroInterval); pomodoroRunning = false; document.getElementById('pomodoroStart').style.display = 'inline-block'; document.getElementById('pomodoroPause').style.display = 'none'; }
-function resetPomodoro() { clearInterval(pomodoroInterval); pomodoroRunning = false; pomodoroMode = 'work'; pomodoroSeconds = 25 * 60; document.getElementById('pomodoroStart').style.display = 'inline-block'; document.getElementById('pomodoroPause').style.display = 'none'; updatePomodoroDisplay(); }
 
 // ========== QUIZ ==========
 function renderQuizQuestion() {
