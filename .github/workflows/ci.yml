@@ -130,7 +130,7 @@ jobs:
         # в собственных JS-файлах поймать стоит — она кладёт весь интерфейс.
         run: |
           for f in app.js favorite-categories.js vendor-loader.js icons.js appearance-settings.js \
-                   offline-settings.js loading-ui.js api.js sw.js offline-storage.js \
+                   offline-settings.js loading-ui.js core-utils.js api.js sw.js offline-storage.js \
                    inline-handlers.js handler-allowlist.js csp-helpers.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
@@ -188,6 +188,9 @@ jobs:
 
       - name: Тест компонентов загрузки
         run: node tests/loading-ui.test.js
+
+      - name: Тест базовых frontend-утилит
+        run: node tests/core-utils.test.js
 
   security:
     runs-on: ubuntu-latest
