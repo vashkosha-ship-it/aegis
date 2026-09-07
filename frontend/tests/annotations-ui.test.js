@@ -103,6 +103,7 @@ vm.runInContext(source, context);
   assert.ok(dom.window.document.querySelector('.note-tooltip'));
 
   assert.doesNotMatch(appSource, /function annotationPercent|async function renderAnnotations|async function showNoteTooltip|async function convertToNote/);
+  assert.ok(indexSource.indexOf('annotations-core.js') < indexSource.indexOf('annotations-ui.js'));
   assert.ok(indexSource.indexOf('annotations-ui.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
   assert.match(workerSource, /['"]\/annotations-ui\.js['"]/);
