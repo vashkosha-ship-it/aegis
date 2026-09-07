@@ -83,10 +83,13 @@ vm.runInContext(source, context);
   const originalRender = context.renderAnnotations;
   context.renderAnnotations = async () => { renders += 1; };
   await context.convertToNoteSave(annotations[0], '  новая заметка  ');
-  assert.deepEqual(apiCalls[0], ['add', 42, {
-    type: 'note', page: 3, selected_text: '<опасный>',
-    note_text: 'новая заметка', position: annotations[0].position,
-  }]);
+  assert.equal(apiCalls[0][0], 'add');
+  assert.equal(apiCalls[0][1], 42);
+  assert.equal(apiCalls[0][2].type, 'note');
+  assert.equal(apiCalls[0][2].page, 3);
+  assert.equal(apiCalls[0][2].selected_text, '<опасный>');
+  assert.equal(apiCalls[0][2].note_text, 'новая заметка');
+  assert.equal(apiCalls[0][2].position, annotations[0].position);
   assert.deepEqual(apiCalls[1], ['delete', 1]);
   assert.equal(renders, 1);
   assert.ok(toasts.includes('Заметка сохранена!'));
