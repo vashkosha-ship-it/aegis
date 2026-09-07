@@ -3430,7 +3430,9 @@ select[multiple] option:hover {
   border-radius: 20px;
   background: transparent;
   color: var(--text-secondary);
-  font: 600 12px inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
