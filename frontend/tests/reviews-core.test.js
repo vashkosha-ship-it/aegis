@@ -63,6 +63,12 @@ const context = {
   state,
   currentBookId: 42,
   adaptBookFromApi: value => ({ ...value, adapted: true }),
+  eh: value => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;'),
   showToast: message => toasts.push(message),
   showListSkeleton: () => {},
   sensitiveNonce: () => 'test-nonce',
