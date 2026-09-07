@@ -3660,3 +3660,8 @@ textarea.app-dialog-input {
   background: #ef4444;
   color: #fff;
 }
+
+
+.pomodoro-btn.is-hidden {
+  display: none;
+}

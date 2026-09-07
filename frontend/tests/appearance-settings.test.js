@@ -68,7 +68,7 @@ assert.ok(
   indexSource.indexOf('src="appearance-settings.js"') < indexSource.indexOf('src="app.js"'),
   'appearance-settings.js должен подключаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v210'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v211'/);
 assert.match(swSource, /'\/appearance-settings\.js'/);
 
 console.log('Appearance settings tests passed');

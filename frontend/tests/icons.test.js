@@ -27,7 +27,7 @@ assert.ok(
   indexSource.indexOf('src="icons.js"') < indexSource.indexOf('src="app.js"'),
   'icons.js должен подключаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v210'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v211'/);
 assert.match(swSource, /'\/icons\.js'/);
 
 console.log('Icons registry tests passed');

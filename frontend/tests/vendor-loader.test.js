@@ -20,7 +20,7 @@ assert.ok(
   indexSource.indexOf('src="vendor-loader.js"') < indexSource.indexOf('src="app.js"'),
   'vendor-loader.js должен подключаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v210'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v211'/);
 assert.match(swSource, /'\/vendor-loader\.js'/);
 
 const appended = [];
