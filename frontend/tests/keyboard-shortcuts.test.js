@@ -87,7 +87,7 @@ assert.ok(
   indexSource.indexOf('src="keyboard-shortcuts.js"') < indexSource.indexOf('src="app.js"'),
   'keyboard-shortcuts.js должен подключаться раньше app.js',
 );
-assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\\d+'/);
+assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
 assert.match(swSource, /'\/keyboard-shortcuts\.js'/);
 
 console.log('Keyboard shortcuts tests passed');
