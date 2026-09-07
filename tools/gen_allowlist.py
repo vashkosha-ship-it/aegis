@@ -14,14 +14,14 @@ import sys
 from pathlib import Path
 
 FRONTEND = Path("frontend")
-SOURCES = [
-    FRONTEND / "app.js",
-    FRONTEND / "annotations-ui.js",
-    FRONTEND / "quiz-core.js",
-    FRONTEND / "book-discussion.js",
-    FRONTEND / "reviews-core.js",
-    FRONTEND / "index.html",
-]
+# Все загружаемые feature-модули могут создавать динамическую разметку.
+# Исключаем сам сгенерированный реестр и диспетчер: их комментарии содержат
+# намеренно вредоносные примеры data-on*, которые нельзя разрешать.
+SOURCE_EXCLUDES = {"handler-allowlist.js", "inline-handlers.js"}
+SOURCES = sorted(
+    path for path in FRONTEND.glob("*.js")
+    if path.name not in SOURCE_EXCLUDES
+) + [FRONTEND / "index.html"]
 OUT = FRONTEND / "handler-allowlist.js"
 
 # Обработчики, добавляемые не из разметки, а из кода
