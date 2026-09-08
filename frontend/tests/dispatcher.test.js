@@ -166,7 +166,12 @@ console.log('\nРеестр соответствует разметке');
   const callRe = /^\s*([A-Za-z_$][\w$]*)\s*\(/;
   const missing = [];
 
-  for (const file of ['app.js', 'index.html']) {
+  const sourceFiles = fs.readdirSync(FRONTEND)
+    .filter((file) => file.endsWith('.js'))
+    .filter((file) => !['handler-allowlist.js', 'inline-handlers.js'].includes(file))
+    .concat('index.html');
+
+  for (const file of sourceFiles) {
     const text = fs.readFileSync(path.join(FRONTEND, file), 'utf8');
     let m;
     while ((m = attrRe.exec(text)) !== null) {
