@@ -131,7 +131,7 @@ jobs:
         run: |
           for f in app.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js favorite-categories.js mylist-drag-drop.js book-discussion.js reviews-core.js finish-review.js vendor-loader.js icons.js appearance-settings.js \
                    offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
-                   inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js recommendations.js ai-responses.js navigation.js catalog-filters.js training-screen.js reader-theme.js reader-gestures.js page-bookmarks.js reader-open.js; do
+                   inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js recommendations.js ai-responses.js navigation.js catalog-filters.js training-screen.js reader-theme.js flashcards.js reader-gestures.js page-bookmarks.js reader-open.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
               node --check "$f"
@@ -182,6 +182,9 @@ jobs:
 
       - name: Тест закладок страниц
         run: node tests/page-bookmarks.test.js
+
+      - name: Тест интервального повторения
+        run: node tests/flashcards.test.js
 
       - name: Тест жестов читалки
         run: node tests/reader-gestures.test.js
