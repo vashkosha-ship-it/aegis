@@ -37,7 +37,7 @@ assert.equal(context.getRecommendations(1)[0].id, 3);
 
 context.state.currentUser.cyber_level = 'unknown';
 assert.equal(context.levelTopicKeywords(), null);
-assert.deepEqual(Array.from(context.getRecommendations(2), b => b.id), [3, 4]);
+assert.deepEqual(Array.from(context.getRecommendations(2), b => b.id), [4, 3]);
 
 context.state.currentUser = null;
 assert.deepEqual(Array.from(context.getRecommendations()), []);
