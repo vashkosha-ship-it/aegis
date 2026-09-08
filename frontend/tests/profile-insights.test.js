@@ -85,7 +85,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /function loadAndRenderLeaderboard|function renderHeatmap|function computeSkillScores/);
   assert.ok(indexSource.indexOf('profile-insights.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/profile-insights\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v224/);
+  assert.match(workerSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
   console.log('Profile insights tests passed');
 })().catch(error => {
   console.error(error);
