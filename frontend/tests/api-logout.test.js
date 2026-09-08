@@ -48,12 +48,17 @@ async function main() {
   assert.equal(requestOptions.headers['X-CSRF-Token'], 'test-csrf');
 
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
-  const unloadStart = appSource.indexOf("window.addEventListener('beforeunload'");
-  const unloadEnd = appSource.indexOf('// Set с ID сохранённых', unloadStart);
-  const unloadHandler = appSource.slice(unloadStart, unloadEnd);
+  const progressSource = fs.readFileSync(
+    path.join(__dirname, '..', 'reading-progress-sync.js'),
+    'utf8',
+  );
+  const unloadStart = progressSource.indexOf("window.addEventListener('beforeunload'");
+  const unloadHandler = progressSource.slice(unloadStart);
+  assert.ok(unloadStart >= 0);
   assert.ok(unloadHandler.includes('queueProgress(bookId, p.currentPage, p.totalPages)'));
   assert.ok(unloadHandler.includes('const accessToken = api.tokens.access'));
   assert.ok(!unloadHandler.includes("localStorage.getItem('neon_access_token')"));
+  assert.ok(!appSource.includes("window.addEventListener('beforeunload'"));
 
   process.stdout.write('api logout/progress regressions: ok\n');
 }
