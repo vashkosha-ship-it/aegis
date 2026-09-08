@@ -131,7 +131,7 @@ jobs:
         run: |
           for f in app.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js favorite-categories.js mylist-drag-drop.js book-discussion.js reviews-core.js vendor-loader.js icons.js appearance-settings.js \
                    offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
-                   inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js ai-responses.js navigation.js; do
+                   inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js recommendations.js ai-responses.js navigation.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
               node --check "$f"
@@ -182,6 +182,9 @@ jobs:
 
       - name: Тест навигации
         run: node tests/navigation.test.js
+
+      - name: Тест рекомендаций
+        run: node tests/recommendations.test.js
 
       - name: Тест локальных ответов AI
         run: node tests/ai-responses.test.js
