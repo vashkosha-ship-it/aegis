@@ -9036,7 +9036,7 @@ function restartOnboarding() {
 })();
 // Удаляем локальные данные снятой с эксплуатации биометрической блокировки.
 for (const key of ['aegis_biometric_enabled', 'aegis_biometric_cred', 'aegis_biometric_declined']) {
-  try { localStorage.removeItem(key); } catch (_) {}
+  try { localStorage.removeItem(key); } catch (_) { /* Очистка устаревших данных необязательна. */ }
 }
 tryAutoLogin().then(ok => {
   navigateTo(ok ? 'home' : 'auth');
