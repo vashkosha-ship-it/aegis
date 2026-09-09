@@ -28,6 +28,7 @@ const api = {
 };
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   api,
   navigator: { vibrate: value => { vibrations += value; } },
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),

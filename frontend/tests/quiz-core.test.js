@@ -19,6 +19,7 @@ let gamificationRefreshes = 0;
 
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   api: {
     ApiError: class ApiError extends Error {},
     library: {

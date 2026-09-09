@@ -47,6 +47,7 @@ const escapeHtml = value => String(value ?? '')
 
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   navigator: { vibrate: () => { vibrations += 1; } },
   api,
   currentBookId: 42,

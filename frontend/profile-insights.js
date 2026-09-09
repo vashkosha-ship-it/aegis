@@ -224,7 +224,7 @@ function renderHeatmapDayContent(data) {
 
   const statBox = (label, value, color = 'var(--accent)') => `
     <div data-static-style="a458">
-      <div style="font-size:18px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;">${value}</div>
+      <div data-dynamic-style="${dynamicStyleToken`font-size:18px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;`}">${value}</div>
       <div data-static-style="a344">${label}</div>
     </div>
   `;
@@ -258,7 +258,7 @@ function renderHeatmapDayContent(data) {
           ${data.quizzes.map(q => `
             <div data-static-style="a463">
               <div data-static-style="a464">${eh(q.book_title)}</div>
-              <div style="color:${q.passed ? '#22c55e' : '#ef4444'};font-weight:700;font-size:11px;flex-shrink:0;">${q.percentage}%</div>
+              <div data-dynamic-style="${dynamicStyleToken`color:${q.passed ? '#22c55e' : '#ef4444'};font-weight:700;font-size:11px;flex-shrink:0;`}">${q.percentage}%</div>
             </div>
           `).join('')}
         </div>

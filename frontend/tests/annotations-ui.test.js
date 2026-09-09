@@ -23,6 +23,12 @@ const toasts = [];
 let prompt = null;
 let renders = 0;
 let deleteResult = true;
+const dynamicStyles = [];
+const captureDynamicStyle = (strings, ...values) => {
+  const value = strings.reduce((result, part, index) => result + part + (index < values.length ? values[index] : ''), '');
+  dynamicStyles.push(value);
+  return `test-style-${dynamicStyles.length}`;
+};
 
 const escapeHtml = value => String(value ?? '')
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -30,6 +36,7 @@ const escapeHtml = value => String(value ?? '')
 
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: captureDynamicStyle,
   api: { library: {
     addAnnotation: async (...args) => apiCalls.push(['add', ...args]),
     deleteAnnotation: async (...args) => apiCalls.push(['delete', ...args]),
@@ -60,8 +67,8 @@ vm.runInContext(source, context);
   await context.renderAnnotations();
   const layer = dom.window.document.getElementById('annotationLayer');
   assert.equal(layer.children.length, 2);
-  assert.match(layer.innerHTML, /left:0%/);
-  assert.match(layer.innerHTML, /top:100%/);
+  assert.match(dynamicStyles[0], /left:0%/);
+  assert.match(dynamicStyles[0], /top:100%/);
   const highlight = layer.querySelector('.highlight-mark');
   assert.equal(highlight.getAttribute('title'), '<опасный>');
   assert.equal(layer.querySelector('опасный'), null);

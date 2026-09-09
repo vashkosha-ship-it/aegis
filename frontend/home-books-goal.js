@@ -16,7 +16,7 @@ function renderBooksGoalWidget() {
         <div data-static-style="a318">${done}/${goal.count}</div>
       </div>
       <div data-static-style="a200">
-        <div style="height:100%;width:${pct}%;background:var(--accent-gradient);transition:width 0.4s;"></div>
+        <div data-dynamic-style="${dynamicStyleToken`height:100%;width:${pct}%;background:var(--accent-gradient);transition:width 0.4s;`}"></div>
       </div>
       <div data-static-style="a319">${pct >= 100 ? '🎉 Цель достигнута!' : `Осталось ${goal.count - done} — продолжайте!`}</div>
     </div>`;

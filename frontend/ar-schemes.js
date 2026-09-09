@@ -883,19 +883,19 @@ function renderOwaspScheme() {
             ${stages.map((s, i) => {
               const color = colors[i] || '#3b82f6';
               return `<button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
-                style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;
+                data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;
                        background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
                        border:1px solid ${color}44;border-left:4px solid ${color};
                        border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;
-                       transition:all 0.2s;pointer-events:auto;">
-                <div style="width:36px;height:36px;border-radius:8px;background:${color}22;
+                       transition:all 0.2s;pointer-events:auto;`}">
+                <div data-dynamic-style="${dynamicStyleToken`width:36px;height:36px;border-radius:8px;background:${color}22;
                             border:1px solid ${color};color:${color};display:flex;align-items:center;
-                            justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">A${String(s.id).padStart(2,'0')}</div>
+                            justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;`}">A${String(s.id).padStart(2,'0')}</div>
                 <div data-static-style="a015">
                   <div data-static-style="a016">${eh(s.nameRu)}</div>
                   <div data-static-style="a017">${eh(s.name)}</div>
                 </div>
-                <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+                <div data-dynamic-style="${dynamicStyleToken`width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;`}"></div>
               </button>`;
             }).join('')}
           </div>
@@ -973,7 +973,7 @@ function renderNistScheme() {
     return `
       <path id="nistSeg${s.id}" d="${segmentPath(i)}" fill="${color}" fill-opacity="0.22"
             stroke="${color}" stroke-width="2"
-            style="cursor:pointer;transition:fill-opacity 0.25s, transform 0.4s cubic-bezier(0.22,1,0.36,1);transform-origin:${cx}px ${cy}px;opacity:0;"
+            data-dynamic-style="${dynamicStyleToken`cursor:pointer;transition:fill-opacity 0.25s, transform 0.4s cubic-bezier(0.22,1,0.36,1);transform-origin:${cx}px ${cy}px;opacity:0;`}"
             data-onclick="selectKillChainStage(${s.id})"></path>
       <text x="${lx}" y="${ly + 5}" text-anchor="middle" fill="#fff" font-size="15" font-weight="800"
             data-static-style="a026">${s.code}</text>`;
@@ -1141,17 +1141,17 @@ function renderIrScheme() {
         <!-- Колонка таймлайна: точка + линия -->
         <div data-static-style="a041">
           <div id="arNode${s.id}" data-onclick="selectKillChainStage(${s.id})"
-               style="width:36px;height:36px;border-radius:50%;background:${color}22;border:2px solid ${color};
+               data-dynamic-style="${dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${color}22;border:2px solid ${color};
                       color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;
-                      font-size:13px;cursor:pointer;flex-shrink:0;transition:all 0.25s;z-index:2;">${i + 1}</div>
-          ${isLast ? '' : `<div style="flex:1;width:2px;background:linear-gradient(${color},${(stages[i+1].defenseMethod&&stages[i+1].defenseMethod.color)||color});min-height:24px;opacity:0.5;"></div>`}
+                      font-size:13px;cursor:pointer;flex-shrink:0;transition:all 0.25s;z-index:2;`}">${i + 1}</div>
+          ${isLast ? '' : `<div data-dynamic-style="${dynamicStyleToken`flex:1;width:2px;background:linear-gradient(${color},${(stages[i+1].defenseMethod&&stages[i+1].defenseMethod.color)||color});min-height:24px;opacity:0.5;`}"></div>`}
         </div>
         <!-- Карточка этапа -->
         <button data-onclick="selectKillChainStage(${s.id})"
-                style="flex:1;text-align:left;margin-bottom:14px;padding:12px 14px;background:rgba(0,0,0,0.6);
+                data-dynamic-style="${dynamicStyleToken`flex:1;text-align:left;margin-bottom:14px;padding:12px 14px;background:rgba(0,0,0,0.6);
                        backdrop-filter:blur(10px);border:1px solid ${color}44;border-left:3px solid ${color};
                        border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;transition:all 0.2s;
-                       opacity:0;transform:translateX(20px);" id="arCard${s.id}">
+                       opacity:0;transform:translateX(20px);`}" id="arCard${s.id}">
           <div data-static-style="a042">${s.nameRu}</div>
           <div data-static-style="a043">${s.name}</div>
         </button>
@@ -1211,14 +1211,14 @@ function renderStrideScheme() {
     const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
     return `
       <button data-onclick="selectKillChainStage(${s.id})" id="arCard${s.id}"
-        style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        data-dynamic-style="${dynamicStyleToken`position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
                aspect-ratio:1;padding:12px 8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);
                border:1px solid ${color}55;border-radius:14px;color:#fff;font-family:inherit;cursor:pointer;
-               transition:all 0.25s;overflow:hidden;opacity:0;transform:scale(0.8);" id="arNode${s.id}">
-        <div style="position:absolute;top:-10px;right:-6px;font-size:64px;font-weight:900;color:${color};opacity:0.13;line-height:1;">${s.code}</div>
-        <div style="width:42px;height:42px;border-radius:12px;background:${color}22;border:1.5px solid ${color};
+               transition:all 0.25s;overflow:hidden;opacity:0;transform:scale(0.8);`}" id="arNode${s.id}">
+        <div data-dynamic-style="${dynamicStyleToken`position:absolute;top:-10px;right:-6px;font-size:64px;font-weight:900;color:${color};opacity:0.13;line-height:1;`}">${s.code}</div>
+        <div data-dynamic-style="${dynamicStyleToken`width:42px;height:42px;border-radius:12px;background:${color}22;border:1.5px solid ${color};
                     color:${color};display:flex;align-items:center;justify-content:center;font-weight:900;
-                    font-size:20px;margin-bottom:8px;z-index:1;">${s.code}</div>
+                    font-size:20px;margin-bottom:8px;z-index:1;`}">${s.code}</div>
         <div data-static-style="a046">${s.nameRu}</div>
         <div data-static-style="a047">${s.name}</div>
       </button>`;
@@ -1284,19 +1284,19 @@ function renderGenericScheme(scheme) {
               const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
               const badge = (s.code || String(s.id)).toUpperCase().slice(0, 4);
               return `<button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
-                style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;
+                data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;
                        background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
                        border:1px solid ${color}44;border-left:4px solid ${color};
                        border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;
-                       transition:all 0.2s;pointer-events:auto;">
-                <div style="width:40px;height:36px;border-radius:8px;background:${color}22;
+                       transition:all 0.2s;pointer-events:auto;`}">
+                <div data-dynamic-style="${dynamicStyleToken`width:40px;height:36px;border-radius:8px;background:${color}22;
                             border:1px solid ${color};color:${color};display:flex;align-items:center;
-                            justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;">${badge}</div>
+                            justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;`}">${badge}</div>
                 <div data-static-style="a015">
                   <div data-static-style="a050">${s.nameRu}</div>
                   <div data-static-style="a051">${s.name}</div>
                 </div>
-                <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+                <div data-dynamic-style="${dynamicStyleToken`width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;`}"></div>
               </button>`;
             }).join('')}
           </div>
@@ -1345,14 +1345,14 @@ function renderOsiScheme() {
     const num = s.id; // оригинальный номер уровня
     return `
       <button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
-        style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;
+        data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;
                background:linear-gradient(135deg, ${color}33, ${color}11);
                backdrop-filter:blur(10px);border:1px solid ${color}66;border-radius:10px;
                color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.25s;
-               box-shadow:0 4px 14px ${color}22;opacity:0;transform:translateY(-16px);">
-        <div style="width:44px;height:44px;border-radius:10px;background:${color}33;border:1.5px solid ${color};
+               box-shadow:0 4px 14px ${color}22;opacity:0;transform:translateY(-16px);`}">
+        <div data-dynamic-style="${dynamicStyleToken`width:44px;height:44px;border-radius:10px;background:${color}33;border:1.5px solid ${color};
                     color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
-                    flex-shrink:0;line-height:1;">
+                    flex-shrink:0;line-height:1;`}">
           <div data-static-style="a052">LVL</div>
           <div data-static-style="a053">${num}</div>
         </div>
@@ -1360,7 +1360,7 @@ function renderOsiScheme() {
           <div data-static-style="a042">${s.nameRu}</div>
           <div data-static-style="a054">${s.name}</div>
         </div>
-        <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 8px ${color};"></div>
+        <div data-dynamic-style="${dynamicStyleToken`width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 8px ${color};`}"></div>
       </button>`;
   }).join('');
 
@@ -1429,20 +1429,20 @@ function renderMitreScheme() {
     return `
       <div data-static-style="a058">
         <button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
-          style="width:130px;min-height:120px;display:flex;flex-direction:column;align-items:flex-start;
+          data-dynamic-style="${dynamicStyleToken`width:130px;min-height:120px;display:flex;flex-direction:column;align-items:flex-start;
                  padding:12px;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);
                  border:1px solid ${color}66;border-top:3px solid ${color};border-radius:12px;
                  color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.25s;
-                 flex-shrink:0;opacity:0;transform:translateY(16px);">
+                 flex-shrink:0;opacity:0;transform:translateY(16px);`}">
           <div data-static-style="a059">
-            <div style="width:26px;height:26px;border-radius:7px;background:${color}33;border:1px solid ${color};
-                        color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">${i + 1}</div>
+            <div data-dynamic-style="${dynamicStyleToken`width:26px;height:26px;border-radius:7px;background:${color}33;border:1px solid ${color};
+                        color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;`}">${i + 1}</div>
             <div data-static-style="a060">${s.code}</div>
           </div>
           <div data-static-style="a061">${s.nameRu}</div>
           <div data-static-style="a062">${s.name}</div>
         </button>
-        ${isLast ? '' : `<div style="color:${color};font-size:18px;margin:0 4px;flex-shrink:0;opacity:0.7;">→</div>`}
+        ${isLast ? '' : `<div data-dynamic-style="${dynamicStyleToken`color:${color};font-size:18px;margin:0 4px;flex-shrink:0;opacity:0.7;`}">→</div>`}
       </div>`;
   }).join('');
 
@@ -1549,17 +1549,17 @@ function renderKillChainScheme() {
       <!-- Контейнер для скролла с поддержкой зума -->
       <div id="killChainScrollContainer" data-static-style="a069">
         <div id="killChainWrapper" data-static-style="a013">
-          <div id="killChainNodes" style="display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;">
+          <div id="killChainNodes" data-dynamic-style="${dynamicStyleToken`display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;`}">
             ${stages.map((s, i) => `
-              ${i > 0 ? `<div class="ar-chain-link${isVertical ? ' vertical' : ''}" style="width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(0,212,255,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(0,212,255,0.2),inset 0 0 4px rgba(0,0,0,0.4);"></div>` : ''}
+              ${i > 0 ? `<div class="ar-chain-link${isVertical ? ' vertical' : ''}" data-dynamic-style="${dynamicStyleToken`width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(0,212,255,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(0,212,255,0.2),inset 0 0 4px rgba(0,0,0,0.4);`}"></div>` : ''}
               ${(() => {
                 const studied = isKillChainStageStudied(s);
                 const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
                 const checkmark = studied ? `<div data-static-style="a070">✓</div>` : '';
                 return `
                 <div data-static-style="a071">
-                <button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" style="position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);">
-                  <div style="font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);">${s.id}</div>
+                <button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" data-dynamic-style="${dynamicStyleToken`position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);`}">
+                  <div data-dynamic-style="${dynamicStyleToken`font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);`}">${s.id}</div>
                   ${checkmark}
                 </button>
                 <div data-static-style="a072">${s.nameRu}</div>
@@ -2023,13 +2023,13 @@ function selectKillChainStage(stageId) {
         <div data-static-style="a079">${eh(stage.metaphor || '—')}</div>
       </div>
 
-      <div style="display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">
+      <div data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;`}">
+        <div data-dynamic-style="${dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;`}">
           ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
         </div>
         <div data-static-style="a004">
           <div data-static-style="a080">МЕТОД ЗАЩИТЫ (6D)</div>
-          <div style="font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};">
+          <div data-dynamic-style="${dynamicStyleToken`font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};`}">
             ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
           </div>
         </div>
@@ -2065,7 +2065,7 @@ function selectKillChainStage(stageId) {
         ${(stage.defenseTools && stage.defenseTools.length) ? `
           <div data-static-style="a089">
             ${stage.defenseTools.map(t => `
-              <div style="background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;">
+              <div data-dynamic-style="${dynamicStyleToken`background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;`}">
                 ${eh(t)}
               </div>
             `).join('')}
@@ -2092,8 +2092,8 @@ function selectKillChainStage(stageId) {
       `}
 
       <div data-static-style="a098">
-        <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
-        <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
+        <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}`}">← Назад</button>
+        <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}`}">Вперёд →</button>
       </div>
     `;
   }
@@ -2246,13 +2246,13 @@ function applyKillChainViewMode() {
       </div>
 
       <!-- Бейдж метода защиты -->
-      <div style="display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;">
+      <div data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;`}">
+        <div data-dynamic-style="${dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;`}">
           ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
         </div>
         <div data-static-style="a004">
           <div data-static-style="a080">МЕТОД ЗАЩИТЫ (6D)</div>
-          <div style="font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};">
+          <div data-dynamic-style="${dynamicStyleToken`font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};`}">
             ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
           </div>
         </div>
@@ -2291,7 +2291,7 @@ function applyKillChainViewMode() {
         ${(stage.defenseTools && stage.defenseTools.length) ? `
           <div data-static-style="a089">
             ${stage.defenseTools.map(t => `
-              <div style="background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;">
+              <div data-dynamic-style="${dynamicStyleToken`background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;`}">
                 ${eh(t)}
               </div>
             `).join('')}
@@ -2318,8 +2318,8 @@ function applyKillChainViewMode() {
       `}
 
       <div data-static-style="a098">
-       <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} style="flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}">← Назад</button>
-        <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} style="flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}">Вперёд →</button>
+       <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}`}">← Назад</button>
+        <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}`}">Вперёд →</button>
       </div>
     `;
 

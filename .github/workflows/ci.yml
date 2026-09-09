@@ -129,7 +129,7 @@ jobs:
         # Полноценного сборщика у фронта нет, но синтаксическую ошибку
         # в собственных JS-файлах поймать стоит — она кладёт весь интерфейс.
         run: |
-          for f in app.js app-state.js user-features.js library-home.js reader-core.js onboarding.js ar-schemes.js assistant-chat.js admin-screens.js auth-ui.js account-settings.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js detail-training.js also-read.js favorite-categories.js mylist-api.js mylist-drag-drop.js mylist-screen.js custom-collections.js book-discussion.js reviews-core.js finish-review.js vendor-loader.js icons.js appearance-settings.js \
+          for f in app.js dynamic-styles.js app-state.js user-features.js library-home.js reader-core.js onboarding.js ar-schemes.js assistant-chat.js admin-screens.js auth-ui.js account-settings.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js detail-training.js also-read.js favorite-categories.js mylist-api.js mylist-drag-drop.js mylist-screen.js custom-collections.js book-discussion.js reviews-core.js finish-review.js vendor-loader.js icons.js appearance-settings.js \
                    offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
                    inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js profile-screen.js recommendations.js home-continue.js home-recommendations.js home-books-goal.js home-catalog.js reading-goals.js ai-responses.js reader-ai-panel.js navigation.js catalog-filters.js training-screen.js reader-theme.js reading-progress-sync.js flashcards.js reader-gestures.js page-bookmarks.js reader-toc.js reader-open.js offline-library.js offline-profile.js pull-to-refresh.js reader-search.js epub-annotations.js reader-selection-ai.js reader-lifecycle.js reader-navigation.js; do
             if [ -f "$f" ]; then
@@ -269,6 +269,9 @@ jobs:
 
       - name: Тест финальной декомпозиции app.js
         run: node tests/application-modules.test.js
+
+      - name: Тест динамических стилей
+        run: node tests/dynamic-styles.test.js
 
       - name: Тест аналитики
         run: node tests/analytics.test.js

@@ -209,7 +209,7 @@ function renderBookAnalytics(d) {
         <td data-static-style="a586">${r.current_page} / ${r.total_pages}</td>
         <td data-static-style="a587">
           <div data-static-style="a588">
-            <div style="height:100%;width:${r.progress_pct}%;background:var(--accent-gradient);"></div>
+            <div data-dynamic-style="${dynamicStyleToken`height:100%;width:${r.progress_pct}%;background:var(--accent-gradient);`}"></div>
           </div>
           <span data-static-style="a589">${r.progress_pct}%</span>
         </td>
@@ -261,7 +261,7 @@ function statBox(label, value) {
 
 function miniStat(label, value, color) {
   return `<div data-static-style="a598">
-    <div style="font-size:14px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;">${value}</div>
+    <div data-dynamic-style="${dynamicStyleToken`font-size:14px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;`}">${value}</div>
     <div data-static-style="a599">${eh(label)}</div>
   </div>`;
 }

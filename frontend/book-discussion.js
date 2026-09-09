@@ -47,7 +47,7 @@ function _commentBubble(c, isReply) {
     ? `<img src="${api.users.avatarUrl(c.author.id)}" data-static-style="a210">`
     : `<div data-static-style="a211">${name.charAt(0).toUpperCase()}</div>`;
   return `
-    <div style="display:flex;gap:10px;padding:10px 0;${isReply ? 'margin-left:42px;' : ''}">
+    <div data-dynamic-style="${dynamicStyleToken`display:flex;gap:10px;padding:10px 0;${isReply ? 'margin-left:42px;' : ''}`}">
       ${avatar}
       <div data-static-style="a015">
         <div data-static-style="a212">

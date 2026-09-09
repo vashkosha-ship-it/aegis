@@ -38,6 +38,7 @@ const state = {
 };
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   Chart: ChartStub,
   getComputedStyle: dom.window.getComputedStyle,
   state,

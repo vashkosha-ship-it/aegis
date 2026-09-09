@@ -234,7 +234,7 @@ function renderOnboardingResult(result) {
     return `<div class="onboarding-topic-row">
       <div class="onboarding-topic-name">${eh(t.topic_name)}</div>
       <div class="onboarding-topic-bar">
-        <div class="onboarding-topic-fill ${cls}" style="width:${t.percentage}%;"></div>
+        <div class="onboarding-topic-fill ${cls}" data-dynamic-style="${dynamicStyleToken`width:${t.percentage}%;`}"></div>
       </div>
       <div class="onboarding-topic-pct">${t.percentage}%</div>
     </div>`;
@@ -338,7 +338,7 @@ function renderCyberLevelDetail(result) {
     return `<div class="onboarding-topic-row">
       <div class="onboarding-topic-name">${eh(t.topic_name)}</div>
       <div class="onboarding-topic-bar">
-        <div class="onboarding-topic-fill ${cls}" style="width:${t.percentage}%;"></div>
+        <div class="onboarding-topic-fill ${cls}" data-dynamic-style="${dynamicStyleToken`width:${t.percentage}%;`}"></div>
       </div>
       <div class="onboarding-topic-pct">${t.percentage}%</div>
     </div>`;

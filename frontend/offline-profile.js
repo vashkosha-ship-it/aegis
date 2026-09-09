@@ -37,7 +37,7 @@ async function renderOfflineBooks() {
           <span>Доступно: ${formatBytes(quota.quota)}</span>
         </div>
         <div data-static-style="a337">
-          <div style="height:100%;width:${Math.min(usagePct, 100)}%;background:${isWarning ? '#f59e0b' : 'var(--accent-gradient)'};transition:width 0.5s;"></div>
+          <div data-dynamic-style="${dynamicStyleToken`height:100%;width:${Math.min(usagePct, 100)}%;background:${isWarning ? '#f59e0b' : 'var(--accent-gradient)'};transition:width 0.5s;`}"></div>
         </div>
         ${isWarning ? '<div data-static-style="a338">Хранилище почти заполнено</div>' : ''}
       </div>

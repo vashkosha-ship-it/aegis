@@ -6,22 +6,18 @@
 # Пересобрать: python tools/audit_innerhtml.py --baseline
 
 account-settings.js	ICONS[tab.icon]
-account-settings.js	[2, 3, 4].map(n => `
 account-settings.js	card(activeDays, 'активных дней', '#10b981')
 account-settings.js	card(avgQuiz !== null ? avgQuiz + '%' : '—', 'средний балл тестов', '#f59e0b')
 account-settings.js	card(hours + ' ч', 'примерно времени', '#a855f7')
 account-settings.js	card(totalPages, 'страниц прочитано', 'var(--accent)')
-account-settings.js	formatBytes(stats.cacheSize)
-account-settings.js	formatBytes(stats.quota)
 account-settings.js	formatBytes(stats.used)
 account-settings.js	html
 account-settings.js	options.map(opt => `
 account-settings.js	sensitiveNonce()
-account-settings.js	stats.cacheCount
 account-settings.js	tab ? tab.label : ''
 account-settings.js	tab.label
-account-settings.js	usedPct
-account-settings.js	weeks.map(w => `<div title="${w} стр." style="flex:1
+account-settings.js	topCats.length ? topCats.map(([cat, n]) => { const pct = Math.round(n / topCats[0][1] * 100); return `<div data-static-s
+account-settings.js	weeks.map(w => `<div title="${w} стр." data-dynamic-style="${dynamicStyleToken`flex:1;min-width:4px;height:${Math.max(4,
 admin-screens.js	allReviews.map(r => `
 admin-screens.js	s.done
 admin-screens.js	s.errors ? `, ошибок: ${s.errors}` : ''
@@ -36,10 +32,7 @@ admin-screens.js	stats.total_quiz_attempts
 admin-screens.js	stats.total_reviews
 admin-screens.js	stats.total_users
 admin-screens.js	stats.total_views
-admin-screens.js	statusColor[item.status]
-admin-screens.js	statusIcon[item.status]
 admin-screens.js	u.department ? `<div data-static-style="a193">${eh(u.department)}</div>` : ''
-ar-schemes.js	(stage.defenseTools && stage.defenseTools.length) ? `
 ar-schemes.js	AR_3D.pyramid
 ar-schemes.js	arrows
 ar-schemes.js	cards
@@ -54,12 +47,6 @@ ar-schemes.js	layers
 ar-schemes.js	percent
 ar-schemes.js	rInner - 6
 ar-schemes.js	segs
-ar-schemes.js	stage.attacker.map(a => `<li data-static-style="a087">${eh(a)}</li>`).join('')
-ar-schemes.js	stage.defender.map(d => `<li data-static-style="a087">${eh(d)}</li>`).join('')
-ar-schemes.js	stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'
-ar-schemes.js	stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'
-ar-schemes.js	stage.defenseMethod ? stage.defenseMethod.color : '#666'
-ar-schemes.js	stage.defenseMethod ? stage.defenseMethod.color : '#fff'
 ar-schemes.js	stage.nameRu.toUpperCase()
 ar-schemes.js	stages.map((s) => { const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6'; const badge = (s.code || Stri
 ar-schemes.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; return `<button data-onclick="selectKillChainStage(${s.id})

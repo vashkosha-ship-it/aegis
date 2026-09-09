@@ -32,6 +32,7 @@ const offlineStorage = {
 };
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   state,
   offlineStorage,
   ICONS: { cloudDownload: 'cloud', eye: 'eye', trash: 'trash' },
