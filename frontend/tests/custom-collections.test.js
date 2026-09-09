@@ -73,7 +73,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /let _collectionsCache|function getCollections|function openAddToCollection|function toggleBookInCollection|function createCollectionFromModal/);
   assert.ok(indexSource.indexOf('custom-collections.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/custom-collections\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v\d+/);
+  assert.match(workerSource, /aegis-cache-v[0-9]+/);
   console.log('Custom collections tests passed');
 })().catch(error => {
   console.error(error);
