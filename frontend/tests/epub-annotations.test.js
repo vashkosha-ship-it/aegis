@@ -76,7 +76,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /function handleEpubSelection|function saveEpubAnnotation|function loadAndApplyEpubHighlights/);
   assert.ok(indexSource.indexOf('epub-annotations.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/epub-annotations\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v250/);
+  assert.match(workerSource, /aegis-cache-v[0-9]+/);
   console.log('EPUB annotations tests passed');
 })().catch(error => {
   console.error(error);

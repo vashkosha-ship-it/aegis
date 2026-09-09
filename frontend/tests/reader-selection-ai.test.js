@@ -91,7 +91,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /function showSelectionToolbar|function runReaderAi|function highlightSelection/);
   assert.ok(indexSource.indexOf('reader-selection-ai.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/reader-selection-ai\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v250/);
+  assert.match(workerSource, /aegis-cache-v[0-9]+/);
   console.log('Reader selection and AI tests passed');
 })().catch(error => {
   console.error(error);

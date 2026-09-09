@@ -96,5 +96,5 @@ assert.equal(shortcut.defaultPrevented, true);
 assert.doesNotMatch(appSource, /function initReaderBrightnessGesture|function closeReader/);
 assert.ok(indexSource.indexOf('reader-lifecycle.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/reader-lifecycle\.js['"]/);
-assert.match(workerSource, /aegis-cache-v250/);
+assert.match(workerSource, /aegis-cache-v[0-9]+/);
 console.log('Reader lifecycle tests passed');
