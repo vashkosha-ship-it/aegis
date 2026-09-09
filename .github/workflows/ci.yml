@@ -129,7 +129,7 @@ jobs:
         # Полноценного сборщика у фронта нет, но синтаксическую ошибку
         # в собственных JS-файлах поймать стоит — она кладёт весь интерфейс.
         run: |
-          for f in app.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js favorite-categories.js mylist-drag-drop.js mylist-screen.js book-discussion.js reviews-core.js finish-review.js vendor-loader.js icons.js appearance-settings.js \
+          for f in app.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js favorite-categories.js mylist-drag-drop.js mylist-screen.js custom-collections.js book-discussion.js reviews-core.js finish-review.js vendor-loader.js icons.js appearance-settings.js \
                    offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
                    inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js recommendations.js ai-responses.js navigation.js catalog-filters.js training-screen.js reader-theme.js reading-progress-sync.js flashcards.js reader-gestures.js page-bookmarks.js reader-toc.js reader-open.js offline-library.js offline-profile.js pull-to-refresh.js; do
             if [ -f "$f" ]; then
@@ -251,6 +251,9 @@ jobs:
 
       - name: Тест экрана «Мой список»
         run: node tests/mylist-screen.test.js
+
+      - name: Тест пользовательских коллекций
+        run: node tests/custom-collections.test.js
 
       - name: Тест загрузчика vendor-библиотек
         run: node tests/vendor-loader.test.js
