@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v239';
+const CACHE_NAME = 'aegis-cache-v240';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -18,6 +18,7 @@ const PRECACHE_URLS = [
   '/app.js',
   '/favorite-categories.js',
   '/mylist-drag-drop.js',
+  '/mylist-screen.js',
   '/book-discussion.js',
   '/reviews-core.js',
   '/finish-review.js',
