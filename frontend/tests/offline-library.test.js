@@ -91,7 +91,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /const offlineBookIds|function loadBooksFromOffline|function saveBookOffline/);
   assert.ok(indexSource.indexOf('offline-library.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/offline-library\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v240/);
+  assert.match(workerSource, /aegis-cache-v241/);
   console.log('Offline library tests passed');
 })().catch(error => {
   console.error(error);
