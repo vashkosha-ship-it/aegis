@@ -121,7 +121,7 @@ assert.equal(dom.window.document.querySelectorAll('#scrollAll .book-card-compact
 
 for (const name of moduleNames) {
   assert.ok(indexSource.indexOf(name) < indexSource.indexOf('app.js'), `${name} must load before app.js`);
-  assert.match(workerSource, new RegExp(`['"]/\\/${name.replace('.', '\\.') }['"]`));
+  assert.ok(workerSource.includes(`'/${name}'`), `${name} must be precached`);
 }
 assert.doesNotMatch(appSource, /function renderRecommendations|function renderBooksGoalWidget|const BOOKS_PER_PAGE|function renderPaginatedBooks|function goToBooksPage|function extractBookYear|function cardHTML/);
 assert.match(workerSource, /aegis-cache-v[0-9]+/);
