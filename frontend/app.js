@@ -3926,7 +3926,6 @@ document.getElementById('authForm').addEventListener('submit', async e => {
         navigateTo('onboarding');
       } else {
         navigateTo('home');
-        setTimeout(maybeOfferBiometric, 800);
       }
   } catch (err) {
     // Если вход заблокирован из-за неподтверждённого email — показываем экран кода
@@ -4038,168 +4037,6 @@ async function tryAutoLogin() {
     clearCachedUser();
     return false;
   }
-}
-
-// ===== Биометрический вход (Face ID / отпечаток) — локальная блокировка через WebAuthn =====
-// Это локальная блокировка приложения: после успешного входа пользователь может
-// включить разблокировку по биометрии. Учётные данные (credential) хранятся только
-// на устройстве, на сервер ничего не отправляется. При включении и при разблокировке
-// система сама показывает системный запрос Face ID / отпечатка (это и есть запрос
-// разрешения на использование биометрии).
-const BIO_ENABLED_KEY = 'aegis_biometric_enabled';
-const BIO_CRED_KEY = 'aegis_biometric_cred';
-const BIO_DECLINED_KEY = 'aegis_biometric_declined';
-
-const biometricAuth = {
-  supported() {
-    return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
-  },
-  async available() {
-    if (!this.supported()) return false;
-    try {
-      if (PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
-        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      }
-    } catch (_) {}
-    return true;
-  },
-  isEnabled() {
-    return localStorage.getItem(BIO_ENABLED_KEY) === '1' && !!localStorage.getItem(BIO_CRED_KEY);
-  },
-  _rand(n) { const a = new Uint8Array(n); crypto.getRandomValues(a); return a; },
-  _b64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); },
-  _unb64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); },
-  async enable() {
-    if (!this.supported()) { showToast('Биометрия не поддерживается на этом устройстве'); return false; }
-    try {
-      const cred = await navigator.credentials.create({
-        publicKey: {
-          challenge: this._rand(32),
-          rp: { name: 'Aegis' },
-          user: {
-            id: this._rand(16),
-            name: (state.currentUser && state.currentUser.name) || 'user',
-            displayName: (state.currentUser && (state.currentUser.full_name || state.currentUser.name)) || 'Aegis',
-          },
-          pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'required',
-            residentKey: 'discouraged',
-          },
-          timeout: 60000,
-          attestation: 'none',
-        },
-      });
-      if (!cred) return false;
-      localStorage.setItem(BIO_CRED_KEY, this._b64(cred.rawId));
-      localStorage.setItem(BIO_ENABLED_KEY, '1');
-      localStorage.removeItem(BIO_DECLINED_KEY);
-      showToast('Вход по биометрии включён');
-      return true;
-    } catch (e) {
-      console.warn('Биометрия: не удалось включить', e);
-      showToast('Не удалось включить биометрию');
-      return false;
-    }
-  },
-  async verify() {
-    const raw = localStorage.getItem(BIO_CRED_KEY);
-    if (!raw) return false;
-    try {
-      const assertion = await navigator.credentials.get({
-        publicKey: {
-          challenge: this._rand(32),
-          allowCredentials: [{ type: 'public-key', id: this._unb64(raw) }],
-          userVerification: 'required',
-          timeout: 60000,
-        },
-      });
-      return !!assertion;
-    } catch (e) {
-      console.warn('Биометрия: проверка не пройдена', e);
-      return false;
-    }
-  },
-  disable() {
-    localStorage.removeItem(BIO_ENABLED_KEY);
-    localStorage.removeItem(BIO_CRED_KEY);
-  },
-};
-
-// Предложить включить биометрию после первого входа (один раз, с запросом разрешения)
-async function maybeOfferBiometric() {
-  try {
-    if (biometricAuth.isEnabled()) return;
-    if (localStorage.getItem(BIO_DECLINED_KEY) === '1') return;
-    if (!(await biometricAuth.available())) return;
-    // Помечаем как «предложено», чтобы не спрашивать на каждом входе.
-    // При успешном включении enable() снимет этот флаг. Включить позже
-    // всегда можно в Настройках → Безопасность.
-    try { localStorage.setItem(BIO_DECLINED_KEY, '1'); } catch (_) {}
-    showConfirmModal({
-      title: 'Быстрый вход по биометрии',
-      message: 'Включить вход по Face ID или отпечатку пальца? Приложение запросит у системы разрешение на использование биометрии. Данные остаются только на этом устройстве.',
-      confirmText: 'Включить',
-      cancelText: 'Не сейчас',
-      onConfirm: () => { biometricAuth.enable(); },
-    });
-  } catch (_) {}
-}
-
-// Экран-замок при запуске, если биометрия включена
-function showBiometricGate() {
-  navigateTo('home');
-  const ex = document.getElementById('biometricGate');
-  if (ex) ex.remove();
-  const m = document.createElement('div');
-  m.id = 'biometricGate';
-  m.style.cssText = 'position:fixed;inset:0;z-index:7000;background:var(--bg-primary);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;';
-  m.innerHTML = `
-    <div data-static-style="a300">${ICONS.shield || '🛡️'}</div>
-    <h2 data-static-style="a168">Разблокировка</h2>
-    <p data-static-style="a301">Подтвердите вход по Face ID или отпечатку пальца.</p>
-    <button class="btn btn-primary" id="bioUnlockBtn" data-onclick="runBiometricUnlock()" data-static-style="a302">Разблокировать</button>
-    <button data-onclick="biometricGateFallback()" data-static-style="a303">Войти паролем</button>
-  `;
-  document.body.appendChild(m);
-  setTimeout(runBiometricUnlock, 350);
-}
-
-async function runBiometricUnlock() {
-  const ok = await biometricAuth.verify();
-  if (ok) {
-    const m = document.getElementById('biometricGate');
-    if (m) m.remove();
-  } else {
-    showToast('Не распознано. Повторите или войдите паролем.');
-  }
-}
-
-async function biometricGateFallback() {
-  const m = document.getElementById('biometricGate');
-  try {
-    await api.logout();
-    if (m) m.remove();
-    biometricAuth.disable();
-    clearNoteKey(); stopSyncPolling(); clearCachedUser();
-    state.currentUser = null;
-    navigateTo('auth');
-  } catch (err) {
-    showToast(err && err.detail ? err.detail : 'Не удалось завершить сеанс. Попробуйте ещё раз.');
-  }
-}
-
-// Переключатель в настройках (вкладка «Безопасность»)
-async function toggleBiometricFromSettings() {
-  if (biometricAuth.isEnabled()) {
-    biometricAuth.disable();
-    showToast('Вход по биометрии отключён');
-  } else {
-    await biometricAuth.enable();
-  }
-  const c = document.getElementById('settingsContent');
-  if (c) renderSettingsSecurityTab(c);
 }
 
 // ========== AI АССИСТЕНТ ==========
@@ -5827,15 +5664,6 @@ function renderSettingsSecurityTab(c) {
       </div>
     </div>
 
-    <div data-static-style="a421">
-      <h3 data-static-style="a427">Вход по биометрии</h3>
-      <div data-static-style="a423">
-        Быстрая разблокировка приложения по Face ID или отпечатку пальца. При включении система запросит разрешение на использование биометрии. Данные хранятся только на этом устройстве.
-      </div>
-      ${biometricAuth.supported()
-        ? `<button class="set-save-btn" data-onclick="toggleBiometricFromSettings()" ${biometricAuth.isEnabled() ? 'style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);"' : ''}>${biometricAuth.isEnabled() ? 'Отключить биометрию' : 'Включить вход по биометрии'}</button>`
-        : `<div data-static-style="a192">Биометрия не поддерживается этим устройством или браузером.</div>`}
-    </div>
   `;
 }
 
@@ -9206,12 +9034,12 @@ function restartOnboarding() {
   if (onbClock) onbClock.innerHTML = ICONS.clock;
   if (onbTarget) onbTarget.innerHTML = ICONS.target;
 })();
+// Удаляем локальные данные снятой с эксплуатации биометрической блокировки.
+for (const key of ['aegis_biometric_enabled', 'aegis_biometric_cred', 'aegis_biometric_declined']) {
+  try { localStorage.removeItem(key); } catch (_) { /* Очистка устаревших данных необязательна. */ }
+}
 tryAutoLogin().then(ok => {
-  if (ok && biometricAuth.isEnabled()) {
-    showBiometricGate();
-  } else {
-    navigateTo(ok ? 'home' : 'auth');
-  }
+  navigateTo(ok ? 'home' : 'auth');
 });
 
 

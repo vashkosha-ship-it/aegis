@@ -3119,10 +3119,6 @@ select[multiple] option:hover {
 [data-static-style="a297"] { width:100%;background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:12px;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;margin-bottom:12px; }
 [data-static-style="a298"] { display:flex;justify-content:space-between;align-items:center;font-size:12px; }
 [data-static-style="a299"] { background:none;border:none;color:var(--accent);cursor:pointer;font-family:inherit;font-size:12px; }
-[data-static-style="a300"] { font-size:48px;margin-bottom:14px; }
-[data-static-style="a301"] { font-size:13px;color:var(--text-muted);margin-bottom:22px;max-width:300px; }
-[data-static-style="a302"] { padding:12px 28px;font-size:14px;margin-bottom:12px; }
-[data-static-style="a303"] { background:transparent;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-decoration:underline; }
 [data-static-style="a304"] { background:var(--bg-elevated);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto; }
 [data-static-style="a305"] { display:flex;align-items:center;gap:8px;padding:11px 8px;border-bottom:1px solid var(--border); }
 [data-static-style="a306"] { flex:1;cursor:pointer; }
@@ -3246,7 +3242,6 @@ select[multiple] option:hover {
 [data-static-style="a424"] { color:var(--text-secondary); }
 [data-static-style="a425"] { font-size:11px;color:#10b981;margin-bottom:10px; }
 [data-static-style="a426"] { background:transparent;border:1px solid var(--border);color:var(--text-secondary);margin-top:8px; }
-[data-static-style="a427"] { font-size:14px;font-weight:700;margin-bottom:8px;color:var(--accent); }
 [data-static-style="a428"] { display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:12px;background:var(--bg-primary);border:1px solid var(--border);border-radius:10px; }
 [data-static-style="a429"] { width:64px;height:64px;font-size:22px;cursor:pointer;flex-shrink:0; }
 [data-static-style="a430"] { flex:1;font-size:11px;color:var(--text-muted); }

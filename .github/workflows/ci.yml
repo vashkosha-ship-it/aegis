@@ -153,7 +153,7 @@ jobs:
         # Так же, как с подстановками в innerHTML: разом их не вычистить, но
         # расти они не должны. Уменьшать порог по мере исправлений.
         working-directory: .
-        run: npx --no-install eslint frontend --max-warnings 41
+        run: npx --no-install eslint frontend --max-warnings 38
 
       - name: Новых неэкранированных подстановок нет
         # Присваиваний innerHTML во фронте больше сотни, переписать их разом
@@ -170,6 +170,9 @@ jobs:
 
       - name: Тест корректного выхода
         run: node tests/api-logout.test.js
+
+      - name: Биометрический вход полностью удалён
+        run: node tests/biometric-removal.test.js
 
       - name: Тест экранирования пользовательского HTML
         run: node tests/xss-escaping.test.js
