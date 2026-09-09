@@ -6325,28 +6325,6 @@ function renderBookInfo() {
   loadAlsoRead(currentBookId);
 }
 
-async function loadAlsoRead(bookId) {
-  const c = document.getElementById('alsoReadSection');
-  if (!c) return;
-  try {
-    const books = await api.library.alsoRead(bookId, 8);
-    if (!books || !books.length) { c.innerHTML = ''; return; }
-    c.innerHTML = `
-      <div class="section-title" data-static-style="a472">Также читают</div>
-      <div data-static-style="a473">
-        ${books.map(b => `
-          <div data-onclick="openBookDetail(${b.id})" data-static-style="a474">
-            <div data-static-style="a475">
-              ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a118">` : `<div data-static-style="a476">📕</div>`}
-            </div>
-            <div data-static-style="a477">${eh(b.title)}</div>
-            <div data-static-style="a344">${eh(b.author)}</div>
-          </div>
-        `).join('')}
-      </div>`;
-  } catch (_) { c.innerHTML = ''; }
-}
-
 // ========== ВЫДЕЛЕНИЕ ТЕКСТА В EPUB ==========
 
 let epubSelectionPopup = null;
