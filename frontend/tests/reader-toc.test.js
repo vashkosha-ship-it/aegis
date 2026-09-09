@@ -64,7 +64,7 @@ vm.runInContext(source, context);
   assert.ok(indexSource.indexOf('reader-toc.js') < indexSource.indexOf('reader-open.js'));
   assert.ok(indexSource.indexOf('reader-toc.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/reader-toc\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v\\d+/);
+  assert.match(workerSource, /aegis-cache-v\d+/);
   console.log('Reader TOC tests passed');
 })().catch(error => {
   console.error(error);
