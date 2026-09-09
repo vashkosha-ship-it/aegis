@@ -5088,44 +5088,6 @@ async function setPrivacyVisibility(value) {
   }
 }
 
-// --- Цель чтения (страниц/день) ---
-const READING_GOAL_KEY = 'aegis_reading_goal';
-// --- Цель по книгам за период (#10 целей) ---
-const BOOKS_GOAL_KEY = 'aegis_books_goal';
-function getBooksGoal() {
-  try { return JSON.parse(lsGet(BOOKS_GOAL_KEY) || 'null'); } catch (_) { return null; }
-}
-function saveBooksGoalFromUI() {
-  const input = document.getElementById('booksGoalCount');
-  const count = parseInt(input?.value) || window._booksGoalCount || 0;
-  const period = window._booksGoalPeriod || (getBooksGoal()?.period) || 'quarter';
-  if (!count || count < 1) { showToast('Укажите количество книг'); return; }
-  setBooksGoal(count, period);
-}
-
-function setBooksGoal(count, period) {
-  if (!count) { lsRemove(BOOKS_GOAL_KEY); }
-  else { lsSet(BOOKS_GOAL_KEY, JSON.stringify({ count, period, since: new Date().toISOString() })); }
-  renderBooksGoalWidget();
-  if (document.getElementById('settingsContent')) renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
-  showToast(count ? `Цель: ${count} книг / ${period === 'month' ? 'месяц' : period === 'quarter' ? 'квартал' : 'год'}` : 'Цель снята');
-}
-// сколько книг завершено с начала периода
-function booksCompletedInPeriod() {
-  const goal = getBooksGoal();
-  if (!goal) return 0;
-  const since = new Date(goal.since).getTime();
-  // считаем completed из mylist (без дат завершения — берём все completed; для простоты)
-  return Object.values(state.mylist || {}).filter(s => s === 'completed').length;
-}
-
-function getReadingGoal() { return parseInt(lsGet(READING_GOAL_KEY) || '20', 10); }
-function setReadingGoal(n) {
-  lsSet(READING_GOAL_KEY, String(n));
-  renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
-  showToast(`Цель: ${n} стр./день`);
-}
-
 // --- Размер шрифта читалки (масштаб PDF/EPUB-текста) ---
 const READER_FONT_KEY = 'aegis_reader_font';
 function getReaderFontScale() { return parseInt(localStorage.getItem(READER_FONT_KEY) || '100', 10); }
@@ -5799,32 +5761,6 @@ function renderBookInfo() {
     </div>
     <div id="alsoReadSection" data-static-style="a471"></div>`;
   loadAlsoRead(currentBookId);
-}
-
-function goToPage(pn) {
-  const total = isEpubMode ? (epubTotalPages || 1) : pdfTotalPages;
-  const target = Math.max(1, Math.min(pn, total));
-  if (navigator.vibrate) navigator.vibrate(8);
-
-  if (isEpubMode) {
-    epubCurrentPage = target;
-    if (epubRendition) epubRendition.display(target - 1);
-  } else {
-    pdfCurrentPage = target;
-  }
-
-  if (state.currentBook) {
-    state.readingProgress[state.currentBook.id].currentPage = target;
-    scheduleProgressSave(state.currentBook.id);
-  }
-  updatePageIndicator();
-  renderAnnotations();
-  if (!isEpubMode && pdfDoc) renderPdfPage(target);
-  else if (!isEpubMode) generateDemoPdf(state.currentBook);
-}
-
-function updateSlider() {
-  updatePageIndicator();
 }
 
 // ========== EPUB READER ==========
