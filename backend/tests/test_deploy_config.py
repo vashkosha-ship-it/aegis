@@ -27,6 +27,11 @@ EXTRACTED_TEMPLATE_JS = [
     REPO / "frontend" / "admin-screens.js",
     REPO / "frontend" / "auth-ui.js",
     REPO / "frontend" / "account-settings.js",
+    REPO / "frontend" / "app-state.js",
+    REPO / "frontend" / "user-features.js",
+    REPO / "frontend" / "library-home.js",
+    REPO / "frontend" / "reader-core.js",
+    REPO / "frontend" / "onboarding.js",
 ]
 STYLES_CSS = REPO / "frontend" / "styles.css"
 NGINX_CONF = REPO / "backend" / "deploy" / "nginx-aegis.conf"
@@ -408,4 +413,4 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v257" in service_worker
+        assert "aegis-cache-v258" in service_worker

@@ -31,6 +31,11 @@ from pathlib import Path
 
 FILES = [
     Path("frontend/app.js"),
+    Path("frontend/app-state.js"),
+    Path("frontend/user-features.js"),
+    Path("frontend/library-home.js"),
+    Path("frontend/reader-core.js"),
+    Path("frontend/onboarding.js"),
     Path("frontend/ar-schemes.js"),
     Path("frontend/assistant-chat.js"),
     Path("frontend/admin-screens.js"),

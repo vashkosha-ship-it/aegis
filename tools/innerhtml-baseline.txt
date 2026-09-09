@@ -39,30 +39,6 @@ admin-screens.js	stats.total_views
 admin-screens.js	statusColor[item.status]
 admin-screens.js	statusIcon[item.status]
 admin-screens.js	u.department ? `<div data-static-style="a193">${eh(u.department)}</div>` : ''
-app.js	(() => { const stage = findKillChainStageForBook(b); if (!stage) return ''; return `<button class="btn-detail" data-stat
-app.js	adminStats
-app.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback(
-app.js	b.has_file ? (offlineBookIds.has(b.id) ? `<button class="btn-detail offline-btn-saved" data-onclick="removeBookOffline($
-app.js	b.rating
-app.js	bookCategoriesText(b)
-app.js	btn('csv', 'CSV', 'Таблица для Excel')
-app.js	btn('json', 'JSON', 'Для импорта в другие приложения')
-app.js	btn('md', 'Markdown', 'Текст с разметкой')
-app.js	btn('pdf', 'PDF документ', 'Для печати и чтения')
-app.js	c.score
-app.js	dateStr ? `<div data-static-style="a575">Тест пройден: ${dateStr}</div>` : ''
-app.js	encodeURIComponent(c.category).replace(/'/g, '')
-app.js	formatLabel
-app.js	info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').rep
-app.js	inner
-app.js	isAdmin ? `<button class="btn-detail" data-static-style="a469" data-onclick="openAdminBookModal(${b.id})">${ICONS.settin
-app.js	pdfCurrentPage
-app.js	pdfTotalPages
-app.js	res.hits.map(h => `
-app.js	res.total
-app.js	result.overall_percentage
-app.js	topicsHtml
-app.js	weakHtml
 ar-schemes.js	(stage.defenseTools && stage.defenseTools.length) ? `
 ar-schemes.js	AR_3D.pyramid
 ar-schemes.js	arrows
@@ -90,3 +66,27 @@ ar-schemes.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; retur
 assistant-chat.js	c.message_count
 assistant-chat.js	sensitiveNonce()
 auth-ui.js	hasLevel ? `
+library-home.js	(() => { const stage = findKillChainStageForBook(b); if (!stage) return ''; return `<button class="btn-detail" data-stat
+library-home.js	adminStats
+library-home.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback(
+library-home.js	b.has_file ? (offlineBookIds.has(b.id) ? `<button class="btn-detail offline-btn-saved" data-onclick="removeBookOffline($
+library-home.js	b.rating
+library-home.js	bookCategoriesText(b)
+library-home.js	formatLabel
+library-home.js	isAdmin ? `<button class="btn-detail" data-static-style="a469" data-onclick="openAdminBookModal(${b.id})">${ICONS.settin
+onboarding.js	dateStr ? `<div data-static-style="a575">Тест пройден: ${dateStr}</div>` : ''
+onboarding.js	info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').rep
+onboarding.js	result.overall_percentage
+onboarding.js	topicsHtml
+onboarding.js	weakHtml
+reader-core.js	pdfCurrentPage
+reader-core.js	pdfTotalPages
+user-features.js	btn('csv', 'CSV', 'Таблица для Excel')
+user-features.js	btn('json', 'JSON', 'Для импорта в другие приложения')
+user-features.js	btn('md', 'Markdown', 'Текст с разметкой')
+user-features.js	btn('pdf', 'PDF документ', 'Для печати и чтения')
+user-features.js	c.score
+user-features.js	encodeURIComponent(c.category).replace(/'/g, '')
+user-features.js	inner
+user-features.js	res.hits.map(h => `
+user-features.js	res.total

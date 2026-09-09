@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+const librarySource = fs.readFileSync(path.join(__dirname, '..', 'library-home.js'), 'utf8');
 const collectionsSource = fs.readFileSync(path.join(__dirname, '..', 'custom-collections.js'), 'utf8');
 const annotationsUiSource = fs.readFileSync(
   path.join(__dirname, '..', 'annotations-ui.js'),
@@ -47,9 +48,14 @@ const favoritesSource = fs.readFileSync(
 );
 
 assert.match(
-  appSource,
+  librarySource,
   /renderFavCategories\(\)/,
   'Главная страница должна вызывать renderer избранных категорий',
+);
+assert.doesNotMatch(
+  appSource,
+  /renderFavCategories\(\)/,
+  'Логика главной страницы не должна возвращаться в app.js',
 );
 assert.match(
   favoritesSource,
