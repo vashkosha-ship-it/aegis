@@ -41,7 +41,7 @@ async function toggleBookInCollection(colId, bookId, has) {
     else await api.library.addToCollection(colId, bookId);
     if (navigator.vibrate) navigator.vibrate(10);
     await getCollections(true);
-    openAddToCollection(bookId);
+    await openAddToCollection(bookId);
   } catch (_) { showToast('Ошибка'); }
 }
 
@@ -53,7 +53,7 @@ async function createCollectionFromModal(bookId) {
     await api.library.addToCollection(col.id, bookId);
     await getCollections(true);
     showToast('Коллекция создана');
-    openAddToCollection(bookId);
+    await openAddToCollection(bookId);
   } catch (err) {
     showToast(err && err.detail ? err.detail : 'Не удалось создать');
   }
