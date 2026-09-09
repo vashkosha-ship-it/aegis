@@ -143,12 +143,12 @@ async function finishQuiz() {
       const userText = userIdx >= 0 ? q.options[userIdx] : '— нет ответа —';
       const correctText = q.options[correctIdx];
       const isCorrect = userIdx === correctIdx;
-      return `<div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid ${isCorrect ? '#22c55e' : '#ef4444'};border-radius:var(--radius);padding:12px;margin-bottom:8px;text-align:left;">
+      return `<div data-dynamic-style="${dynamicStyleToken`background:var(--bg-card);border:1px solid var(--border);border-left:3px solid ${isCorrect ? '#22c55e' : '#ef4444'};border-radius:var(--radius);padding:12px;margin-bottom:8px;text-align:left;`}">
         <div data-static-style="a250">Вопрос ${idx + 1}</div>
         <div data-static-style="a251">${eh(q.q)}</div>
         <div data-static-style="a252">
           <span data-static-style="a243">Ваш ответ:</span>
-          <span style="color:${isCorrect ? '#22c55e' : '#ef4444'};font-weight:500;">${eh(userText)} ${isCorrect ? ICONS.check : ICONS.x}</span>
+          <span data-dynamic-style="${dynamicStyleToken`color:${isCorrect ? '#22c55e' : '#ef4444'};font-weight:500;`}">${eh(userText)} ${isCorrect ? ICONS.check : ICONS.x}</span>
         </div>
         ${!isCorrect ? `<div data-static-style="a253">
           <span data-static-style="a243">Правильный:</span>

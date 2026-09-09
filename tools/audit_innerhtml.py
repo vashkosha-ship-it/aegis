@@ -50,6 +50,7 @@ ASSIGN_RE = re.compile(r"\.(inner|outer)HTML\s*=")
 # Подстановки, которые не могут принести разметку.
 SAFE_PATTERNS = [
     re.compile(r"^\s*eh\("),                       # уже экранировано
+    re.compile(r"^\s*dynamicStyleToken`"),         # CSS sanitizes + insertRule
     re.compile(r"^\s*\d+(\.\d+)?\s*$"),            # число
     re.compile(r"^\s*ICONS\."),                    # константы иконок
     re.compile(r"^\s*[A-Z_][A-Z0-9_]*\s*$"),       # КОНСТАНТА

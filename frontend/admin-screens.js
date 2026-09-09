@@ -1336,9 +1336,9 @@ function renderBulkUploadList() {
 
   listEl.innerHTML = bulkUploadQueue.map((item, idx) => `
     <div data-static-style="a550">
-      <div style="width:20px;text-align:center;color:${statusColor[item.status]};font-weight:700;flex-shrink:0;">${statusIcon[item.status]}</div>
+      <div data-dynamic-style="${dynamicStyleToken`width:20px;text-align:center;color:${statusColor[item.status]};font-weight:700;flex-shrink:0;`}">${statusIcon[item.status]}</div>
       <div data-static-style="a551" title="${eh(item.file.name)}">${eh(item.file.name)}</div>
-      <div style="color:${statusColor[item.status]};font-size:10px;flex-shrink:0;">${eh(item.message)}</div>
+      <div data-dynamic-style="${dynamicStyleToken`color:${statusColor[item.status]};font-size:10px;flex-shrink:0;`}">${eh(item.message)}</div>
     </div>
   `).join('');
 

@@ -16,7 +16,7 @@ async function openAddToCollection(bookId) {
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
   const rows = cols.map(col => {
     const has = (col.book_ids || []).includes(bookId);
-    return `<button data-onclick="toggleBookInCollection(${col.id},${bookId},${has})" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${has ? 'var(--accent)' : 'var(--border)'};background:${has ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">
+    return `<button data-onclick="toggleBookInCollection(${col.id},${bookId},${has})" data-dynamic-style="${dynamicStyleToken`display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;margin-bottom:6px;border-radius:10px;border:1px solid ${has ? 'var(--accent)' : 'var(--border)'};background:${has ? 'rgba(0,212,255,0.1)' : 'var(--bg-primary)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;`}">
       <span>${eh(col.icon || '📁')} ${eh(col.name)}</span><span data-static-style="a478">${has ? '✓' : '+'}</span>
     </button>`;
   }).join('');

@@ -297,18 +297,18 @@ function renderCertQuestion() {
   const q = ex.questions[ex.index];
   const total = ex.questions.length;
   const opts = q.options.map((o, i) => `
-    <button data-onclick="answerCertQuestion(${i})" style="display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 14px;border-radius:8px;border:1px solid ${ex.answers[ex.index] === i ? 'var(--accent)' : 'var(--border)'};background:${ex.answers[ex.index] === i ? 'rgba(0,212,255,0.12)' : 'var(--bg-card)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;">${eh(o)}</button>`).join('');
+    <button data-onclick="answerCertQuestion(${i})" data-dynamic-style="${dynamicStyleToken`display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 14px;border-radius:8px;border:1px solid ${ex.answers[ex.index] === i ? 'var(--accent)' : 'var(--border)'};background:${ex.answers[ex.index] === i ? 'rgba(0,212,255,0.12)' : 'var(--bg-card)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;`}">${eh(o)}</button>`).join('');
   const answered = ex.answers.filter(a => a >= 0).length;
   certModalShell(`
     <div data-static-style="a156">
       <span data-static-style="a155">Вопрос ${ex.index + 1} из ${total}</span>
       <button data-onclick="closeCertModal()" data-static-style="a157">✕</button>
     </div>
-    <div data-static-style="a158"><div style="height:100%;width:${(answered / total * 100)}%;background:var(--accent);"></div></div>
+    <div data-static-style="a158"><div data-dynamic-style="${dynamicStyleToken`height:100%;width:${(answered / total * 100)}%;background:var(--accent);`}"></div></div>
     <div data-static-style="a159">${eh(q.question)}</div>
     ${opts}
     <div data-static-style="a160">
-      <button data-onclick="certNav(-1)" ${ex.index === 0 ? 'disabled' : ''} style="flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;opacity:${ex.index === 0 ? '0.4' : '1'};">← Назад</button>
+      <button data-onclick="certNav(-1)" ${ex.index === 0 ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;opacity:${ex.index === 0 ? '0.4' : '1'};`}">← Назад</button>
       ${ex.index < total - 1
         ? `<button data-onclick="certNav(1)" data-static-style="a161">Далее →</button>`
         : `<button data-onclick="submitCertExam()" data-static-style="a162">Завершить</button>`}
@@ -580,9 +580,9 @@ async function renderDetailNotes() {
     const cursor = cfi ? 'cursor:pointer;' : '';
 
     return `
-      <div style="background:${bgTint};border:1px solid var(--border);border-left:3px solid ${stripColor};border-radius:8px;padding:12px;margin-bottom:8px;${cursor}" ${goAction}>
+      <div data-dynamic-style="${dynamicStyleToken`background:${bgTint};border:1px solid var(--border);border-left:3px solid ${stripColor};border-radius:8px;padding:12px;margin-bottom:8px;${cursor}`}" ${goAction}>
         <div data-static-style="a246">
-          <div style="font-size:10px;color:${stripColor};font-weight:600;">
+          <div data-dynamic-style="${dynamicStyleToken`font-size:10px;color:${stripColor};font-weight:600;`}">
             ${isNote ? 'ЗАМЕТКА' : 'МАРКЕР'} · Стр.${a.page}
           </div>
           <button class="btn-sm danger" data-static-style="a247" data-onclick="deleteAnnotation(${currentBookId},${a.id})" data-nonce="${sensitiveNonce()}" data-stop="1">${ICONS.trash}</button>

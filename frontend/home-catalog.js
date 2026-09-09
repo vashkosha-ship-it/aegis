@@ -23,10 +23,10 @@ function renderPaginatedBooks(id, books, query) {
 
   const btn = (p, label, active, disabled) =>
     `<button data-onclick="goToBooksPage(${p})" ${disabled ? 'disabled' : ''}
-      style="min-width:38px;height:38px;padding:0 8px;border-radius:9px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};
+      data-dynamic-style="${dynamicStyleToken`min-width:38px;height:38px;padding:0 8px;border-radius:9px;border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};
              background:${active ? 'var(--accent)' : 'var(--bg-card)'};color:${active ? '#fff' : 'var(--text-primary)'};
              font-family:inherit;font-size:13px;font-weight:${active ? '700' : '500'};cursor:${disabled ? 'default' : 'pointer'};
-             opacity:${disabled ? '0.4' : '1'};">${label}</button>`;
+             opacity:${disabled ? '0.4' : '1'};`}">${label}</button>`;
   const nums = [];
   const around = 1;
   for (let p = 1; p <= totalPages; p++) {
@@ -84,7 +84,7 @@ function cardHTML(b, query, options) {
       ${coverInner}
       <div class="rating-badge">${ICONS.star}${b.rating}</div>
       ${offlineBookIds.has(b.id) ? `<div class="offline-badge" title="Доступна оффлайн">${ICONS.cloudCheck}</div>` : ''}
-      ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" style="width:${pct}%"></div>` : ''}
+      ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" data-dynamic-style="${dynamicStyleToken`width:${pct}%`}"></div>` : ''}
       ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" data-static-style="a323">&times;</button>` : ''}
     </div>
     <div class="book-card-meta">

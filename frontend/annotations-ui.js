@@ -59,9 +59,9 @@ async function renderAnnotations() {
       const width = annotationPercent(a.position?.w, 30);
       const height = annotationPercent(a.position?.h, 3);
       const color = annotationColor(a.position?.color);
-      return `<div class="highlight-mark" style="left:${x}%;top:${y}%;width:${width}%;height:${height}%;background:${color}55;border-bottom:2px solid ${color};" title="${eh(a.text)}" data-onclick="showAnnotationDetail(${a.id})"></div>`;
+      return `<div class="highlight-mark" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;width:${width}%;height:${height}%;background:${color}55;border-bottom:2px solid ${color};`}" title="${eh(a.text)}" data-onclick="showAnnotationDetail(${a.id})"></div>`;
     }
-    return `<div class="note-indicator" style="left:${x}%;top:${y}%;" data-onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</div>`;
+    return `<div class="note-indicator" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;`}" data-onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</div>`;
   }).join('');
 }
 

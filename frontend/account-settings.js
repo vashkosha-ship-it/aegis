@@ -151,7 +151,7 @@ async function renderSettingsStorageTab(c) {
         <div data-static-style="a356">${formatBytes(stats.used)}</div>
       </div>
       <div data-static-style="a357">
-        <div style="height:100%;width:${usedPct}%;background:var(--accent-gradient);transition:width 0.3s;"></div>
+        <div data-dynamic-style="${dynamicStyleToken`height:100%;width:${usedPct}%;background:var(--accent-gradient);transition:width 0.3s;`}"></div>
       </div>
       <div data-static-style="a358">
         <span>${usedPct}% от доступного</span>
@@ -179,8 +179,8 @@ async function renderSettingsStorageTab(c) {
         </div>
         <label class="toggle-switch" data-static-style="a366">
           <input type="checkbox" id="wifiOnlyToggle" ${wifiOnly ? 'checked' : ''} data-onchange="onWifiOnlyToggle()" data-args="this" data-static-style="a367">
-          <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${wifiOnly ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;">
-            <span style="position:absolute;height:18px;width:18px;left:${wifiOnly ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
+          <span class="toggle-slider" data-dynamic-style="${dynamicStyleToken`position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${wifiOnly ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;`}">
+            <span data-dynamic-style="${dynamicStyleToken`position:absolute;height:18px;width:18px;left:${wifiOnly ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;`}"></span>
           </span>
         </label>
       </div>
@@ -195,8 +195,8 @@ async function renderSettingsStorageTab(c) {
         </div>
         <label class="toggle-switch" data-static-style="a366">
           <input type="checkbox" id="autoPreloadToggle" ${isAutoPreloadEnabled() ? 'checked' : ''} data-onchange="onAutoPreloadToggle()" data-args="this" data-static-style="a367">
-          <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${isAutoPreloadEnabled() ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;">
-            <span style="position:absolute;height:18px;width:18px;left:${isAutoPreloadEnabled() ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;"></span>
+          <span class="toggle-slider" data-dynamic-style="${dynamicStyleToken`position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${isAutoPreloadEnabled() ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;`}">
+            <span data-dynamic-style="${dynamicStyleToken`position:absolute;height:18px;width:18px;left:${isAutoPreloadEnabled() ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;`}"></span>
           </span>
         </label>
       </div>
@@ -372,8 +372,8 @@ function renderSettingsPrivacyTab(c) {
       <label>Отображение профиля</label>
       <div data-static-style="a393">
         ${options.map(opt => `
-          <button data-onclick="setPrivacyVisibility('${opt.value}')" style="text-align:left;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${current === opt.value ? 'var(--accent-gradient)' : 'transparent'};border:none;border-radius:8px;cursor:pointer;font-family:inherit;color:${current === opt.value ? '#fff' : 'var(--text-primary)'};">
-            <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${current === opt.value ? '#fff' : 'var(--border-light)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+          <button data-onclick="setPrivacyVisibility('${opt.value}')" data-dynamic-style="${dynamicStyleToken`text-align:left;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${current === opt.value ? 'var(--accent-gradient)' : 'transparent'};border:none;border-radius:8px;cursor:pointer;font-family:inherit;color:${current === opt.value ? '#fff' : 'var(--text-primary)'};`}">
+            <div data-dynamic-style="${dynamicStyleToken`width:18px;height:18px;border-radius:50%;border:2px solid ${current === opt.value ? '#fff' : 'var(--border-light)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;`}">
               ${current === opt.value ? '<div data-static-style="a394"></div>' : ''}
             </div>
             <div data-static-style="a004">
@@ -472,10 +472,10 @@ function renderSettingsPersonalizationTab(c) {
     <div class="set-row">
       <label>Тема приложения</label>
       <div data-static-style="a407">
-        <button data-onclick="setAppTheme('dark');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'dark' ? 'active' : ''}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'dark' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'dark' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">
+        <button data-onclick="setAppTheme('dark');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'dark' ? 'active' : ''}" data-dynamic-style="${dynamicStyleToken`flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'dark' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'dark' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;`}">
           ${ICONS.themeMoon}<span>Тёмная</span>
         </button>
-        <button data-onclick="setAppTheme('light');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'light' ? 'active' : ''}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'light' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'light' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">
+        <button data-onclick="setAppTheme('light');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'light' ? 'active' : ''}" data-dynamic-style="${dynamicStyleToken`flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'light' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'light' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;`}">
           ${ICONS.themeSun}<span>Светлая</span>
         </button>
       </div>
@@ -486,7 +486,7 @@ function renderSettingsPersonalizationTab(c) {
       <label>Карточек книг в ряд</label>
       <div data-static-style="a407">
         ${[2, 3, 4].map(n => `
-          <button data-onclick="setGridSize(${n})" style="flex:1;padding:10px;background:${currentGrid === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentGrid === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">
+          <button data-onclick="setGridSize(${n})" data-dynamic-style="${dynamicStyleToken`flex:1;padding:10px;background:${currentGrid === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentGrid === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;`}">
             ${n}
           </button>
         `).join('')}
@@ -497,7 +497,7 @@ function renderSettingsPersonalizationTab(c) {
     <div class="set-row">
       <label>Предпросмотр</label>
       <div data-static-style="a408">
-        <div id="gridPreview" style="display:grid;grid-template-columns:repeat(${currentGrid},1fr);gap:6px;">
+        <div id="gridPreview" data-dynamic-style="${dynamicStyleToken`display:grid;grid-template-columns:repeat(${currentGrid},1fr);gap:6px;`}">
           ${Array.from({length: currentGrid * 2}, () => `
             <div data-static-style="a409">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
@@ -513,7 +513,7 @@ function renderSettingsPersonalizationTab(c) {
       <label>Цель чтения (страниц в день)</label>
       <div data-static-style="a407">
         ${[10, 20, 30, 50].map(n => `
-          <button data-onclick="setReadingGoal(${n})" style="flex:1;padding:10px;background:${goal === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${goal === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;">
+          <button data-onclick="setReadingGoal(${n})" data-dynamic-style="${dynamicStyleToken`flex:1;padding:10px;background:${goal === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${goal === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;`}">
             ${n}
           </button>
         `).join('')}
@@ -530,7 +530,7 @@ function renderSettingsPersonalizationTab(c) {
       <div data-static-style="a413">
         ${[5, 10, 15, 20, 30].map(n => {
           const sel = (getBooksGoal()?.count) === n;
-          return `<button type="button" data-onclick="selectBooksGoalCount(${n})" data-args="this" class="bg-count-btn" style="min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;">${n}</button>`;
+          return `<button type="button" data-onclick="selectBooksGoalCount(${n})" data-args="this" class="bg-count-btn" data-dynamic-style="${dynamicStyleToken`min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;`}">${n}</button>`;
         }).join('')}
       </div>
 
@@ -542,7 +542,7 @@ function renderSettingsPersonalizationTab(c) {
         ${[{v:'month',l:'Месяц'},{v:'quarter',l:'Квартал'},{v:'year',l:'Год'}].map(o => {
           const cur = getBooksGoal()?.period || 'quarter';
           const sel = cur === o.v;
-          return `<button type="button" data-onclick="selectBooksGoalPeriod('${o.v}')" data-args="this" class="bg-period-btn" style="flex:1;padding:13px 8px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;">${o.l}</button>`;
+          return `<button type="button" data-onclick="selectBooksGoalPeriod('${o.v}')" data-args="this" class="bg-period-btn" data-dynamic-style="${dynamicStyleToken`flex:1;padding:13px 8px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;`}">${o.l}</button>`;
         }).join('')}
       </div>
 
@@ -556,7 +556,7 @@ function renderSettingsPersonalizationTab(c) {
       <label>Размер шрифта в читалке</label>
       <div data-static-style="a407">
         ${[{p:90,l:'А-'},{p:100,l:'А'},{p:115,l:'А+'},{p:130,l:'А++'}].map(o => `
-          <button data-onclick="setReaderFontScale(${o.p})" style="flex:1;padding:10px;background:${fontScale === o.p ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${fontScale === o.p ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;">
+          <button data-onclick="setReaderFontScale(${o.p})" data-dynamic-style="${dynamicStyleToken`flex:1;padding:10px;background:${fontScale === o.p ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${fontScale === o.p ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;`}">
             ${o.l}
           </button>
         `).join('')}
@@ -979,7 +979,7 @@ async function showMyStatsModal() {
 
   const card = (val, label, color) => `
     <div data-static-style="a438">
-      <div style="font-size:24px;font-weight:800;color:${color};font-family:'JetBrains Mono',monospace;">${val}</div>
+      <div data-dynamic-style="${dynamicStyleToken`font-size:24px;font-weight:800;color:${color};font-family:'JetBrains Mono',monospace;`}">${val}</div>
       <div data-static-style="a439">${label}</div>
     </div>`;
 
@@ -999,7 +999,7 @@ async function showMyStatsModal() {
     <div data-static-style="a441">
       <div data-static-style="a442">Динамика по неделям</div>
       <div data-static-style="a443">
-        ${weeks.map(w => `<div title="${w} стр." style="flex:1;min-width:4px;height:${Math.max(4, Math.round(w / maxWeek * 70))}px;background:var(--accent-gradient);border-radius:3px 3px 0 0;"></div>`).join('') || '<div data-static-style="a444">Нет данных</div>'}
+        ${weeks.map(w => `<div title="${w} стр." data-dynamic-style="${dynamicStyleToken`flex:1;min-width:4px;height:${Math.max(4, Math.round(w / maxWeek * 70))}px;background:var(--accent-gradient);border-radius:3px 3px 0 0;`}"></div>`).join('') || '<div data-static-style="a444">Нет данных</div>'}
       </div>
       <div data-static-style="a410">Сумма страниц за каждую неделю (90 дней)</div>
     </div>
@@ -1010,7 +1010,7 @@ async function showMyStatsModal() {
         const pct = Math.round(n / topCats[0][1] * 100);
         return `<div data-static-style="a347">
           <div data-static-style="a445"><span>${eh(cat)}</span><span data-static-style="a243">${n}</span></div>
-          <div data-static-style="a446"><div style="height:100%;width:${pct}%;background:var(--accent-gradient);"></div></div>
+          <div data-static-style="a446"><div data-dynamic-style="${dynamicStyleToken`height:100%;width:${pct}%;background:var(--accent-gradient);`}"></div></div>
         </div>`;
       }).join('') : '<div data-static-style="a192">Добавь книги в список, чтобы увидеть категории</div>'}
     </div>
