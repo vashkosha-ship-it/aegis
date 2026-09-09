@@ -92,7 +92,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /const SYNC_QUEUE_KEY|function queueProgress|function loadProgressFromApi|function scheduleProgressSave/);
   assert.ok(indexSource.indexOf('reading-progress-sync.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/reading-progress-sync\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v239/);
+  assert.match(workerSource, /aegis-cache-v240/);
   console.log('Reading progress sync tests passed');
 })().catch(error => {
   console.error(error);
