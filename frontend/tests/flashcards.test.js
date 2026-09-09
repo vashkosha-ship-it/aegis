@@ -64,7 +64,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /const SRS_KEY|function buildFlashcards|function openReviewMode|function rateCard/);
   assert.ok(indexSource.indexOf('flashcards.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/flashcards\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v\\d+/);
+  assert.match(workerSource, /aegis-cache-v\d+/);
   console.log('Flashcards tests passed');
 })().catch(error => {
   console.error(error);
