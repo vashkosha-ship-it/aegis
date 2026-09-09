@@ -42,6 +42,7 @@ const bookAnalytics = {
 };
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   Chart: ChartStub,
   api: { library: { adminBookAnalytics: async () => bookAnalytics } },
   state: {

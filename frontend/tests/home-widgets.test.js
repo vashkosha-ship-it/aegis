@@ -34,6 +34,7 @@ const state = {
 };
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   state,
   api: { books: { coverUrl: id => `/covers/${id}` } },
   ICONS: { bookCover: '<span>cover</span>', star: '<span>star</span>', cloudCheck: '<span>cloud</span>' },

@@ -30,6 +30,7 @@ const escapeHtml = value => String(value ?? '')
 
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   api: { library: {
     addAnnotation: async (...args) => apiCalls.push(['add', ...args]),
     deleteAnnotation: async (...args) => apiCalls.push(['delete', ...args]),

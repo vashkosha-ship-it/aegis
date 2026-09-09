@@ -26,6 +26,7 @@ const pdfDoc = {
 };
 const context = {
   document: dom.window.document,
+  dynamicStyleToken: () => 'test-style',
   navigator: { vibrate: () => { vibrations += 1; } },
   currentBookId: 7,
   isEpubMode: false,
