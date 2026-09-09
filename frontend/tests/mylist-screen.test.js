@@ -64,5 +64,5 @@ assert.doesNotMatch(appSource, /function renderMyList|document\.getElementById\(
 assert.ok(indexSource.indexOf('mylist-drag-drop.js') < indexSource.indexOf('mylist-screen.js'));
 assert.ok(indexSource.indexOf('mylist-screen.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/mylist-screen\.js['"]/);
-assert.match(workerSource, /aegis-cache-v\\d+/);
+assert.match(workerSource, /aegis-cache-v\d+/);
 console.log('My List screen tests passed');
