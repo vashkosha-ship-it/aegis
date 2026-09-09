@@ -5,18 +5,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+const collectionsSource = fs.readFileSync(path.join(__dirname, '..', 'custom-collections.js'), 'utf8');
 const annotationsUiSource = fs.readFileSync(
   path.join(__dirname, '..', 'annotations-ui.js'),
   'utf8',
 );
 
 assert.match(
-  appSource,
+  collectionsSource,
   /\$\{eh\(col\.icon \|\| '📁'\)\}\s+\$\{eh\(col\.name\)\}/,
   'Пользовательские icon и name коллекции должны экранироваться перед innerHTML',
 );
 assert.doesNotMatch(
-  appSource,
+  collectionsSource,
   /\$\{col\.icon \|\| '📁'\}/,
   'Иконка коллекции не должна попадать в innerHTML без экранирования',
 );
