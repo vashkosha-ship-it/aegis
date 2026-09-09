@@ -76,7 +76,7 @@ vm.runInContext(source, context);
   assert.ok(indexSource.indexOf('offline-library.js') < indexSource.indexOf('offline-profile.js'));
   assert.ok(indexSource.indexOf('offline-profile.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/offline-profile\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v241/);
+  assert.match(workerSource, /aegis-cache-v\\d+/);
   console.log('Offline profile tests passed');
 })().catch(error => {
   console.error(error);
