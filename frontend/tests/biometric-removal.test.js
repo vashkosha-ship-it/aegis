@@ -32,10 +32,10 @@ assert.doesNotMatch(handlersSource, /biometricGateFallback|runBiometricUnlock|to
 assert.doesNotMatch(stylesSource, /data-static-style="a(?:300|301|302|303|427)"/);
 assert.doesNotMatch(baselineSource, /biometricAuth|toggleBiometricFromSettings/);
 assert.match(
-  authSource,
+  ownSource,
   /for \(const key of \['aegis_biometric_enabled', 'aegis_biometric_cred', 'aegis_biometric_declined'\]\)/,
 );
-assert.match(authSource, /localStorage\.removeItem\(key\)/);
+assert.match(ownSource, /localStorage\.removeItem\(key\)/);
 assert.match(
   appSource,
   /tryAutoLogin\(\)\.then\(ok => \{\s*navigateTo\(ok \? 'home' : 'auth'\);\s*\}\);/,
