@@ -27,6 +27,12 @@ let completed = 0;
 let filteredBooks = [];
 let detailId = null;
 let scrolled = 0;
+const dynamicStyles = [];
+const captureDynamicStyle = (strings, ...values) => {
+  const value = strings.reduce((result, part, index) => result + part + (index < values.length ? values[index] : ''), '');
+  dynamicStyles.push(value);
+  return `test-style-${dynamicStyles.length}`;
+};
 const state = {
   currentUser: null,
   booksPage: 1,
@@ -34,7 +40,7 @@ const state = {
 };
 const context = {
   document: dom.window.document,
-  dynamicStyleToken: () => 'test-style',
+  dynamicStyleToken: captureDynamicStyle,
   state,
   api: { books: { coverUrl: id => `/covers/${id}` } },
   ICONS: { bookCover: '<span>cover</span>', star: '<span>star</span>', cloudCheck: '<span>cloud</span>' },
@@ -74,12 +80,12 @@ context.renderBooksGoalWidget();
 assert.equal(dom.window.document.getElementById('sectionBooksGoal').style.display, 'block');
 assert.match(dom.window.document.getElementById('booksGoalWidget').textContent, /3\/8/);
 assert.match(dom.window.document.getElementById('booksGoalWidget').textContent, /квартал/);
-assert.match(dom.window.document.getElementById('booksGoalWidget').innerHTML, /width:38%/);
+assert(dynamicStyles.some(value => /width:38%/.test(value)));
 
 completed = 9;
 context.renderBooksGoalWidget();
 assert.match(dom.window.document.getElementById('booksGoalWidget').textContent, /Цель достигнута/);
-assert.match(dom.window.document.getElementById('booksGoalWidget').innerHTML, /width:100%/);
+assert(dynamicStyles.some(value => /width:100%/.test(value)));
 
 assert.equal(context.extractBookYear('Published 2024-04-01'), '2024');
 assert.equal(context.extractBookYear(null), null);
