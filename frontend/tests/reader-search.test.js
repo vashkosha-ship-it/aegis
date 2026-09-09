@@ -77,7 +77,7 @@ vm.runInContext(source, context);
   assert.doesNotMatch(appSource, /function toggleReaderSearch|function searchInPdf|function searchInEpub/);
   assert.ok(indexSource.indexOf('reader-search.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/reader-search\.js['"]/);
-  assert.match(workerSource, /aegis-cache-v249/);
+  assert.match(workerSource, /aegis-cache-v250/);
   console.log('Reader search tests passed');
 })().catch(error => {
   console.error(error);

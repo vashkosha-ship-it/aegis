@@ -38,6 +38,6 @@ assert.match(
   appSource,
   /tryAutoLogin\(\)\.then\(ok => \{\s*navigateTo\(ok \? 'home' : 'auth'\);\s*\}\);/,
 );
-assert.match(workerSource, /aegis-cache-v249/);
+assert.match(workerSource, /aegis-cache-v250/);
 
 console.log('Biometric login removal tests passed');

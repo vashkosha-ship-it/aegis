@@ -131,7 +131,7 @@ jobs:
         run: |
           for f in app.js notes-crypto.js annotations-core.js annotations-ui.js quiz-core.js detail-training.js also-read.js favorite-categories.js mylist-api.js mylist-drag-drop.js mylist-screen.js custom-collections.js book-discussion.js reviews-core.js finish-review.js vendor-loader.js icons.js appearance-settings.js \
                    offline-settings.js loading-ui.js core-utils.js notifications.js dialogs.js pomodoro.js keyboard-shortcuts.js pwa-install.js onboarding-tour.js api.js sw.js offline-storage.js \
-                   inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js recommendations.js ai-responses.js navigation.js catalog-filters.js training-screen.js reader-theme.js reading-progress-sync.js flashcards.js reader-gestures.js page-bookmarks.js reader-toc.js reader-open.js offline-library.js offline-profile.js pull-to-refresh.js reader-search.js epub-annotations.js reader-selection-ai.js; do
+                   inline-handlers.js handler-allowlist.js csp-helpers.js analytics.js profile-insights.js recommendations.js ai-responses.js navigation.js catalog-filters.js training-screen.js reader-theme.js reading-progress-sync.js flashcards.js reader-gestures.js page-bookmarks.js reader-toc.js reader-open.js offline-library.js offline-profile.js pull-to-refresh.js reader-search.js epub-annotations.js reader-selection-ai.js reader-lifecycle.js; do
             if [ -f "$f" ]; then
               echo "Проверяю $f"
               node --check "$f"
@@ -153,7 +153,7 @@ jobs:
         # Так же, как с подстановками в innerHTML: разом их не вычистить, но
         # расти они не должны. Уменьшать порог по мере исправлений.
         working-directory: .
-        run: npx --no-install eslint frontend --max-warnings 35
+        run: npx --no-install eslint frontend --max-warnings 34
 
       - name: Новых неэкранированных подстановок нет
         # Присваиваний innerHTML во фронте больше сотни, переписать их разом
@@ -209,6 +209,9 @@ jobs:
 
       - name: Тест выделения и AI в читалке
         run: node tests/reader-selection-ai.test.js
+
+      - name: Тест lifecycle читалки
+        run: node tests/reader-lifecycle.test.js
 
       - name: Тест офлайн-библиотеки
         run: node tests/offline-library.test.js
