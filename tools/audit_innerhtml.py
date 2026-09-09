@@ -29,7 +29,15 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-FILES = [Path("frontend/app.js"), Path("frontend/index.html")]
+FILES = [
+    Path("frontend/app.js"),
+    Path("frontend/ar-schemes.js"),
+    Path("frontend/assistant-chat.js"),
+    Path("frontend/admin-screens.js"),
+    Path("frontend/auth-ui.js"),
+    Path("frontend/account-settings.js"),
+    Path("frontend/index.html"),
+]
 BASELINE = Path("tools/innerhtml-baseline.txt")
 
 ASSIGN_RE = re.compile(r"\.(inner|outer)HTML\s*=")

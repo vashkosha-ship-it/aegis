@@ -9,6 +9,7 @@ const { JSDOM } = require('jsdom');
 const FRONTEND = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(FRONTEND, 'reader-ai-panel.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(FRONTEND, 'app.js'), 'utf8');
+const assistantSource = fs.readFileSync(path.join(FRONTEND, 'assistant-chat.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(FRONTEND, 'index.html'), 'utf8');
 const workerSource = fs.readFileSync(path.join(FRONTEND, 'sw.js'), 'utf8');
 
@@ -74,7 +75,8 @@ context.aiQuick('quiz');
 assert.deepEqual(quickActions, [[surface, 'quiz']]);
 
 assert.doesNotMatch(appSource, /let readerAiMessages|let readerAiBusy|function toggleAIPanel|function closeAIPanel|function sendAIMessage|function aiQuick/);
-assert.match(appSource, /return readerAiMessages/);
+assert.match(assistantSource, /return readerAiMessages/);
+assert.doesNotMatch(appSource, /return readerAiMessages/);
 assert.ok(indexSource.indexOf('reader-ai-panel.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/reader-ai-panel\.js['"]/);
 assert.match(workerSource, /aegis-cache-v[0-9]+/);
