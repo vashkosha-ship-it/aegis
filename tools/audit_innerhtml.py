@@ -34,6 +34,8 @@ FILES = [
     Path("frontend/ar-schemes.js"),
     Path("frontend/assistant-chat.js"),
     Path("frontend/admin-screens.js"),
+    Path("frontend/auth-ui.js"),
+    Path("frontend/account-settings.js"),
     Path("frontend/index.html"),
 ]
 BASELINE = Path("tools/innerhtml-baseline.txt")
