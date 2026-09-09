@@ -51,6 +51,7 @@ vm.runInContext(source, context);
   assert.match(modal.innerHTML, /toggleBookInCollection\(4,7,true\)/);
 
   await context.toggleBookInCollection(4, 7, true);
+  await Promise.resolve();
   assert.deepEqual(calls[0], ['remove', 4, 7]);
   assert.equal(vibrations, 10);
 
