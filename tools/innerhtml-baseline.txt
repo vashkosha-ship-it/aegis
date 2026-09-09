@@ -13,7 +13,6 @@ app.js	[2, 3, 4].map(n => `
 app.js	adminStats
 app.js	allReviews.map(r => `
 app.js	arrows
-app.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a310" data-onerror="replaceWithFallback(
 app.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback(
 app.js	b.has_file ? (offlineBookIds.has(b.id) ? `<button class="btn-detail offline-btn-saved" data-onclick="removeBookOffline($
 app.js	b.rating
@@ -37,14 +36,11 @@ app.js	cy
 app.js	cy + 14
 app.js	cy - 6
 app.js	dateStr ? `<div data-static-style="a575">Тест пройден: ${dateStr}</div>` : ''
-app.js	done
 app.js	encodeURIComponent(c.category).replace(/'/g, '')
-app.js	err && err.status ? '(' + err.status + ')' : ''
 app.js	formatBytes(stats.cacheSize)
 app.js	formatBytes(stats.quota)
 app.js	formatBytes(stats.used)
 app.js	formatLabel
-app.js	goal.count
 app.js	hasLevel ? `
 app.js	html
 app.js	info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').rep
@@ -53,15 +49,12 @@ app.js	isAdmin ? `<button class="btn-detail" data-static-style="a469" data-oncli
 app.js	items
 app.js	labels
 app.js	layers
-app.js	levelInfo.icon
 app.js	numsHtml
 app.js	options.map(opt => `
 app.js	page
-app.js	pct >= 100 ? '🎉 Цель достигнута!' : `Осталось ${goal.count - done} — продолжайте!`
 app.js	pdfCurrentPage
 app.js	pdfTotalPages
 app.js	percent
-app.js	periodLabel
 app.js	rInner - 6
 app.js	res.hits.map(h => `
 app.js	res.total

@@ -4561,40 +4561,6 @@ function clearAssistantChat() {
 }
 
 // ========== HOME ==========
-function renderRecommendations() {
-  const container = document.getElementById('sectionRecommendations');
-  const list = document.getElementById('recommendationsList');
-  if (!container || !list) return;
-
-  const recs = getRecommendations(5);
-  if (recs.length === 0) {
-    container.style.display = 'none';
-    return;
-  }
-
-  // Заголовок секции: если есть подразделение — подсказываем, что подборка под него
-  const titleEl = container.querySelector('.section-title');
-  if (titleEl) {
-    const dep = state.currentUser && state.currentUser.department;
-    titleEl.textContent = (dep && departmentTopicKeywords())
-      ? `Рекомендуем для вашего подразделения`
-      : 'Рекомендации';
-  }
-
-  container.style.display = 'block';
-  list.innerHTML = recs.map(b => `
-    <div class="recommendation-card" data-onclick="openBookDetail(${b.id})">
-      <div data-static-style="a309">
-        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a310" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}
-      </div>
-      <div>
-        <div data-static-style="a311">${eh(b.title)}</div>
-        <div data-static-style="a192">${eh(b.author)} • ${b.rating}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
 function renderHome() {
   if (!state.currentUser) return;
   updateAvatar('avatarHome');
@@ -4671,30 +4637,6 @@ function setHomeBooksTab(tab) {
     const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
     renderPaginatedBooks('scrollAll', sorted, q);
   }
-}
-
-// ===== D: Виджет цели по книгам =====
-function renderBooksGoalWidget() {
-  const section = document.getElementById('sectionBooksGoal');
-  const wrap = document.getElementById('booksGoalWidget');
-  if (!section || !wrap) return;
-  const goal = getBooksGoal();
-  if (!goal) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
-  const done = booksCompletedInPeriod();
-  const pct = Math.min(100, Math.round(done / goal.count * 100));
-  const periodLabel = goal.period === 'month' ? 'месяц' : goal.period === 'quarter' ? 'квартал' : 'год';
-  wrap.innerHTML = `
-    <div data-static-style="a316">
-      <div data-static-style="a113">
-        <div data-static-style="a317">Цель: ${goal.count} книг за ${periodLabel}</div>
-        <div data-static-style="a318">${done}/${goal.count}</div>
-      </div>
-      <div data-static-style="a200">
-        <div style="height:100%;width:${pct}%;background:var(--accent-gradient);transition:width 0.4s;"></div>
-      </div>
-      <div data-static-style="a319">${pct >= 100 ? '🎉 Цель достигнута!' : `Осталось ${goal.count - done} — продолжайте!`}</div>
-    </div>`;
 }
 
 const BOOKS_PER_PAGE = 24;
@@ -5239,44 +5181,6 @@ async function setPrivacyVisibility(value) {
     console.error(e);
     showToast('Не удалось сохранить');
   }
-}
-
-// --- Цель чтения (страниц/день) ---
-const READING_GOAL_KEY = 'aegis_reading_goal';
-// --- Цель по книгам за период (#10 целей) ---
-const BOOKS_GOAL_KEY = 'aegis_books_goal';
-function getBooksGoal() {
-  try { return JSON.parse(lsGet(BOOKS_GOAL_KEY) || 'null'); } catch (_) { return null; }
-}
-function saveBooksGoalFromUI() {
-  const input = document.getElementById('booksGoalCount');
-  const count = parseInt(input?.value) || window._booksGoalCount || 0;
-  const period = window._booksGoalPeriod || (getBooksGoal()?.period) || 'quarter';
-  if (!count || count < 1) { showToast('Укажите количество книг'); return; }
-  setBooksGoal(count, period);
-}
-
-function setBooksGoal(count, period) {
-  if (!count) { lsRemove(BOOKS_GOAL_KEY); }
-  else { lsSet(BOOKS_GOAL_KEY, JSON.stringify({ count, period, since: new Date().toISOString() })); }
-  renderBooksGoalWidget();
-  if (document.getElementById('settingsContent')) renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
-  showToast(count ? `Цель: ${count} книг / ${period === 'month' ? 'месяц' : period === 'quarter' ? 'квартал' : 'год'}` : 'Цель снята');
-}
-// сколько книг завершено с начала периода
-function booksCompletedInPeriod() {
-  const goal = getBooksGoal();
-  if (!goal) return 0;
-  const since = new Date(goal.since).getTime();
-  // считаем completed из mylist (без дат завершения — берём все completed; для простоты)
-  return Object.values(state.mylist || {}).filter(s => s === 'completed').length;
-}
-
-function getReadingGoal() { return parseInt(lsGet(READING_GOAL_KEY) || '20', 10); }
-function setReadingGoal(n) {
-  lsSet(READING_GOAL_KEY, String(n));
-  renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
-  showToast(`Цель: ${n} стр./день`);
 }
 
 // --- Размер шрифта читалки (масштаб PDF/EPUB-текста) ---
@@ -5952,32 +5856,6 @@ function renderBookInfo() {
     </div>
     <div id="alsoReadSection" data-static-style="a471"></div>`;
   loadAlsoRead(currentBookId);
-}
-
-function goToPage(pn) {
-  const total = isEpubMode ? (epubTotalPages || 1) : pdfTotalPages;
-  const target = Math.max(1, Math.min(pn, total));
-  if (navigator.vibrate) navigator.vibrate(8);
-
-  if (isEpubMode) {
-    epubCurrentPage = target;
-    if (epubRendition) epubRendition.display(target - 1);
-  } else {
-    pdfCurrentPage = target;
-  }
-
-  if (state.currentBook) {
-    state.readingProgress[state.currentBook.id].currentPage = target;
-    scheduleProgressSave(state.currentBook.id);
-  }
-  updatePageIndicator();
-  renderAnnotations();
-  if (!isEpubMode && pdfDoc) renderPdfPage(target);
-  else if (!isEpubMode) generateDemoPdf(state.currentBook);
-}
-
-function updateSlider() {
-  updatePageIndicator();
 }
 
 // ========== EPUB READER ==========
