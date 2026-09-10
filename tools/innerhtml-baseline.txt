@@ -19,19 +19,10 @@ account-settings.js	tab.label
 account-settings.js	topCats.length ? topCats.map(([cat, n]) => { const pct = Math.round(n / topCats[0][1] * 100); return `<div data-static-s
 account-settings.js	weeks.map(w => `<div title="${w} стр." data-dynamic-style="${dynamicStyleToken`flex:1;min-width:4px;height:${Math.max(4,
 admin-screens.js	allReviews.map(r => `
-admin-screens.js	s.done
-admin-screens.js	s.errors ? `, ошибок: ${s.errors}` : ''
-admin-screens.js	s.indexed_pages
 admin-screens.js	safeTag
 admin-screens.js	sensitiveNonce()
 admin-screens.js	state.books.length
 admin-screens.js	state.books.map(b => `
-admin-screens.js	stats.total_books
-admin-screens.js	stats.total_downloads
-admin-screens.js	stats.total_quiz_attempts
-admin-screens.js	stats.total_reviews
-admin-screens.js	stats.total_users
-admin-screens.js	stats.total_views
 ar-schemes.js	AR_3D.pyramid
 ar-schemes.js	arrows
 ar-schemes.js	cards
