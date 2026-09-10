@@ -37,6 +37,7 @@ const context = {
   api,
   currentBookId: 7,
   ICONS: { sparkles: 'sparkles', check: 'check', refresh: 'refresh' },
+  appendTrustedIcon: (container, markup) => container.appendChild(dom.window.document.createTextNode(markup)),
   sensitiveNonce: () => 'nonce',
   startQuiz: id => quizStarts.push(id),
   showToast: message => toasts.push(message),
@@ -50,7 +51,7 @@ vm.runInContext(source, context);
   const container = dom.window.document.getElementById('detailTabTraining');
   assert.match(container.textContent, /Пройдено/);
   assert.match(container.textContent, /Пересоздать тест/);
-  assert.match(container.innerHTML, /data-nonce="nonce"/);
+  assert.equal(container.querySelectorAll('[data-onclick], [data-nonce]').length, 0);
   assert.deepEqual(quizStarts, []);
 
   confirmValue = false;
@@ -83,6 +84,7 @@ vm.runInContext(source, context);
   assert.ok(indexSource.indexOf('detail-training.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/detail-training\.js['"]/);
   assert.match(workerSource, /aegis-cache-v[0-9]+/);
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
   console.log('Detail training tests passed');
 })().catch(error => {
   console.error(error);

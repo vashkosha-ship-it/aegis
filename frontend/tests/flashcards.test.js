@@ -52,6 +52,7 @@ vm.runInContext(source, context);
   assert.match(body.innerHTML, /&lt;Question&gt;/);
   assert.match(body.innerHTML, /&lt;Answer&gt;/);
   assert.doesNotMatch(body.innerHTML, /<Question>/);
+  assert.equal(body.querySelectorAll('[data-onclick]').length, 0);
 
   context.flipFlashcard();
   assert.equal(dom.window.document.getElementById('flashFront').style.display, 'none');
@@ -71,6 +72,7 @@ vm.runInContext(source, context);
   assert.ok(indexSource.indexOf('flashcards.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/flashcards\.js['"]/);
   assert.match(workerSource, /aegis-cache-v[0-9]+/);
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
   console.log('Flashcards tests passed');
 })().catch(error => {
   console.error(error);

@@ -2,18 +2,37 @@
 function renderDetailTraining() {
   if (!currentBookId) return;
   const isAdmin = state.currentUser?.role === 'admin';
-  const adminBtn = isAdmin
-    ? `<button data-onclick="regenerateBookQuiz(${currentBookId})" data-nonce="${sensitiveNonce()}" id="regenQuizBtn" data-static-style="a484">${ICONS.sparkles || ''}<span>Пересоздать тест (ИИ)</span></button>`
-    : '';
   const c = state.completedQuizzes[state.currentUser?.name] || [];
   if (c.includes(currentBookId)) {
-    document.getElementById('detailTabTraining').innerHTML = `
-      <div data-static-style="a166">
-        <div data-static-style="a239">${ICONS.check}</div>
-        <p>Пройдено!</p>
-        <button class="btn-quiz primary" data-onclick="startQuiz(${currentBookId})" data-static-style="a485">${ICONS.refresh}<span>Заново</span></button>
-        <div>${adminBtn}</div>
-        </div>`;
+    const panel = document.createElement('div');
+    panel.setAttribute('data-static-style', 'a166');
+    const complete = document.createElement('div');
+    complete.setAttribute('data-static-style', 'a239');
+    appendTrustedIcon(complete, ICONS.check);
+    const message = document.createElement('p');
+    message.textContent = 'Пройдено!';
+    const retry = document.createElement('button');
+    retry.className = 'btn-quiz primary';
+    retry.setAttribute('data-static-style', 'a485');
+    appendTrustedIcon(retry, ICONS.refresh);
+    const retryLabel = document.createElement('span');
+    retryLabel.textContent = 'Заново';
+    retry.appendChild(retryLabel);
+    retry.addEventListener('click', () => startQuiz(currentBookId));
+    const adminActions = document.createElement('div');
+    if (isAdmin) {
+      const regenerate = document.createElement('button');
+      regenerate.id = 'regenQuizBtn';
+      regenerate.setAttribute('data-static-style', 'a484');
+      appendTrustedIcon(regenerate, ICONS.sparkles || '');
+      const regenerateLabel = document.createElement('span');
+      regenerateLabel.textContent = 'Пересоздать тест (ИИ)';
+      regenerate.appendChild(regenerateLabel);
+      regenerate.addEventListener('click', () => regenerateBookQuiz(currentBookId));
+      adminActions.appendChild(regenerate);
+    }
+    panel.append(complete, message, retry, adminActions);
+    document.getElementById('detailTabTraining').replaceChildren(panel);
   } else {
     startQuiz(currentBookId);
   }

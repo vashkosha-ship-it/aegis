@@ -46,19 +46,40 @@ function dueCards(cards) {
 let _reviewQueue = [];
 let _reviewIdx = 0;
 
+function flashNode(tagName, text, staticStyle) {
+  const node = document.createElement(tagName);
+  if (staticStyle) node.setAttribute('data-static-style', staticStyle);
+  if (text !== undefined) node.textContent = String(text);
+  return node;
+}
+
+function renderFlashMessage(container, firstLine, secondLine, staticStyle) {
+  const message = flashNode('div', undefined, staticStyle);
+  message.append(
+    document.createTextNode(firstLine),
+    document.createElement('br'),
+    document.createElement('br'),
+    document.createTextNode(secondLine),
+  );
+  container.replaceChildren(message);
+}
+
 async function openReviewMode() {
   const ex = document.getElementById('reviewModal');
   if (ex) ex.remove();
   const m = document.createElement('div');
   m.id = 'reviewModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div data-static-style="a491">
-    <div data-static-style="a126">
-      <h3 data-static-style="a492">Повторение</h3>
-      <button data-onclick="closeModal('reviewModal')" data-static-style="a493">✕</button>
-    </div>
-    <div id="reviewBody" data-static-style="a494">Готовлю карточки…</div>
-  </div>`;
+  const panel = flashNode('div', undefined, 'a491');
+  const header = flashNode('div', undefined, 'a126');
+  const heading = flashNode('h3', 'Повторение', 'a492');
+  const close = flashNode('button', '✕', 'a493');
+  close.addEventListener('click', () => m.remove());
+  header.append(heading, close);
+  const body = flashNode('div', 'Готовлю карточки…', 'a494');
+  body.id = 'reviewBody';
+  panel.append(header, body);
+  m.appendChild(panel);
   document.body.appendChild(m);
 
   const all = await buildFlashcards();
@@ -68,7 +89,7 @@ async function openReviewMode() {
   }
   _reviewQueue = dueCards(all);
   if (!_reviewQueue.length) {
-    document.getElementById('reviewBody').innerHTML = `<div data-static-style="a495">На сегодня всё повторено! 🎉<br><br>Всего карточек: ${all.length}. Возвращайтесь завтра.</div>`;
+    renderFlashMessage(document.getElementById('reviewBody'), 'На сегодня всё повторено! 🎉', `Всего карточек: ${all.length}. Возвращайтесь завтра.`, 'a495');
     return;
   }
   _reviewIdx = 0;
@@ -79,21 +100,29 @@ function renderReviewCard() {
   const body = document.getElementById('reviewBody');
   if (!body) return;
   if (_reviewIdx >= _reviewQueue.length) {
-    body.innerHTML = `<div data-static-style="a496">Сессия завершена! 🎉<br><br>Повторено карточек: ${_reviewQueue.length}</div>`;
+    renderFlashMessage(body, 'Сессия завершена! 🎉', `Повторено карточек: ${_reviewQueue.length}`, 'a496');
     return;
   }
   const c = _reviewQueue[_reviewIdx];
-  body.innerHTML = `
-    <div data-static-style="a497">${_reviewIdx + 1} из ${_reviewQueue.length} · ${eh(c.bookTitle)}</div>
-    <div id="flashcard" data-onclick="flipFlashcard()" data-static-style="a498">
-      <div id="flashFront" data-static-style="a499">${eh(c.front)}</div>
-      <div id="flashBack" data-static-style="a500">${eh(c.back)}</div>
-    </div>
-    <div id="flashHint" data-static-style="a501">Нажмите на карточку, чтобы увидеть ответ</div>
-    <div id="flashRating" data-static-style="a502">
-      <button data-onclick="rateCard(false)" data-static-style="a503">Повторить ещё</button>
-      <button data-onclick="rateCard(true)" data-static-style="a504">Помню</button>
-    </div>`;
+  const progress = flashNode('div', `${_reviewIdx + 1} из ${_reviewQueue.length} · ${c.bookTitle}`, 'a497');
+  const card = flashNode('div', undefined, 'a498');
+  card.id = 'flashcard';
+  const front = flashNode('div', c.front, 'a499');
+  front.id = 'flashFront';
+  const back = flashNode('div', c.back, 'a500');
+  back.id = 'flashBack';
+  card.append(front, back);
+  card.addEventListener('click', flipFlashcard);
+  const hint = flashNode('div', 'Нажмите на карточку, чтобы увидеть ответ', 'a501');
+  hint.id = 'flashHint';
+  const rating = flashNode('div', undefined, 'a502');
+  rating.id = 'flashRating';
+  const retry = flashNode('button', 'Повторить ещё', 'a503');
+  retry.addEventListener('click', () => rateCard(false));
+  const remember = flashNode('button', 'Помню', 'a504');
+  remember.addEventListener('click', () => rateCard(true));
+  rating.append(retry, remember);
+  body.replaceChildren(progress, card, hint, rating);
 }
 
 function flipFlashcard() {
