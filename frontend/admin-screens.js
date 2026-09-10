@@ -420,6 +420,14 @@ let _reindexPollTimer = null;
 function stopReindexPolling() {
   if (_reindexPollTimer) { clearInterval(_reindexPollTimer); _reindexPollTimer = null; }
 }
+function renderReindexResult(container, status) {
+  const result = document.createElement('div');
+  result.setAttribute('data-static-style', 'a203');
+  const errors = status.errors ? `, ошибок: ${status.errors}` : '';
+  result.textContent = `✓ Готово: ${status.done} книг, ${status.indexed_pages} страниц${errors}`;
+  container.replaceChildren(result);
+}
+
 function startReindexPolling() {
   stopReindexPolling();
   const poll = async () => {
@@ -431,9 +439,7 @@ function startReindexPolling() {
       if (bar) bar.style.width = (s.percent || 0) + '%';
       if (s.finished) {
         stopReindexPolling();
-        body.innerHTML = `<div data-static-style="a203">
-          ✓ Готово: ${s.done} книг, ${s.indexed_pages} страниц${s.errors ? `, ошибок: ${s.errors}` : ''}
-        </div>`;
+        renderReindexResult(body, s);
       } else if (s.running) {
         body.querySelector('div').textContent = `Обработано ${s.done} из ${s.total} книг (${s.percent}%)`;
       }
@@ -1151,39 +1157,38 @@ function renderAdminPanel() {
   if (at === 'leaderboard') loadAndRenderLeaderboard();
 }
 
+function renderAdminDashboardStats(container, stats) {
+  const cards = document.createElement('div');
+  cards.className = 'stat-cards';
+  [
+    [stats.total_books, 'Книг в каталоге'],
+    [stats.total_users, 'Пользователей'],
+    [stats.total_views, 'Просмотров'],
+    [stats.total_downloads, 'Скачиваний'],
+    [stats.total_reviews, 'Отзывов'],
+    [stats.total_quiz_attempts, 'Попыток тестов'],
+  ].forEach(([value, label]) => {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    const valueNode = document.createElement('div');
+    valueNode.className = 'stat-value';
+    valueNode.textContent = String(value);
+    const labelNode = document.createElement('div');
+    labelNode.className = 'stat-label';
+    labelNode.textContent = label;
+    card.append(valueNode, labelNode);
+    cards.appendChild(card);
+  });
+  container.replaceChildren(cards);
+}
+
 async function renderDashboard() {
   const container = document.getElementById('adDashboard');
   replaceWithStaticText(container, 'Загрузка...', 'a449');
 
   try {
     const stats = await api.library.adminDashboard();
-    container.innerHTML = `
-      <div class="stat-cards">
-        <div class="stat-card">
-          <div class="stat-value">${stats.total_books}</div>
-          <div class="stat-label">Книг в каталоге</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">${stats.total_users}</div>
-          <div class="stat-label">Пользователей</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">${stats.total_views}</div>
-          <div class="stat-label">Просмотров</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">${stats.total_downloads}</div>
-          <div class="stat-label">Скачиваний</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">${stats.total_reviews}</div>
-          <div class="stat-label">Отзывов</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">${stats.total_quiz_attempts}</div>
-          <div class="stat-label">Попыток тестов</div>
-        </div>
-      </div>`;
+    renderAdminDashboardStats(container, stats);
   } catch (err) {
     console.error('Ошибка загрузки дашборда:', err);
     replaceWithStaticText(container, 'Не удалось загрузить статистику', 'a150');
