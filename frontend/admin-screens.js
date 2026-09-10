@@ -1,19 +1,28 @@
 // Administrative screens, book management and bulk operations.
 // Loaded as a classic script before app.js; public handlers intentionally remain global.
 
+function replaceAdminStaticMarkup(container, markup) {
+  const parsed = new DOMParser().parseFromString(`<body>${markup}</body>`, 'text/html');
+  const fragment = document.createDocumentFragment();
+  Array.from(parsed.body.childNodes).forEach(node => {
+    fragment.appendChild(document.importNode(node, true));
+  });
+  container.replaceChildren(fragment);
+}
+
 async function openAdminLogs() {
   const ex = document.getElementById('adminLogsModal');
   if (ex) ex.remove();
   const m = document.createElement('div');
   m.id = 'adminLogsModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div data-static-style="a125">
+  replaceAdminStaticMarkup(m, `<div data-static-style="a125">
     <div data-static-style="a126">
       <h3 data-static-style="a127">Журнал действий</h3>
       <button data-onclick="closeModal('adminLogsModal')" data-static-style="a128">✕</button>
     </div>
     <div id="adminLogsBody" data-static-style="a129">Загрузка…</div>
-  </div>`;
+  </div>`);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
   try {
@@ -63,7 +72,7 @@ function openCreateUserModal() {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
     document.body.appendChild(modal);
   }
-  modal.innerHTML = `
+  replaceAdminStaticMarkup(modal, `
     <div data-static-style="a177">
       <div data-static-style="a144">
         <h3 data-static-style="a145">Создать пользователя</h3>
@@ -79,7 +88,7 @@ function openCreateUserModal() {
       <label data-static-style="a179">Подразделение</label>
       <input type="text" id="cuDepartment" data-static-style="a181">
       <button id="cuCreateBtn" data-static-style="a149">Создать</button>
-    </div>`;
+    </div>`);
 
   document.getElementById('cuCreateBtn').onclick = async () => {
     const btn = document.getElementById('cuCreateBtn');
@@ -116,7 +125,7 @@ function openExportModal() {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
     document.body.appendChild(modal);
   }
-  modal.innerHTML = `
+  replaceAdminStaticMarkup(modal, `
     <div data-static-style="a177">
       <div data-static-style="a144">
         <h3 data-static-style="a145">Выгрузка в Excel</h3>
@@ -128,7 +137,7 @@ function openExportModal() {
       <label data-static-style="a179">Дата по</label>
       <input type="date" id="exportDateTo" data-static-style="a181">
       <button id="exportRunBtn" data-static-style="a184">Скачать Excel</button>
-    </div>`;
+    </div>`);
 
   document.getElementById('exportRunBtn').onclick = async () => {
     const btn = document.getElementById('exportRunBtn');
@@ -165,14 +174,14 @@ async function openPendingUsersModal() {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
     document.body.appendChild(modal);
   }
-  modal.innerHTML = `
+  replaceAdminStaticMarkup(modal, `
     <div data-static-style="a185">
       <div data-static-style="a126">
         <h3 data-static-style="a145">Заявки на регистрацию</h3>
         <button data-onclick="closeModal('pendingUsersModal')" data-static-style="a186">✕</button>
       </div>
       <div id="pendingUsersList" data-static-style="a187">Загрузка…</div>
-    </div>`;
+    </div>`);
 
   try {
     const users = await api.library.adminPendingUsers();
@@ -398,7 +407,7 @@ function showReindexProgress() {
   const m = document.createElement('div');
   m.id = 'reindexProgressModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div data-static-style="a198">
+  replaceAdminStaticMarkup(m, `<div data-static-style="a198">
     <div data-static-style="a126">
       <h3 data-static-style="a127">Индексация поиска</h3>
       <button data-onclick="stopReindexPolling();document.getElementById('reindexProgressModal').remove()" data-static-style="a128">✕</button>
@@ -410,7 +419,7 @@ function showReindexProgress() {
       </div>
     </div>
     <div data-static-style="a202">Можно закрыть это окно — индексация продолжится в фоне.</div>
-  </div>`;
+  </div>`);
   m.onclick = (e) => { if (e.target === m) { stopReindexPolling(); m.remove(); } };
   document.body.appendChild(m);
   startReindexPolling();
