@@ -5,8 +5,6 @@
 #
 # Пересобрать: python tools/audit_innerhtml.py --baseline
 
-account-settings.js	html
-account-settings.js	options.map(opt => `
 ar-schemes.js	AR_3D.pyramid
 ar-schemes.js	arrows
 ar-schemes.js	cards

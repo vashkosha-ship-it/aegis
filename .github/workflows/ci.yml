@@ -306,6 +306,9 @@ jobs:
       - name: Тест статистики и хранилища аккаунта
         run: node tests/account-stats-storage-dom.test.js
 
+      - name: Тест форм и документов аккаунта
+        run: node tests/account-forms-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 
