@@ -1195,68 +1195,75 @@ async function renderDashboard() {
   }
 }
 
+function appendAdminCell(row, value) {
+  const cell = document.createElement('td');
+  cell.textContent = String(value ?? '');
+  row.appendChild(cell);
+  return cell;
+}
+
+function renderAdminBookRows(tbody, books) {
+  const fragment = document.createDocumentFragment();
+  books.forEach(book => {
+    const row = document.createElement('tr');
+    appendAdminCell(row, book.title);
+    appendAdminCell(row, book.author);
+    appendAdminCell(row, bookCategoriesText(book));
+    appendAdminCell(row, String(book.file_format || 'pdf').toUpperCase());
+    const rating = document.createElement('td');
+    appendTrustedIcon(rating, ICONS.star);
+    rating.appendChild(document.createTextNode(String(book.rating ?? '')));
+    row.appendChild(rating);
+    const actions = document.createElement('td');
+    const analytics = document.createElement('button');
+    analytics.type = 'button';
+    analytics.className = 'btn-sm';
+    analytics.title = 'Аналитика';
+    analytics.textContent = '📊';
+    analytics.addEventListener('click', () => openBookAnalyticsModal(book.id));
+    const settings = document.createElement('button');
+    settings.type = 'button';
+    settings.className = 'btn-sm';
+    appendTrustedIcon(settings, ICONS.settings);
+    settings.addEventListener('click', () => openAdminBookModal(book.id));
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn-sm danger';
+    appendTrustedIcon(remove, ICONS.trash);
+    remove.addEventListener('click', () => deleteBook(book.id));
+    actions.append(analytics, settings, remove);
+    row.appendChild(actions);
+    fragment.appendChild(row);
+  });
+  tbody.replaceChildren(fragment);
+}
+
 function renderAdminBooks() {
-  document.getElementById('adBooks').innerHTML = `
+  const container = document.getElementById('adBooks');
+  container.innerHTML = `
     <div data-static-style="a541">
       <div data-static-style="a542">
         <div data-static-style="a543">Всего книг:</div>
-        <div data-static-style="a544">${state.books.length}</div>
+        <div id="adminBooksCount" data-static-style="a544"></div>
       </div>
       <button data-onclick="openBulkUploadModal()" data-static-style="a545">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/><path d="M12 5v8"/><path d="M8 9l4-4 4 4"/></svg>
         Массовая загрузка
       </button>
-      <button data-onclick="reindexAllBooksUI()" data-nonce="${sensitiveNonce()}" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
-        Индексировать поиск
-      </button>
-      <button data-onclick="openAdminLogs()" title="Журнал действий администраторов" data-static-style="a547">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        Журнал
-      </button>
-      <button data-onclick="generateMissingCoversUI()" data-nonce="${sensitiveNonce()}" title="Создать обложки для книг без обложки" data-static-style="a547">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>
-        Обложки
-      </button>
-      <button data-onclick="aiMatchArBooksUI()" data-nonce="${sensitiveNonce()}" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
-        Подобрать книги для AR
-      </button>
-      <button data-onclick="regenerateAllQuizzesUI()" data-nonce="${sensitiveNonce()}" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
-        Перегенерировать тесты
-      </button>
+      <button data-onclick="reindexAllBooksUI()" data-nonce="${sensitiveNonce()}" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">Индексировать поиск</button>
+      <button data-onclick="openAdminLogs()" title="Журнал действий администраторов" data-static-style="a547">Журнал</button>
+      <button data-onclick="generateMissingCoversUI()" data-nonce="${sensitiveNonce()}" title="Создать обложки для книг без обложки" data-static-style="a547">Обложки</button>
+      <button data-onclick="aiMatchArBooksUI()" data-nonce="${sensitiveNonce()}" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">Подобрать книги для AR</button>
+      <button data-onclick="regenerateAllQuizzesUI()" data-nonce="${sensitiveNonce()}" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">Перегенерировать тесты</button>
     </div>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Книга</th>
-            <th>Автор</th>
-            <th>Категория</th>
-            <th>Формат</th>
-            <th>Рейтинг</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${state.books.map(b => `
-            <tr>
-              <td>${eh(b.title)}</td>
-              <td>${eh(b.author)}</td>
-              <td>${bookCategoriesText(b)}</td>
-              <td>${(b.file_format || 'pdf').toUpperCase()}</td>
-              <td>${ICONS.star}${b.rating}</td>
-              <td>
-                <button class="btn-sm" data-onclick="openBookAnalyticsModal(${b.id})" title="Аналитика">📊</button>
-                <button class="btn-sm" data-onclick="openAdminBookModal(${b.id})">${ICONS.settings}</button>
-                <button class="btn-sm danger" data-onclick="deleteBook(${b.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash}</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
+        <thead><tr><th>Книга</th><th>Автор</th><th>Категория</th><th>Формат</th><th>Рейтинг</th><th>Действия</th></tr></thead>
+        <tbody id="adminBooksTableBody"></tbody>
       </table>
     </div>`;
+  document.getElementById('adminBooksCount').textContent = String(state.books.length);
+  renderAdminBookRows(document.getElementById('adminBooksTableBody'), state.books);
 }
 // ========== МАССОВАЯ ЗАГРУЗКА КНИГ ==========
 
@@ -1484,6 +1491,44 @@ async function startBulkUpload() {
   await loadBooksFromApi();
   if (state.currentScreen === 'admin') renderAdminPanel();
 }
+function renderAdminReviewsTable(container, reviews) {
+  const wrap = document.createElement('div');
+  wrap.className = 'table-wrap';
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const header = document.createElement('tr');
+  ['Книга', 'Пользователь', 'Оценка', 'Текст', 'Действия'].forEach(label => {
+    const th = document.createElement('th');
+    th.textContent = label;
+    header.appendChild(th);
+  });
+  thead.appendChild(header);
+  const tbody = document.createElement('tbody');
+  reviews.forEach(review => {
+    const row = document.createElement('tr');
+    appendAdminCell(row, review.bookTitle);
+    appendAdminCell(row, review.user);
+    const rating = document.createElement('td');
+    const ratingCount = Math.max(0, Math.min(5, Number(review.rating) || 0));
+    for (let index = 0; index < ratingCount; index += 1) appendTrustedIcon(rating, ICONS.star);
+    row.appendChild(rating);
+    const reviewText = String(review.text || '');
+    appendAdminCell(row, reviewText.substring(0, 50) + (reviewText.length > 50 ? '...' : ''));
+    const actions = document.createElement('td');
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn-sm danger';
+    appendTrustedIcon(remove, ICONS.trash);
+    remove.addEventListener('click', () => deleteReviewAndRefresh(review.bookId, review.id));
+    actions.appendChild(remove);
+    row.appendChild(actions);
+    tbody.appendChild(row);
+  });
+  table.append(thead, tbody);
+  wrap.appendChild(table);
+  container.replaceChildren(wrap);
+}
+
 async function loadAndRenderAdminReviews() {
   const container = document.getElementById('adReviews');
   if (!container) return;
@@ -1491,48 +1536,21 @@ async function loadAndRenderAdminReviews() {
 
   try {
     const books = state.books;
-    let allReviews = [];
+    const allReviews = [];
 
     for (const book of books) {
       const reviews = await getReviews(book.id);
-      reviews.forEach(r => {
+      reviews.forEach(review => {
         allReviews.push({
-          ...r,
+          ...review,
           bookId: book.id,
-          bookTitle: book.title
+          bookTitle: book.title,
         });
       });
     }
 
     allReviews.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    container.innerHTML = `
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Книга</th>
-              <th>Пользователь</th>
-              <th>Оценка</th>
-              <th>Текст</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${allReviews.map(r => `
-              <tr>
-                <td>${eh(r.bookTitle)}</td>
-                <td>${eh(r.user)}</td>
-                <td>${Array(r.rating).fill(ICONS.star).join('')}</td>
-                <td>${eh((r.text || '').substring(0, 50))}${r.text && r.text.length > 50 ? '...' : ''}</td>
-                <td>
-                  <button class="btn-sm danger" data-onclick="deleteReviewAndRefresh(${r.bookId}, ${r.id})" data-nonce="${sensitiveNonce()}">${ICONS.trash}</button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    renderAdminReviewsTable(container, allReviews);
   } catch (err) {
     replaceWithStaticText(container, 'Не удалось загрузить отзывы', 'a150');
   }
