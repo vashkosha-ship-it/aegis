@@ -293,14 +293,29 @@ async function openChatHistory() {
     const body = document.getElementById('chatHistoryBody');
     if (!chats.length) { replaceWithStaticText(body, 'Сохранённых диалогов пока нет.', 'a130'); return; }
     body.style.textAlign = 'left'; body.style.padding = '0';
-    body.innerHTML = chats.map(c => `
-      <div data-static-style="a305">
-        <div data-onclick="loadChatFromHistory(${c.id})" data-static-style="a306">
-          <div data-static-style="a307">${eh(c.title)}</div>
-          <div data-static-style="a099">${c.message_count} сообщений</div>
-        </div>
-        <button data-onclick="deleteChatFromHistory(${c.id})" data-nonce="${sensitiveNonce()}" data-static-style="a308">✕</button>
-      </div>`).join('');
+    const fragment = document.createDocumentFragment();
+    chats.forEach(chat => {
+      const row = document.createElement('div');
+      row.setAttribute('data-static-style', 'a305');
+      const open = document.createElement('div');
+      open.setAttribute('data-static-style', 'a306');
+      open.addEventListener('click', () => loadChatFromHistory(chat.id));
+      const title = document.createElement('div');
+      title.setAttribute('data-static-style', 'a307');
+      title.textContent = String(chat.title ?? '');
+      const count = document.createElement('div');
+      count.setAttribute('data-static-style', 'a099');
+      count.textContent = `${Number(chat.message_count) || 0} сообщений`;
+      open.append(title, count);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.setAttribute('data-static-style', 'a308');
+      remove.textContent = '✕';
+      remove.addEventListener('click', () => deleteChatFromHistory(chat.id));
+      row.append(open, remove);
+      fragment.appendChild(row);
+    });
+    body.replaceChildren(fragment);
   } catch (_) {
     const body = document.getElementById('chatHistoryBody');
     replaceWithStaticText(body, 'Не удалось загрузить историю.', 'a137');
