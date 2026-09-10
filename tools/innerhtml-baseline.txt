@@ -32,7 +32,6 @@ admin-screens.js	stats.total_quiz_attempts
 admin-screens.js	stats.total_reviews
 admin-screens.js	stats.total_users
 admin-screens.js	stats.total_views
-admin-screens.js	u.department ? `<div data-static-style="a193">${eh(u.department)}</div>` : ''
 ar-schemes.js	AR_3D.pyramid
 ar-schemes.js	arrows
 ar-schemes.js	cards
@@ -49,8 +48,6 @@ ar-schemes.js	rInner - 6
 ar-schemes.js	segs
 ar-schemes.js	stages.map((s) => { const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6'; const badge = (s.code || Stri
 ar-schemes.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; return `<button data-onclick="selectKillChainStage(${s.id})
-assistant-chat.js	c.message_count
-assistant-chat.js	sensitiveNonce()
 auth-ui.js	hasLevel ? `
 library-home.js	(() => { const stage = findKillChainStageForBook(b); if (!stage) return ''; return `<button class="btn-detail" data-stat
 library-home.js	adminStats

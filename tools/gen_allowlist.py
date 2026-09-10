@@ -39,8 +39,6 @@ EXTRA = {"click": {"closeModal", "clickElement"}}
 # меняют вид на экране.
 SENSITIVE = [
     "aiMatchArBooksUI",
-    "approvePendingUser",
-    "rejectPendingUser",
     "deleteAdminUser",
     "deleteBook",
     "regenerateAllQuizzesUI",
@@ -50,7 +48,6 @@ SENSITIVE = [
     "deleteReviewAndRefresh",
     "deleteAnnotation",
     "deleteAnnotationFromTooltip",
-    "deleteChatFromHistory",
     "deleteCurrentAvatar",
     "confirmDeleteAccount",
     "doDeleteAccount",

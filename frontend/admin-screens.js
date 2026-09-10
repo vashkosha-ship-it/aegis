@@ -25,17 +25,30 @@ async function openAdminLogs() {
       pdf_upload: '📄 Загрузка PDF', cover_upload: '🖼 Обложка', reindex: '🔍 Индексация',
     };
     body.style.textAlign = 'left'; body.style.padding = '0';
-    body.innerHTML = logs.map(l => {
-      const d = new Date(l.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-      return `<div data-static-style="a131">
-        <div data-static-style="a132">
-          <span data-static-style="a133">${actionLabel[l.action] || l.action}</span>
-          <span data-static-style="a134">${d}</span>
-        </div>
-        <div data-static-style="a135">${eh(l.detail || '')}</div>
-        <div data-static-style="a136">${eh(l.admin || '—')}</div>
-      </div>`;
-    }).join('');
+    const fragment = document.createDocumentFragment();
+    logs.forEach(log => {
+      const row = document.createElement('div');
+      row.setAttribute('data-static-style', 'a131');
+      const heading = document.createElement('div');
+      heading.setAttribute('data-static-style', 'a132');
+      const action = document.createElement('span');
+      action.setAttribute('data-static-style', 'a133');
+      action.textContent = String(actionLabel[log.action] || log.action || '—');
+      const date = document.createElement('span');
+      date.setAttribute('data-static-style', 'a134');
+      const d = new Date(log.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      date.textContent = d;
+      heading.append(action, date);
+      const detail = document.createElement('div');
+      detail.setAttribute('data-static-style', 'a135');
+      detail.textContent = String(log.detail || '');
+      const admin = document.createElement('div');
+      admin.setAttribute('data-static-style', 'a136');
+      admin.textContent = String(log.admin || '—');
+      row.append(heading, detail, admin);
+      fragment.appendChild(row);
+    });
+    body.replaceChildren(fragment);
   } catch (e) {
     const body = document.getElementById('adminLogsBody');
     replaceWithStaticText(body, 'Не удалось загрузить журнал.', 'a137');
@@ -167,24 +180,58 @@ async function openPendingUsersModal() {
     if (!users.length) {
       replaceWithStaticText(list, 'Нет заявок на рассмотрении', 'a188');
     } else {
-      list.innerHTML = users.map(u => `
-        <div data-static-style="a189">
-          <div data-static-style="a190">
-            <div data-static-style="a191">${eh(u.full_name || u.username)}</div>
-            <div data-static-style="a192">@${eh(u.username)} · ${eh(u.email || '—')}</div>
-            ${u.department ? `<div data-static-style="a193">${eh(u.department)}</div>` : ''}
-          </div>
-          <div data-static-style="a194">
-            <button data-onclick="approvePendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" data-static-style="a195">Одобрить</button>
-            <button data-onclick="rejectPendingUser(${u.id})" data-nonce="${sensitiveNonce()}" data-args="this" data-static-style="a196">Отклонить</button>
-          </div>
-        </div>`).join('');
+      const fragment = document.createDocumentFragment();
+      users.forEach(user => {
+        const row = document.createElement('div');
+        row.setAttribute('data-static-style', 'a189');
+        row.setAttribute('data-pending-user-row', '');
+        const info = document.createElement('div');
+        info.setAttribute('data-static-style', 'a190');
+        const name = document.createElement('div');
+        name.setAttribute('data-static-style', 'a191');
+        name.textContent = String(user.full_name || user.username || '');
+        const meta = document.createElement('div');
+        meta.setAttribute('data-static-style', 'a192');
+        meta.textContent = `@${user.username || ''} · ${user.email || '—'}`;
+        info.append(name, meta);
+        if (user.department) {
+          const department = document.createElement('div');
+          department.setAttribute('data-static-style', 'a193');
+          department.textContent = String(user.department);
+          info.appendChild(department);
+        }
+        const actions = document.createElement('div');
+        actions.setAttribute('data-static-style', 'a194');
+        const approve = document.createElement('button');
+        approve.type = 'button';
+        approve.setAttribute('data-static-style', 'a195');
+        approve.textContent = 'Одобрить';
+        approve.addEventListener('click', () => approvePendingUser(user.id, approve));
+        const reject = document.createElement('button');
+        reject.type = 'button';
+        reject.setAttribute('data-static-style', 'a196');
+        reject.textContent = 'Отклонить';
+        reject.addEventListener('click', () => rejectPendingUser(user.id, reject));
+        actions.append(approve, reject);
+        row.append(info, actions);
+        fragment.appendChild(row);
+      });
+      list.replaceChildren(fragment);
     }
     updatePendingBadge(users.length);
   } catch (err) {
     console.error('Ошибка загрузки заявок:', err, err && err.status, err && err.body);
     const detail = (err && (err.detail || (err.body && err.body.detail))) || (err && err.message) || '';
-    document.getElementById('pendingUsersList').innerHTML = '<div data-static-style="a197">Не удалось загрузить заявки' + (detail ? '<br><span data-static-style="a192">' + eh(String(detail)) + '</span>' : '') + '</div>';
+    const message = document.createElement('div');
+    message.setAttribute('data-static-style', 'a197');
+    message.textContent = 'Не удалось загрузить заявки';
+    if (detail) {
+      const detailNode = document.createElement('span');
+      detailNode.setAttribute('data-static-style', 'a192');
+      detailNode.textContent = String(detail);
+      message.append(document.createElement('br'), detailNode);
+    }
+    document.getElementById('pendingUsersList').replaceChildren(message);
   }
 }
 
@@ -192,7 +239,7 @@ async function approvePendingUser(userId, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
     await api.library.adminApproveUser(userId);
-    btn.closest('div[style*="justify-content:space-between"]').parentElement.remove();
+    btn.closest('[data-pending-user-row]')?.remove();
     showToast('Пользователь одобрен');
     refreshPendingBadge();
     const list = document.getElementById('pendingUsersList');
@@ -210,7 +257,7 @@ async function rejectPendingUser(userId, btn) {
   btn.disabled = true; btn.textContent = '…';
   try {
     await api.library.adminRejectUser(userId);
-    btn.closest('div[style*="justify-content:space-between"]').parentElement.remove();
+    btn.closest('[data-pending-user-row]')?.remove();
     showToast('Заявка отклонена');
     refreshPendingBadge();
   } catch (e) {
