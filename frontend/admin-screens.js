@@ -751,7 +751,7 @@ function removeCategoryTag(containerId, name) {
   renderCategoryChips(containerId);
 }
 
-async async function showCategorySuggestions(containerId, query) {
+async function showCategorySuggestions(containerId, query) {
   const inst = categoryTagsInstances[containerId];
   if (!inst) return;
   let allCategories;
