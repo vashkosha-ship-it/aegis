@@ -285,6 +285,9 @@ jobs:
       - name: Тест безопасных списков администратора
         run: node tests/admin-lists-dom.test.js
 
+      - name: Тест категорий и массовой загрузки
+        run: node tests/admin-categories-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 
