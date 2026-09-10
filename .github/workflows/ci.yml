@@ -303,6 +303,9 @@ jobs:
       - name: Тест безопасных экранов входа и onboarding
         run: node tests/auth-onboarding-dom.test.js
 
+      - name: Тест статистики и хранилища аккаунта
+        run: node tests/account-stats-storage-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 

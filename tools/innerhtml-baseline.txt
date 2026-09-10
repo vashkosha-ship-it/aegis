@@ -5,15 +5,8 @@
 #
 # Пересобрать: python tools/audit_innerhtml.py --baseline
 
-account-settings.js	card(activeDays, 'активных дней', '#10b981')
-account-settings.js	card(avgQuiz !== null ? avgQuiz + '%' : '—', 'средний балл тестов', '#f59e0b')
-account-settings.js	card(hours + ' ч', 'примерно времени', '#a855f7')
-account-settings.js	card(totalPages, 'страниц прочитано', 'var(--accent)')
-account-settings.js	formatBytes(stats.used)
 account-settings.js	html
 account-settings.js	options.map(opt => `
-account-settings.js	topCats.length ? topCats.map(([cat, n]) => { const pct = Math.round(n / topCats[0][1] * 100); return `<div data-static-s
-account-settings.js	weeks.map(w => `<div title="${w} стр." data-dynamic-style="${dynamicStyleToken`flex:1;min-width:4px;height:${Math.max(4,
 ar-schemes.js	AR_3D.pyramid
 ar-schemes.js	arrows
 ar-schemes.js	cards
