@@ -321,6 +321,9 @@ jobs:
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 
+      - name: Тест аттестации и заметок пользователя
+        run: node tests/user-features-dom.test.js
+
       - name: Тест безопасного полнотекстового поиска
         run: node tests/fulltext-search.test.js
 
