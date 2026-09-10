@@ -291,7 +291,7 @@ async function openChatHistory() {
   try {
     const chats = await api.library.chats();
     const body = document.getElementById('chatHistoryBody');
-    if (!chats.length) { body.innerHTML = '<div data-static-style="a130">Сохранённых диалогов пока нет.</div>'; return; }
+    if (!chats.length) { replaceWithStaticText(body, 'Сохранённых диалогов пока нет.', 'a130'); return; }
     body.style.textAlign = 'left'; body.style.padding = '0';
     body.innerHTML = chats.map(c => `
       <div data-static-style="a305">
@@ -303,7 +303,7 @@ async function openChatHistory() {
       </div>`).join('');
   } catch (_) {
     const body = document.getElementById('chatHistoryBody');
-    if (body) body.innerHTML = '<div data-static-style="a137">Не удалось загрузить историю.</div>';
+    replaceWithStaticText(body, 'Не удалось загрузить историю.', 'a137');
   }
 }
 

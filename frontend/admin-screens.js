@@ -19,7 +19,7 @@ async function openAdminLogs() {
   try {
     const logs = await api.library.adminLogs(100);
     const body = document.getElementById('adminLogsBody');
-    if (!logs.length) { body.innerHTML = '<div data-static-style="a130">Записей пока нет.</div>'; return; }
+    if (!logs.length) { replaceWithStaticText(body, 'Записей пока нет.', 'a130'); return; }
     const actionLabel = {
       book_create: '➕ Создание', book_update: '✏️ Изменение', book_delete: '🗑 Удаление',
       pdf_upload: '📄 Загрузка PDF', cover_upload: '🖼 Обложка', reindex: '🔍 Индексация',
@@ -38,7 +38,7 @@ async function openAdminLogs() {
     }).join('');
   } catch (e) {
     const body = document.getElementById('adminLogsBody');
-    if (body) body.innerHTML = '<div data-static-style="a137">Не удалось загрузить журнал.</div>';
+    replaceWithStaticText(body, 'Не удалось загрузить журнал.', 'a137');
   }
 }
 
@@ -165,7 +165,7 @@ async function openPendingUsersModal() {
     const users = await api.library.adminPendingUsers();
     const list = document.getElementById('pendingUsersList');
     if (!users.length) {
-      list.innerHTML = '<div data-static-style="a188">Нет заявок на рассмотрении</div>';
+      replaceWithStaticText(list, 'Нет заявок на рассмотрении', 'a188');
     } else {
       list.innerHTML = users.map(u => `
         <div data-static-style="a189">
@@ -197,7 +197,7 @@ async function approvePendingUser(userId, btn) {
     refreshPendingBadge();
     const list = document.getElementById('pendingUsersList');
     if (list && !list.querySelector('button')) {
-      list.innerHTML = '<div data-static-style="a188">Нет заявок на рассмотрении</div>';
+      replaceWithStaticText(list, 'Нет заявок на рассмотрении', 'a188');
     }
   } catch (e) {
     btn.disabled = false; btn.textContent = 'Одобрить';
@@ -532,7 +532,7 @@ function renderRecommendDepts(book) {
   matches.sort((a, b) => b.hits - a.hits);
 
   if (!matches.length) {
-    el.innerHTML = '<div data-static-style="a243">Нет явных совпадений по темам. Книга подходит для общего доступа.</div>';
+    replaceWithStaticText(el, 'Нет явных совпадений по темам. Книга подходит для общего доступа.', 'a243');
     return;
   }
   el.innerHTML = '<div data-static-style="a347">Книга релевантна подразделениям:</div>' +
@@ -1110,7 +1110,7 @@ function renderAdminPanel() {
 
 async function renderDashboard() {
   const container = document.getElementById('adDashboard');
-  container.innerHTML = '<div data-static-style="a449">Загрузка...</div>';
+  replaceWithStaticText(container, 'Загрузка...', 'a449');
 
   try {
     const stats = await api.library.adminDashboard();
@@ -1143,7 +1143,7 @@ async function renderDashboard() {
       </div>`;
   } catch (err) {
     console.error('Ошибка загрузки дашборда:', err);
-    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить статистику</div>';
+    replaceWithStaticText(container, 'Не удалось загрузить статистику', 'a150');
   }
 }
 
@@ -1439,7 +1439,7 @@ async function startBulkUpload() {
 async function loadAndRenderAdminReviews() {
   const container = document.getElementById('adReviews');
   if (!container) return;
-  container.innerHTML = '<div data-static-style="a449">Загрузка отзывов...</div>';
+  replaceWithStaticText(container, 'Загрузка отзывов...', 'a449');
 
   try {
     const books = state.books;
@@ -1486,7 +1486,7 @@ async function loadAndRenderAdminReviews() {
         </table>
       </div>`;
   } catch (err) {
-    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить отзывы</div>';
+    replaceWithStaticText(container, 'Не удалось загрузить отзывы', 'a150');
   }
 }
 
@@ -1510,7 +1510,7 @@ async function deleteBook(id) {
 async function loadAndRenderAdminUsers() {
   const container = document.getElementById('adUsers');
   if (!container) return;
-  container.innerHTML = '<div data-static-style="a449">Загрузка...</div>';
+  replaceWithStaticText(container, 'Загрузка...', 'a449');
   try {
     const users = await api.library.adminUsers();
 
@@ -1519,7 +1519,7 @@ async function loadAndRenderAdminUsers() {
 
     renderAdminUsersWithFilter();
   } catch (err) {
-    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить пользователей</div>';
+    replaceWithStaticText(container, 'Не удалось загрузить пользователей', 'a150');
   }
 }
 
@@ -1527,7 +1527,7 @@ function renderAdminUsersWithFilter() {
   const container = document.getElementById('adUsers');
   const users = state._adminUsers || [];
   if (!users.length) {
-    container.innerHTML = '<div data-static-style="a209">Нет пользователей</div>';
+    replaceWithStaticText(container, 'Нет пользователей', 'a209');
     return;
   }
 

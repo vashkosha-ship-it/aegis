@@ -149,14 +149,14 @@ function renderAnalytics() {
 async function openBookAnalyticsModal(bookId) {
   const modal = document.getElementById('bookAnalyticsModal');
   const content = document.getElementById('bookAnalyticsContent');
-  content.innerHTML = '<div data-static-style="a577">Загрузка...</div>';
+  replaceWithStaticText(content, 'Загрузка...', 'a577');
   modal.classList.remove('hidden');
   try {
     const data = await api.library.adminBookAnalytics(bookId);
     renderBookAnalytics(data);
   } catch (err) {
     console.error(err);
-    content.innerHTML = '<div data-static-style="a578">Не удалось загрузить аналитику</div>';
+    replaceWithStaticText(content, 'Не удалось загрузить аналитику', 'a578');
   }
 }
 

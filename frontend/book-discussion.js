@@ -29,14 +29,14 @@ async function loadComments() {
     const comments = await api.library.bookComments(currentBookId);
     if (!comments.length) {
       list.style.textAlign = 'center';
-      list.innerHTML = '<div data-static-style="a209">Пока нет комментариев. Будьте первым!</div>';
+      replaceWithStaticText(list, 'Пока нет комментариев. Будьте первым!', 'a209');
       return;
     }
     list.style.textAlign = 'left';
     list.style.padding = '0';
     list.innerHTML = comments.map(renderCommentNode).join('');
   } catch (e) {
-    list.innerHTML = '<div data-static-style="a137">Не удалось загрузить обсуждение.</div>';
+    replaceWithStaticText(list, 'Не удалось загрузить обсуждение.', 'a137');
   }
 }
 
