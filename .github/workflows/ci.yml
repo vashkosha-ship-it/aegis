@@ -309,6 +309,9 @@ jobs:
       - name: Тест форм и документов аккаунта
         run: node tests/account-forms-dom.test.js
 
+      - name: Тест персонализации аккаунта
+        run: node tests/account-personalization-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 
