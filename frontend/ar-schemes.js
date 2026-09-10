@@ -35,7 +35,7 @@ async function openARWithScheme(schemeCode, initialStageId = null) {
   };
   document.getElementById('arSchemeTitle').textContent = titles[schemeCode] || 'Схема';
 
-  document.getElementById('arSchemeContainer').innerHTML = '';
+  document.getElementById('arSchemeContainer').replaceChildren();
   document.getElementById('arModal').classList.add('active');
 
   // Сначала рендерим схему (она не зависит от камеры), потом запускаем камеру
@@ -115,7 +115,7 @@ function closeAR() {
   // ПОЛНОСТЬЮ ОЧИЩАЕМ контейнер схемы
   const schemeContainer = document.getElementById('arSchemeContainer');
   if (schemeContainer) {
-    schemeContainer.innerHTML = '';
+    schemeContainer.replaceChildren();
     // Убираем все inline стили, которые могли добавиться
     schemeContainer.removeAttribute('style');
   }
@@ -132,7 +132,7 @@ function closeAR() {
   const stageDetails = document.getElementById('arStageDetails');
   if (stageDetails) {
     stageDetails.style.display = 'none';
-    stageDetails.innerHTML = '';
+    stageDetails.replaceChildren();
   }
   
   const stageHint = document.getElementById('arStageHint');
@@ -834,7 +834,7 @@ let arViewMode = 'attack'; // 'attack' | 'defense'
 function renderARScheme(schemeCode) {
   const container = document.getElementById('arSchemeContainer');
   if (!container) return;
-  container.innerHTML = '';
+  container.replaceChildren();
   arSelectedStage = null;
 
   if (!AR_SCHEMES[schemeCode]) {
@@ -2011,7 +2011,7 @@ function selectKillChainStage(stageId) {
   // Обновляем заголовок панели
   const titleEl = document.getElementById('arStageDetailTitle');
   if (titleEl) {
-    titleEl.innerHTML = `ЭТАП ${stage.id} — ${stage.nameRu.toUpperCase()}`;
+    titleEl.textContent = `ЭТАП ${stage.id} — ${stage.nameRu.toUpperCase()}`;
   }
 
   // Обновляем содержимое панели
@@ -2139,7 +2139,7 @@ function selectKillChainStage(stageId) {
     if (!document.getElementById('arПанельCloseBtn')) {
       const cb = document.createElement('button');
       cb.id = 'arПанельCloseBtn';
-      cb.innerHTML = '✕';
+      cb.textContent = '✕';
       cb.onclick = (e) => { e.stopPropagation(); closeKillChainStage(); };
       cb.style.cssText = 'position:absolute;top:10px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:16px;cursor:pointer;z-index:30;display:flex;align-items:center;justify-content:center;';
       panel.appendChild(cb);

@@ -156,7 +156,7 @@ async function renderSkillsRadar() {
 async function renderHeatmap() {
   const c = document.getElementById('heatmapContainer');
   if (!c) return;
-  if (!state.currentUser) { c.innerHTML = ''; return; }
+  if (!state.currentUser) { c.replaceChildren(); return; }
 
   await loadHeatmapFromApi();
   const days = state.heatmapData || [];

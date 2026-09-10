@@ -5,7 +5,7 @@ async function loadEpub(b) {
   isEpubMode = true;
   document.getElementById('pdfViewport').classList.add('hidden');
   document.getElementById('epubViewport').classList.remove('hidden');
-  document.getElementById('annotationLayer').innerHTML = '';
+  document.getElementById('annotationLayer').replaceChildren();
 
   const container = document.getElementById('epubContainer');
   container.innerHTML = loadingSpinnerHTML('Загрузка книги…');
@@ -80,7 +80,7 @@ async function loadEpub(b) {
     }
 
     updatePageIndicator();
-    container.innerHTML = '';
+    container.replaceChildren();
     epubRendition.display(epubCurrentPage - 1);
 
     epubRendition.on('relocated', (loc) => {
@@ -148,7 +148,7 @@ async function loadPdf(b) {
   try {
     await ensurePdfLoaded();
   } catch (e) {
-    pl.innerHTML = 'Не удалось загрузить PDF-движок. Проверьте соединение.';
+    pl.textContent = 'Не удалось загрузить PDF-движок. Проверьте соединение.';
     return;
   }
 
@@ -349,7 +349,7 @@ async function renderPdfPage(pn) {
   // Text layer для выделения (правильный API для PDF.js 3.x)
   const textLayerDiv = document.getElementById('pdfTextLayer');
   if (textLayerDiv) {
-    textLayerDiv.innerHTML = '';
+    textLayerDiv.replaceChildren();
     const cssHeight = viewport.height;
     // Читаем offsetLeft/Top ПОСЛЕ применения стилей canvas (через rAF),
     // иначе margin:0 auto ещё не применён и слой уезжает.

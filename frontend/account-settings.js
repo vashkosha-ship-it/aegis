@@ -1037,9 +1037,9 @@ function updateAvatar(id) {
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
     img.src = api.users.avatarUrl(u.id) + '?t=' + Date.now();
     img.onerror = () => { el.textContent = displayName.charAt(0).toUpperCase(); };
-    el.innerHTML = '';
+    el.replaceChildren();
     el.appendChild(img);
   } else {
-    el.innerHTML = displayName.charAt(0).toUpperCase();
+    el.textContent = displayName.charAt(0).toUpperCase();
   }
 }

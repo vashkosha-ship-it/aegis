@@ -4,7 +4,7 @@ async function loadAlsoRead(bookId) {
   if (!container) return;
   try {
     const books = await api.library.alsoRead(bookId, 8);
-    if (!books || !books.length) { container.innerHTML = ''; return; }
+    if (!books || !books.length) { container.replaceChildren(); return; }
     container.innerHTML = `
       <div class="section-title" data-static-style="a472">Также читают</div>
       <div data-static-style="a473">
@@ -19,6 +19,6 @@ async function loadAlsoRead(bookId) {
         `).join('')}
       </div>`;
   } catch (_) {
-    container.innerHTML = '';
+    container.replaceChildren();
   }
 }

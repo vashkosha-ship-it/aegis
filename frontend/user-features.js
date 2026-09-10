@@ -219,13 +219,13 @@ async function renderMyCertificates() {
   if (!el) return;
   try {
     const certs = await api.library.certMine();
-    if (!certs.length) { el.innerHTML = ''; return; }
+    if (!certs.length) { el.replaceChildren(); return; }
     el.innerHTML = certs.map(c => `
       <div data-static-style="a138">
         <div><span data-static-style="a139">${eh(c.category)}</span> <span data-static-style="a140">· ${c.score}%</span></div>
         <button data-onclick="downloadCertificate('${encodeURIComponent(c.category).replace(/'/g, '')}')" data-static-style="a141">Скачать PDF</button>
       </div>`).join('');
-  } catch (_) { el.innerHTML = ''; }
+  } catch (_) { el.replaceChildren(); }
 }
 
 async function downloadCertificate(categoryEnc) {
@@ -603,4 +603,3 @@ async function renderDetailNotes() {
     tabEl.textContent = `Заметки${ann.length ? ` (${ann.length})` : ''}`;
   }
 }
-
