@@ -17,7 +17,7 @@ function applyReaderTheme(theme) {
   // Обновляем иконку на кнопке
   const btn = document.getElementById('btnReaderTheme');
   if (btn) {
-    btn.innerHTML = ICONS.theme;
+    replaceWithTrustedIcon(btn, ICONS.theme);
     btn.title = theme === 'dark' ? 'Светлая тема' : 'Тёмная тема';
   }
 

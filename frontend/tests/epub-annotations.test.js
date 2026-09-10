@@ -32,7 +32,11 @@ const context = {
     },
     display: cfi => displays.push(cfi),
   },
-  ICONS: { marker: '<i>marker</i>', note: '<i>note</i>' },
+  ICONS: { marker: '<svg data-icon="marker"></svg>', note: '<svg data-icon="note"></svg>' },
+  appendTrustedIcon: (container, markup) => {
+    const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+    container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
+  },
   addHighlight: async (...args) => { createdHighlights.push(args); return { id: 1 }; },
   addNote: async (...args) => { createdNotes.push(args); return { id: 2 }; },
   getAnnotations: async () => [
@@ -67,6 +71,7 @@ vm.runInContext(source, context);
   context.showEpubSelectionPopup('текст', 'epubcfi(/6/6)', 100, 80, null);
   assert.ok(dom.window.document.getElementById('epubBtnHighlight'));
   assert.ok(dom.window.document.getElementById('epubBtnNote'));
+  assert.equal(dom.window.document.querySelector('#epubBtnHighlight svg').getAttribute('data-icon'), 'marker');
 
   await context.goToEpubAnnotation(5, 'epubcfi(/6/8)');
   assert.equal(openedBooks[0], 5);
@@ -77,6 +82,7 @@ vm.runInContext(source, context);
   assert.ok(indexSource.indexOf('epub-annotations.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/epub-annotations\.js['"]/);
   assert.match(workerSource, /aegis-cache-v[0-9]+/);
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
   console.log('EPUB annotations tests passed');
 })().catch(error => {
   console.error(error);

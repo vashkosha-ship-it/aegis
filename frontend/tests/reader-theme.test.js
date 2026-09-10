@@ -21,6 +21,10 @@ const context = {
   document: dom.window.document,
   localStorage: dom.window.localStorage,
   ICONS: { theme: '<svg id="theme-icon"></svg>' },
+  replaceWithTrustedIcon: (container, markup) => {
+    const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+    container.replaceChildren(dom.window.document.importNode(parsed.documentElement, true));
+  },
   epubRendition: {
     themes: {
       register: (...args) => registered.push(args),
@@ -53,6 +57,7 @@ assert.equal(toasts.at(-1), 'Светлая тема');
 context.epubRendition.themes.register = () => { throw new Error('disposed'); };
 assert.doesNotThrow(() => context.applyReaderTheme('dark'));
 assert.equal(warnings.length, 1);
+assert.doesNotMatch(source, /\.innerHTML\s*=/);
 
 assert.doesNotMatch(appSource, /function getReaderTheme|function toggleReaderTheme/);
 assert.ok(indexSource.indexOf('reader-theme.js') < indexSource.indexOf('app.js'));
