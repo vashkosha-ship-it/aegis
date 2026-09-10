@@ -38,6 +38,10 @@ const state = {
 };
 const context = {
   document: dom.window.document,
+  appendTrustedIcon: (container, markup) => {
+    const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+    container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
+  },
   replaceWithStaticText: (container, text, style, tag = 'div') => {
     const node = dom.window.document.createElement(tag);
     node.textContent = text;
@@ -57,7 +61,7 @@ const context = {
       books: [{ title: '<Book>', pages_at_end: 5 }], quizzes: [],
     }),
   } },
-  ICONS: { fire: 'FIRE' },
+  ICONS: { fire: '<svg data-icon="fire"></svg>' },
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
   console,
 };
@@ -69,6 +73,8 @@ vm.runInContext(source, context);
   const leaderboard = dom.window.document.getElementById('adLeaderboard').innerHTML;
   assert.match(leaderboard, /&lt;Alice&gt;/);
   assert.doesNotMatch(leaderboard, /<Alice>/);
+  assert.equal(dom.window.document.querySelector('#adLeaderboard img, #adLeaderboard script'), null);
+  assert.equal(dom.window.document.querySelectorAll('#adLeaderboard tbody tr').length, 1);
 
   const scores = context.computeSkillScores();
   assert.equal(scores.raw['AppSec / Web'], 2);

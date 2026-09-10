@@ -15,6 +15,7 @@ const swSource = fs.readFileSync(path.join(frontendDir, 'sw.js'), 'utf8');
 const dom = new JSDOM('<div id="particlesContainer"></div><div id="messageTarget"><b>old</b></div><select id="selectTarget"></select>');
 const context = vm.createContext({
   document: dom.window.document,
+  DOMParser: dom.window.DOMParser,
   Date,
   Math,
   ICONS: { book: '<svg>book</svg>' },
@@ -49,6 +50,13 @@ const option = dom.window.document.querySelector('#selectTarget option');
 assert.equal(option.value, '1"><img src=x>');
 assert.equal(option.textContent, '<Book>');
 assert.equal(option.querySelector('img'), null);
+
+const iconTarget = dom.window.document.createElement('div');
+context.document.body.appendChild(iconTarget);
+vm.runInContext(`replaceWithTrustedIcon(document.body.lastChild, '<svg viewBox="0 0 10 10"><path d="M0 0h1"/></svg>')`, context);
+assert.equal(iconTarget.querySelectorAll('svg path').length, 1);
+vm.runInContext(`replaceWithTrustedIcon(document.body.lastChild, '<svg onload="alert(1)"><script>alert(2)</script></svg>')`, context);
+assert.equal(iconTarget.childElementCount, 0);
 
 const today = vm.runInContext('getTodayISO()', context);
 const yesterday = vm.runInContext('getYesterdayISO()', context);

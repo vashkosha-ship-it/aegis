@@ -47,7 +47,10 @@ function renderProfile() {
       roleTag.parentNode.insertBefore(levelBadge, roleTag.nextSibling);
     }
     levelBadge.className = 'cyber-level-badge ' + u.cyber_level;
-    levelBadge.innerHTML = `<span data-static-style="a100">${levelInfo.icon}</span>${eh(levelInfo.name)}`;
+    const levelIcon = document.createElement('span');
+    levelIcon.setAttribute('data-static-style', 'a100');
+    appendTrustedIcon(levelIcon, levelInfo.icon);
+    levelBadge.replaceChildren(levelIcon, document.createTextNode(String(levelInfo.name ?? '')));
     levelBadge.style.cursor = 'pointer';
     levelBadge.title = 'Нажми для просмотра подробных результатов';
     levelBadge.onclick = openCyberLevelModal;
@@ -73,7 +76,10 @@ function renderProfile() {
       const slot = document.getElementById('profileTestSlot');
       (slot || usernameLine.parentNode).appendChild(takeQuizBtn);
     }
-    takeQuizBtn.innerHTML = `<span data-static-style="a332">${ICONS.target}</span>Пройти тест уровня кибербезопасности`;
+    const quizIcon = document.createElement('span');
+    quizIcon.setAttribute('data-static-style', 'a332');
+    appendTrustedIcon(quizIcon, ICONS.target);
+    takeQuizBtn.replaceChildren(quizIcon, document.createTextNode('Пройти тест уровня кибербезопасности'));
     takeQuizBtn.style.display = 'flex';
   } else if (takeQuizBtn) {
     // Юзер уже прошёл — кнопка не нужна
@@ -83,7 +89,11 @@ function renderProfile() {
   document.getElementById('statBooks').textContent = state.books.length;
   document.getElementById('statBookmarks').textContent = Object.keys(state.mylist).length;
   document.getElementById('statAchievements').textContent = (state.gamification.achievementsOwned || []).length;
-  document.getElementById('statStreak').innerHTML = getStreak() + '<span data-static-style="a333">' + ICONS.fire + '</span>';
+  const streak = document.getElementById('statStreak');
+  const streakIcon = document.createElement('span');
+  streakIcon.setAttribute('data-static-style', 'a333');
+  appendTrustedIcon(streakIcon, ICONS.fire);
+  streak.replaceChildren(document.createTextNode(String(getStreak())), streakIcon);
 
   // Аватар: с сервера, если has_avatar; иначе буква
   const at = document.getElementById('profileAvatarText');
@@ -112,20 +122,25 @@ function renderProfile() {
   // Кнопки переключения темы приложения
   const btnDark = document.getElementById('appThemeBtnDark');
   const btnLight = document.getElementById('appThemeBtnLight');
-  if (btnDark && !btnDark.innerHTML.trim()) {
-    btnDark.innerHTML = ICONS.themeMoon + '<span>Тёмная</span>';
+  if (btnDark && !btnDark.hasChildNodes()) {
+    const label = document.createElement('span');
+    label.textContent = 'Тёмная';
+    appendTrustedIcon(btnDark, ICONS.themeMoon);
+    btnDark.appendChild(label);
   }
-  if (btnLight && !btnLight.innerHTML.trim()) {
-    btnLight.innerHTML = ICONS.themeSun + '<span>Светлая</span>';
+  if (btnLight && !btnLight.hasChildNodes()) {
+    const label = document.createElement('span');
+    label.textContent = 'Светлая';
+    appendTrustedIcon(btnLight, ICONS.themeSun);
+    btnLight.appendChild(label);
   }
   // Применяем актуальное состояние
   applyAppTheme(getAppTheme());
 // SVG в шапке: шестерёнка + звезда + пламя
   const gearBtn = document.getElementById('btnOpenSettings');
-  if (gearBtn && !gearBtn.innerHTML.trim()) gearBtn.innerHTML = ICONS.settingsGear;
+  if (gearBtn && !gearBtn.hasChildNodes()) appendTrustedIcon(gearBtn, ICONS.settingsGear);
   const starIc = document.getElementById('profileStarIcon');
-  if (starIc && !starIc.innerHTML.trim()) starIc.innerHTML = ICONS.iconStar;
+  if (starIc && !starIc.hasChildNodes()) appendTrustedIcon(starIc, ICONS.iconStar);
   const flameIc = document.getElementById('statStreakFlame');
-  if (flameIc && !flameIc.innerHTML.trim()) flameIc.innerHTML = ICONS.iconFlame;
+  if (flameIc && !flameIc.hasChildNodes()) appendTrustedIcon(flameIc, ICONS.iconFlame);
 }
-
