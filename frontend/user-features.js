@@ -317,7 +317,13 @@ function certModalShell(inner) {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2500;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;';
     document.body.appendChild(modal);
   }
-  modal.innerHTML = `<div data-static-style="a142">${inner}</div>`;
+  const shell = document.createElement('div');
+  shell.setAttribute('data-static-style', 'a142');
+  const parsed = new DOMParser().parseFromString(String(inner), 'text/html');
+  [...parsed.body.childNodes].forEach(node => {
+    shell.appendChild(document.importNode(node, true));
+  });
+  modal.replaceChildren(shell);
   return modal;
 }
 
@@ -634,11 +640,11 @@ function exportNotesPdf(title, author, sorted) {
 
 async function renderDetailNotes() {
   if (!currentBookId) return;
-  const c = document.getElementById('detailTabNotes');
+  const container = document.getElementById('detailTabNotes');
   showListSkeleton('detailTabNotes', 3);
 
-  const ann = await getAnnotations(currentBookId);
-  if (!ann.length) {
+  const annotations = await getAnnotations(currentBookId);
+  if (!annotations.length) {
     const empty = document.createElement('div');
     empty.className = 'mylist-empty';
     const icon = document.createElement('div');
@@ -648,59 +654,92 @@ async function renderDetailNotes() {
     const message = document.createElement('p');
     message.textContent = 'Нет заметок';
     empty.append(icon, message);
-    c.replaceChildren(empty);
+    container.replaceChildren(empty);
     return;
   }
 
-  // Разделяем по типу для статистики
-  const highlights = ann.filter(a => a.type === 'highlight');
-  const notes = ann.filter(a => a.type === 'note');
+  const highlights = annotations.filter(annotation => annotation.type === 'highlight');
+  const notes = annotations.filter(annotation => annotation.type === 'note');
+  const stats = document.createElement('div');
+  stats.setAttribute('data-static-style', 'a240');
 
-  const statsHtml = `
-    <div data-static-style="a240">
-      <div data-static-style="a241">
-        <div data-static-style="a242">${highlights.length}</div>
-        <div data-static-style="a243">Маркеров</div>
-      </div>
-      <div data-static-style="a244">
-        <div data-static-style="a245">${notes.length}</div>
-        <div data-static-style="a243">Заметок</div>
-      </div>
-    </div>
-  `;
+  const markerStat = document.createElement('div');
+  markerStat.setAttribute('data-static-style', 'a241');
+  const markerCount = document.createElement('div');
+  markerCount.setAttribute('data-static-style', 'a242');
+  markerCount.textContent = String(highlights.length);
+  const markerLabel = document.createElement('div');
+  markerLabel.setAttribute('data-static-style', 'a243');
+  markerLabel.textContent = 'Маркеров';
+  markerStat.append(markerCount, markerLabel);
 
-  const itemsHtml = ann.sort((a, b) => new Date(b.date) - new Date(a.date)).map(a => {
-    const isNote = a.type === 'note';
-    const stripColor = isNote ? 'var(--accent)' : '#fbbf24';
-    const bgTint = isNote ? 'rgba(0,212,255,0.04)' : 'rgba(251,191,36,0.04)';
-    const cfi = a.position && a.position.cfi;
-    // Если есть CFI и сейчас не открыта книга — можно прыгнуть
-    const goAction = cfi
-      ? `onclick="goToEpubAnnotation(${currentBookId}, '${(cfi || '').replace(/'/g, '&#39;')}')"`
-      : '';
-    const cursor = cfi ? 'cursor:pointer;' : '';
+  const noteStat = document.createElement('div');
+  noteStat.setAttribute('data-static-style', 'a244');
+  const noteCount = document.createElement('div');
+  noteCount.setAttribute('data-static-style', 'a245');
+  noteCount.textContent = String(notes.length);
+  const noteLabel = document.createElement('div');
+  noteLabel.setAttribute('data-static-style', 'a243');
+  noteLabel.textContent = 'Заметок';
+  noteStat.append(noteCount, noteLabel);
+  stats.append(markerStat, noteStat);
 
-    return `
-      <div data-dynamic-style="${dynamicStyleToken`background:${bgTint};border:1px solid var(--border);border-left:3px solid ${stripColor};border-radius:8px;padding:12px;margin-bottom:8px;${cursor}`}" ${goAction}>
-        <div data-static-style="a246">
-          <div data-dynamic-style="${dynamicStyleToken`font-size:10px;color:${stripColor};font-weight:600;`}">
-            ${isNote ? 'ЗАМЕТКА' : 'МАРКЕР'} · Стр.${a.page}
-          </div>
-          <button class="btn-sm danger" data-static-style="a247" data-onclick="deleteAnnotation(${currentBookId},${a.id})" data-nonce="${sensitiveNonce()}" data-stop="1">${ICONS.trash}</button>
-        </div>
-        <div data-static-style="a248">«${eh(a.text.substring(0, 200))}${a.text.length > 200 ? '…' : ''}»</div>
-        ${a.note ? `
-          <div data-static-style="a249">
-            ${eh(a.note)}
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }).join('');
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(stats);
+  [...annotations]
+    .sort((left, right) => new Date(right.date) - new Date(left.date))
+    .forEach(annotation => {
+      const isNote = annotation.type === 'note';
+      const stripColor = isNote ? 'var(--accent)' : '#fbbf24';
+      const background = isNote ? 'rgba(0,212,255,0.04)' : 'rgba(251,191,36,0.04)';
+      const cfi = annotation.position?.cfi;
+      const item = document.createElement('div');
+      item.setAttribute(
+        'data-dynamic-style',
+        dynamicStyleToken`background:${background};border:1px solid var(--border);border-left:3px solid ${stripColor};border-radius:8px;padding:12px;margin-bottom:8px;${cfi ? 'cursor:pointer;' : ''}`,
+      );
+      if (cfi) {
+        item.addEventListener('click', () => {
+          goToEpubAnnotation(currentBookId, cfi);
+        });
+      }
 
-  c.innerHTML = statsHtml + itemsHtml;
-    const tabEl = document.querySelector('.detail-tab[data-dtab="notes"]');
-  if (tabEl) {
-    tabEl.textContent = `Заметки${ann.length ? ` (${ann.length})` : ''}`;
-  }
+      const header = document.createElement('div');
+      header.setAttribute('data-static-style', 'a246');
+      const type = document.createElement('div');
+      type.setAttribute(
+        'data-dynamic-style',
+        dynamicStyleToken`font-size:10px;color:${stripColor};font-weight:600;`,
+      );
+      type.textContent = `${isNote ? 'ЗАМЕТКА' : 'МАРКЕР'} · Стр.${annotation.page}`;
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'btn-sm danger';
+      remove.setAttribute('data-static-style', 'a247');
+      appendTrustedIcon(remove, ICONS.trash);
+      remove.addEventListener('click', event => {
+        event.stopPropagation();
+        deleteAnnotation(currentBookId, annotation.id);
+      });
+      header.append(type, remove);
+
+      const quote = document.createElement('div');
+      quote.setAttribute('data-static-style', 'a248');
+      const excerpt = String(annotation.text || '');
+      quote.textContent = `«${excerpt.substring(0, 200)}${excerpt.length > 200 ? '…' : ''}»`;
+      item.append(header, quote);
+
+      if (annotation.note) {
+        const note = document.createElement('div');
+        note.setAttribute('data-static-style', 'a249');
+        note.textContent = String(annotation.note);
+        item.appendChild(note);
+      }
+      fragment.appendChild(item);
+    });
+
+  container.replaceChildren(fragment);
+  const tab = document.querySelector('.detail-tab[data-dtab="notes"]');
+  if (tab) tab.textContent = `Заметки (${annotations.length})`;
 }
