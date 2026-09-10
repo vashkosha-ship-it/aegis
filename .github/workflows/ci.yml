@@ -288,6 +288,9 @@ jobs:
       - name: Тест категорий и массовой загрузки
         run: node tests/admin-categories-dom.test.js
 
+      - name: Тест безопасной таблицы пользователей
+        run: node tests/admin-users-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 
