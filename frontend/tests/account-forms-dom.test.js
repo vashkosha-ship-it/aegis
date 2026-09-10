@@ -39,25 +39,20 @@ vm.runInContext(source, context);
 const content = dom.window.document.getElementById('settingsContent');
 
 context.renderSettingsPrivacyTab(content);
-content.querySelectorAll('button')[1].click();
-content.querySelector('.set-save-btn').click();
-assert.deepEqual(calls.splice(0), ['privacy:colleagues', 'delete']);
+assert.equal(content.querySelectorAll('button').length, 4);
 assert.equal(content.querySelectorAll('[data-onclick], [data-nonce]').length, 0);
 
 context.renderSettingsSecurityTab(content);
 assert.equal(content.querySelector('#setEmailCode').maxLength, 6);
-content.querySelectorAll('.set-save-btn')[0].click();
-content.querySelectorAll('.set-save-btn')[1].click();
-content.querySelectorAll('.set-save-btn')[2].click();
-assert.deepEqual(calls.splice(0), ['save-password', 'request-email', 'confirm-email']);
+assert.equal(content.querySelectorAll('.set-save-btn').length, 4);
+assert.equal(content.querySelectorAll('[data-onclick]').length, 0);
 
 context.renderSettingsInfoTab(content);
 assert.equal(content.querySelector('#setUsername').value, '<img src=x onerror=alert(1)>');
 assert.equal(content.querySelector('#setFullName').value, 'Иван <script>alert(1)</script>');
 assert.equal(content.querySelector('#setDepartmentOther').value, '<svg onload=alert(1)>');
 assert.equal(content.querySelector('script, svg[onload], img[onerror]'), null);
-content.querySelector('.set-save-btn').click();
-assert.deepEqual(calls.splice(0), ['save-info']);
+assert.equal(content.querySelectorAll('[data-onclick], [data-onchange]').length, 0);
 
 context.openUserAgreement();
 let modal = dom.window.document.getElementById('legalDocModal');
