@@ -7,9 +7,9 @@
   const onbList = document.getElementById('onbIconList');
   const onbClock = document.getElementById('onbIconClock');
   const onbTarget = document.getElementById('onbIconTarget');
-  if (onbList) onbList.innerHTML = ICONS.list;
-  if (onbClock) onbClock.innerHTML = ICONS.clock;
-  if (onbTarget) onbTarget.innerHTML = ICONS.target;
+  if (onbList) appendTrustedIcon(onbList, ICONS.list);
+  if (onbClock) appendTrustedIcon(onbClock, ICONS.clock);
+  if (onbTarget) appendTrustedIcon(onbTarget, ICONS.target);
 })();
 // Удаляем локальные данные снятой с эксплуатации биометрической блокировки.
 for (const key of ['aegis_biometric_enabled', 'aegis_biometric_cred', 'aegis_biometric_declined']) {

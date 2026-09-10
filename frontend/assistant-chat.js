@@ -480,8 +480,8 @@ function assistantGotoQuiz(bookId) {
 function renderAssistantScreen() {
   const surface = assistantSurface('full');
   const sendBtn = surface.sendBtnEl();
-  if (sendBtn && !sendBtn.innerHTML.trim()) {
-    sendBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>';
+  if (sendBtn && !sendBtn.hasChildNodes()) {
+    appendTrustedIcon(sendBtn, '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>');
   }
 
   const input = surface.inputEl();

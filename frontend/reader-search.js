@@ -15,9 +15,9 @@ function toggleReaderSearch() {
     const prev = document.getElementById('readerSearchPrev');
     const next = document.getElementById('readerSearchNext');
     const close = document.getElementById('readerSearchClose');
-    if (prev && !prev.innerHTML.trim()) prev.innerHTML = ICONS.chevronUp;
-    if (next && !next.innerHTML.trim()) next.innerHTML = ICONS.chevronDown;
-    if (close && !close.innerHTML.trim()) close.innerHTML = ICONS.closeX;
+    if (prev && !prev.hasChildNodes()) appendTrustedIcon(prev, ICONS.chevronUp);
+    if (next && !next.hasChildNodes()) appendTrustedIcon(next, ICONS.chevronDown);
+    if (close && !close.hasChildNodes()) appendTrustedIcon(close, ICONS.closeX);
 
     readerSearchActive = true;
     const input = document.getElementById('readerSearchInput');

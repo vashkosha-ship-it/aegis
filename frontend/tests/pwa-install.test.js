@@ -51,8 +51,23 @@ dom.window.dispatchEvent(installEvent);
   assert.equal(dom.window.document.getElementById('installBanner'), null);
   assert.deepEqual(toasts, ['Устанавливаем приложение…']);
 
+  vm.runInContext('showAndroidInstallInstructions()', context);
+  const androidModal = dom.window.document.getElementById('androidInstallModal');
+  assert.equal(androidModal.querySelectorAll('ol li').length, 4);
+  assert.match(androidModal.textContent, /Chrome/);
+  androidModal.querySelector('button').click();
+  assert.equal(dom.window.document.getElementById('androidInstallModal'), null);
+
+  vm.runInContext('showIOSInstallInstructions()', context);
+  const iosModal = dom.window.document.getElementById('iosInstallModal');
+  assert.equal(iosModal.querySelectorAll('br').length, 2);
+  assert.match(iosModal.textContent, /На экран Домой/);
+  iosModal.querySelector('button').click();
+  assert.equal(dom.window.document.getElementById('iosInstallModal'), null);
+
   assert.doesNotMatch(appSource, /beforeinstallprompt|function triggerInstall\(/);
   assert.doesNotMatch(source, /style\.cssText/);
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
   assert.ok(
     indexSource.indexOf('src="pwa-install.js"') < indexSource.indexOf('src="app.js"'),
     'pwa-install.js должен подключаться раньше app.js',

@@ -28,6 +28,22 @@ function isMobile() {
   return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
 }
 
+function installNode(tagName, text, staticStyle) {
+  const node = document.createElement(tagName);
+  if (staticStyle) node.setAttribute('data-static-style', staticStyle);
+  if (text !== undefined) node.textContent = String(text);
+  return node;
+}
+
+function installInstructionItem(parts) {
+  const item = document.createElement('li');
+  parts.forEach(part => {
+    if (typeof part === 'string') item.appendChild(document.createTextNode(part));
+    else item.appendChild(installNode('strong', part.strong));
+  });
+  return item;
+}
+
 function showInstallBanner() {
   if (isStandalone() || document.getElementById('installBanner')) return;
   if (!isMobile()) return; // баннер только на мобильных
@@ -35,16 +51,19 @@ function showInstallBanner() {
   const banner = document.createElement('div');
   banner.id = 'installBanner';
   banner.className = 'install-banner';
-  banner.innerHTML = `
-    <div data-static-style="a004">
-      <div data-static-style="a508">Установить Aegis</div>
-      <div data-static-style="a509">Добавьте приложение на телефон для быстрого доступа</div>
-    </div>
-    <button id="installBannerBtn" data-static-style="a510">Установить</button>
-    <button id="installBannerClose" data-static-style="a511">✕</button>`;
+  const copy = installNode('div', undefined, 'a004');
+  copy.append(
+    installNode('div', 'Установить Aegis', 'a508'),
+    installNode('div', 'Добавьте приложение на телефон для быстрого доступа', 'a509'),
+  );
+  const install = installNode('button', 'Установить', 'a510');
+  install.id = 'installBannerBtn';
+  const close = installNode('button', '✕', 'a511');
+  close.id = 'installBannerClose';
+  banner.append(copy, install, close);
   document.body.appendChild(banner);
-  document.getElementById('installBannerBtn').onclick = triggerInstall;
-  document.getElementById('installBannerClose').onclick = () => {
+  install.onclick = triggerInstall;
+  close.onclick = () => {
     banner.remove();
     localStorage.setItem('aegis_install_dismissed', '1');
   };
@@ -81,23 +100,23 @@ function showAndroidInstallInstructions() {
     m.className = 'install-modal';
     document.body.appendChild(m);
   }
-  m.innerHTML = `
-    <div data-static-style="a512">
-      <div data-static-style="a513">Установка приложения</div>
-      <p data-static-style="a514">
-        Если кнопка установки не сработала автоматически, установите вручную:
-      </p>
-      <ol data-static-style="a515">
-        <li>Откройте сайт в браузере <strong>Chrome</strong> (не в Mi Браузере)</li>
-        <li>Нажмите меню <strong>⋮</strong> в правом верхнем углу</li>
-        <li>Выберите <strong>«Установить приложение»</strong> или <strong>«Добавить на главный экран»</strong></li>
-        <li>Подтвердите установку</li>
-      </ol>
-      <p data-static-style="a516">
-        Если приложение не появилось на рабочем столе — проверьте список всех приложений (свайп вверх). В настройках Xiaomi включите «Добавлять значки на рабочий стол».
-      </p>
-      <button data-onclick="closeModal('androidInstallModal')" data-static-style="a517">Понятно</button>
-    </div>`;
+  const panel = installNode('div', undefined, 'a512');
+  panel.append(
+    installNode('div', 'Установка приложения', 'a513'),
+    installNode('p', 'Если кнопка установки не сработала автоматически, установите вручную:', 'a514'),
+  );
+  const steps = installNode('ol', undefined, 'a515');
+  steps.append(
+    installInstructionItem(['Откройте сайт в браузере ', { strong: 'Chrome' }, ' (не в Mi Браузере)']),
+    installInstructionItem(['Нажмите меню ', { strong: '⋮' }, ' в правом верхнем углу']),
+    installInstructionItem(['Выберите ', { strong: '«Установить приложение»' }, ' или ', { strong: '«Добавить на главный экран»' }]),
+    installInstructionItem(['Подтвердите установку']),
+  );
+  const note = installNode('p', 'Если приложение не появилось на рабочем столе — проверьте список всех приложений (свайп вверх). В настройках Xiaomi включите «Добавлять значки на рабочий стол».', 'a516');
+  const close = installNode('button', 'Понятно', 'a517');
+  close.addEventListener('click', () => m.remove());
+  panel.append(steps, note, close);
+  m.replaceChildren(panel);
 }
 
 function showIOSInstallInstructions() {
@@ -108,15 +127,18 @@ function showIOSInstallInstructions() {
     m.className = 'install-modal';
     document.body.appendChild(m);
   }
-  m.innerHTML = `
-    <div data-static-style="a518">
-      <div data-static-style="a519">Установка на iPhone/iPad</div>
-      <p data-static-style="a520">
-        1. Нажмите кнопку «Поделиться» <span data-static-style="a521">⬆️</span> внизу Safari<br>
-        2. Выберите «На экран Домой»<br>
-        3. Нажмите «Добавить»
-      </p>
-      <button data-onclick="closeModal('iosInstallModal')" data-static-style="a517">Понятно</button>
-    </div>`;
+  const panel = installNode('div', undefined, 'a518');
+  panel.appendChild(installNode('div', 'Установка на iPhone/iPad', 'a519'));
+  const steps = installNode('p', undefined, 'a520');
+  steps.append(
+    document.createTextNode('1. Нажмите кнопку «Поделиться» '),
+    installNode('span', '⬆️', 'a521'),
+    document.createTextNode(' внизу Safari'), document.createElement('br'),
+    document.createTextNode('2. Выберите «На экран Домой»'), document.createElement('br'),
+    document.createTextNode('3. Нажмите «Добавить»'),
+  );
+  const close = installNode('button', 'Понятно', 'a517');
+  close.addEventListener('click', () => m.remove());
+  panel.append(steps, close);
+  m.replaceChildren(panel);
 }
-

@@ -8,6 +8,8 @@ const { JSDOM } = require('jsdom');
 
 const frontend = path.resolve(__dirname, '..');
 const authSource = fs.readFileSync(path.join(frontend, 'auth-ui.js'), 'utf8');
+const appSource = fs.readFileSync(path.join(frontend, 'app.js'), 'utf8');
+const assistantSource = fs.readFileSync(path.join(frontend, 'assistant-chat.js'), 'utf8');
 const readerSource = fs.readFileSync(path.join(frontend, 'reader-core.js'), 'utf8');
 const userSource = fs.readFileSync(path.join(frontend, 'user-features.js'), 'utf8');
 
@@ -28,6 +30,8 @@ assert.deepEqual(
   ['path', 'circle'],
 );
 assert.doesNotMatch(authSource, /icon\.innerHTML\s*=/);
+assert.doesNotMatch(appSource, /onb(?:List|Clock|Target)\.innerHTML\s*=/);
+assert.doesNotMatch(assistantSource, /sendBtn\.innerHTML\s*=/);
 
 const readerDom = new JSDOM('<div id="pdfPlaceholder"></div>');
 const readerContext = {
