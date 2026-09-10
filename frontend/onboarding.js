@@ -246,44 +246,96 @@ async function finishOnboarding() {
   }
 }
 
+function _onboardingResultNode(tagName, className, text, staticStyle) {
+  const node = document.createElement(tagName);
+  if (className) node.className = className;
+  if (staticStyle) node.setAttribute('data-static-style', staticStyle);
+  if (text !== undefined) node.textContent = String(text);
+  return node;
+}
+
+function _onboardingLevelIcon(iconMarkup) {
+  const box = _onboardingResultNode('div', null, undefined, 'a574');
+  appendTrustedIcon(box, iconMarkup);
+  const svg = box.querySelector('svg');
+  if (svg) {
+    svg.setAttribute('width', '40');
+    svg.setAttribute('height', '40');
+  }
+  return box;
+}
+
+function _onboardingTopics(result) {
+  const section = _onboardingResultNode('div', 'onboarding-topics');
+  section.appendChild(_onboardingResultNode('h3', null, 'По темам'));
+  result.topic_scores.forEach(topic => {
+    const percentage = Math.max(0, Math.min(100, Number(topic.percentage) || 0));
+    let strength = 'weak';
+    if (percentage >= 70) strength = 'strong';
+    else if (percentage >= 50) strength = 'medium';
+
+    const row = _onboardingResultNode('div', 'onboarding-topic-row');
+    const bar = _onboardingResultNode('div', 'onboarding-topic-bar');
+    const fill = _onboardingResultNode('div', `onboarding-topic-fill ${strength}`);
+    fill.setAttribute('data-dynamic-style', dynamicStyleToken`width:${percentage}%;`);
+    bar.appendChild(fill);
+    row.append(
+      _onboardingResultNode('div', 'onboarding-topic-name', topic.topic_name),
+      bar,
+      _onboardingResultNode('div', 'onboarding-topic-pct', `${percentage}%`),
+    );
+    section.appendChild(row);
+  });
+  return section;
+}
+
+function _onboardingWeakTopics(result) {
+  if (!result.weak_topics.length) return null;
+  const weak = _onboardingResultNode('div', 'onboarding-weak-list');
+  const title = _onboardingResultNode('h4', null, undefined, 'a573');
+  appendTrustedIcon(title, ICONS.warningTriangle);
+  title.appendChild(document.createTextNode(' Стоит подтянуть'));
+  const names = result.weak_topics.map(topic => (
+    result.topic_scores.find(score => score.topic === topic)?.topic_name || topic
+  ));
+  weak.append(title, _onboardingResultNode('p', null, names.join(', ')));
+  return weak;
+}
+
+function _onboardingResultContent(result, info, levelName, description) {
+  const fragment = document.createDocumentFragment();
+  fragment.append(
+    _onboardingLevelIcon(info.icon),
+    _onboardingResultNode('div', 'onboarding-result-level gradient-text', levelName),
+    _onboardingResultNode('div', 'onboarding-result-percentage', `${result.overall_percentage}% правильных`),
+    _onboardingResultNode('div', 'onboarding-result-description', description),
+  );
+  return fragment;
+}
+
 function renderOnboardingResult(result) {
-  const c = document.getElementById('onboardingResultContent');
+  const container = document.getElementById('onboardingResultContent');
+  if (!container) return;
   const info = getCyberLevelInfo(result.cyber_level);
+  const content = _onboardingResultContent(
+    result,
+    info,
+    result.level_name,
+    result.level_description,
+  );
+  content.appendChild(_onboardingTopics(result));
+  const weak = _onboardingWeakTopics(result);
+  if (weak) content.appendChild(weak);
 
-  // Темы с цветами по силе
-  const topicsHtml = result.topic_scores.map(t => {
-    let cls = 'weak';
-    if (t.percentage >= 70) cls = 'strong';
-    else if (t.percentage >= 50) cls = 'medium';
-    return `<div class="onboarding-topic-row">
-      <div class="onboarding-topic-name">${eh(t.topic_name)}</div>
-      <div class="onboarding-topic-bar">
-        <div class="onboarding-topic-fill ${cls}" data-dynamic-style="${dynamicStyleToken`width:${t.percentage}%;`}"></div>
-      </div>
-      <div class="onboarding-topic-pct">${t.percentage}%</div>
-    </div>`;
-  }).join('');
-
-  // Слабые темы
-  const weakHtml = result.weak_topics.length > 0 ? `
-    <div class="onboarding-weak-list">
-      <h4 data-static-style="a573">${ICONS.warningTriangle} Стоит подтянуть</h4>
-      <p>${result.weak_topics.map(t => eh(result.topic_scores.find(s => s.topic === t)?.topic_name || t)).join(', ')}</p>
-    </div>
-  ` : '';
-
-  c.innerHTML = `
-    <div data-static-style="a574">${info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').replace('height="20"','height="40"')}</div>
-    <div class="onboarding-result-level gradient-text">${eh(result.level_name)}</div>
-    <div class="onboarding-result-percentage">${result.overall_percentage}% правильных</div>
-    <div class="onboarding-result-description">${eh(result.level_description)}</div>
-    <div class="onboarding-topics">
-      <h3>По темам</h3>
-      ${topicsHtml}
-    </div>
-    ${weakHtml}
-    <button class="btn-onboarding-finish-result" data-onclick="finishOnboardingNav()">Начать обучение</button>
-  `;
+  const finish = _onboardingResultNode(
+    'button',
+    'btn-onboarding-finish-result',
+    'Начать обучение',
+  );
+  finish.type = 'button';
+  finish.addEventListener('click', finishOnboardingNav);
+  content.appendChild(finish);
+  container.replaceChildren(content);
 }
 
 function finishOnboardingNav() {
@@ -352,47 +404,41 @@ async function openCyberLevelModal() {
 }
 
 function renderCyberLevelDetail(result) {
-  const c = document.getElementById('onboardingResultContent');
+  const container = document.getElementById('onboardingResultContent');
+  if (!container) return;
   const info = getCyberLevelInfo(result.cyber_level);
+  const content = _onboardingResultContent(result, info, info.name, info.description);
 
-  const topicsHtml = result.topic_scores.map(t => {
-    let cls = 'weak';
-    if (t.percentage >= 70) cls = 'strong';
-    else if (t.percentage >= 50) cls = 'medium';
-    return `<div class="onboarding-topic-row">
-      <div class="onboarding-topic-name">${eh(t.topic_name)}</div>
-      <div class="onboarding-topic-bar">
-        <div class="onboarding-topic-fill ${cls}" data-dynamic-style="${dynamicStyleToken`width:${t.percentage}%;`}"></div>
-      </div>
-      <div class="onboarding-topic-pct">${t.percentage}%</div>
-    </div>`;
-  }).join('');
+  if (result.assessed_at) {
+    const assessedDate = new Date(result.assessed_at).toLocaleDateString('ru-RU');
+    content.appendChild(
+      _onboardingResultNode('div', null, `Тест пройден: ${assessedDate}`, 'a575'),
+    );
+  }
+  content.appendChild(_onboardingTopics(result));
+  const weak = _onboardingWeakTopics(result);
+  if (weak) content.appendChild(weak);
 
-  const weakHtml = result.weak_topics.length > 0 ? `
-    <div class="onboarding-weak-list">
-      <h4 data-static-style="a573">${ICONS.warningTriangle} Стоит подтянуть</h4>
-      <p>${result.weak_topics.map(t => eh(result.topic_scores.find(s => s.topic === t)?.topic_name || t)).join(', ')}</p>
-    </div>
-  ` : '';
-
-  const dateStr = result.assessed_at ? new Date(result.assessed_at).toLocaleDateString('ru-RU') : '';
-
-  c.innerHTML = `
-    <div data-static-style="a574">${info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').replace('height="20"','height="40"')}</div>
-    <div class="onboarding-result-level gradient-text">${eh(info.name)}</div>
-    <div class="onboarding-result-percentage">${result.overall_percentage}% правильных</div>
-    <div class="onboarding-result-description">${eh(info.description)}</div>
-    ${dateStr ? `<div data-static-style="a575">Тест пройден: ${dateStr}</div>` : ''}
-    <div class="onboarding-topics">
-      <h3>По темам</h3>
-      ${topicsHtml}
-    </div>
-    ${weakHtml}
-    <div data-static-style="a576">
-      <button class="btn-onboarding-skip" data-onclick="navigateTo('profile')" data-static-style="a004">Назад в профиль</button>
-      <button class="btn-onboarding-start" data-onclick="restartOnboarding()" data-static-style="a004">Пройти заново</button>
-    </div>
-  `;
+  const actions = _onboardingResultNode('div', null, undefined, 'a576');
+  const back = _onboardingResultNode(
+    'button',
+    'btn-onboarding-skip',
+    'Назад в профиль',
+    'a004',
+  );
+  back.type = 'button';
+  back.addEventListener('click', () => navigateTo('profile'));
+  const restart = _onboardingResultNode(
+    'button',
+    'btn-onboarding-start',
+    'Пройти заново',
+    'a004',
+  );
+  restart.type = 'button';
+  restart.addEventListener('click', restartOnboarding);
+  actions.append(back, restart);
+  content.appendChild(actions);
+  container.replaceChildren(content);
 }
 
 function restartOnboarding() {

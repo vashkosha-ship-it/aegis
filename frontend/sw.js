@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v281';
+const CACHE_NAME = 'aegis-cache-v282';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
