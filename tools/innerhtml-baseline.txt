@@ -30,7 +30,6 @@ ar-schemes.js	rInner - 6
 ar-schemes.js	segs
 ar-schemes.js	stages.map((s) => { const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6'; const badge = (s.code || Stri
 ar-schemes.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; return `<button data-onclick="selectKillChainStage(${s.id})
-auth-ui.js	hasLevel ? `
 library-home.js	(() => { const stage = findKillChainStageForBook(b); if (!stage) return ''; return `<button class="btn-detail" data-stat
 library-home.js	adminStats
 library-home.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback(

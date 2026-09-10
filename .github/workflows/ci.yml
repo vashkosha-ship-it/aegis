@@ -300,6 +300,9 @@ jobs:
       - name: Тест статических UI-компонентов
         run: node tests/static-ui-dom.test.js
 
+      - name: Тест безопасных экранов входа и onboarding
+        run: node tests/auth-onboarding-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 

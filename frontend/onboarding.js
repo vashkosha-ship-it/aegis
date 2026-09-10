@@ -41,31 +41,47 @@ const LEVEL_CHOICES = [
 function renderLevelChoices() {
   const container = document.getElementById('levelChoiceList');
   if (!container) return;
-
-  const cards = LEVEL_CHOICES.map((lvl, idx) => {
+  const fragment = document.createDocumentFragment();
+  LEVEL_CHOICES.forEach((lvl, idx) => {
     const info = getCyberLevelInfo(lvl.code);
-    return `
-      <button data-onclick="selectLevelSelf('${lvl.code}')" class="level-choice-card" data-static-style="a566">
-        <div data-static-style="a567">${info.icon}</div>
-        <div data-static-style="a004">
-          <div data-static-style="a568">${idx + 1}. ${eh(lvl.name)}</div>
-          <div data-static-style="a392">${eh(lvl.description)}</div>
-        </div>
-      </button>
-    `;
-  }).join('');
-
-  const testCard = `
-    <button data-onclick="startOnboardingQuiz()" class="level-choice-card level-choice-test" data-static-style="a569">
-      <div data-static-style="a570">${ICONS.target}</div>
-      <div data-static-style="a004">
-        <div data-static-style="a571">6. Хочу узнать (тест)</div>
-        <div data-static-style="a572">20 вопросов по 5 темам кибербезопасности. ~7 минут.</div>
-      </div>
-    </button>
-  `;
-
-  container.innerHTML = cards + testCard;
+    const card = document.createElement('button');
+    card.className = 'level-choice-card';
+    card.setAttribute('data-static-style', 'a566');
+    const icon = document.createElement('div');
+    icon.setAttribute('data-static-style', 'a567');
+    appendTrustedIcon(icon, info.icon);
+    const copy = document.createElement('div');
+    copy.setAttribute('data-static-style', 'a004');
+    const name = document.createElement('div');
+    name.setAttribute('data-static-style', 'a568');
+    name.textContent = `${idx + 1}. ${lvl.name}`;
+    const description = document.createElement('div');
+    description.setAttribute('data-static-style', 'a392');
+    description.textContent = lvl.description;
+    copy.append(name, description);
+    card.append(icon, copy);
+    card.addEventListener('click', () => selectLevelSelf(lvl.code));
+    fragment.appendChild(card);
+  });
+  const testCard = document.createElement('button');
+  testCard.className = 'level-choice-card level-choice-test';
+  testCard.setAttribute('data-static-style', 'a569');
+  const testIcon = document.createElement('div');
+  testIcon.setAttribute('data-static-style', 'a570');
+  appendTrustedIcon(testIcon, ICONS.target);
+  const testCopy = document.createElement('div');
+  testCopy.setAttribute('data-static-style', 'a004');
+  const testName = document.createElement('div');
+  testName.setAttribute('data-static-style', 'a571');
+  testName.textContent = '6. Хочу узнать (тест)';
+  const testDescription = document.createElement('div');
+  testDescription.setAttribute('data-static-style', 'a572');
+  testDescription.textContent = '20 вопросов по 5 темам кибербезопасности. ~7 минут.';
+  testCopy.append(testName, testDescription);
+  testCard.append(testIcon, testCopy);
+  testCard.addEventListener('click', startOnboardingQuiz);
+  fragment.appendChild(testCard);
+  container.replaceChildren(fragment);
 }
 
 async function selectLevelSelf(levelCode) {
@@ -143,13 +159,21 @@ function renderOnboardingQuestion() {
   document.getElementById('onboardingQuestion').textContent = q.question;
 
   const selected = onboardingState.answers[q.id];
-  document.getElementById('onboardingOptions').innerHTML = q.options.map((opt, i) => {
+  const options = document.createDocumentFragment();
+  q.options.forEach((opt, i) => {
     const isSelected = selected === i;
-    return `<button class="onboarding-option${isSelected ? ' selected' : ''}" data-onclick="selectOnboardingAnswer(${i})">
-      <span class="onboarding-option-letter">${'ABCD'[i]}</span>
-      <span>${eh(opt)}</span>
-    </button>`;
-  }).join('');
+    const button = document.createElement('button');
+    button.className = `onboarding-option${isSelected ? ' selected' : ''}`;
+    const letter = document.createElement('span');
+    letter.className = 'onboarding-option-letter';
+    letter.textContent = 'ABCD'[i] || String(i + 1);
+    const label = document.createElement('span');
+    label.textContent = String(opt);
+    button.append(letter, label);
+    button.addEventListener('click', () => selectOnboardingAnswer(i));
+    options.appendChild(button);
+  });
+  document.getElementById('onboardingOptions').replaceChildren(options);
 
   // Управление кнопками
   document.getElementById('btnOnboardingPrev').disabled = (idx === 0);

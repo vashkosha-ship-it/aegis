@@ -24,6 +24,13 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   if (forgotHint) forgotHint.style.display = isRegister ? 'none' : '';
 }));
 
+function authNode(tagName, text, staticStyle) {
+  const node = document.createElement(tagName);
+  if (staticStyle) node.setAttribute('data-static-style', staticStyle);
+  if (text !== undefined) node.textContent = String(text);
+  return node;
+}
+
 function openForgotPassword() {
   let m = document.getElementById('forgotPasswordModal');
   if (!m) {
@@ -32,25 +39,41 @@ function openForgotPassword() {
     m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:flex;align-items:center;justify-content:center;padding:18px;';
     document.body.appendChild(m);
   }
-  m.innerHTML = `
-    <div data-static-style="a272">
-      <div data-static-style="a273">
-        <h3 data-static-style="a274">ÐÐ¾ÑÑÑÐ°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¿Ð°ÑÐ¾Ð»Ñ</h3>
-        <button data-onclick="closeModal('forgotPasswordModal')" data-static-style="a275">✕</button>
-      </div>
-      <div id="fpStep1">
-        <p data-static-style="a276">Введите email, указанный при регистрации. Мы отправим код для сброса пароля.</p>
-        <input type="email" id="fpEmail" placeholder="Email" data-static-style="a277">
-        <button id="fpSendBtn" data-onclick="forgotPasswordSendCode()" data-static-style="a278">Отправить код</button>
-      </div>
-      <div id="fpStep2" data-static-style="a279">
-        <p data-static-style="a276">Введите код из письма и новый пароль.</p>
-        <input type="text" id="fpCode" placeholder="Код из письма" inputmode="numeric" data-static-style="a280">
-        <input type="password" id="fpNewPass" placeholder="Новый пароль (мин. 8 символов)" data-static-style="a277">
-        <button id="fpResetBtn" data-onclick="forgotPasswordReset()" data-static-style="a278">Сбросить пароль</button>
-      </div>
-      <p data-static-style="a281">При потере пароля доступ к ранее зашифрованным заметкам не восстанавливается.</p>
-    </div>`;
+  const panel = authNode('div', undefined, 'a272');
+  const header = authNode('div', undefined, 'a273');
+  const heading = authNode('h3', 'Восстановление пароля', 'a274');
+  const close = authNode('button', '✕', 'a275');
+  close.addEventListener('click', () => m.remove());
+  header.append(heading, close);
+  const firstStep = authNode('div');
+  firstStep.id = 'fpStep1';
+  const emailHint = authNode('p', 'Введите email, указанный при регистрации. Мы отправим код для сброса пароля.', 'a276');
+  const email = authNode('input', undefined, 'a277');
+  email.type = 'email';
+  email.id = 'fpEmail';
+  email.placeholder = 'Email';
+  const send = authNode('button', 'Отправить код', 'a278');
+  send.id = 'fpSendBtn';
+  send.addEventListener('click', forgotPasswordSendCode);
+  firstStep.append(emailHint, email, send);
+  const secondStep = authNode('div', undefined, 'a279');
+  secondStep.id = 'fpStep2';
+  const codeHint = authNode('p', 'Введите код из письма и новый пароль.', 'a276');
+  const code = authNode('input', undefined, 'a280');
+  code.type = 'text';
+  code.id = 'fpCode';
+  code.placeholder = 'Код из письма';
+  code.inputMode = 'numeric';
+  const newPassword = authNode('input', undefined, 'a277');
+  newPassword.type = 'password';
+  newPassword.id = 'fpNewPass';
+  newPassword.placeholder = 'Новый пароль (мин. 8 символов)';
+  const reset = authNode('button', 'Сбросить пароль', 'a278');
+  reset.id = 'fpResetBtn';
+  reset.addEventListener('click', forgotPasswordReset);
+  secondStep.append(codeHint, code, newPassword, reset);
+  panel.append(header, firstStep, secondStep, authNode('p', 'При потере пароля доступ к ранее зашифрованным заметкам не восстанавливается.', 'a281'));
+  m.replaceChildren(panel);
 }
 
 async function forgotPasswordSendCode() {
@@ -178,31 +201,31 @@ function showPendingApprovalScreen() {
     document.body.appendChild(overlay);
   }
   const hasLevel = state.currentUser && state.currentUser.cyber_level;
-  overlay.innerHTML = `
-    <div data-static-style="a282">
-      <div data-static-style="a283">⏳</div>
-      <h2 data-static-style="a284">Заявка на рассмотрении</h2>
-      <p data-static-style="a285">
-        Ваш email подтверждён. Теперь администратор должен одобрить доступ к библиотеке —
-        обычно это занимает до 24 часов. Мы пришлём письмо на вашу почту, как только откроем доступ,
-        так что эту страницу можно закрыть.
-      </p>
-      <p data-static-style="a286">
-        А пока вы можете пройти тест на уровень знаний — результат сохранится в вашем профиле.
-      </p>
-      ${hasLevel ? `
-        <div data-static-style="a287">
-          Вы уже прошли тест уровня. Дождитесь одобрения администратора.
-        </div>` : `
-        <button id="pendingStartTestBtn" data-static-style="a288">Пройти тест на уровень знаний</button>
-      `}
-      <button id="pendingRefreshBtn" data-static-style="a289">Проверить статус одобрения</button>
-      <button id="pendingLogoutBtn" data-static-style="a176">Выйти</button>
-      <div data-static-style="a290">
-        При возникновении вопросов или проблем пишите на почту
-        <a href="mailto:support@aegis-sec-library.ru" data-static-style="a291">support@aegis-sec-library.ru</a>
-      </div>
-    </div>`;
+  const panel = authNode('div', undefined, 'a282');
+  panel.append(
+    authNode('div', '⏳', 'a283'),
+    authNode('h2', 'Заявка на рассмотрении', 'a284'),
+    authNode('p', 'Ваш email подтверждён. Теперь администратор должен одобрить доступ к библиотеке — обычно это занимает до 24 часов. Мы пришлём письмо на вашу почту, как только откроем доступ, так что эту страницу можно закрыть.', 'a285'),
+    authNode('p', 'А пока вы можете пройти тест на уровень знаний — результат сохранится в вашем профиле.', 'a286'),
+  );
+  if (hasLevel) {
+    panel.appendChild(authNode('div', 'Вы уже прошли тест уровня. Дождитесь одобрения администратора.', 'a287'));
+  } else {
+    const start = authNode('button', 'Пройти тест на уровень знаний', 'a288');
+    start.id = 'pendingStartTestBtn';
+    panel.appendChild(start);
+  }
+  const refresh = authNode('button', 'Проверить статус одобрения', 'a289');
+  refresh.id = 'pendingRefreshBtn';
+  const logout = authNode('button', 'Выйти', 'a176');
+  logout.id = 'pendingLogoutBtn';
+  const support = authNode('div', undefined, 'a290');
+  support.appendChild(document.createTextNode('При возникновении вопросов или проблем пишите на почту '));
+  const supportLink = authNode('a', 'support@aegis-sec-library.ru', 'a291');
+  supportLink.href = 'mailto:support@aegis-sec-library.ru';
+  support.appendChild(supportLink);
+  panel.append(refresh, logout, support);
+  overlay.replaceChildren(panel);
 
   const startBtn = document.getElementById('pendingStartTestBtn');
   if (startBtn) {
@@ -262,28 +285,35 @@ function showVerifyEmailScreen(email) {
     overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg-primary);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;';
     document.body.appendChild(overlay);
   }
-  overlay.innerHTML = `
-    <div data-static-style="a292">
-      <div data-static-style="a293">✉️</div>
-      <h2 data-static-style="a294">Подтвердите email</h2>
-      <p data-static-style="a295">
-        Мы отправили код подтверждения на<br><b data-static-style="a154">${eh(email)}</b><br>
-        <span data-static-style="a192">Проверьте папку «Спам», если письма нет</span>
-      </p>
-      <input type="text" id="verifyCodeInput" inputmode="numeric" maxlength="6" placeholder="000000"
-        data-static-style="a296">
-      <button id="verifyCodeBtn" data-static-style="a297">Подтвердить</button>
-      <div data-static-style="a298">
-        <button id="verifyResendBtn" data-static-style="a299">Отправить код повторно</button>
-        <button id="verifyBackBtn" data-static-style="a176">Назад</button>
-      </div>
-    </div>`;
+  const panel = authNode('div', undefined, 'a292');
+  panel.append(authNode('div', '✉️', 'a293'), authNode('h2', 'Подтвердите email', 'a294'));
+  const sent = authNode('p', undefined, 'a295');
+  sent.append(
+    document.createTextNode('Мы отправили код подтверждения на'), document.createElement('br'),
+    authNode('b', email, 'a154'), document.createElement('br'),
+    authNode('span', 'Проверьте папку «Спам», если письма нет', 'a192'),
+  );
+  const input = authNode('input', undefined, 'a296');
+  input.type = 'text';
+  input.id = 'verifyCodeInput';
+  input.inputMode = 'numeric';
+  input.maxLength = 6;
+  input.placeholder = '000000';
+  const verify = authNode('button', 'Подтвердить', 'a297');
+  verify.id = 'verifyCodeBtn';
+  const actions = authNode('div', undefined, 'a298');
+  const resend = authNode('button', 'Отправить код повторно', 'a299');
+  resend.id = 'verifyResendBtn';
+  const back = authNode('button', 'Назад', 'a176');
+  back.id = 'verifyBackBtn';
+  actions.append(resend, back);
+  panel.append(sent, input, verify, actions);
+  overlay.replaceChildren(panel);
 
-  const input = document.getElementById('verifyCodeInput');
   input.focus();
-  document.getElementById('verifyCodeBtn').onclick = submitVerifyCode;
+  verify.onclick = submitVerifyCode;
   input.addEventListener('keydown', e => { if (e.key === 'Enter') submitVerifyCode(); });
-  document.getElementById('verifyResendBtn').onclick = async () => {
+  resend.onclick = async () => {
     try {
       await api.resendCode(pendingVerifyEmail);
       showToast('Код отправлен повторно');
@@ -291,7 +321,7 @@ function showVerifyEmailScreen(email) {
       showToast(getAuthErrorMessage(err));
     }
   };
-  document.getElementById('verifyBackBtn').onclick = () => {
+  back.onclick = () => {
     overlay.remove();
     pendingVerifyEmail = null;
     pendingVerifyCreds = null;
