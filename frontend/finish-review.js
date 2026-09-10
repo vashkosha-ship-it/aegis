@@ -36,7 +36,7 @@ function setFinishReviewStar(n) {
   _finishReviewRating = n;
   document.querySelectorAll('#finishReviewModal .star').forEach((el, i) => {
     el.classList.toggle('filled', i < n);
-    el.innerHTML = renderStarSVG(i < n);
+    replaceWithTrustedIcon(el, renderStarSVG(i < n));
   });
 }
 
@@ -60,19 +60,48 @@ function showFinishReviewModal(bookId) {
   const m = document.createElement('div');
   m.id = 'finishReviewModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6500;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div data-static-style="a101">
-      <div data-static-style="a102">${ICONS.check || '✓'}</div>
-      <h3 data-static-style="a103">Книга прочитана!</h3>
-      <p data-static-style="a104">${book ? eh(book.title) : 'Эта книга'} — поделитесь оценкой, это поможет другим читателям.</p>
-      <div class="star-input" data-static-style="a105">
-        ${[1,2,3,4,5].map(i => `<span class="star" data-static-style="a106" data-onclick="setFinishReviewStar(${i})">${renderStarSVG(false)}</span>`).join('')}
-      </div>
-      <textarea id="finishReviewText" rows="2" placeholder="Пара слов о книге (необязательно)" data-static-style="a107"></textarea>
-      <div data-static-style="a108">
-        <button class="btn" data-onclick="closeFinishReviewModal()" data-static-style="a109">Позже</button>
-        <button class="btn btn-primary" data-onclick="submitFinishReview(${bookId})" data-static-style="a110">Оценить</button>
-      </div>
-    </div>`;
+  const panel = document.createElement('div');
+  panel.setAttribute('data-static-style', 'a101');
+  const complete = document.createElement('div');
+  complete.setAttribute('data-static-style', 'a102');
+  if (!appendTrustedIcon(complete, ICONS.check || '')) complete.textContent = '✓';
+  const heading = document.createElement('h3');
+  heading.setAttribute('data-static-style', 'a103');
+  heading.textContent = 'Книга прочитана!';
+  const prompt = document.createElement('p');
+  prompt.setAttribute('data-static-style', 'a104');
+  prompt.textContent = `${book ? book.title : 'Эта книга'} — поделитесь оценкой, это поможет другим читателям.`;
+  const stars = document.createElement('div');
+  stars.className = 'star-input';
+  stars.setAttribute('data-static-style', 'a105');
+  for (let rating = 1; rating <= 5; rating += 1) {
+    const star = document.createElement('span');
+    star.className = 'star';
+    star.setAttribute('data-static-style', 'a106');
+    appendTrustedIcon(star, renderStarSVG(false));
+    star.addEventListener('click', () => setFinishReviewStar(rating));
+    stars.appendChild(star);
+  }
+  const textarea = document.createElement('textarea');
+  textarea.id = 'finishReviewText';
+  textarea.rows = 2;
+  textarea.placeholder = 'Пара слов о книге (необязательно)';
+  textarea.setAttribute('data-static-style', 'a107');
+  const actions = document.createElement('div');
+  actions.setAttribute('data-static-style', 'a108');
+  const later = document.createElement('button');
+  later.className = 'btn';
+  later.setAttribute('data-static-style', 'a109');
+  later.textContent = 'Позже';
+  later.addEventListener('click', closeFinishReviewModal);
+  const submit = document.createElement('button');
+  submit.className = 'btn btn-primary';
+  submit.setAttribute('data-static-style', 'a110');
+  submit.textContent = 'Оценить';
+  submit.addEventListener('click', () => submitFinishReview(bookId));
+  actions.append(later, submit);
+  panel.append(complete, heading, prompt, stars, textarea, actions);
+  m.appendChild(panel);
   m.addEventListener('click', (e) => { if (e.target === m) closeFinishReviewModal(); });
   document.body.appendChild(m);
 }

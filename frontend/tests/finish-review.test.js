@@ -30,11 +30,23 @@ const context = {
   pdfTotalPages: 5,
   pdfCurrentPage: 5,
   reviewsCache: {},
-  ICONS: { check: 'OK' },
+  ICONS: { check: '<svg data-icon="check"></svg>' },
+  appendTrustedIcon: (container, markup) => {
+    if (!String(markup).startsWith('<svg')) return null;
+    const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+    const icon = dom.window.document.importNode(parsed.documentElement, true);
+    container.appendChild(icon);
+    return icon;
+  },
+  replaceWithTrustedIcon: (container, markup) => {
+    container.replaceChildren();
+    const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+    container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
+  },
   lsGet: key => storage.get(key) ?? null,
   lsSet: (key, value) => storage.set(key, value),
   setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; },
-  renderStarSVG: filled => filled ? 'FILLED' : 'EMPTY',
+  renderStarSVG: filled => `<svg data-filled="${filled}"></svg>`,
   addReview: (...args) => reviews.push(args),
   showToast: message => toasts.push(message),
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -54,6 +66,7 @@ assert.ok(modal);
 assert.equal(modal.querySelectorAll('.star').length, 5);
 assert.equal(modal.querySelector('img'), null);
 assert.match(modal.innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/);
+assert.equal(modal.querySelectorAll('[data-onclick]').length, 0);
 
 context.setFinishReviewStar(4);
 assert.equal(modal.querySelectorAll('.star.filled').length, 4);
@@ -81,4 +94,5 @@ assert.doesNotMatch(appSource, /function maybeShowFinishReviewPrompt|function sh
 assert.ok(indexSource.indexOf('reviews-core.js') < indexSource.indexOf('finish-review.js'));
 assert.ok(indexSource.indexOf('finish-review.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/finish-review\.js['"]/);
+assert.doesNotMatch(source, /\.innerHTML\s*=/);
 console.log('Finish review tests passed');
