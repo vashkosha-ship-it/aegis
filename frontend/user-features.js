@@ -139,62 +139,105 @@ async function runFullTextSearch() {
     if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor);
     else if (container) container.parentNode.insertBefore(panel, container);
   }
-  panel.innerHTML = `<div data-static-style="a111">Ищу «${eh(q)}»…</div>`;
+  replaceWithStaticText(panel, `Ищу «${q}»…`, 'a111');
 
   try {
     const res = await api.library.searchBooks(q, 20);
     renderFullTextResults(res);
   } catch (e) {
-    panel.innerHTML = `<div data-static-style="a112">Ошибка поиска. ${eh(e?.detail || '')}</div>`;
+    replaceWithStaticText(panel, `Ошибка поиска. ${String(e?.detail || '')}`, 'a112');
   }
 }
 
 function renderFullTextResults(res) {
   const panel = document.getElementById('fullTextResults');
   if (!panel) return;
+  const fragment = document.createDocumentFragment();
+  const header = document.createElement('div');
+  header.setAttribute('data-static-style', 'a113');
+  const heading = document.createElement('div');
+  heading.className = 'section-title';
+  const clear = document.createElement('button');
+  clear.type = 'button';
+  clear.setAttribute('data-static-style', 'a114');
+  clear.textContent = 'Очистить';
+  clear.addEventListener('click', clearFullTextSearch);
+
   if (!res.hits || !res.hits.length) {
-    panel.innerHTML = `
-      <div data-static-style="a113">
-        <div class="section-title">Поиск: «${eh(res.query)}»</div>
-        <button data-onclick="clearFullTextSearch()" data-static-style="a114">Очистить</button>
-      </div>
-      <div data-static-style="a111">Ничего не найдено. Возможно, книги ещё не проиндексированы (админ → «Переиндексировать»).</div>`;
+    heading.textContent = `Поиск: «${String(res.query ?? '')}»`;
+    header.append(heading, clear);
+    const empty = document.createElement('div');
+    empty.setAttribute('data-static-style', 'a111');
+    empty.textContent = 'Ничего не найдено. Возможно, книги ещё не проиндексированы (админ → «Переиндексировать»).';
+    fragment.append(header, empty);
+    panel.replaceChildren(fragment);
     return;
   }
+
   const matchLabel = { meta: 'в описании', content: 'в тексте', both: 'в описании и тексте' };
-  panel.innerHTML = `
-    <div data-static-style="a113">
-      <div class="section-title">Найдено: ${res.total} по «${eh(res.query)}»</div>
-      <button data-onclick="clearFullTextSearch()" data-static-style="a114">Очистить</button>
-    </div>
-    <div data-static-style="a115">
-      ${res.hits.map(h => `
-        <div data-onclick="openBookDetail(${h.book_id})" data-static-style="a116">
-          <div data-static-style="a117">
-            ${h.has_cover ? `<img src="${api.books.coverUrl(h.book_id)}" alt="" data-static-style="a118">` : `<div data-static-style="a119">📕</div>`}
-          </div>
-          <div data-static-style="a015">
-            <div data-static-style="a120">${eh(h.title)}</div>
-            <div data-static-style="a121">${eh(h.author)} · совпадение ${matchLabel[h.matched_in] || ''}</div>
-            ${h.pages && h.pages.length ? h.pages.map(p => `
-              <div data-static-style="a122">
-                <span data-static-style="a123">с. ${p.page}:</span> …${p.snippet}…
-                <button data-onclick="askAiAboutSnippet(${h.book_id}, ${p.page}, '${_encodeSnippet(p.snippet)}', '${_encodeSnippet(h.title)}')" data-stop="1" data-static-style="a124">✨ Спросить AI про этот фрагмент</button>
-              </div>`).join('') : ''}
-          </div>
-        </div>`).join('')}
-    </div>`;
+  heading.textContent = `Найдено: ${Number(res.total) || 0} по «${String(res.query ?? '')}»`;
+  header.append(heading, clear);
+  fragment.appendChild(header);
+
+  const results = document.createElement('div');
+  results.setAttribute('data-static-style', 'a115');
+  res.hits.forEach(hit => {
+    const card = document.createElement('div');
+    card.setAttribute('data-static-style', 'a116');
+    card.addEventListener('click', () => openBookDetail(hit.book_id));
+
+    const cover = document.createElement('div');
+    cover.setAttribute('data-static-style', 'a117');
+    if (hit.has_cover) {
+      const image = document.createElement('img');
+      image.src = api.books.coverUrl(hit.book_id);
+      image.alt = '';
+      image.setAttribute('data-static-style', 'a118');
+      cover.appendChild(image);
+    } else {
+      const placeholder = document.createElement('div');
+      placeholder.setAttribute('data-static-style', 'a119');
+      placeholder.textContent = '📕';
+      cover.appendChild(placeholder);
+    }
+
+    const details = document.createElement('div');
+    details.setAttribute('data-static-style', 'a015');
+    const title = document.createElement('div');
+    title.setAttribute('data-static-style', 'a120');
+    title.textContent = String(hit.title ?? '');
+    const author = document.createElement('div');
+    author.setAttribute('data-static-style', 'a121');
+    author.textContent = `${String(hit.author ?? '')} · совпадение ${matchLabel[hit.matched_in] || ''}`;
+    details.append(title, author);
+
+    (hit.pages || []).forEach(page => {
+      const pageResult = document.createElement('div');
+      pageResult.setAttribute('data-static-style', 'a122');
+      const pageNumber = document.createElement('span');
+      pageNumber.setAttribute('data-static-style', 'a123');
+      pageNumber.textContent = `с. ${page.page}:`;
+      const snippet = String(page.snippet ?? '').replace(/<\/?b>/g, '');
+      const askAi = document.createElement('button');
+      askAi.type = 'button';
+      askAi.setAttribute('data-static-style', 'a124');
+      askAi.textContent = '✨ Спросить AI про этот фрагмент';
+      askAi.addEventListener('click', event => {
+        event.stopPropagation();
+        askAiAboutSnippet(hit.book_id, page.page, snippet, hit.title);
+      });
+      pageResult.append(pageNumber, document.createTextNode(` …${snippet}… `), askAi);
+      details.appendChild(pageResult);
+    });
+
+    card.append(cover, details);
+    results.appendChild(card);
+  });
+  fragment.appendChild(results);
+  panel.replaceChildren(fragment);
 }
 
-// убирает <b>-теги и кодирует для безопасной передачи в onclick
-function _encodeSnippet(s) {
-  const clean = String(s || '').replace(/<\/?b>/g, '');
-  return encodeURIComponent(clean).replace(/'/g, '%27');
-}
-
-function askAiAboutSnippet(bookId, page, encSnippet, encTitle) {
-  const snippet = decodeURIComponent(encSnippet);
-  const title = decodeURIComponent(encTitle);
+function askAiAboutSnippet(bookId, page, snippet, title) {
   // переходим к ассистенту и задаём вопрос с контекстом фрагмента
   navigateTo('assistant');
   setTimeout(() => {
