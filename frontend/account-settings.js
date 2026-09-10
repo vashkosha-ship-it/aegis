@@ -99,21 +99,31 @@ const SETTINGS_TABS = [
 
 let settingsCurrentTab = 'info';
 
+function _accountNode(tagName, staticStyle, text) {
+  const node = document.createElement(tagName);
+  if (staticStyle) node.setAttribute('data-static-style', staticStyle);
+  if (text !== undefined) node.textContent = String(text);
+  return node;
+}
+
 function renderSettingsScreen() {
   // Заполнить навигацию (один раз)
   document.querySelectorAll('.settings-tab').forEach(btn => {
     const tabId = btn.dataset.stab;
     const tab = SETTINGS_TABS.find(t => t.id === tabId);
     if (!tab) return;
-    if (!btn.innerHTML.trim()) {
-      btn.innerHTML = `${ICONS[tab.icon]}<span>${tab.label}</span>`;
+    if (!btn.hasChildNodes()) {
+      const label = document.createElement('span');
+      label.textContent = tab.label;
+      appendTrustedIcon(btn, ICONS[tab.icon]);
+      btn.appendChild(label);
     }
     btn.classList.toggle('active', tabId === settingsCurrentTab);
   });
 
   // Иконка для кнопки выхода
   const logoutIc = document.getElementById('logoutIcon');
-  if (logoutIc && !logoutIc.innerHTML.trim()) logoutIc.innerHTML = ICONS.iconLogout;
+  if (logoutIc && !logoutIc.hasChildNodes()) appendTrustedIcon(logoutIc, ICONS.iconLogout);
 
   renderSettingsTabContent();
 }
@@ -260,63 +270,54 @@ function renderSettingsTabContent() {
     renderSettingsHelpTab(c);
   }else {
     const tab = SETTINGS_TABS.find(t => t.id === settingsCurrentTab);
-    c.innerHTML = `
-      <div data-static-style="a372">
-        <div data-static-style="a373">${tab ? tab.label : ''}</div>
-        <div data-static-style="a253">Раздел будет доступен в ближайшее время</div>
-      </div>
-    `;
+    const placeholder = _accountNode('div', 'a372');
+    placeholder.append(
+      _accountNode('div', 'a373', tab ? tab.label : ''),
+      _accountNode('div', 'a253', 'Раздел будет доступен в ближайшее время'),
+    );
+    c.replaceChildren(placeholder);
   }
 }
 
 function renderSettingsHelpTab(c) {
-  c.innerHTML = `
-    <div data-static-style="a374">
-      <div data-static-style="a375">
-        <div data-static-style="a376">Знакомство с приложением</div>
-        <p data-static-style="a377">
-          Короткий тур по основным разделам: библиотека, тестирование, AI-ассистент и схемы атак.
-        </p>
-        <button data-onclick="replayOnboardingTour()" data-static-style="a378">
-          Пройти обучение заново
-        </button>
-      </div>
+  const content = _accountNode('div', 'a374');
+  const helpCard = (title, description, style = 'a375') => {
+    const card = _accountNode('div', style);
+    card.append(_accountNode('div', title === 'Связь с поддержкой' ? 'a380' : 'a376', title));
+    card.append(_accountNode('p', 'a377', description));
+    return card;
+  };
 
-      <div data-static-style="a375">
-        <div data-static-style="a376">Установка приложения</div>
-        <p data-static-style="a377">
-          Установите Aegis на телефон или планшет для быстрого доступа с домашнего экрана.
-        </p>
-        <button data-onclick="triggerInstall()" data-static-style="a379">
-          Установить приложение
-        </button>
-      </div>
+  const tour = helpCard('Знакомство с приложением', 'Короткий тур по основным разделам: библиотека, тестирование, AI-ассистент и схемы атак.');
+  const tourButton = _accountNode('button', 'a378', 'Пройти обучение заново');
+  tourButton.type = 'button';
+  tourButton.addEventListener('click', replayOnboardingTour);
+  tour.appendChild(tourButton);
 
-      <div data-static-style="a375">
-        <div data-static-style="a380">Связь с поддержкой</div>
-        <p data-static-style="a377">
-          При возникновении вопросов или проблем пишите на почту:
-        </p>
-        <a href="mailto:support@aegis-sec-library.ru" data-static-style="a381">
-          support@aegis-sec-library.ru
-        </a>
-      </div>
+  const install = helpCard('Установка приложения', 'Установите Aegis на телефон или планшет для быстрого доступа с домашнего экрана.');
+  const installButton = _accountNode('button', 'a379', 'Установить приложение');
+  installButton.type = 'button';
+  installButton.addEventListener('click', triggerInstall);
+  install.appendChild(installButton);
 
-      <div data-static-style="a382">
-        <div data-static-style="a376">Правовые документы</div>
-        <p data-static-style="a377">
-          Условия использования платформы Aegis и порядок обработки данных.
-        </p>
-        <div data-static-style="a093">
-          <button data-onclick="openUserAgreement()" data-static-style="a383">
-            Пользовательское соглашение
-          </button>
-          <button data-onclick="openPrivacyPolicy()" data-static-style="a383">
-            Политика конфиденциальности
-          </button>
-        </div>
-      </div>
-    </div>`;
+  const support = helpCard('Связь с поддержкой', 'При возникновении вопросов или проблем пишите на почту:');
+  const email = _accountNode('a', 'a381', 'support@aegis-sec-library.ru');
+  email.href = 'mailto:support@aegis-sec-library.ru';
+  support.appendChild(email);
+
+  const legal = helpCard('Правовые документы', 'Условия использования платформы Aegis и порядок обработки данных.', 'a382');
+  const legalActions = _accountNode('div', 'a093');
+  const agreement = _accountNode('button', 'a383', 'Пользовательское соглашение');
+  agreement.type = 'button';
+  agreement.addEventListener('click', openUserAgreement);
+  const privacy = _accountNode('button', 'a383', 'Политика конфиденциальности');
+  privacy.type = 'button';
+  privacy.addEventListener('click', openPrivacyPolicy);
+  legalActions.append(agreement, privacy);
+  legal.appendChild(legalActions);
+
+  content.append(tour, install, support, legal);
+  c.replaceChildren(content);
 }
 
 function _openLegalModal(titleText, html) {
@@ -404,16 +405,32 @@ function confirmDeleteAccount() {
   const m = document.createElement('div');
   m.id = 'deleteAccModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div data-static-style="a400">
-    <h3 data-static-style="a401">Удалить аккаунт?</h3>
-    <p data-static-style="a402">Это действие необратимо. Все ваши данные будут удалены навсегда. Для подтверждения введите пароль и слово <b data-static-style="a154">УДАЛИТЬ</b>.</p>
-    <input id="delAccPassword" type="password" placeholder="Пароль" data-static-style="a403">
-    <input id="delAccConfirm" type="text" placeholder="Введите УДАЛИТЬ" data-static-style="a404">
-    <div data-static-style="a108">
-      <button data-onclick="closeModal('deleteAccModal')" data-static-style="a405">Отмена</button>
-      <button data-onclick="doDeleteAccount()" data-nonce="${sensitiveNonce()}" data-static-style="a406">Удалить</button>
-    </div>
-  </div>`;
+  const dialog = _accountNode('div', 'a400');
+  dialog.appendChild(_accountNode('h3', 'a401', 'Удалить аккаунт?'));
+  const warning = _accountNode('p', 'a402');
+  warning.append(
+    document.createTextNode('Это действие необратимо. Все ваши данные будут удалены навсегда. Для подтверждения введите пароль и слово '),
+    _accountNode('b', 'a154', 'УДАЛИТЬ'),
+    document.createTextNode('.'),
+  );
+  const password = _accountNode('input', 'a403');
+  password.id = 'delAccPassword';
+  password.type = 'password';
+  password.placeholder = 'Пароль';
+  const confirmation = _accountNode('input', 'a404');
+  confirmation.id = 'delAccConfirm';
+  confirmation.type = 'text';
+  confirmation.placeholder = 'Введите УДАЛИТЬ';
+  const actions = _accountNode('div', 'a108');
+  const cancel = _accountNode('button', 'a405', 'Отмена');
+  cancel.type = 'button';
+  cancel.addEventListener('click', () => m.remove());
+  const remove = _accountNode('button', 'a406', 'Удалить');
+  remove.type = 'button';
+  remove.addEventListener('click', doDeleteAccount);
+  actions.append(cancel, remove);
+  dialog.append(warning, password, confirmation, actions);
+  m.appendChild(dialog);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
 }
@@ -926,15 +943,18 @@ async function showMyStatsModal() {
   const modal = document.createElement('div');
   modal.id = 'myStatsModal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML = `<div data-static-style="a433">
-    <div data-static-style="a434">
-      <h2 data-static-style="a435">Моя статистика</h2>
-      <button id="myStatsClose" data-static-style="a436">✕</button>
-    </div>
-    <div id="myStatsBody" data-static-style="a437">Считаю…</div>
-  </div>`;
+  const dialog = _accountNode('div', 'a433');
+  const header = _accountNode('div', 'a434');
+  const close = _accountNode('button', 'a436', '✕');
+  close.id = 'myStatsClose';
+  close.type = 'button';
+  header.append(_accountNode('h2', 'a435', 'Моя статистика'), close);
+  const bodyContent = _accountNode('div', 'a437', 'Считаю…');
+  bodyContent.id = 'myStatsBody';
+  dialog.append(header, bodyContent);
+  modal.appendChild(dialog);
   document.body.appendChild(modal);
-  document.getElementById('myStatsClose').onclick = () => modal.remove();
+  close.addEventListener('click', () => modal.remove());
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
   // Подгружаем свежие данные
