@@ -312,6 +312,9 @@ jobs:
       - name: Тест персонализации аккаунта
         run: node tests/account-personalization-dom.test.js
 
+      - name: Тест главной и карточки книги
+        run: node tests/library-home-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 

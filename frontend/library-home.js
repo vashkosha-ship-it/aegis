@@ -114,12 +114,25 @@ function renderHome() {
     const pager = document.getElementById('booksPager');
     if (sorted.length === 0) {
       // Ничего не найдено — дружелюбное сообщение вместо пустоты
-      if (all) all.innerHTML = `
-        <div data-static-style="a312">
-          <div data-static-style="a313">🔍</div>
-          <div data-static-style="a314">По запросу «${eh(q)}» ничего не найдено</div>
-          <div data-static-style="a315">Попробуйте другие слова или проверьте раскладку клавиатуры</div>
-        </div>`;
+      if (all) {
+        const empty = document.createElement('div');
+        empty.setAttribute('data-static-style', 'a312');
+        const queryMessage = document.createElement('div');
+        queryMessage.setAttribute('data-static-style', 'a314');
+        queryMessage.textContent = `По запросу «${q}» ничего не найдено`;
+        empty.append(
+          Object.assign(document.createElement('div'), {
+            textContent: '🔍',
+          }),
+          queryMessage,
+          Object.assign(document.createElement('div'), {
+            textContent: 'Попробуйте другие слова или проверьте раскладку клавиатуры',
+          }),
+        );
+        empty.children[0].setAttribute('data-static-style', 'a313');
+        empty.children[2].setAttribute('data-static-style', 'a315');
+        all.replaceChildren(empty);
+      }
       if (pager) pager.replaceChildren();
     } else {
       renderPaginatedBooks('scrollAll', sorted, q);
@@ -192,51 +205,152 @@ function openBookDetail(bookId) {
   });
 }
 
+function _libraryNode(tagName, className, text, staticStyle) {
+  const node = document.createElement(tagName);
+  if (className) node.className = className;
+  if (staticStyle) node.setAttribute('data-static-style', staticStyle);
+  if (text !== undefined) node.textContent = String(text);
+  return node;
+}
+
+function _libraryIconText(icon, text) {
+  const container = document.createElement('span');
+  appendTrustedIcon(container, icon);
+  container.appendChild(document.createTextNode(' ' + text));
+  return container;
+}
+
+function _libraryAction(icon, text, onClick, className = 'btn-detail', staticStyle) {
+  const button = _libraryNode('button', className, undefined, staticStyle);
+  button.type = 'button';
+  appendTrustedIcon(button, icon);
+  button.appendChild(document.createTextNode(' ' + text));
+  button.addEventListener('click', onClick);
+  return button;
+}
+
 function renderBookInfo() {
-  const b = state.books.find(x => x.id === currentBookId);
-  if (!b) return;
+  const book = state.books.find(item => item.id === currentBookId);
+  if (!book) return;
+  const target = document.getElementById('detailTabInfo');
+  if (!target) return;
+
   const isAdmin = state.currentUser?.role === 'admin';
-  const views = b.views || 0;
-  const downloads = b.downloads || 0;
-  const formatLabel = (b.file_format || 'pdf').toUpperCase();
-  let adminStats = '';
-  if (isAdmin) {
-    adminStats = `<div class="admin-book-stats"><span>${ICONS.eye} ${views} просмотров</span><span>${ICONS.download} ${downloads} скачиваний</span><span>${ICONS.fileText} ${formatLabel}</span></div>`;
+  const formatLabel = (book.file_format || 'pdf').toUpperCase();
+  const content = _libraryNode('div', 'detail-content');
+  const cover = _libraryNode('div', 'detail-cover');
+
+  if (book.has_cover) {
+    const image = _libraryNode('img', null, undefined, 'a467');
+    image.src = api.books.coverUrl(book.id);
+    image.alt = '';
+    image.dataset.fallback = 'cover';
+    image.addEventListener('error', () => replaceWithFallback(image), { once: true });
+    cover.appendChild(image);
+  } else {
+    appendTrustedIcon(cover, ICONS.bookCover);
   }
-  document.getElementById('detailTabInfo').innerHTML = `
-    <div class="detail-content">
-      <div class="detail-cover">${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}</div>
-      <div class="detail-info">
-        <div class="detail-title">${eh(b.title)}</div>
-        <div class="detail-author">${eh(b.author)}</div>
-        <div class="detail-rating">${ICONS.star} ${b.rating}</div>
-        <div class="detail-category">${bookCategoriesText(b)} • ${formatLabel}</div>
-        <div class="detail-desc">${eh(b.desc)}</div>
-        ${adminStats}
-        <select class="mylist-status-select" data-onchange="onBookStatusChange(${b.id})" data-args="this">
-          <option value="">Не в списке</option>
-          <option value="reading" ${state.mylist[currentBookId] === 'reading' ? 'selected' : ''}>Читаю</option>
-          <option value="planned" ${state.mylist[currentBookId] === 'planned' ? 'selected' : ''}>В планах</option>
-          <option value="dropped" ${state.mylist[currentBookId] === 'dropped' ? 'selected' : ''}>Брошено</option>
-          <option value="completed" ${state.mylist[currentBookId] === 'completed' ? 'selected' : ''}>Прочитано</option>
-          <option value="liked" ${state.mylist[currentBookId] === 'liked' ? 'selected' : ''}>Избранное</option>
-        </select>
-        <div class="detail-actions">
-          <button class="btn-detail" data-onclick="openReader(${b.id})">${ICONS.book} Читать</button>
-          ${b.has_file ? (offlineBookIds.has(b.id)
-            ? `<button class="btn-detail offline-btn-saved" data-onclick="removeBookOffline(${b.id})">${ICONS.cloudCheck} Удалить из оффлайн</button>`
-            : `<button class="btn-detail offline-btn-save" data-onclick="saveBookOffline(${b.id})">${ICONS.cloudDownload} Сохранить оффлайн</button>`) : ''}
-          ${(() => {
-            const stage = findKillChainStageForBook(b);
-            if (!stage) return '';
-            return `<button class="btn-detail" data-static-style="a468" data-onclick="openARWithScheme('killchain', ${stage.id})" title="Открыть схему Cyber Kill Chain на этапе «${eh(stage.nameRu)}»">${ICONS.target} Смотреть схему атаки</button>`;
-          })()}
-          ${isAdmin ? `<button class="btn-detail" data-static-style="a469" data-onclick="openAdminBookModal(${b.id})">${ICONS.settings} Управление</button>` : ''}
-          <button class="btn-detail" data-static-style="a470" data-onclick="openAddToCollection(${b.id})">${ICONS.bookmark || ''} В коллекцию</button>
-        </div>
-      </div>
-    </div>
-    <div id="alsoReadSection" data-static-style="a471"></div>`;
+
+  const info = _libraryNode('div', 'detail-info');
+  info.append(
+    _libraryNode('div', 'detail-title', book.title),
+    _libraryNode('div', 'detail-author', book.author),
+    _libraryIconText(ICONS.star, book.rating),
+    _libraryNode('div', 'detail-category', `${bookCategoriesText(book)} • ${formatLabel}`),
+    _libraryNode('div', 'detail-desc', book.desc),
+  );
+  info.children[2].className = 'detail-rating';
+
+  if (isAdmin) {
+    const stats = _libraryNode('div', 'admin-book-stats');
+    stats.append(
+      _libraryIconText(ICONS.eye, `${book.views || 0} просмотров`),
+      _libraryIconText(ICONS.download, `${book.downloads || 0} скачиваний`),
+      _libraryIconText(ICONS.fileText, formatLabel),
+    );
+    info.appendChild(stats);
+  }
+
+  const status = _libraryNode('select', 'mylist-status-select');
+  [
+    ['', 'Не в списке'],
+    ['reading', 'Читаю'],
+    ['planned', 'В планах'],
+    ['dropped', 'Брошено'],
+    ['completed', 'Прочитано'],
+    ['liked', 'Избранное'],
+  ].forEach(([value, label]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    status.appendChild(option);
+  });
+  status.value = state.mylist[currentBookId] || '';
+  status.addEventListener('change', () => onBookStatusChange(book.id, status));
+  info.appendChild(status);
+
+  const actions = _libraryNode('div', 'detail-actions');
+  actions.appendChild(_libraryAction(ICONS.book, 'Читать', () => openReader(book.id)));
+  if (book.has_file) {
+    if (offlineBookIds.has(book.id)) {
+      actions.appendChild(
+        _libraryAction(
+          ICONS.cloudCheck,
+          'Удалить из оффлайн',
+          () => removeBookOffline(book.id),
+          'btn-detail offline-btn-saved',
+        ),
+      );
+    } else {
+      actions.appendChild(
+        _libraryAction(
+          ICONS.cloudDownload,
+          'Сохранить оффлайн',
+          () => saveBookOffline(book.id),
+          'btn-detail offline-btn-save',
+        ),
+      );
+    }
+  }
+
+  const stage = findKillChainStageForBook(book);
+  if (stage) {
+    const arButton = _libraryAction(
+      ICONS.target,
+      'Смотреть схему атаки',
+      () => openARWithScheme('killchain', stage.id),
+      'btn-detail',
+      'a468',
+    );
+    arButton.title = `Открыть схему Cyber Kill Chain на этапе «${stage.nameRu}»`;
+    actions.appendChild(arButton);
+  }
+  if (isAdmin) {
+    actions.appendChild(
+      _libraryAction(
+        ICONS.settings,
+        'Управление',
+        () => openAdminBookModal(book.id),
+        'btn-detail',
+        'a469',
+      ),
+    );
+  }
+  actions.appendChild(
+    _libraryAction(
+      ICONS.bookmark || '',
+      'В коллекцию',
+      () => openAddToCollection(book.id),
+      'btn-detail',
+      'a470',
+    ),
+  );
+
+  info.appendChild(actions);
+  content.append(cover, info);
+  const alsoRead = _libraryNode('div', null, undefined, 'a471');
+  alsoRead.id = 'alsoReadSection';
+  target.replaceChildren(content, alsoRead);
   loadAlsoRead(currentBookId);
 }
 

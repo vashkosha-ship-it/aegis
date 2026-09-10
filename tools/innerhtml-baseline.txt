@@ -21,14 +21,6 @@ ar-schemes.js	rInner - 6
 ar-schemes.js	segs
 ar-schemes.js	stages.map((s) => { const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6'; const badge = (s.code || Stri
 ar-schemes.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; return `<button data-onclick="selectKillChainStage(${s.id})
-library-home.js	(() => { const stage = findKillChainStageForBook(b); if (!stage) return ''; return `<button class="btn-detail" data-stat
-library-home.js	adminStats
-library-home.js	b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a467" data-onerror="replaceWithFallback(
-library-home.js	b.has_file ? (offlineBookIds.has(b.id) ? `<button class="btn-detail offline-btn-saved" data-onclick="removeBookOffline($
-library-home.js	b.rating
-library-home.js	bookCategoriesText(b)
-library-home.js	formatLabel
-library-home.js	isAdmin ? `<button class="btn-detail" data-static-style="a469" data-onclick="openAdminBookModal(${b.id})">${ICONS.settin
 onboarding.js	dateStr ? `<div data-static-style="a575">Тест пройден: ${dateStr}</div>` : ''
 onboarding.js	info.icon.replace('width="22"','width="40"').replace('height="22"','height="40"').replace('width="20"','width="40"').rep
 onboarding.js	result.overall_percentage

@@ -56,7 +56,7 @@ window.AEGIS_ALLOWED_HANDLERS = Object.freeze({
     'toggleStageDetailsPanel', 'toggleTocRead', 'zoomARScheme',
   ],
   change: [
-    'onAnalyticsBookSelected', 'onBookStatusChange', 'uploadAvatar',
+    'onAnalyticsBookSelected', 'uploadAvatar',
   ],
   input: [
     'onSearchInput',
