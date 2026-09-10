@@ -27,7 +27,7 @@ const context = {
     const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
     container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
   },
-  dynamicStyleToken: css => 'test:' + css,
+  dynamicStyleToken: () => 'test-style',
   navigateTo: screen => calls.push(screen),
   console,
 };
@@ -51,7 +51,7 @@ context.renderOnboardingResult(result);
 let content = dom.window.document.getElementById('onboardingResultContent');
 assert.equal(content.querySelector('.onboarding-result-level').textContent, result.level_name);
 assert.equal(content.querySelector('.onboarding-result-description').textContent, result.level_description);
-assert.equal(content.querySelector('.onboarding-topic-fill').getAttribute('data-dynamic-style'), 'test:width:100%;');
+assert.equal(content.querySelector('.onboarding-topic-fill').getAttribute('data-dynamic-style'), 'test-style');
 assert.match(content.querySelector('.onboarding-weak-list').textContent, /<svg onload=alert\(1\)>/);
 assert.equal(content.querySelector('img, script, svg[onload]'), null);
 assert.equal(content.querySelectorAll('[data-onclick]').length, 0);
@@ -73,5 +73,6 @@ const detailFragment = source.slice(
   source.indexOf('function restartOnboarding'),
 );
 assert.doesNotMatch(resultFragment, /innerHTML/);
+assert.match(source, /Math\.max\(0, Math\.min\(100, Number\(topic\.percentage\)/);
 assert.doesNotMatch(detailFragment, /innerHTML/);
 console.log('Onboarding result DOM tests passed');
