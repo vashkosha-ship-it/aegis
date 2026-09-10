@@ -71,8 +71,6 @@ user-features.js	btn('csv', 'CSV', 'Таблица для Excel')
 user-features.js	btn('json', 'JSON', 'Для импорта в другие приложения')
 user-features.js	btn('md', 'Markdown', 'Текст с разметкой')
 user-features.js	btn('pdf', 'PDF документ', 'Для печати и чтения')
-user-features.js	c.score
-user-features.js	encodeURIComponent(c.category).replace(/'/g, '')
 user-features.js	inner
 user-features.js	res.hits.map(h => `
 user-features.js	res.total

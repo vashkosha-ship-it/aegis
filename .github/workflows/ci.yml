@@ -276,6 +276,9 @@ jobs:
       - name: Тест безопасных DOM-операций
         run: node tests/dom-mutations.test.js
 
+      - name: Тест безопасных DOM-фрагментов
+        run: node tests/dom-fragments.test.js
+
       - name: Тест аналитики
         run: node tests/analytics.test.js
 

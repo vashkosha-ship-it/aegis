@@ -426,7 +426,7 @@ async function populateNewCategoriesSelect() {
   } catch (e) {
     categories = [];
   }
-  sel.innerHTML = categories.map(c => `<option value="${eh(c)}">${eh(c)}</option>`).join('');
+  replaceSelectOptions(sel, categories);
   sel.value = []; // снимаем все выделения
 }
 
@@ -747,16 +747,12 @@ async function populateAdminCategoriesSelect(currentCategories) {
     categories = currentCategories || [];
   }
   
-  sel.innerHTML = categories.map(c => `<option value="${eh(c)}">${eh(c)}</option>`).join('');
-  
-  // Выделяем текущие категории книги
-  if (currentCategories && Array.isArray(currentCategories)) {
-    Array.from(sel.options).forEach(opt => {
-      if (currentCategories.includes(opt.value)) {
-        opt.selected = true;
-      }
-    });
-  }
+  const selected = Array.isArray(currentCategories) ? currentCategories : [];
+  replaceSelectOptions(sel, categories.map(category => ({
+    value: category,
+    label: category,
+    selected: selected.includes(category),
+  })));
 }
 
 // Функция для добавления новой категории в админ-модалке

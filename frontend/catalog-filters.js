@@ -6,11 +6,17 @@ function populateCatalog() {
   const allCats = new Set();
   state.books.forEach(b => (b.categories || []).forEach(c => allCats.add(c)));
   const cats = [...allCats];
-  document.getElementById('catalogChips').innerHTML = cats.map((c, idx) => {
-  const isActive = state.filters.categories.includes(c);
-  return `<span class="catalog-chip${isActive ? ' active' : ''}" data-cat-idx="${idx}" data-onclick="toggleCategoryFilter(window._catCache[${idx}])">${eh(c)}</span>`;
-}).join('');
-window._catCache = cats;
+  const fragment = document.createDocumentFragment();
+  cats.forEach((category, index) => {
+    const chip = document.createElement('span');
+    chip.className = 'catalog-chip';
+    chip.classList.toggle('active', state.filters.categories.includes(category));
+    chip.dataset.catIdx = String(index);
+    chip.textContent = category;
+    chip.addEventListener('click', () => toggleCategoryFilter(category));
+    fragment.appendChild(chip);
+  });
+  document.getElementById('catalogChips').replaceChildren(fragment);
   document.getElementById('filterSort').value = state.filters.sort;
 }
 function toggleCategoryFilter(c) { const idx = state.filters.categories.indexOf(c); if (idx === -1) state.filters.categories.push(c); else state.filters.categories.splice(idx, 1); populateCatalog(); applyFilters(); }

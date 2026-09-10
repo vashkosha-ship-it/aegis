@@ -32,6 +32,23 @@ function replaceWithStaticText(container, text, staticStyle, tagName = 'div') {
   return node;
 }
 
+function replaceSelectOptions(select, items) {
+  if (!select) return [];
+  const fragment = document.createDocumentFragment();
+  (items || []).forEach(item => {
+    const option = document.createElement('option');
+    const normalized = typeof item === 'object' && item !== null
+      ? item
+      : { value: item, label: item };
+    option.value = String(normalized.value ?? '');
+    option.textContent = String(normalized.label ?? normalized.value ?? '');
+    option.selected = Boolean(normalized.selected);
+    fragment.appendChild(option);
+  });
+  select.replaceChildren(fragment);
+  return Array.from(select.options);
+}
+
 function bookCategoriesText(book) {
   if (!book.categories || book.categories.length === 0) {
     return 'Без категории';
