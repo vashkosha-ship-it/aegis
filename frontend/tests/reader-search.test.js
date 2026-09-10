@@ -33,7 +33,15 @@ const context = {
   window: dom.window,
   document: dom.window.document,
   NodeFilter: dom.window.NodeFilter,
-  ICONS: { chevronUp: 'up', chevronDown: 'down', closeX: 'close' },
+  ICONS: {
+    chevronUp: '<svg data-icon="up"></svg>',
+    chevronDown: '<svg data-icon="down"></svg>',
+    closeX: '<svg data-icon="close"></svg>',
+  },
+  appendTrustedIcon: (container, markup) => {
+    const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+    container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
+  },
   isEpubMode: false,
   epubRendition: null,
   epubBook: null,
@@ -57,7 +65,8 @@ vm.runInContext(source, context);
 (async () => {
   context.toggleReaderSearch();
   assert.equal(dom.window.document.getElementById('readerSearchPanel').style.display, 'flex');
-  assert.equal(dom.window.document.getElementById('readerSearchPrev').innerHTML, 'up');
+  assert.equal(dom.window.document.querySelector('#readerSearchPrev svg').getAttribute('data-icon'), 'up');
+  assert.doesNotMatch(source, /\.innerHTML\s*=\s*ICONS\./);
 
   const results = await context.searchInPdf('термин');
   assert.equal(results.length, 2);

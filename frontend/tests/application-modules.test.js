@@ -42,6 +42,6 @@ for (const name of modules) {
 }
 assert(index.indexOf('src="app-state.js"') < index.indexOf('src="reader-core.js"'));
 assert(app.split('\n').length < 200, 'app.js must remain a small bootstrap');
-assert.match(worker, /aegis-cache-v273/);
+assert.match(worker, /aegis-cache-v274/);
 
 console.log('application module extraction tests passed');
