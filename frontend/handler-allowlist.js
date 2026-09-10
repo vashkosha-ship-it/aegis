@@ -40,8 +40,7 @@ window.AEGIS_ALLOWED_HANDLERS = Object.freeze({
     'openAddToCollection', 'openAdminBookModal', 'openAdminLogs',
     'openBookDetail', 'openBookFromAR', 'openBookmarksList',
     'openBulkUploadModal', 'openCertificationModal', 'openChatHistory',
-    'openCreateUserModal', 'openCyberLevelModal', 'openExportModal',
-    'openForgotPassword', 'openPendingUsersModal', 'openPrivacyPolicy',
+    'openCyberLevelModal', 'openForgotPassword', 'openPrivacyPolicy',
     'openReader', 'openReviewMode', 'openSettingsTab',
     'openShortcutsModal', 'openTOC', 'openUserAgreement',
     'pausePomodoro', 'prevKillChainStage', 'prevOnboardingQuestion',
@@ -72,9 +71,8 @@ window.AEGIS_ALLOWED_HANDLERS = Object.freeze({
     'zoomARScheme',
   ],
   change: [
-    'onAdminUsersFilterChange', 'onAdminUsersLimitChange', 'onAnalyticsBookSelected',
-    'onAutoPreloadToggle', 'onBookStatusChange', 'onWifiOnlyToggle',
-    'uploadAvatar',
+    'onAnalyticsBookSelected', 'onAutoPreloadToggle', 'onBookStatusChange',
+    'onWifiOnlyToggle', 'uploadAvatar',
   ],
   input: [
     'onSearchInput',
