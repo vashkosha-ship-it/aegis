@@ -47,7 +47,6 @@ ar-schemes.js	layers
 ar-schemes.js	percent
 ar-schemes.js	rInner - 6
 ar-schemes.js	segs
-ar-schemes.js	stage.nameRu.toUpperCase()
 ar-schemes.js	stages.map((s) => { const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6'; const badge = (s.code || Stri
 ar-schemes.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; return `<button data-onclick="selectKillChainStage(${s.id})
 assistant-chat.js	c.message_count

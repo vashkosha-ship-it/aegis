@@ -1312,7 +1312,7 @@ function renderBulkUploadList() {
   if (!listEl) return;
 
   if (bulkUploadQueue.length === 0) {
-    listEl.innerHTML = '';
+    listEl.replaceChildren();
     actionsEl.style.display = 'none';
     catPanel.style.display = 'none';
     return;

@@ -273,6 +273,9 @@ jobs:
       - name: Тест динамических стилей
         run: node tests/dynamic-styles.test.js
 
+      - name: Тест безопасных DOM-операций
+        run: node tests/dom-mutations.test.js
+
       - name: Тест аналитики
         run: node tests/analytics.test.js
 

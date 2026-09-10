@@ -109,7 +109,7 @@ function renderHome() {
     if (booksTabs) booksTabs.style.display = 'none';
     const pop = document.getElementById('scrollPopular');
     const all = document.getElementById('scrollAll');
-    if (pop) { pop.classList.add('hidden'); pop.innerHTML = ''; }
+    if (pop) { pop.classList.add('hidden'); pop.replaceChildren(); }
     if (all) all.classList.remove('hidden');
     const pager = document.getElementById('booksPager');
     if (sorted.length === 0) {
@@ -120,7 +120,7 @@ function renderHome() {
           <div data-static-style="a314">По запросу «${eh(q)}» ничего не найдено</div>
           <div data-static-style="a315">Попробуйте другие слова или проверьте раскладку клавиатуры</div>
         </div>`;
-      if (pager) pager.innerHTML = '';
+      if (pager) pager.replaceChildren();
     } else {
       renderPaginatedBooks('scrollAll', sorted, q);
     }

@@ -14,7 +14,7 @@ function formatBytes(bytes) {
 async function renderOfflineBooks() {
   const container = document.getElementById('offlineBooksSection');
   if (!container) return;
-  if (!state.currentUser) { container.innerHTML = ''; return; }
+  if (!state.currentUser) { container.replaceChildren(); return; }
 
   let books = [];
   try {

@@ -19,7 +19,7 @@ function renderPaginatedBooks(id, books, query) {
 
   // Панель пагинации — в отдельный контейнер под сеткой (вне grid)
   if (!pager) return;
-  if (totalPages <= 1) { pager.innerHTML = ''; return; }
+  if (totalPages <= 1) { pager.replaceChildren(); return; }
 
   const btn = (p, label, active, disabled) =>
     `<button data-onclick="goToBooksPage(${p})" ${disabled ? 'disabled' : ''}
