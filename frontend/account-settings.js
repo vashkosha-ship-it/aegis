@@ -136,14 +136,58 @@ function openSettingsTab(tabId) {
   renderSettingsTabContent();
 }
 
+function _accountToggleRow(title, subtitle, id, checked, onChange) {
+  const row = _accountNode('div', 'a363');
+  row.className = 'set-row';
+  const layout = _accountNode('div', 'a364');
+  const copy = _accountNode('div', 'a004');
+  copy.append(
+    _accountNode('div', 'a365', title),
+    _accountNode('div', 'a099', subtitle),
+  );
+
+  const label = _accountNode('label', 'a366');
+  label.className = 'toggle-switch';
+  const input = _accountNode('input', 'a367');
+  input.type = 'checkbox';
+  input.id = id;
+  input.checked = checked;
+  input.addEventListener('change', () => onChange(input));
+
+  const slider = document.createElement('span');
+  slider.className = 'toggle-slider';
+  slider.setAttribute(
+    'data-dynamic-style',
+    dynamicStyleToken`position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${checked ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;`,
+  );
+  const thumb = document.createElement('span');
+  thumb.setAttribute(
+    'data-dynamic-style',
+    dynamicStyleToken`position:absolute;height:18px;width:18px;left:${checked ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;`,
+  );
+  slider.appendChild(thumb);
+  label.append(input, slider);
+  layout.append(copy, label);
+  row.appendChild(layout);
+  return row;
+}
+
+function _accountStorageAction(text, staticStyle, onClick) {
+  const button = _accountNode('button', staticStyle);
+  button.className = 'set-save-btn';
+  button.type = 'button';
+  button.appendChild(document.createElement('span')).textContent = text;
+  button.addEventListener('click', onClick);
+  return button;
+}
+
 async function renderSettingsStorageTab(c) {
-  c.innerHTML = `
-    <h3 data-static-style="a350">Данные и память</h3>
-    <div id="storageStatsContent" data-static-style="a351">
-      ${ICONS.iconDatabase}
-      <div data-static-style="a352">Подсчёт...</div>
-    </div>
-  `;
+  const title = _accountNode('h3', 'a350', 'Данные и память');
+  const loading = _accountNode('div', 'a351');
+  loading.id = 'storageStatsContent';
+  appendTrustedIcon(loading, ICONS.iconDatabase);
+  loading.appendChild(_accountNode('div', 'a352', 'Подсчёт...'));
+  c.replaceChildren(title, loading);
 
   const stats = await getStorageStats();
   const cont = document.getElementById('storageStatsContent');
@@ -151,84 +195,87 @@ async function renderSettingsStorageTab(c) {
 
   const usedPct = stats.quota > 0 ? Math.round((stats.used / stats.quota) * 100) : 0;
   const wifiOnly = isWifiOnlyEnabled();
+  const autoPreload = isAutoPreloadEnabled();
 
   cont.style.textAlign = 'left';
   cont.style.padding = '0';
-  cont.innerHTML = `
-    <div data-static-style="a353">
-      <div data-static-style="a354">
-        <div data-static-style="a355">ИСПОЛЬЗОВАНО</div>
-        <div data-static-style="a356">${formatBytes(stats.used)}</div>
-      </div>
-      <div data-static-style="a357">
-        <div data-dynamic-style="${dynamicStyleToken`height:100%;width:${usedPct}%;background:var(--accent-gradient);transition:width 0.3s;`}"></div>
-      </div>
-      <div data-static-style="a358">
-        <span>${usedPct}% от доступного</span>
-        <span>из ${formatBytes(stats.quota)}</span>
-      </div>
-    </div>
 
-    <div data-static-style="a359">
-      <div data-static-style="a360">
-        <div data-static-style="a361">${formatBytes(stats.cacheSize)}</div>
-        <div data-static-style="a344">Кэш приложения</div>
-      </div>
-      <div data-static-style="a360">
-        <div data-static-style="a362">${stats.cacheCount}</div>
-        <div data-static-style="a344">Файлов в кэше</div>
-      </div>
-    </div>
+  const usage = _accountNode('div', 'a353');
+  const usageHeader = _accountNode('div', 'a354');
+  usageHeader.append(
+    _accountNode('div', 'a355', 'ИСПОЛЬЗОВАНО'),
+    _accountNode('div', 'a356', formatBytes(stats.used)),
+  );
+  const usageTrack = _accountNode('div', 'a357');
+  const usageFill = document.createElement('div');
+  usageFill.setAttribute(
+    'data-dynamic-style',
+    dynamicStyleToken`height:100%;width:${usedPct}%;background:var(--accent-gradient);transition:width 0.3s;`,
+  );
+  usageTrack.appendChild(usageFill);
+  const usageLegend = _accountNode('div', 'a358');
+  usageLegend.append(
+    _accountNode('span', null, `${usedPct}% от доступного`),
+    _accountNode('span', null, `из ${formatBytes(stats.quota)}`),
+  );
+  usage.append(usageHeader, usageTrack, usageLegend);
 
-    <!-- Тумблер «только Wi-Fi» -->
-    <div class="set-row" data-static-style="a363">
-      <div data-static-style="a364">
-        <div data-static-style="a004">
-          <div data-static-style="a365">Скачивать только по Wi-Fi</div>
-          <div data-static-style="a099">Экономия мобильного трафика</div>
-        </div>
-        <label class="toggle-switch" data-static-style="a366">
-          <input type="checkbox" id="wifiOnlyToggle" ${wifiOnly ? 'checked' : ''} data-onchange="onWifiOnlyToggle()" data-args="this" data-static-style="a367">
-          <span class="toggle-slider" data-dynamic-style="${dynamicStyleToken`position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${wifiOnly ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;`}">
-            <span data-dynamic-style="${dynamicStyleToken`position:absolute;height:18px;width:18px;left:${wifiOnly ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;`}"></span>
-          </span>
-        </label>
-      </div>
-    </div>
+  const cacheSummary = _accountNode('div', 'a359');
+  const cacheSize = _accountNode('div', 'a360');
+  cacheSize.append(
+    _accountNode('div', 'a361', formatBytes(stats.cacheSize)),
+    _accountNode('div', 'a344', 'Кэш приложения'),
+  );
+  const cacheCount = _accountNode('div', 'a360');
+  cacheCount.append(
+    _accountNode('div', 'a362', stats.cacheCount),
+    _accountNode('div', 'a344', 'Файлов в кэше'),
+  );
+  cacheSummary.append(cacheSize, cacheCount);
 
-    <!-- Тумблер автопредзагрузки -->
-    <div class="set-row" data-static-style="a363">
-      <div data-static-style="a364">
-        <div data-static-style="a004">
-          <div data-static-style="a365">Автосохранение книг офлайн</div>
-          <div data-static-style="a099">Начатые книги автоматически скачиваются по Wi-Fi</div>
-        </div>
-        <label class="toggle-switch" data-static-style="a366">
-          <input type="checkbox" id="autoPreloadToggle" ${isAutoPreloadEnabled() ? 'checked' : ''} data-onchange="onAutoPreloadToggle()" data-args="this" data-static-style="a367">
-          <span class="toggle-slider" data-dynamic-style="${dynamicStyleToken`position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:${isAutoPreloadEnabled() ? 'var(--accent)' : 'var(--bg-card-hover)'};transition:0.2s;border-radius:24px;pointer-events:none;`}">
-            <span data-dynamic-style="${dynamicStyleToken`position:absolute;height:18px;width:18px;left:${isAutoPreloadEnabled() ? '21px' : '3px'};bottom:3px;background:#fff;transition:0.2s;border-radius:50%;`}"></span>
-          </span>
-        </label>
-      </div>
-    </div>
+  const exportButton = _accountStorageAction(
+    'Скачать все мои данные',
+    'a368',
+    () => exportAllUserData(),
+  );
+  const exportHint = _accountNode(
+    'div',
+    'a369',
+    'Выгрузка всех ваших данных (профиль, списки, заметки, прогресс, результаты тестов) одним JSON-файлом.',
+  );
+  const clearButton = _accountStorageAction(
+    'Очистить кэш',
+    'a370',
+    () => confirmClearCache(),
+  );
+  const clearHint = _accountNode(
+    'div',
+    'a371',
+    'После очистки книги придётся скачать заново при следующем чтении. Прогресс чтения, заметки и достижения сохранятся.',
+  );
 
-    <button class="set-save-btn" data-onclick="exportAllUserData()" data-nonce="${sensitiveNonce()}" data-static-style="a368">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <span>Скачать все мои данные</span>
-    </button>
-    <div data-static-style="a369">
-      Выгрузка всех ваших данных (профиль, списки, заметки, прогресс, результаты тестов) одним JSON-файлом.
-    </div>
-
-    <button class="set-save-btn" data-onclick="confirmClearCache()" data-static-style="a370">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-      <span>Очистить кэш</span>
-    </button>
-
-    <div data-static-style="a371">
-      После очистки книги придётся скачать заново при следующем чтении. Прогресс чтения, заметки и достижения сохранятся.
-    </div>
-  `;
+  cont.replaceChildren(
+    usage,
+    cacheSummary,
+    _accountToggleRow(
+      'Скачивать только по Wi-Fi',
+      'Экономия мобильного трафика',
+      'wifiOnlyToggle',
+      wifiOnly,
+      onWifiOnlyToggle,
+    ),
+    _accountToggleRow(
+      'Автосохранение книг офлайн',
+      'Начатые книги автоматически скачиваются по Wi-Fi',
+      'autoPreloadToggle',
+      autoPreload,
+      onAutoPreloadToggle,
+    ),
+    exportButton,
+    exportHint,
+    clearButton,
+    clearHint,
+  );
 }
 
 function confirmClearCache() {
@@ -997,54 +1044,98 @@ async function showMyStatsModal() {
   const completed = statuses.filter(s => s === 'completed').length;
   const planned = statuses.filter(s => s === 'planned').length;
 
-  const card = (val, label, color) => `
-    <div data-static-style="a438">
-      <div data-dynamic-style="${dynamicStyleToken`font-size:24px;font-weight:800;color:${color};font-family:'JetBrains Mono',monospace;`}">${val}</div>
-      <div data-static-style="a439">${label}</div>
-    </div>`;
-
   const body = document.getElementById('myStatsBody');
   if (!body) return;
   body.style.textAlign = 'left';
   body.style.padding = '0';
   body.style.color = 'var(--text-primary)';
-  body.innerHTML = `
-    <div data-static-style="a440">
-      ${card(totalPages, 'страниц прочитано', 'var(--accent)')}
-      ${card(hours + ' ч', 'примерно времени', '#a855f7')}
-      ${card(activeDays, 'активных дней', '#10b981')}
-      ${card(avgQuiz !== null ? avgQuiz + '%' : '—', 'средний балл тестов', '#f59e0b')}
-    </div>
 
-    <div data-static-style="a441">
-      <div data-static-style="a442">Динамика по неделям</div>
-      <div data-static-style="a443">
-        ${weeks.map(w => `<div title="${w} стр." data-dynamic-style="${dynamicStyleToken`flex:1;min-width:4px;height:${Math.max(4, Math.round(w / maxWeek * 70))}px;background:var(--accent-gradient);border-radius:3px 3px 0 0;`}"></div>`).join('') || '<div data-static-style="a444">Нет данных</div>'}
-      </div>
-      <div data-static-style="a410">Сумма страниц за каждую неделю (90 дней)</div>
-    </div>
+  const createCard = (value, label, color) => {
+    const card = _accountNode('div', 'a438');
+    const number = document.createElement('div');
+    number.setAttribute(
+      'data-dynamic-style',
+      dynamicStyleToken`font-size:24px;font-weight:800;color:${color};font-family:'JetBrains Mono',monospace;`,
+    );
+    number.textContent = String(value);
+    card.append(number, _accountNode('div', 'a439', label));
+    return card;
+  };
 
-    <div data-static-style="a441">
-      <div data-static-style="a442">Любимые категории</div>
-      ${topCats.length ? topCats.map(([cat, n]) => {
-        const pct = Math.round(n / topCats[0][1] * 100);
-        return `<div data-static-style="a347">
-          <div data-static-style="a445"><span>${eh(cat)}</span><span data-static-style="a243">${n}</span></div>
-          <div data-static-style="a446"><div data-dynamic-style="${dynamicStyleToken`height:100%;width:${pct}%;background:var(--accent-gradient);`}"></div></div>
-        </div>`;
-      }).join('') : '<div data-static-style="a192">Добавь книги в список, чтобы увидеть категории</div>'}
-    </div>
+  const summary = _accountNode('div', 'a440');
+  summary.append(
+    createCard(totalPages, 'страниц прочитано', 'var(--accent)'),
+    createCard(hours + ' ч', 'примерно времени', '#a855f7'),
+    createCard(activeDays, 'активных дней', '#10b981'),
+    createCard(avgQuiz !== null ? avgQuiz + '%' : '—', 'средний балл тестов', '#f59e0b'),
+  );
 
-    <div data-static-style="a447">
-      ${card(reading, 'читаю', '#3b82f6')}
-      ${card(completed, 'прочитано', '#10b981')}
-      ${card(planned, 'в планах', '#a855f7')}
-    </div>
+  const weeklySection = _accountNode('div', 'a441');
+  const weeklyChart = _accountNode('div', 'a443');
+  if (weeks.length) {
+    weeks.forEach((weekPages) => {
+      const bar = document.createElement('div');
+      bar.title = `${weekPages} стр.`;
+      bar.setAttribute(
+        'data-dynamic-style',
+        dynamicStyleToken`flex:1;min-width:4px;height:${Math.max(4, Math.round(weekPages / maxWeek * 70))}px;background:var(--accent-gradient);border-radius:3px 3px 0 0;`,
+      );
+      weeklyChart.appendChild(bar);
+    });
+  } else {
+    weeklyChart.appendChild(_accountNode('div', 'a444', 'Нет данных'));
+  }
+  weeklySection.append(
+    _accountNode('div', 'a442', 'Динамика по неделям'),
+    weeklyChart,
+    _accountNode('div', 'a410', 'Сумма страниц за каждую неделю (90 дней)'),
+  );
 
-    <div data-static-style="a448">
-      Тестов пройдено: ${passedCount} из ${attempts.length} · Цель: ${goal} стр./день
-    </div>
-  `;
+  const categoriesSection = _accountNode('div', 'a441');
+  categoriesSection.appendChild(_accountNode('div', 'a442', 'Любимые категории'));
+  if (topCats.length) {
+    topCats.forEach(([category, count]) => {
+      const percentage = Math.round(count / topCats[0][1] * 100);
+      const categoryRow = _accountNode('div', 'a347');
+      const categoryHeader = _accountNode('div', 'a445');
+      categoryHeader.append(
+        _accountNode('span', null, category),
+        _accountNode('span', 'a243', count),
+      );
+      const categoryTrack = _accountNode('div', 'a446');
+      const categoryFill = document.createElement('div');
+      categoryFill.setAttribute(
+        'data-dynamic-style',
+        dynamicStyleToken`height:100%;width:${percentage}%;background:var(--accent-gradient);`,
+      );
+      categoryTrack.appendChild(categoryFill);
+      categoryRow.append(categoryHeader, categoryTrack);
+      categoriesSection.appendChild(categoryRow);
+    });
+  } else {
+    categoriesSection.appendChild(
+      _accountNode('div', 'a192', 'Добавь книги в список, чтобы увидеть категории'),
+    );
+  }
+
+  const bookStatuses = _accountNode('div', 'a447');
+  bookStatuses.append(
+    createCard(reading, 'читаю', '#3b82f6'),
+    createCard(completed, 'прочитано', '#10b981'),
+    createCard(planned, 'в планах', '#a855f7'),
+  );
+
+  body.replaceChildren(
+    summary,
+    weeklySection,
+    categoriesSection,
+    bookStatuses,
+    _accountNode(
+      'div',
+      'a448',
+      `Тестов пройдено: ${passedCount} из ${attempts.length} · Цель: ${goal} стр./день`,
+    ),
+  );
 }
 
 function updateAvatar(id) {
