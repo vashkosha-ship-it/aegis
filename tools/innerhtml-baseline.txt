@@ -44,10 +44,4 @@ onboarding.js	info.icon.replace('width="22"','width="40"').replace('height="22"'
 onboarding.js	result.overall_percentage
 onboarding.js	topicsHtml
 onboarding.js	weakHtml
-reader-core.js	pdfCurrentPage
-reader-core.js	pdfTotalPages
-user-features.js	btn('csv', 'CSV', 'Таблица для Excel')
-user-features.js	btn('json', 'JSON', 'Для импорта в другие приложения')
-user-features.js	btn('md', 'Markdown', 'Текст с разметкой')
-user-features.js	btn('pdf', 'PDF документ', 'Для печати и чтения')
 user-features.js	inner

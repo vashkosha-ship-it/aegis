@@ -535,20 +535,43 @@ async function exportNotes() {
   const m = document.createElement('div');
   m.id = 'exportFmtModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  const btn = (fmt, label, desc) => `<button data-onclick="doExportNotes('${fmt}')" data-static-style="a231">
-    <span data-static-style="a232">${fmt.toUpperCase()}</span>
-    <span><span data-static-style="a233">${label}</span><span data-static-style="a192">${desc}</span></span>
-  </button>`;
-  m.innerHTML = `<div data-static-style="a234">
-    <div data-static-style="a126">
-      <h3 data-static-style="a127">Экспорт заметок</h3>
-      <button data-onclick="closeModal('exportFmtModal')" data-static-style="a128">&times;</button>
-    </div>
-    ${btn('pdf', 'PDF документ', 'Для печати и чтения')}
-    ${btn('md', 'Markdown', 'Текст с разметкой')}
-    ${btn('json', 'JSON', 'Для импорта в другие приложения')}
-    ${btn('csv', 'CSV', 'Таблица для Excel')}
-  </div>`;
+  const panel = document.createElement('div');
+  panel.setAttribute('data-static-style', 'a234');
+  const header = document.createElement('div');
+  header.setAttribute('data-static-style', 'a126');
+  const heading = document.createElement('h3');
+  heading.setAttribute('data-static-style', 'a127');
+  heading.textContent = 'Экспорт заметок';
+  const close = document.createElement('button');
+  close.setAttribute('data-static-style', 'a128');
+  close.textContent = '×';
+  close.addEventListener('click', () => m.remove());
+  header.append(heading, close);
+  panel.appendChild(header);
+  for (const [fmt, label, desc] of [
+    ['pdf', 'PDF документ', 'Для печати и чтения'],
+    ['md', 'Markdown', 'Текст с разметкой'],
+    ['json', 'JSON', 'Для импорта в другие приложения'],
+    ['csv', 'CSV', 'Таблица для Excel'],
+  ]) {
+    const button = document.createElement('button');
+    button.setAttribute('data-static-style', 'a231');
+    const format = document.createElement('span');
+    format.setAttribute('data-static-style', 'a232');
+    format.textContent = fmt.toUpperCase();
+    const details = document.createElement('span');
+    const labelNode = document.createElement('span');
+    labelNode.setAttribute('data-static-style', 'a233');
+    labelNode.textContent = label;
+    const description = document.createElement('span');
+    description.setAttribute('data-static-style', 'a192');
+    description.textContent = desc;
+    details.append(labelNode, description);
+    button.append(format, details);
+    button.addEventListener('click', () => doExportNotes(fmt));
+    panel.appendChild(button);
+  }
+  m.appendChild(panel);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
 }
@@ -616,7 +639,16 @@ async function renderDetailNotes() {
 
   const ann = await getAnnotations(currentBookId);
   if (!ann.length) {
-    c.innerHTML = `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.bookmark}</div><p>Нет заметок</p></div>`;
+    const empty = document.createElement('div');
+    empty.className = 'mylist-empty';
+    const icon = document.createElement('div');
+    icon.className = 'icon';
+    icon.setAttribute('data-static-style', 'a239');
+    appendTrustedIcon(icon, ICONS.bookmark);
+    const message = document.createElement('p');
+    message.textContent = 'Нет заметок';
+    empty.append(icon, message);
+    c.replaceChildren(empty);
     return;
   }
 

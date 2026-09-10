@@ -91,16 +91,35 @@ async function forgotPasswordReset() {
   }
 }
 
+function replacePasswordEyeIcon(icon, passwordVisible) {
+  if (!icon) return;
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const addShape = (tagName, attributes) => {
+    const shape = document.createElementNS(svgNs, tagName);
+    Object.entries(attributes).forEach(([name, value]) => shape.setAttribute(name, value));
+    icon.appendChild(shape);
+  };
+  icon.replaceChildren();
+  if (passwordVisible) {
+    addShape('path', { d: 'M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94' });
+    addShape('path', { d: 'M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19' });
+    addShape('line', { x1: '1', y1: '1', x2: '23', y2: '23' });
+    return;
+  }
+  addShape('path', { d: 'M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12Z' });
+  addShape('circle', { cx: '12', cy: '12', r: '3' });
+}
+
 function togglePasswordVisibility() {
   const input = document.getElementById('authPass');
   const icon = document.getElementById('eyeIcon');
   if (!input) return;
   if (input.type === 'password') {
     input.type = 'text';
-    if (icon) icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    replacePasswordEyeIcon(icon, true);
   } else {
     input.type = 'password';
-    if (icon) icon.innerHTML = '<path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/>';
+    replacePasswordEyeIcon(icon, false);
   }
 }
 

@@ -8,7 +8,7 @@ async function loadEpub(b) {
   document.getElementById('annotationLayer').replaceChildren();
 
   const container = document.getElementById('epubContainer');
-  container.innerHTML = loadingSpinnerHTML('Загрузка книги…');
+  renderLoadingSpinner(container, 'Загрузка книги…');
 
   // Лениво подгружаем epub.js при первом открытии EPUB
   try {
@@ -131,7 +131,7 @@ async function loadPdf(b) {
   const pl = document.getElementById('pdfPlaceholder');
 
   pl.classList.remove('hidden');
-  pl.innerHTML = loadingSpinnerHTML('Загрузка книги…');
+  renderLoadingSpinner(pl, 'Загрузка книги…');
   c.classList.add('hidden');
 
   // Если загрузка затянулась (большой PDF) — обновляем подпись, чтобы человек
@@ -140,7 +140,7 @@ async function loadPdf(b) {
   window._bookLoadHintTimer = setTimeout(() => {
     const sp = document.getElementById('pdfPlaceholder');
     if (sp && sp.querySelector('.aegis-spinner')) {
-      sp.innerHTML = loadingSpinnerHTML('Загружаем большую книгу, ещё несколько секунд…');
+      renderLoadingSpinner(sp, 'Загружаем большую книгу, ещё несколько секунд…');
     }
   }, 3000);
 
@@ -212,7 +212,7 @@ async function loadPdf(b) {
       if (!box || box.classList.contains('hidden')) return;
       if (total && total > 0) {
         const pct = Math.min(99, Math.round(loaded / total * 100));
-        box.innerHTML = loadingSpinnerHTML(`Загрузка книги… ${pct}%`);
+        renderLoadingSpinner(box, `Загрузка книги… ${pct}%`);
       }
     };
 
@@ -259,7 +259,15 @@ function generateDemoPdf(b) {
   pdfTotalPages = state.readingProgress[b.id]?.totalPages || 10;
   pdfCurrentPage = Math.min(state.readingProgress[b.id]?.currentPage || 1, pdfTotalPages);
   updatePageIndicator();
-  document.getElementById('pdfPlaceholder').innerHTML = `<div data-static-style="a239">${ICONS.bookCover}</div><p>${eh(b.title)}</p><p>Стр.${pdfCurrentPage}/${pdfTotalPages}</p>`;
+  const placeholder = document.getElementById('pdfPlaceholder');
+  const cover = document.createElement('div');
+  cover.setAttribute('data-static-style', 'a239');
+  appendTrustedIcon(cover, ICONS.bookCover);
+  const title = document.createElement('p');
+  title.textContent = String(b.title || '');
+  const page = document.createElement('p');
+  page.textContent = `Стр.${pdfCurrentPage}/${pdfTotalPages}`;
+  placeholder.replaceChildren(cover, title, page);
   renderAnnotations();
 }
 
