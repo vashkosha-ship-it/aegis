@@ -282,6 +282,9 @@ jobs:
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 
+      - name: Тест безопасного полнотекстового поиска
+        run: node tests/fulltext-search.test.js
+
       - name: Тест аналитики
         run: node tests/analytics.test.js
 
