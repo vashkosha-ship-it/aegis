@@ -267,6 +267,9 @@ jobs:
       - name: Тест выноса auth и настроек аккаунта
         run: node tests/account-modules.test.js
 
+      - name: Тест статических элементов настроек аккаунта
+        run: node tests/account-static-dom.test.js
+
       - name: Тест финальной декомпозиции app.js
         run: node tests/application-modules.test.js
 
