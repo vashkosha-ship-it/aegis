@@ -32,6 +32,28 @@ function replaceWithStaticText(container, text, staticStyle, tagName = 'div') {
   return node;
 }
 
+function appendTrustedIcon(container, markup) {
+  if (!container || !markup) return null;
+  const parsed = new DOMParser().parseFromString(String(markup), 'image/svg+xml');
+  const svg = parsed.documentElement;
+  if (svg.localName !== 'svg' || svg.querySelector('parsererror, script, foreignObject, iframe, object, embed, image, use')) {
+    return null;
+  }
+  const nodes = [svg, ...svg.querySelectorAll('*')];
+  if (nodes.some(node => Array.from(node.attributes).some(attr =>
+    /^on/i.test(attr.name) || /^(?:style|href|xlink:href)$/i.test(attr.name)
+  ))) return null;
+  const iconNode = document.importNode(svg, true);
+  container.appendChild(iconNode);
+  return iconNode;
+}
+
+function replaceWithTrustedIcon(container, markup) {
+  if (!container) return null;
+  container.replaceChildren();
+  return appendTrustedIcon(container, markup);
+}
+
 function replaceSelectOptions(select, items) {
   if (!select) return [];
   const fragment = document.createDocumentFragment();

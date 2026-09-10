@@ -8,6 +8,7 @@ const { JSDOM } = require('jsdom');
 
 const FRONTEND = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(FRONTEND, 'profile-screen.js'), 'utf8');
+const coreSource = fs.readFileSync(path.join(FRONTEND, 'core-utils.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(FRONTEND, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(FRONTEND, 'index.html'), 'utf8');
 const workerSource = fs.readFileSync(path.join(FRONTEND, 'sw.js'), 'utf8');
@@ -41,10 +42,13 @@ const state = {
 const calls = [];
 const context = {
   document: dom.window.document,
+  DOMParser: dom.window.DOMParser,
   state,
   ICONS: {
-    target: 'target', fire: 'fire', themeMoon: 'moon', themeSun: 'sun',
-    settingsGear: 'gear', iconStar: 'star', iconFlame: 'flame',
+    target: '<svg data-icon="target"></svg>', fire: '<svg data-icon="fire"></svg>',
+    themeMoon: '<svg data-icon="moon"></svg>', themeSun: '<svg data-icon="sun"></svg>',
+    settingsGear: '<svg data-icon="gear"></svg>', iconStar: '<svg data-icon="star"></svg>',
+    iconFlame: '<svg data-icon="flame"></svg>',
   },
   api: { users: { avatarUrl: id => `/users/${id}/avatar` } },
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
@@ -62,6 +66,7 @@ const context = {
   Date: { now: () => 123 },
 };
 vm.createContext(context);
+vm.runInContext(coreSource, context);
 vm.runInContext(source, context);
 
 context.renderProfile();
@@ -77,7 +82,7 @@ assert.match(dom.window.document.getElementById('statStreak').textContent, /12/)
 assert.equal(dom.window.document.getElementById('profileAvatarText').textContent, 'R');
 assert.ok(calls.includes('xp') && calls.includes('offline'));
 assert.deepEqual(calls.at(-1), ['theme', 'dark']);
-assert.match(dom.window.document.getElementById('btnOpenSettings').innerHTML, /gear/);
+assert.equal(dom.window.document.querySelector('#btnOpenSettings svg').getAttribute('data-icon'), 'gear');
 
 dom.window.document.getElementById('profileTakeQuizBtn').click();
 assert.ok(calls.some(call => Array.isArray(call) && call[1] === 'onboarding'));
@@ -100,6 +105,7 @@ const badge = dom.window.document.getElementById('cyberLevelBadge');
 assert.ok(badge);
 assert.match(badge.textContent, /<Advanced>/);
 assert.doesNotMatch(badge.innerHTML, /<Advanced>/);
+assert.equal(badge.querySelector('img, script'), null);
 assert.equal(dom.window.document.getElementById('profileTakeQuizBtn').style.display, 'none');
 assert.equal(dom.window.document.getElementById('profileAvatarImg').style.display, 'block');
 assert.equal(dom.window.document.getElementById('profileAvatarImg').src.endsWith('/users/8/avatar?t=123'), true);
@@ -110,6 +116,7 @@ context.renderProfile();
 assert.equal(dom.window.document.getElementById('profileDisplayName').textContent, before);
 
 assert.doesNotMatch(appSource, /function renderProfile/);
+assert.doesNotMatch(source, /\.innerHTML\s*=/);
 assert.ok(indexSource.indexOf('profile-screen.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/profile-screen\.js['"]/);
 assert.match(workerSource, /aegis-cache-v[0-9]+/);

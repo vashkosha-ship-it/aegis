@@ -6,23 +6,40 @@ async function loadAndRenderLeaderboard() {
   replaceWithStaticText(container, 'Загрузка...', 'a449');
   try {
     const lb = await api.library.leaderboard(50);
-    container.innerHTML = `<div class="table-wrap"><table>
-      <thead><tr><th>#</th><th>Пользователь</th><th>XP</th><th>Стрик</th></tr></thead>
-      <tbody>
-        ${lb.map((u, i) => {
-          // Скрывшие профиль участвуют анонимно; свою строку подсвечиваем
-          const name = u.is_hidden ? 'Участник' : (u.full_name || u.username);
-          const style = u.is_self ? ' data-static-style="a450"' : '';
-          const muted = u.is_hidden ? ' data-static-style="a243"' : '';
-          return `<tr${style}>
-          <td>${u.place || i + 1}</td>
-          <td${muted}>${eh(name)}${u.is_self ? ' (вы)' : ''}</td>
-          <td>${u.xp}</td>
-          <td>${u.streak_count}<span data-static-style="a333">${ICONS.fire}</span></td>
-        </tr>`;
-        }).join('')}
-      </tbody>
-    </table></div>`;
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['#', 'Пользователь', 'XP', 'Стрик'].forEach(label => {
+      const th = document.createElement('th');
+      th.textContent = label;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    const tbody = document.createElement('tbody');
+    lb.forEach((user, index) => {
+      const row = document.createElement('tr');
+      if (user.is_self) row.setAttribute('data-static-style', 'a450');
+      const place = document.createElement('td');
+      place.textContent = String(user.place || index + 1);
+      const name = document.createElement('td');
+      if (user.is_hidden) name.setAttribute('data-static-style', 'a243');
+      name.textContent = `${user.is_hidden ? 'Участник' : (user.full_name || user.username || '')}${user.is_self ? ' (вы)' : ''}`;
+      const xp = document.createElement('td');
+      xp.textContent = String(user.xp ?? 0);
+      const streak = document.createElement('td');
+      streak.appendChild(document.createTextNode(String(user.streak_count ?? 0)));
+      const fire = document.createElement('span');
+      fire.setAttribute('data-static-style', 'a333');
+      appendTrustedIcon(fire, ICONS.fire);
+      streak.appendChild(fire);
+      row.append(place, name, xp, streak);
+      tbody.appendChild(row);
+    });
+    table.append(thead, tbody);
+    wrap.appendChild(table);
+    container.replaceChildren(wrap);
   } catch (err) {
     replaceWithStaticText(container, 'Не удалось загрузить лидерборд', 'a150');
   }

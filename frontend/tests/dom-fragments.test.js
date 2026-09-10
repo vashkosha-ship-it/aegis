@@ -57,7 +57,16 @@ function replaceSelectOptions(document, select, items) {
   const certDom = new JSDOM('<div id="certMineList"></div>');
   const certContext = {
     document: certDom.window.document,
+    appendTrustedIcon: (container) => {
+      const icon = certDom.window.document.createElement('svg');
+      container.appendChild(icon);
+    },
     api: { library: { certMine: async () => [{ category: '<img src=x>', score: 95 }] } },
+    state: { gamification: {
+      achievementsOwned: [{ code: 'owned', tier: 'gold', name: '<img src=x>', description: '<script>' }],
+      achievementsCatalog: [{ code: 'locked', tier: 'silver', name: '<svg onload=x>', description: 'locked' }],
+    } },
+    ICONS: { target: '<svg></svg>' },
     console,
   };
   vm.createContext(certContext);
@@ -68,6 +77,17 @@ function replaceSelectOptions(document, select, items) {
   assert.match(certList.textContent, /<img src=x>/);
   assert.equal(certList.querySelector('img'), null);
   assert.equal(certList.querySelector('button').getAttribute('data-onclick'), null);
+
+  const achievements = certDom.window.document.createElement('div');
+  achievements.id = 'achievementsList';
+  certDom.window.document.body.appendChild(achievements);
+  certContext.getAchievementIcon = () => '<svg></svg>';
+  certContext.renderAchievementsInProfile();
+  assert.match(achievements.textContent, /<img src=x>/);
+  assert.match(achievements.textContent, /<svg onload=x>/);
+  assert.equal(achievements.querySelector('img, script'), null);
+  assert.equal(achievements.querySelectorAll('.achievement-badge').length, 2);
+  assert.equal(achievements.querySelectorAll('.achievement-badge.locked').length, 1);
 
   assert.doesNotMatch(adminSource, /sel\.innerHTML = categories\.map/);
   assert.doesNotMatch(userSource, /el\.innerHTML = certs\.map/);

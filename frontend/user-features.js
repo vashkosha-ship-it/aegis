@@ -112,14 +112,22 @@ function renderAchievementsInProfile() {
 
   // Сначала полученные (ярко), затем остальные из каталога (приглушённо — как цели).
   const lockedList = catalog.filter(a => !ownedCodes.has(a.code));
-  const ownedHtml = owned.map(a =>
-    `<span class="achievement-badge ${a.tier}" title="${eh(a.description)}"><span data-static-style="a100">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
-  ).join('');
-  const lockedHtml = lockedList.map(a =>
-    `<span class="achievement-badge ${a.tier} locked" title="${eh(a.description)}"><span data-static-style="a100">${getAchievementIcon(a.code)}</span>${eh(a.name)}</span>`
-  ).join('');
-
-  l.innerHTML = ownedHtml + lockedHtml;
+  const allowedTiers = new Set(['bronze', 'silver', 'gold', 'platinum']);
+  const fragment = document.createDocumentFragment();
+  [...owned, ...lockedList].forEach((achievement, index) => {
+    const badge = document.createElement('span');
+    badge.classList.add('achievement-badge');
+    const tier = String(achievement.tier ?? '');
+    if (allowedTiers.has(tier)) badge.classList.add(tier);
+    if (index >= owned.length) badge.classList.add('locked');
+    badge.title = String(achievement.description ?? '');
+    const badgeIcon = document.createElement('span');
+    badgeIcon.setAttribute('data-static-style', 'a100');
+    appendTrustedIcon(badgeIcon, getAchievementIcon(achievement.code));
+    badge.append(badgeIcon, document.createTextNode(String(achievement.name ?? '')));
+    fragment.appendChild(badge);
+  });
+  l.replaceChildren(fragment);
 }
 
 // ===== Полнотекстовый поиск по содержимому книг (H) =====
