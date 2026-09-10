@@ -32,6 +32,12 @@ const offlineStorage = {
 };
 const context = {
   document: dom.window.document,
+  replaceWithStaticText: (container, text, style, tag = 'div') => {
+    const node = dom.window.document.createElement(tag);
+    node.textContent = text;
+    node.setAttribute('data-static-style', style);
+    container.replaceChildren(node);
+  },
   dynamicStyleToken: () => 'test-style',
   state,
   offlineStorage,

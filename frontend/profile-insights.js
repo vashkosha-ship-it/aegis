@@ -3,7 +3,7 @@
 async function loadAndRenderLeaderboard() {
   const container = document.getElementById('adLeaderboard');
   if (!container) return;
-  container.innerHTML = '<div data-static-style="a449">Загрузка...</div>';
+  replaceWithStaticText(container, 'Загрузка...', 'a449');
   try {
     const lb = await api.library.leaderboard(50);
     container.innerHTML = `<div class="table-wrap"><table>
@@ -24,7 +24,7 @@ async function loadAndRenderLeaderboard() {
       </tbody>
     </table></div>`;
   } catch (err) {
-    container.innerHTML = '<div data-static-style="a150">Не удалось загрузить лидерборд</div>';
+    replaceWithStaticText(container, 'Не удалось загрузить лидерборд', 'a150');
   }
 }
 

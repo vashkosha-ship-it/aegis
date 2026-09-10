@@ -106,7 +106,7 @@ function renderAchievementsInProfile() {
   const ownedCodes = new Set(owned.map(a => a.code));
 
   if (!owned.length && !catalog.length) {
-    l.innerHTML = '<span data-static-style="a099">Нет достижений</span>';
+    replaceWithStaticText(l, 'Нет достижений', 'a099', 'span');
     return;
   }
 

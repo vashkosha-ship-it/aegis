@@ -21,7 +21,7 @@ async function renderOfflineBooks() {
     books = await offlineStorage.listAll();
   } catch (e) {
     console.error('Ошибка чтения IndexedDB:', e);
-    container.innerHTML = '<div data-static-style="a334">Не удалось прочитать оффлайн-хранилище</div>';
+    replaceWithStaticText(container, 'Не удалось прочитать оффлайн-хранилище', 'a334');
     return;
   }
 

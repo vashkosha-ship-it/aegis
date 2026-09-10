@@ -12,7 +12,7 @@ const appSource = fs.readFileSync(path.join(frontendDir, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
 const swSource = fs.readFileSync(path.join(frontendDir, 'sw.js'), 'utf8');
 
-const dom = new JSDOM('<div id="particlesContainer"></div>');
+const dom = new JSDOM('<div id="particlesContainer"></div><div id="messageTarget"><b>old</b></div>');
 const context = vm.createContext({
   document: dom.window.document,
   Date,
@@ -31,6 +31,15 @@ assert.equal(
   'Security, &lt;script&gt;',
 );
 assert.equal(vm.runInContext('bookCategoriesText({ categories: [] })', context), 'Без категории');
+
+vm.runInContext(
+  `replaceWithStaticText(document.getElementById('messageTarget'), '<img src=x onerror=alert(1)>', 'a130', 'span')`,
+  context,
+);
+const message = dom.window.document.querySelector('#messageTarget > span');
+assert.equal(message.textContent, '<img src=x onerror=alert(1)>');
+assert.equal(message.getAttribute('data-static-style'), 'a130');
+assert.equal(message.querySelector('img'), null);
 
 const today = vm.runInContext('getTodayISO()', context);
 const yesterday = vm.runInContext('getYesterdayISO()', context);

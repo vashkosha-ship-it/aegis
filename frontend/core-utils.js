@@ -21,10 +21,20 @@ function getTodayISO() { return new Date().toISOString().split('T')[0]; }
 function getYesterdayISO() { const d = new Date(Date.now() - 86400000); return d.toISOString().split('T')[0]; }
 function eh(s) { const d = document.createElement('div'); d.textContent = (s || ''); return d.innerHTML; }
 
+function replaceWithStaticText(container, text, staticStyle, tagName = 'div') {
+  if (!container) return null;
+  const allowedTags = ['div', 'span', 'p'];
+  const safeTag = allowedTags.includes(tagName) ? tagName : 'div';
+  const node = document.createElement(safeTag);
+  if (staticStyle) node.setAttribute('data-static-style', staticStyle);
+  node.textContent = String(text ?? '');
+  container.replaceChildren(node);
+  return node;
+}
+
 function bookCategoriesText(book) {
   if (!book.categories || book.categories.length === 0) {
     return 'Без категории';
   }
   return book.categories.map(c => eh(c)).join(', ');
 }
-

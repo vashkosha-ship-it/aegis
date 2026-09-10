@@ -14,7 +14,7 @@ async function loadEpub(b) {
   try {
     await ensureEpubLoaded();
   } catch (e) {
-    container.innerHTML = '<div data-static-style="a507">Не удалось загрузить EPUB-движок. Проверьте соединение.</div>';
+    replaceWithStaticText(container, 'Не удалось загрузить EPUB-движок. Проверьте соединение.', 'a507');
     return;
   }
 

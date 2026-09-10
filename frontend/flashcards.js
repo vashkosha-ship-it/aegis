@@ -63,7 +63,7 @@ async function openReviewMode() {
 
   const all = await buildFlashcards();
   if (!all.length) {
-    document.getElementById('reviewBody').innerHTML = '<div data-static-style="a495">Нет карточек. Делайте выделения и заметки в книгах — они станут карточками для повторения.</div>';
+    replaceWithStaticText(document.getElementById('reviewBody'), 'Нет карточек. Делайте выделения и заметки в книгах — они станут карточками для повторения.', 'a495');
     return;
   }
   _reviewQueue = dueCards(all);

@@ -74,7 +74,7 @@ function renderTocPanel() {
   if (!body) return;
   if (!_currentTOC || !_currentTOC.length) {
     body.style.textAlign = 'center';
-    body.innerHTML = '<div data-static-style="a130">В этой книге нет встроенного оглавления.</div>';
+    replaceWithStaticText(body, 'В этой книге нет встроенного оглавления.', 'a130');
     return;
   }
   const read = getTocRead(currentBookId);
