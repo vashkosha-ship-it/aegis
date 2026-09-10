@@ -579,7 +579,7 @@ function renderRecommendDepts(book) {
   const hay = ((book.categories || []).join(' ') + ' ' + (book.title || '') + ' ' + (book.description || '')).toLowerCase();
   const matches = [];
   for (const [code, keywords] of Object.entries(DEPARTMENT_TOPICS)) {
-    const hits = keywords.filter(k => hay.includes(k.toLowerCase())).length;
+    const hits = keywords.filter(keyword => hay.includes(keyword.toLowerCase())).length;
     if (hits > 0) matches.push({ code, hits });
   }
   matches.sort((a, b) => b.hits - a.hits);
@@ -588,15 +588,31 @@ function renderRecommendDepts(book) {
     replaceWithStaticText(el, 'Нет явных совпадений по темам. Книга подходит для общего доступа.', 'a243');
     return;
   }
-  el.innerHTML = '<div data-static-style="a347">Книга релевантна подразделениям:</div>' +
-    '<div data-static-style="a089">' +
-    matches.map(m => `
-      <span data-static-style="a528">
-        <span data-static-style="a191">${m.code}</span>
-        <span data-static-style="a099">${m.hits}</span>
-        <button data-onclick="markRequiredForDept(${book.id}, '${m.code}')" data-nonce="${sensitiveNonce()}" data-args="this" title="Сделать обязательной для ${m.code}" data-static-style="a529">★ обязательная</button>
-      </span>`).join('') +
-    '</div>';
+
+  const title = document.createElement('div');
+  title.setAttribute('data-static-style', 'a347');
+  title.textContent = 'Книга релевантна подразделениям:';
+  const list = document.createElement('div');
+  list.setAttribute('data-static-style', 'a089');
+  matches.forEach(match => {
+    const item = document.createElement('span');
+    item.setAttribute('data-static-style', 'a528');
+    const code = document.createElement('span');
+    code.setAttribute('data-static-style', 'a191');
+    code.textContent = String(match.code);
+    const hits = document.createElement('span');
+    hits.setAttribute('data-static-style', 'a099');
+    hits.textContent = String(match.hits);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.title = `Сделать обязательной для ${match.code}`;
+    button.setAttribute('data-static-style', 'a529');
+    button.textContent = '★ обязательная';
+    button.addEventListener('click', () => markRequiredForDept(book.id, match.code, button));
+    item.append(code, hits, button);
+    list.appendChild(item);
+  });
+  el.replaceChildren(title, list);
 }
 
 async function markRequiredForDept(bookId, deptCode, btn) {
@@ -621,13 +637,14 @@ function initCategoryTags(containerId, initialTags = []) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  container.innerHTML = `
-    <input type="text" class="cat-tag-input" placeholder="Введи категорию и нажми Enter…" autocomplete="off">
-    <div class="cat-tag-suggestions"></div>
-  `;
-
-  const input = container.querySelector('.cat-tag-input');
-  const suggestionsBox = container.querySelector('.cat-tag-suggestions');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'cat-tag-input';
+  input.placeholder = 'Введи категорию и нажми Enter…';
+  input.autocomplete = 'off';
+  const suggestionsBox = document.createElement('div');
+  suggestionsBox.className = 'cat-tag-suggestions';
+  container.replaceChildren(input, suggestionsBox);
 
   categoryTagsInstances[containerId] = {
     tags: [...initialTags],
@@ -648,67 +665,67 @@ function initCategoryTags(containerId, initialTags = []) {
     showCategorySuggestions(containerId, value);
   });
 
-  input.addEventListener('keydown', (e) => {
+  input.addEventListener('keydown', (event) => {
     const inst = categoryTagsInstances[containerId];
     const items = suggestionsBox.querySelectorAll('.cat-tag-suggestion-item');
 
-    if (e.key === 'Enter') {
-      e.preventDefault();
+    if (event.key === 'Enter') {
+      event.preventDefault();
       if (inst.highlightedIndex >= 0 && items[inst.highlightedIndex]) {
         addCategoryTag(containerId, items[inst.highlightedIndex].dataset.name);
       } else {
-        const val = input.value.trim();
-        if (val) addCategoryTag(containerId, val);
+        const value = input.value.trim();
+        if (value) addCategoryTag(containerId, value);
       }
       input.value = '';
       hideCategorySuggestions(containerId);
-    } else if (e.key === 'Backspace' && input.value === '' && inst.tags.length > 0) {
+    } else if (event.key === 'Backspace' && input.value === '' && inst.tags.length > 0) {
       removeCategoryTag(containerId, inst.tags[inst.tags.length - 1]);
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (items.length > 0) {
-        inst.highlightedIndex = (inst.highlightedIndex + 1) % items.length;
-        updateSuggestionHighlight(containerId);
-      }
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (items.length > 0) {
-        inst.highlightedIndex = inst.highlightedIndex <= 0 ? items.length - 1 : inst.highlightedIndex - 1;
-        updateSuggestionHighlight(containerId);
-      }
-    } else if (e.key === 'Escape') {
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (items.length > 0) inst.highlightedIndex = (inst.highlightedIndex + 1) % items.length;
+      updateSuggestionHighlight(containerId);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (items.length > 0) inst.highlightedIndex = inst.highlightedIndex <= 0 ? items.length - 1 : inst.highlightedIndex - 1;
+      updateSuggestionHighlight(containerId);
+    } else if (event.key === 'Escape') {
       hideCategorySuggestions(containerId);
-    } else if (e.key === ',') {
-      e.preventDefault();
-      const val = input.value.trim();
-      if (val) addCategoryTag(containerId, val);
+    } else if (event.key === ',') {
+      event.preventDefault();
+      const value = input.value.trim();
+      if (value) addCategoryTag(containerId, value);
       input.value = '';
       hideCategorySuggestions(containerId);
     }
   });
 
-  document.addEventListener('click', (e) => {
-    if (!container.contains(e.target)) hideCategorySuggestions(containerId);
+  document.addEventListener('click', (event) => {
+    if (!container.contains(event.target)) hideCategorySuggestions(containerId);
   });
-
-  container.addEventListener('click', (e) => {
-    if (e.target === container) input.focus();
+  container.addEventListener('click', (event) => {
+    if (event.target === container) input.focus();
   });
 }
 
 function renderCategoryChips(containerId) {
   const inst = categoryTagsInstances[containerId];
   if (!inst) return;
-  inst.container.querySelectorAll('.cat-tag-chip').forEach(c => c.remove());
+  inst.container.querySelectorAll('.cat-tag-chip').forEach(chip => chip.remove());
   inst.tags.forEach(tag => {
     const chip = document.createElement('span');
     chip.className = 'cat-tag-chip';
-    const safeTag = String(tag).replace(/"/g, '&quot;');
-    chip.innerHTML = `${eh(tag)}<button type="button" class="cat-tag-chip-x" data-tag="${safeTag}">×</button>`;
-    chip.querySelector('.cat-tag-chip-x').addEventListener('click', (e) => {
-      e.stopPropagation();
+    chip.appendChild(document.createTextNode(String(tag)));
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'cat-tag-chip-x';
+    remove.dataset.tag = String(tag);
+    remove.textContent = '×';
+    remove.addEventListener('click', (event) => {
+      event.stopPropagation();
       removeCategoryTag(containerId, tag);
     });
+    chip.appendChild(remove);
     inst.container.insertBefore(chip, inst.input);
   });
 }
@@ -737,38 +754,41 @@ function removeCategoryTag(containerId, name) {
 async function showCategorySuggestions(containerId, query) {
   const inst = categoryTagsInstances[containerId];
   if (!inst) return;
-  let allCats;
-  try { allCats = await api.books.categories(); }
-  catch (e) { allCats = []; }
-  const q = query.toLowerCase();
-  const selected = new Set(inst.tags.map(t => t.toLowerCase()));
-  const matching = allCats.filter(c => c.toLowerCase().includes(q) && !selected.has(c.toLowerCase()));
-
-  let html = '';
-  if (matching.length > 0) {
-    html = matching.map(c =>
-      `<div class="cat-tag-suggestion-item" data-name="${eh(c)}">${eh(c)}</div>`
-    ).join('');
-  }
-  const exactMatch = allCats.some(c => c.toLowerCase() === q);
-  if (!exactMatch && query.length > 0) {
-    html += `<div class="cat-tag-suggestion-item" data-name="${eh(query)}" data-static-style="a530">+ Создать: «${eh(query)}»</div>`;
-  }
-  if (html === '') html = '<div class="cat-tag-suggestion-empty">Нет подходящих категорий</div>';
-
-  inst.suggestionsBox.innerHTML = html;
-  inst.suggestionsBox.classList.add('active');
-  inst.highlightedIndex = -1;
-
-  // Обработчики клика на пункты подсказок (через делегирование)
-  inst.suggestionsBox.querySelectorAll('.cat-tag-suggestion-item').forEach(item => {
+  let allCategories;
+  try { allCategories = await api.books.categories(); }
+  catch (error) { allCategories = []; }
+  const normalizedQuery = query.toLowerCase();
+  const selected = new Set(inst.tags.map(tag => tag.toLowerCase()));
+  const matching = allCategories.filter(category =>
+    category.toLowerCase().includes(normalizedQuery) && !selected.has(category.toLowerCase())
+  );
+  const fragment = document.createDocumentFragment();
+  const appendSuggestion = (name, label, isNew = false) => {
+    const item = document.createElement('div');
+    item.className = 'cat-tag-suggestion-item';
+    item.dataset.name = String(name);
+    if (isNew) item.setAttribute('data-static-style', 'a530');
+    item.textContent = label;
     item.addEventListener('click', () => {
       addCategoryTag(containerId, item.dataset.name);
       inst.input.value = '';
       inst.input.focus();
       hideCategorySuggestions(containerId);
     });
-  });
+    fragment.appendChild(item);
+  };
+  matching.forEach(category => appendSuggestion(category, category));
+  const exactMatch = allCategories.some(category => category.toLowerCase() === normalizedQuery);
+  if (!exactMatch && query.length > 0) appendSuggestion(query, `+ Создать: «${query}»`, true);
+  if (!fragment.childNodes.length) {
+    const empty = document.createElement('div');
+    empty.className = 'cat-tag-suggestion-empty';
+    empty.textContent = 'Нет подходящих категорий';
+    fragment.appendChild(empty);
+  }
+  inst.suggestionsBox.replaceChildren(fragment);
+  inst.suggestionsBox.classList.add('active');
+  inst.highlightedIndex = -1;
 }
 
 function hideCategorySuggestions(containerId) {
@@ -1376,34 +1396,36 @@ function renderBulkUploadList() {
   catPanel.style.display = 'block';
   actionsEl.style.display = 'flex';
 
-  const statusIcon = {
-    pending: '⏸',
-    uploading: '⏳',
-    done: '✓',
-    error: '✕',
-  };
+  const statusIcon = { pending: '⏸', uploading: '⏳', done: '✓', error: '✕' };
   const statusColor = {
     pending: 'var(--text-muted)',
     uploading: 'var(--accent)',
     done: '#22c55e',
     error: '#ef4444',
   };
+  const fragment = document.createDocumentFragment();
+  bulkUploadQueue.forEach(item => {
+    const row = document.createElement('div');
+    row.setAttribute('data-static-style', 'a550');
+    const icon = document.createElement('div');
+    icon.setAttribute('data-dynamic-style', dynamicStyleToken`width:20px;text-align:center;color:${statusColor[item.status]};font-weight:700;flex-shrink:0;`);
+    icon.textContent = statusIcon[item.status] || '';
+    const filename = document.createElement('div');
+    filename.setAttribute('data-static-style', 'a551');
+    filename.title = String(item.file.name);
+    filename.textContent = String(item.file.name);
+    const message = document.createElement('div');
+    message.setAttribute('data-dynamic-style', dynamicStyleToken`color:${statusColor[item.status]};font-size:10px;flex-shrink:0;`);
+    message.textContent = String(item.message);
+    row.append(icon, filename, message);
+    fragment.appendChild(row);
+  });
+  listEl.replaceChildren(fragment);
 
-  listEl.innerHTML = bulkUploadQueue.map((item, idx) => `
-    <div data-static-style="a550">
-      <div data-dynamic-style="${dynamicStyleToken`width:20px;text-align:center;color:${statusColor[item.status]};font-weight:700;flex-shrink:0;`}">${statusIcon[item.status]}</div>
-      <div data-static-style="a551" title="${eh(item.file.name)}">${eh(item.file.name)}</div>
-      <div data-dynamic-style="${dynamicStyleToken`color:${statusColor[item.status]};font-size:10px;flex-shrink:0;`}">${eh(item.message)}</div>
-    </div>
-  `).join('');
-
-  // Прогресс
-  const done = bulkUploadQueue.filter(i => i.status === 'done').length;
-  const errors = bulkUploadQueue.filter(i => i.status === 'error').length;
+  const done = bulkUploadQueue.filter(item => item.status === 'done').length;
+  const errors = bulkUploadQueue.filter(item => item.status === 'error').length;
   const progressEl = document.getElementById('bulkUploadProgress');
-  if (progressEl) {
-    progressEl.textContent = `${done} / ${bulkUploadQueue.length}` + (errors ? ` (ошибок: ${errors})` : '');
-  }
+  if (progressEl) progressEl.textContent = `${done} / ${bulkUploadQueue.length}` + (errors ? ` (ошибок: ${errors})` : '');
 }
 
 function clearBulkUploadList() {

@@ -19,7 +19,7 @@ for (const [name, source] of sources) {
   assignments += (source.match(/\.innerHTML\s*=/g) || []).length;
 }
 
-assert.ok(assignments <= 123, `innerHTML assignment count grew to ${assignments}`);
+assert.ok(assignments <= 118, `innerHTML assignment count grew to ${assignments}`);
 
 const arSchemes = sources.find(([name]) => name === 'ar-schemes.js')[1];
 const accountSettings = sources.find(([name]) => name === 'account-settings.js')[1];
