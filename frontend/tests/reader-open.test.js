@@ -35,6 +35,14 @@ const context = {
   },
   currentBookId: null,
   ICONS: { search: 'SEARCH', timer: 'TIMER', export: 'EXPORT', marker: '<svg></svg>', note: '<svg></svg>' },
+  appendTrustedIcon: (container, markup) => {
+    if (String(markup).startsWith('<svg')) {
+      const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+      container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
+    } else {
+      container.appendChild(dom.window.document.createTextNode(markup));
+    }
+  },
   unhideFromResume: id => calls.push(['unhide', id]),
   hideReaderEmptyStub: () => calls.push(['hide-empty']),
   saveState: () => calls.push(['save']),
@@ -75,6 +83,7 @@ assert.deepEqual(calls.at(-1), ['epub', 2]);
 assert.equal(dom.window.document.getElementById('readerFormatBadge').textContent, 'EPUB');
 assert.equal(dom.window.document.getElementById('btnReaderTheme'), null);
 assert.match(dom.window.document.getElementById('btnPdfHighlight').innerHTML, /Маркер/);
+assert.doesNotMatch(source, /\.innerHTML\s*=/);
 
 assert.doesNotMatch(appSource, /function openReader\s*\(/);
 assert.ok(indexSource.indexOf('reader-theme.js') < indexSource.indexOf('reader-open.js'));

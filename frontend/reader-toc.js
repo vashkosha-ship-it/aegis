@@ -56,13 +56,24 @@ async function openTOC() {
   const m = document.createElement('div');
   m.id = 'tocModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div data-static-style="a304">
-    <div data-static-style="a126">
-      <h3 data-static-style="a127">Оглавление</h3>
-      <button data-onclick="closeModal('tocModal')" data-static-style="a128">✕</button>
-    </div>
-    <div id="tocPanelBody" data-static-style="a129">Загружаю оглавление…</div>
-  </div>`;
+  const panel = document.createElement('div');
+  panel.setAttribute('data-static-style', 'a304');
+  const header = document.createElement('div');
+  header.setAttribute('data-static-style', 'a126');
+  const heading = document.createElement('h3');
+  heading.setAttribute('data-static-style', 'a127');
+  heading.textContent = 'Оглавление';
+  const close = document.createElement('button');
+  close.setAttribute('data-static-style', 'a128');
+  close.textContent = '✕';
+  close.addEventListener('click', () => m.remove());
+  header.append(heading, close);
+  const body = document.createElement('div');
+  body.id = 'tocPanelBody';
+  body.setAttribute('data-static-style', 'a129');
+  body.textContent = 'Загружаю оглавление…';
+  panel.append(header, body);
+  m.appendChild(panel);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
   _currentTOC = await buildTOC();

@@ -24,7 +24,11 @@ const context = {
   isEpubMode: false,
   epubCurrentPage: 1,
   pdfCurrentPage: 3,
-  ICONS: { bookmark: 'BOOKMARK' },
+  ICONS: { bookmark: '<svg data-icon="bookmark"></svg>' },
+  appendTrustedIcon: (container, markup) => {
+    const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
+    container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
+  },
   lsGet: key => storage.get(key) ?? null,
   lsSet: (key, value) => storage.set(key, value),
   showToast: message => toasts.push(message),
@@ -49,6 +53,7 @@ context.openBookmarksList();
 const modal = dom.window.document.getElementById('bookmarksListModal');
 assert.equal(modal.querySelectorAll('#bookmarksListRows > button').length, 2);
 assert.doesNotMatch(modal.innerHTML, /alert/);
+assert.equal(modal.querySelectorAll('[data-onclick]').length, 0);
 
 context.jumpToBookmark(5);
 assert.deepEqual(pages, [5]);
@@ -61,4 +66,5 @@ assert.ok(dom.window.document.getElementById('bookmarksListModal'));
 assert.doesNotMatch(appSource, /function togglePageBookmark|function openBookmarksList/);
 assert.ok(indexSource.indexOf('page-bookmarks.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/page-bookmarks\.js['"]/);
+assert.doesNotMatch(source, /\.innerHTML\s*=/);
 console.log('Page bookmarks tests passed');

@@ -39,19 +39,46 @@ function openBookmarksList() {
   const m = document.createElement('div');
   m.id = 'bookmarksListModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  const rows = list.length
-    ? list.map(p => `<button data-onclick="jumpToBookmark(${p})" data-static-style="a488">
-        <span>${ICONS.bookmark} Страница ${p}</span>
-        <span data-onclick="removeBookmark(${p})" data-stop="1" data-static-style="a489">✕</span>
-      </button>`).join('')
-    : '<div data-static-style="a351">Закладок пока нет. Нажмите на флажок в панели, чтобы добавить.</div>';
-  m.innerHTML = `<div data-static-style="a490">
-    <div data-static-style="a126">
-      <h3 data-static-style="a127">Закладки</h3>
-      <button data-onclick="closeModal('bookmarksListModal')" data-static-style="a128">✕</button>
-    </div>
-    <div id="bookmarksListRows">${rows}</div>
-  </div>`;
+  const panel = document.createElement('div');
+  panel.setAttribute('data-static-style', 'a490');
+  const header = document.createElement('div');
+  header.setAttribute('data-static-style', 'a126');
+  const heading = document.createElement('h3');
+  heading.setAttribute('data-static-style', 'a127');
+  heading.textContent = 'Закладки';
+  const close = document.createElement('button');
+  close.setAttribute('data-static-style', 'a128');
+  close.textContent = '✕';
+  close.addEventListener('click', () => m.remove());
+  header.append(heading, close);
+  const rows = document.createElement('div');
+  rows.id = 'bookmarksListRows';
+  if (!list.length) {
+    const empty = document.createElement('div');
+    empty.setAttribute('data-static-style', 'a351');
+    empty.textContent = 'Закладок пока нет. Нажмите на флажок в панели, чтобы добавить.';
+    rows.appendChild(empty);
+  } else {
+    list.forEach(page => {
+      const row = document.createElement('button');
+      row.setAttribute('data-static-style', 'a488');
+      const label = document.createElement('span');
+      appendTrustedIcon(label, ICONS.bookmark);
+      label.appendChild(document.createTextNode(` Страница ${page}`));
+      const remove = document.createElement('span');
+      remove.setAttribute('data-static-style', 'a489');
+      remove.textContent = '✕';
+      remove.addEventListener('click', event => {
+        event.stopPropagation();
+        removeBookmark(page);
+      });
+      row.append(label, remove);
+      row.addEventListener('click', () => jumpToBookmark(page));
+      rows.appendChild(row);
+    });
+  }
+  panel.append(header, rows);
+  m.appendChild(panel);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
 }

@@ -44,25 +44,32 @@ function showEpubSelectionPopup(selectedText, cfiRange, x, y, contents) {
     box-shadow: 0 6px 20px rgba(0,0,0,0.4);
   `;
 
-  popup.innerHTML = `
-    <button id="epubBtnHighlight" data-static-style="a486">
-      ${ICONS.marker}<span>Маркер</span>
-    </button>
-    <button id="epubBtnNote" data-static-style="a487">
-      ${ICONS.note}<span>Заметка</span>
-    </button>
-  `;
+  const highlight = document.createElement('button');
+  highlight.id = 'epubBtnHighlight';
+  highlight.setAttribute('data-static-style', 'a486');
+  appendTrustedIcon(highlight, ICONS.marker);
+  const highlightLabel = document.createElement('span');
+  highlightLabel.textContent = 'Маркер';
+  highlight.appendChild(highlightLabel);
+  const note = document.createElement('button');
+  note.id = 'epubBtnNote';
+  note.setAttribute('data-static-style', 'a487');
+  appendTrustedIcon(note, ICONS.note);
+  const noteLabel = document.createElement('span');
+  noteLabel.textContent = 'Заметка';
+  note.appendChild(noteLabel);
+  popup.append(highlight, note);
 
   document.body.appendChild(popup);
   epubSelectionPopup = popup;
 
-  document.getElementById('epubBtnHighlight').onclick = async () => {
+  highlight.onclick = async () => {
     hideEpubSelectionPopup();
     await saveEpubAnnotation('highlight', selectedText, cfiRange);
     if (contents && contents.window) contents.window.getSelection().removeAllRanges();
   };
 
-  document.getElementById('epubBtnNote').onclick = async () => {
+  note.onclick = async () => {
     hideEpubSelectionPopup();
     const sel = selectedText, cfi = cfiRange, ctx = contents;
     showPromptModal({
@@ -157,4 +164,3 @@ async function goToEpubAnnotation(bookId, cfi) {
   };
   setTimeout(tryGoto, 800);  // даём время на загрузку EPUB
 }
-
