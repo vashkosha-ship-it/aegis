@@ -39,7 +39,7 @@ assert.equal(content.querySelectorAll('.bg-count-btn').length, 5);
 assert.equal(content.querySelectorAll('.bg-period-btn').length, 3);
 assert.equal(content.querySelectorAll('[data-onclick], [data-args]').length, 0);
 assert.ok(content.querySelectorAll('[data-dynamic-style]').length >= 20);
-assert.equal(content.querySelectorAll('button').length, 20);
+assert.equal(content.querySelectorAll('button').length, 23);
 
 const fragment = source.slice(
   source.indexOf('function renderSettingsPersonalizationTab'),
