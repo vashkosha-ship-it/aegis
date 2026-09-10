@@ -21,6 +21,7 @@ const context = {
   getGridSize: () => 3,
   getReadingGoal: () => 20,
   getBooksGoal: () => ({ count: 10, period: 'quarter' }),
+  saveBooksGoalFromUI: () => {},
   localStorage: { getItem: () => '115', setItem: () => {} },
   console,
 };
