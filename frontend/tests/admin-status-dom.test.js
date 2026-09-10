@@ -8,7 +8,16 @@ const { JSDOM } = require('jsdom');
 
 const frontend = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
-const dom = new JSDOM('<div id="dashboard"></div><div id="progress"></div>');
+const dom = new JSDOM(`
+  <div id="dashboard"></div><div id="progress"></div>
+  <button id="adminSaveFieldsBtn"></button>
+  <button id="adminUploadFileBtn"></button>
+  <button id="adminDeleteFileBtn"></button>
+  <button id="adminUploadCoverBtn"></button>
+  <button id="adminDeleteCoverBtn"></button>
+  <button id="adminDeleteBookBtn"></button>
+  <button id="saveBookBtn"></button>
+`);
 const context = {
   document: dom.window.document,
   console,
