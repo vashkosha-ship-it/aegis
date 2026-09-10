@@ -368,24 +368,34 @@ function renderSettingsHelpTab(c) {
 }
 
 function _openLegalModal(titleText, html) {
-  let m = document.getElementById('legalDocModal');
-  if (!m) {
-    m = document.createElement('div');
-    m.id = 'legalDocModal';
-    m.style.cssText = 'position:fixed;inset:0;background:var(--bg-primary);z-index:4000;display:flex;flex-direction:column;';
-    document.body.appendChild(m);
+  let modal = document.getElementById('legalDocModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'legalDocModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:var(--bg-primary);z-index:4000;display:flex;flex-direction:column;';
+    document.body.appendChild(modal);
   }
-  m.innerHTML = `
-    <div data-static-style="a384">
-      <div data-static-style="a385">${eh(titleText)}</div>
-      <button data-onclick="closeModal('legalDocModal')" data-static-style="a386">✕</button>
-    </div>
-    <div data-static-style="a387">
-      ${html}
-    </div>
-    <div data-static-style="a388">
-      <button data-onclick="closeModal('legalDocModal')" data-static-style="a389">Закрыть</button>
-    </div>`;
+
+  const closeLegalModal = () => modal.remove();
+  const header = _accountNode('div', 'a384');
+  const closeButton = _accountNode('button', 'a386', '✕');
+  closeButton.type = 'button';
+  closeButton.addEventListener('click', closeLegalModal);
+  header.append(_accountNode('div', 'a385', titleText), closeButton);
+
+  const content = _accountNode('div', 'a387');
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  [...parsed.body.childNodes].forEach(node => {
+    content.appendChild(document.importNode(node, true));
+  });
+
+  const footer = _accountNode('div', 'a388');
+  const doneButton = _accountNode('button', 'a389', 'Закрыть');
+  doneButton.type = 'button';
+  doneButton.addEventListener('click', closeLegalModal);
+  footer.appendChild(doneButton);
+
+  modal.replaceChildren(header, content, footer);
 }
 
 function openUserAgreement() {
@@ -397,53 +407,75 @@ function openPrivacyPolicy() {
 }
 
 function renderSettingsPrivacyTab(c) {
-  const u = state.currentUser;
-  const current = u.profile_visibility || 'public';
-
+  const current = state.currentUser.profile_visibility || 'public';
   const options = [
-    { value: 'public',     label: 'Публичный',         desc: 'Профиль доступен всем авторизованным пользователям' },
+    { value: 'public', label: 'Публичный', desc: 'Профиль доступен всем авторизованным пользователям' },
     { value: 'colleagues', label: 'Только для коллег', desc: 'Видят только пользователи твоего подразделения' },
-    { value: 'private',    label: 'Приватный',         desc: 'Профиль скрыт от всех, кроме тебя' },
+    { value: 'private', label: 'Приватный', desc: 'Профиль скрыт от всех, кроме тебя' },
   ];
 
-  c.innerHTML = `
-    <h3 data-static-style="a350">Приватность</h3>
+  const notice = _accountNode('div', 'a390');
+  notice.append(
+    _accountNode('span', 'a391', 'ⓘ'),
+    _accountNode(
+      'div',
+      'a392',
+      'В публичном профиле ваш email показывается замаскированным (например i***n@mail.ru). Приватный профиль скрыт от всех.',
+    ),
+  );
 
-    <div data-static-style="a390">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-static-style="a391"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <div data-static-style="a392">
-        В публичном профиле ваш email показывается замаскированным (например i***n@mail.ru). Приватный профиль скрыт от всех.
-      </div>
-    </div>
+  const visibilityRow = document.createElement('div');
+  visibilityRow.className = 'set-row';
+  visibilityRow.appendChild(_accountNode('label', null, 'Отображение профиля'));
+  const choices = _accountNode('div', 'a393');
+  options.forEach(option => {
+    const selected = current === option.value;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute(
+      'data-dynamic-style',
+      dynamicStyleToken`text-align:left;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${selected ? 'var(--accent-gradient)' : 'transparent'};border:none;border-radius:8px;cursor:pointer;font-family:inherit;color:${selected ? '#fff' : 'var(--text-primary)'};`,
+    );
+    button.addEventListener('click', () => setPrivacyVisibility(option.value));
 
-    <div class="set-row">
-      <label>Отображение профиля</label>
-      <div data-static-style="a393">
-        ${options.map(opt => `
-          <button data-onclick="setPrivacyVisibility('${opt.value}')" data-dynamic-style="${dynamicStyleToken`text-align:left;display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${current === opt.value ? 'var(--accent-gradient)' : 'transparent'};border:none;border-radius:8px;cursor:pointer;font-family:inherit;color:${current === opt.value ? '#fff' : 'var(--text-primary)'};`}">
-            <div data-dynamic-style="${dynamicStyleToken`width:18px;height:18px;border-radius:50%;border:2px solid ${current === opt.value ? '#fff' : 'var(--border-light)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;`}">
-              ${current === opt.value ? '<div data-static-style="a394"></div>' : ''}
-            </div>
-            <div data-static-style="a004">
-              <div data-static-style="a395">${opt.label}</div>
-              <div data-static-style="a396">${opt.desc}</div>
-            </div>
-          </button>
-        `).join('')}
-      </div>
-    </div>
+    const radio = document.createElement('div');
+    radio.setAttribute(
+      'data-dynamic-style',
+      dynamicStyleToken`width:18px;height:18px;border-radius:50%;border:2px solid ${selected ? '#fff' : 'var(--border-light)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;`,
+    );
+    if (selected) radio.appendChild(_accountNode('div', 'a394'));
+    const copy = _accountNode('div', 'a004');
+    copy.append(
+      _accountNode('div', 'a395', option.label),
+      _accountNode('div', 'a396', option.desc),
+    );
+    button.append(radio, copy);
+    choices.appendChild(button);
+  });
+  visibilityRow.appendChild(choices);
 
-    <div data-static-style="a397">
-      <label data-static-style="a398">Опасная зона</label>
-      <button data-onclick="confirmDeleteAccount()" data-nonce="${sensitiveNonce()}" class="set-save-btn" data-static-style="a399">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        <span>Удалить аккаунт</span>
-      </button>
-      <div data-static-style="a369">
-        Безвозвратно удаляет аккаунт и все данные: списки, заметки, прогресс, результаты тестов, коллекции.
-      </div>
-    </div>
-  `;
+  const danger = _accountNode('div', 'a397');
+  danger.appendChild(_accountNode('label', 'a398', 'Опасная зона'));
+  const deleteButton = _accountNode('button', 'a399');
+  deleteButton.className = 'set-save-btn';
+  deleteButton.type = 'button';
+  deleteButton.appendChild(document.createElement('span')).textContent = 'Удалить аккаунт';
+  deleteButton.addEventListener('click', confirmDeleteAccount);
+  danger.append(
+    deleteButton,
+    _accountNode(
+      'div',
+      'a369',
+      'Безвозвратно удаляет аккаунт и все данные: списки, заметки, прогресс, результаты тестов, коллекции.',
+    ),
+  );
+
+  c.replaceChildren(
+    _accountNode('h3', 'a350', 'Приватность'),
+    notice,
+    visibilityRow,
+    danger,
+  );
 }
 
 function confirmDeleteAccount() {
@@ -639,68 +671,95 @@ function setGridSize(n) {
   showToast(`Карточек в ряд: ${n}`);
 }
 
+function _accountLabeledInput(labelText, input) {
+  const row = document.createElement('div');
+  row.className = 'set-row';
+  row.append(_accountNode('label', null, labelText), input);
+  return row;
+}
+
+function _accountFormInput(type, id, placeholder, autocomplete, maxLength) {
+  const input = document.createElement('input');
+  input.type = type;
+  input.id = id;
+  input.placeholder = placeholder;
+  if (autocomplete) input.autocomplete = autocomplete;
+  if (maxLength) input.maxLength = maxLength;
+  return input;
+}
+
+function _accountSaveButton(text, onClick, staticStyle) {
+  const button = _accountNode('button', staticStyle);
+  button.className = 'set-save-btn';
+  button.type = 'button';
+  button.appendChild(document.createElement('span')).textContent = text;
+  button.addEventListener('click', onClick);
+  return button;
+}
+
 function renderSettingsSecurityTab(c) {
-  c.innerHTML = `
-    <h3 data-static-style="a350">Смена пароля</h3>
+  const currentPassword = _accountFormInput('password', 'setCurrentPassword', 'Введите текущий пароль', 'current-password', 128);
+  const newPassword = _accountFormInput('password', 'setNewPassword', 'Минимум 8 символов', 'new-password', 128);
+  const repeatPassword = _accountFormInput('password', 'setNewPasswordConfirm', 'Ещё раз новый пароль', 'new-password', 128);
+  const passwordError = _accountNode('div', 'a420');
+  passwordError.id = 'setPasswordError';
 
-    <div data-static-style="a419">
-      Для смены пароля введи текущий пароль и новый пароль. Новый пароль должен быть не короче 8 символов и отличаться от текущего.
-    </div>
+  const emailSection = _accountNode('div', 'a421');
+  emailSection.appendChild(_accountNode('h3', 'a422', 'Смена email'));
+  const currentEmail = _accountNode('div', 'a423');
+  currentEmail.append(
+    document.createTextNode('Текущий email: '),
+    _accountNode('strong', 'a424', state.currentUser?.email || 'не указан'),
+    document.createTextNode('. На новый адрес придёт код подтверждения.'),
+  );
+  emailSection.appendChild(currentEmail);
 
-    <div class="set-row">
-      <label>Текущий пароль</label>
-      <input type="password" id="setCurrentPassword" autocomplete="current-password" placeholder="Введите текущий пароль" maxlength="128">
-    </div>
+  const stepOne = document.createElement('div');
+  stepOne.id = 'emailStep1';
+  const newEmail = _accountFormInput('email', 'setNewEmail', 'new@example.com', 'email');
+  const emailPassword = _accountFormInput('password', 'setEmailPassword', 'Ваш пароль', 'current-password');
+  const emailError = _accountNode('div', 'a420');
+  emailError.id = 'setEmailError';
+  stepOne.append(
+    _accountLabeledInput('Новый email', newEmail),
+    _accountLabeledInput('Пароль (для подтверждения)', emailPassword),
+    emailError,
+    _accountSaveButton('Отправить код подтверждения', requestEmailChangeUI),
+  );
 
-    <div class="set-row">
-      <label>Новый пароль</label>
-      <input type="password" id="setNewPassword" autocomplete="new-password" placeholder="Минимум 8 символов" maxlength="128">
-    </div>
+  const stepTwo = _accountNode('div', 'a279');
+  stepTwo.id = 'emailStep2';
+  const emailCode = _accountFormInput('text', 'setEmailCode', '6-значный код', null, 6);
+  emailCode.inputMode = 'numeric';
+  const emailErrorTwo = _accountNode('div', 'a420');
+  emailErrorTwo.id = 'setEmailError2';
+  stepTwo.append(
+    _accountNode('div', 'a425', 'Код отправлен на новый адрес. Введите его ниже.'),
+    _accountLabeledInput('Код из письма', emailCode),
+    emailErrorTwo,
+    _accountSaveButton('Подтвердить смену email', confirmEmailChangeUI),
+    _accountSaveButton(
+      'Отмена',
+      () => renderSettingsSecurityTab(document.getElementById('settingsContent')),
+      'a426',
+    ),
+  );
+  emailSection.append(stepOne, stepTwo);
 
-    <div class="set-row">
-      <label>Повторите новый пароль</label>
-      <input type="password" id="setNewPasswordConfirm" autocomplete="new-password" placeholder="Ещё раз новый пароль" maxlength="128">
-    </div>
-
-    <div id="setPasswordError" data-static-style="a420"></div>
-
-    <button class="set-save-btn" data-onclick="saveSettingsPassword()">
-      ${ICONS.iconSave}<span>Изменить пароль</span>
-    </button>
-
-    <div data-static-style="a421">
-      <h3 data-static-style="a422">Смена email</h3>
-      <div data-static-style="a423">
-        Текущий email: <strong data-static-style="a424">${eh(state.currentUser?.email || 'не указан')}</strong>.
-        На новый адрес придёт код подтверждения.
-      </div>
-
-      <div id="emailStep1">
-        <div class="set-row">
-          <label>Новый email</label>
-          <input type="email" id="setNewEmail" autocomplete="email" placeholder="new@example.com">
-        </div>
-        <div class="set-row">
-          <label>Пароль (для подтверждения)</label>
-          <input type="password" id="setEmailPassword" autocomplete="current-password" placeholder="Ваш пароль">
-        </div>
-        <div id="setEmailError" data-static-style="a420"></div>
-        <button class="set-save-btn" data-onclick="requestEmailChangeUI()">Отправить код подтверждения</button>
-      </div>
-
-      <div id="emailStep2" data-static-style="a279">
-        <div data-static-style="a425">Код отправлен на новый адрес. Введите его ниже.</div>
-        <div class="set-row">
-          <label>Код из письма</label>
-          <input type="text" inputmode="numeric" id="setEmailCode" placeholder="6-значный код" maxlength="6">
-        </div>
-        <div id="setEmailError2" data-static-style="a420"></div>
-        <button class="set-save-btn" data-onclick="confirmEmailChangeUI()">Подтвердить смену email</button>
-        <button class="set-save-btn" data-onclick="renderSettingsSecurityTab(document.getElementById('settingsContent'))" data-static-style="a426">Отмена</button>
-      </div>
-    </div>
-
-  `;
+  c.replaceChildren(
+    _accountNode('h3', 'a350', 'Смена пароля'),
+    _accountNode(
+      'div',
+      'a419',
+      'Для смены пароля введи текущий пароль и новый пароль. Новый пароль должен быть не короче 8 символов и отличаться от текущего.',
+    ),
+    _accountLabeledInput('Текущий пароль', currentPassword),
+    _accountLabeledInput('Новый пароль', newPassword),
+    _accountLabeledInput('Повторите новый пароль', repeatPassword),
+    passwordError,
+    _accountSaveButton('Изменить пароль', saveSettingsPassword),
+    emailSection,
+  );
 }
 
 async function requestEmailChangeUI() {
@@ -767,94 +826,97 @@ async function saveSettingsPassword() {
 }
 
 function renderSettingsInfoTab(c) {
-  const u = state.currentUser;
-  c.innerHTML = `
-    <h3 data-static-style="a350">Информация о профиле</h3>
+  const user = state.currentUser;
 
-    <!-- Аватар -->
-    <div data-static-style="a428">
-      <div class="profile-avatar-lg" data-static-style="a429" data-onclick="clickElement('settingsAvatarUpload')">
-        <span id="settingsAvatarText">U</span>
-        <img id="settingsAvatarImg" data-static-style="a279">
-      </div>
-      <input type="file" id="settingsAvatarUpload" accept="image/*" data-static-style="a279" data-onchange="uploadAvatar()" data-args="event">
-      <div data-static-style="a430">
-        Кликни на аватар чтобы загрузить новое фото<br>
-        (JPEG/PNG/WEBP, до 2 МБ)
-      </div>
-    </div>
+  const avatarSection = _accountNode('div', 'a428');
+  const avatar = _accountNode('div', 'a429');
+  avatar.className = 'profile-avatar-lg';
+  const avatarText = _accountNode('span', null, 'U');
+  avatarText.id = 'settingsAvatarText';
+  const avatarImage = _accountNode('img', 'a279');
+  avatarImage.id = 'settingsAvatarImg';
+  avatar.append(avatarText, avatarImage);
 
-    <!-- Никнейм (только просмотр пока) -->
-    <div class="set-row">
-      <label>Никнейм (логин)</label>
-      <input type="text" id="setUsername" value="${eh(u.name || '')}" disabled data-static-style="a431">
-      <div data-static-style="a410">Изменение никнейма пока не поддерживается</div>
-    </div>
+  const avatarUpload = _accountNode('input', 'a279');
+  avatarUpload.id = 'settingsAvatarUpload';
+  avatarUpload.type = 'file';
+  avatarUpload.accept = 'image/*';
+  avatar.addEventListener('click', () => avatarUpload.click());
+  avatarUpload.addEventListener('change', uploadAvatar);
+  const avatarHint = _accountNode(
+    'div',
+    'a430',
+    'Кликни на аватар чтобы загрузить новое фото\n(JPEG/PNG/WEBP, до 2 МБ)',
+  );
+  avatarSection.append(avatar, avatarUpload, avatarHint);
 
-    <!-- ФИО -->
-    <div class="set-row">
-      <label>ФИО</label>
-      <input type="text" id="setFullName" value="${eh(u.full_name || '')}" placeholder="Иванов Иван Иванович" maxlength="128">
-    </div>
+  const username = _accountFormInput('text', 'setUsername', '', null);
+  username.value = user.name || '';
+  username.disabled = true;
+  username.setAttribute('data-static-style', 'a431');
+  const usernameRow = _accountLabeledInput('Никнейм (логин)', username);
+  usernameRow.appendChild(
+    _accountNode('div', 'a410', 'Изменение никнейма пока не поддерживается'),
+  );
 
-    <!-- Подразделение -->
-    <div class="set-row">
-      <label>Подразделение</label>
-      <select id="setDepartment">
-        <option value="">— Не указано —</option>
-        <option value="ЦКЗ">ЦКЗ</option>
-        <option value="ДПМ">ДПМ</option>
-        <option value="УБД">УБД</option>
-        <option value="УКИИ">УКИИ</option>
-        <option value="УКАИ">УКАИ</option>
-        <option value="УМК">УМК</option>
-        <option value="УЭК">УЭК</option>
-        <option value="ЦКГ">ЦКГ</option>
-        <option value="ЦУПКБ">ЦУПКБ</option>
-        <option value="ЦВВ">ЦВВ</option>
-        <option value="__other__">Другое...</option>
-      </select>
-      <input type="text" id="setDepartmentOther" placeholder="Введите название" maxlength="64" data-static-style="a432">
-    </div>
+  const fullName = _accountFormInput('text', 'setFullName', 'Иванов Иван Иванович', null, 128);
+  fullName.value = user.full_name || '';
 
-    <button class="set-save-btn" data-onclick="saveSettingsInfo()">
-      ${ICONS.iconSave}<span>Сохранить изменения</span>
-    </button>
-  `;
+  const department = document.createElement('select');
+  department.id = 'setDepartment';
+  [
+    ['', '— Не указано —'],
+    ['ЦКЗ', 'ЦКЗ'], ['ДПМ', 'ДПМ'], ['УБД', 'УБД'], ['УКИИ', 'УКИИ'],
+    ['УКАИ', 'УКАИ'], ['УМК', 'УМК'], ['УЭК', 'УЭК'], ['ЦКГ', 'ЦКГ'],
+    ['ЦУПКБ', 'ЦУПКБ'], ['ЦВВ', 'ЦВВ'], ['__other__', 'Другое...'],
+  ].forEach(([value, label]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    department.appendChild(option);
+  });
+  const departmentOther = _accountFormInput('text', 'setDepartmentOther', 'Введите название', null, 64);
+  departmentOther.setAttribute('data-static-style', 'a432');
+  const departmentRow = _accountLabeledInput('Подразделение', department);
+  departmentRow.appendChild(departmentOther);
 
-  // Применяем аватар
+  c.replaceChildren(
+    _accountNode('h3', 'a350', 'Информация о профиле'),
+    avatarSection,
+    usernameRow,
+    _accountLabeledInput('ФИО', fullName),
+    departmentRow,
+    _accountSaveButton('Сохранить изменения', saveSettingsInfo),
+  );
+
   updateAvatar('settingsAvatarImg');
-  const avatarText = document.getElementById('settingsAvatarText');
   if (avatarText) {
-    avatarText.textContent = (u.name || 'U').charAt(0).toUpperCase();
-    const img = document.getElementById('settingsAvatarImg');
-    if (img && img.src && !img.src.endsWith('undefined') && img.style.display !== 'none') {
+    avatarText.textContent = (user.name || 'U').charAt(0).toUpperCase();
+    const image = document.getElementById('settingsAvatarImg');
+    if (image && image.src && !image.src.endsWith('undefined') && image.style.display !== 'none') {
       avatarText.style.display = 'none';
     }
   }
 
-  // Подставляем текущее подразделение
-  const depSelect = document.getElementById('setDepartment');
-  const depOther = document.getElementById('setDepartmentOther');
-  const KNOWN_DEPS = ['ЦКЗ','ДПМ','УБД','УКИИ','УКАИ','УМК','УЭК','ЦКГ','ЦУПКБ','ЦВВ'];
-  if (u.department) {
-    if (KNOWN_DEPS.includes(u.department)) {
-      depSelect.value = u.department;
-      depOther.style.display = 'none';
+  const knownDepartments = ['ЦКЗ', 'ДПМ', 'УБД', 'УКИИ', 'УКАИ', 'УМК', 'УЭК', 'ЦКГ', 'ЦУПКБ', 'ЦВВ'];
+  if (user.department) {
+    if (knownDepartments.includes(user.department)) {
+      department.value = user.department;
+      departmentOther.style.display = 'none';
     } else {
-      depSelect.value = '__other__';
-      depOther.value = u.department;
-      depOther.style.display = 'block';
+      department.value = '__other__';
+      departmentOther.value = user.department;
+      departmentOther.style.display = 'block';
     }
   }
 
-  depSelect.addEventListener('change', () => {
-    if (depSelect.value === '__other__') {
-      depOther.style.display = 'block';
-      depOther.focus();
+  department.addEventListener('change', () => {
+    if (department.value === '__other__') {
+      departmentOther.style.display = 'block';
+      departmentOther.focus();
     } else {
-      depOther.style.display = 'none';
-      depOther.value = '';
+      departmentOther.style.display = 'none';
+      departmentOther.value = '';
     }
   });
 }
