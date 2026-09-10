@@ -555,111 +555,181 @@ function setReaderFontScale(pct) {
   showToast(`Шрифт читалки: ${pct}%`);
 }
 
+function _accountChoiceButton(label, selected, styleText, onClick, className) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  if (className) button.className = className;
+  if (selected) button.classList.add('active');
+  button.setAttribute('data-dynamic-style', dynamicStyleToken(styleText));
+  button.addEventListener('click', onClick);
+  if (label instanceof Node) button.appendChild(label);
+  else button.textContent = String(label);
+  return button;
+}
+
 function renderSettingsPersonalizationTab(c) {
   const currentTheme = getAppTheme();
   const currentGrid = getGridSize();
   const goal = getReadingGoal();
   const fontScale = getReaderFontScale();
+  const booksGoal = getBooksGoal();
 
-  c.innerHTML = `
-    <h3 data-static-style="a350">Персонализация</h3>
+  const createRow = (labelText, content, hint) => {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.append(_accountNode('label', null, labelText), content);
+    if (hint) row.appendChild(_accountNode('div', 'a410', hint));
+    return row;
+  };
+  const choiceStyle = (selected, extra = '') =>
+    `flex:1;padding:10px;background:${selected ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${selected ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;${extra}`;
 
-    <!-- Тема -->
-    <div class="set-row">
-      <label>Тема приложения</label>
-      <div data-static-style="a407">
-        <button data-onclick="setAppTheme('dark');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'dark' ? 'active' : ''}" data-dynamic-style="${dynamicStyleToken`flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'dark' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'dark' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;`}">
-          ${ICONS.themeMoon}<span>Тёмная</span>
-        </button>
-        <button data-onclick="setAppTheme('light');renderSettingsPersonalizationTab(document.getElementById('settingsContent'))" class="app-theme-btn ${currentTheme === 'light' ? 'active' : ''}" data-dynamic-style="${dynamicStyleToken`flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:${currentTheme === 'light' ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentTheme === 'light' ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;`}">
-          ${ICONS.themeSun}<span>Светлая</span>
-        </button>
-      </div>
-    </div>
+  const themeChoices = _accountNode('div', 'a407');
+  [
+    ['dark', 'themeMoon', 'Тёмная'],
+    ['light', 'themeSun', 'Светлая'],
+  ].forEach(([theme, iconName, label]) => {
+    const selected = currentTheme === theme;
+    const button = _accountChoiceButton(
+      document.createDocumentFragment(),
+      selected,
+      choiceStyle(selected, 'display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;'),
+      () => {
+        setAppTheme(theme);
+        renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
+      },
+      'app-theme-btn',
+    );
+    appendTrustedIcon(button, ICONS[iconName]);
+    button.appendChild(_accountNode('span', null, label));
+    themeChoices.appendChild(button);
+  });
 
-    <!-- Карточек в ряд -->
-    <div class="set-row">
-      <label>Карточек книг в ряд</label>
-      <div data-static-style="a407">
-        ${[2, 3, 4].map(n => `
-          <button data-onclick="setGridSize(${n})" data-dynamic-style="${dynamicStyleToken`flex:1;padding:10px;background:${currentGrid === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${currentGrid === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;`}">
-            ${n}
-          </button>
-        `).join('')}
-      </div>
-    </div>
+  const gridChoices = _accountNode('div', 'a407');
+  [2, 3, 4].forEach(count => {
+    gridChoices.appendChild(
+      _accountChoiceButton(
+        count,
+        currentGrid === count,
+        choiceStyle(currentGrid === count, "font-family:'JetBrains Mono',monospace;"),
+        () => setGridSize(count),
+      ),
+    );
+  });
 
-    <!-- Предпросмотр -->
-    <div class="set-row">
-      <label>Предпросмотр</label>
-      <div data-static-style="a408">
-        <div id="gridPreview" data-dynamic-style="${dynamicStyleToken`display:grid;grid-template-columns:repeat(${currentGrid},1fr);gap:6px;`}">
-          ${Array.from({length: currentGrid * 2}, () => `
-            <div data-static-style="a409">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div data-static-style="a410">Изменения применяются ко всему каталогу</div>
-    </div>
+  const preview = _accountNode('div', 'a408');
+  const previewGrid = document.createElement('div');
+  previewGrid.id = 'gridPreview';
+  previewGrid.setAttribute(
+    'data-dynamic-style',
+    dynamicStyleToken`display:grid;grid-template-columns:repeat(${currentGrid},1fr);gap:6px;`,
+  );
+  for (let index = 0; index < currentGrid * 2; index += 1) {
+    previewGrid.appendChild(_accountNode('div', 'a409'));
+  }
+  preview.appendChild(previewGrid);
 
-    <!-- Цель чтения -->
-    <div class="set-row">
-      <label>Цель чтения (страниц в день)</label>
-      <div data-static-style="a407">
-        ${[10, 20, 30, 50].map(n => `
-          <button data-onclick="setReadingGoal(${n})" data-dynamic-style="${dynamicStyleToken`flex:1;padding:10px;background:${goal === n ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${goal === n ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;`}">
-            ${n}
-          </button>
-        `).join('')}
-      </div>
-      <div data-static-style="a410">Цель отображается в профиле и тепловой карте</div>
-    </div>
+  const readingGoalChoices = _accountNode('div', 'a407');
+  [10, 20, 30, 50].forEach(pageCount => {
+    readingGoalChoices.appendChild(
+      _accountChoiceButton(
+        pageCount,
+        goal === pageCount,
+        choiceStyle(goal === pageCount, "font-family:'JetBrains Mono',monospace;"),
+        () => setReadingGoal(pageCount),
+      ),
+    );
+  });
 
-    <!-- Цель по книгам за период -->
-    <div class="set-row">
-      <label>Цель: сколько книг прочитать</label>
-      <div data-static-style="a411">Выберите количество книг и период</div>
+  const booksGoalContent = document.createDocumentFragment();
+  booksGoalContent.appendChild(_accountNode('div', 'a411', 'Выберите количество книг и период'));
+  booksGoalContent.appendChild(_accountNode('div', 'a412', 'Количество книг'));
+  const countChoices = _accountNode('div', 'a413');
+  [5, 10, 15, 20, 30].forEach(count => {
+    const selected = booksGoal?.count === count;
+    countChoices.appendChild(
+      _accountChoiceButton(
+        count,
+        selected,
+        `min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${selected ? 'transparent' : 'var(--border)'};background:${selected ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${selected ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;`,
+        event => selectBooksGoalCount(count, event.currentTarget),
+        'bg-count-btn',
+      ),
+    );
+  });
+  booksGoalContent.appendChild(countChoices);
+  booksGoalContent.appendChild(_accountNode('div', 'a412', 'Или своё число'));
+  const customCount = _accountNode('input', 'a414');
+  customCount.id = 'booksGoalCount';
+  customCount.type = 'number';
+  customCount.inputMode = 'numeric';
+  customCount.min = '1';
+  customCount.max = '200';
+  customCount.value = booksGoal?.count || '';
+  customCount.placeholder = 'например, 12';
+  booksGoalContent.appendChild(customCount);
 
-      <div data-static-style="a412">Количество книг</div>
-      <div data-static-style="a413">
-        ${[5, 10, 15, 20, 30].map(n => {
-          const sel = (getBooksGoal()?.count) === n;
-          return `<button type="button" data-onclick="selectBooksGoalCount(${n})" data-args="this" class="bg-count-btn" data-dynamic-style="${dynamicStyleToken`min-width:52px;padding:12px 10px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;`}">${n}</button>`;
-        }).join('')}
-      </div>
+  booksGoalContent.appendChild(_accountNode('div', 'a412', 'За какой период'));
+  const periodChoices = _accountNode('div', 'a415');
+  const currentPeriod = booksGoal?.period || 'quarter';
+  [
+    ['month', 'Месяц'],
+    ['quarter', 'Квартал'],
+    ['year', 'Год'],
+  ].forEach(([period, label]) => {
+    const selected = currentPeriod === period;
+    periodChoices.appendChild(
+      _accountChoiceButton(
+        label,
+        selected,
+        `flex:1;padding:13px 8px;border-radius:10px;border:1px solid ${selected ? 'transparent' : 'var(--border)'};background:${selected ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${selected ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;`,
+        event => selectBooksGoalPeriod(period, event.currentTarget),
+        'bg-period-btn',
+      ),
+    );
+  });
+  booksGoalContent.appendChild(periodChoices);
+  booksGoalContent.appendChild(
+    _accountSaveButton('Сохранить цель', saveBooksGoalFromUI, 'a416'),
+  );
+  if (booksGoal) {
+    booksGoalContent.appendChild(
+      _accountSaveButton('Снять цель', () => setBooksGoal(0), 'a417'),
+    );
+  }
+  booksGoalContent.appendChild(
+    _accountNode('div', 'a418', 'Прогресс-бар появится на главной странице'),
+  );
+  const booksGoalRow = document.createElement('div');
+  booksGoalRow.className = 'set-row';
+  booksGoalRow.append(_accountNode('label', null, 'Цель: сколько книг прочитать'), booksGoalContent);
 
-      <div data-static-style="a412">Или своё число</div>
-      <input id="booksGoalCount" type="number" inputmode="numeric" min="1" max="200" value="${(getBooksGoal()?.count) || ''}" placeholder="например, 12" data-static-style="a414">
+  const fontChoices = _accountNode('div', 'a407');
+  [
+    [90, 'А-'],
+    [100, 'А'],
+    [115, 'А+'],
+    [130, 'А++'],
+  ].forEach(([scale, label]) => {
+    fontChoices.appendChild(
+      _accountChoiceButton(
+        label,
+        fontScale === scale,
+        choiceStyle(fontScale === scale),
+        () => setReaderFontScale(scale),
+      ),
+    );
+  });
 
-      <div data-static-style="a412">За какой период</div>
-      <div data-static-style="a415">
-        ${[{v:'month',l:'Месяц'},{v:'quarter',l:'Квартал'},{v:'year',l:'Год'}].map(o => {
-          const cur = getBooksGoal()?.period || 'quarter';
-          const sel = cur === o.v;
-          return `<button type="button" data-onclick="selectBooksGoalPeriod('${o.v}')" data-args="this" class="bg-period-btn" data-dynamic-style="${dynamicStyleToken`flex:1;padding:13px 8px;border-radius:10px;border:1px solid ${sel ? 'transparent' : 'var(--border)'};background:${sel ? 'var(--accent-gradient)' : 'var(--bg-primary)'};color:${sel ? '#fff' : 'var(--text-secondary)'};cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;`}">${o.l}</button>`;
-        }).join('')}
-      </div>
-
-      <button data-onclick="saveBooksGoalFromUI()" class="set-save-btn" data-static-style="a416">Сохранить цель</button>
-      ${getBooksGoal() ? `<button data-onclick="setBooksGoal(0)" class="set-save-btn" data-static-style="a417">Снять цель</button>` : ''}
-      <div data-static-style="a418">Прогресс-бар появится на главной странице</div>
-    </div>
-
-    <!-- Размер шрифта читалки -->
-    <div class="set-row">
-      <label>Размер шрифта в читалке</label>
-      <div data-static-style="a407">
-        ${[{p:90,l:'А-'},{p:100,l:'А'},{p:115,l:'А+'},{p:130,l:'А++'}].map(o => `
-          <button data-onclick="setReaderFontScale(${o.p})" data-dynamic-style="${dynamicStyleToken`flex:1;padding:10px;background:${fontScale === o.p ? 'var(--accent-gradient)' : 'transparent'};border:none;color:${fontScale === o.p ? '#fff' : 'var(--text-secondary)'};border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;`}">
-            ${o.l}
-          </button>
-        `).join('')}
-      </div>
-      <div data-static-style="a410">Масштаб страницы при открытии книги</div>
-    </div>
-  `;
+  c.replaceChildren(
+    _accountNode('h3', 'a350', 'Персонализация'),
+    createRow('Тема приложения', themeChoices),
+    createRow('Карточек книг в ряд', gridChoices),
+    createRow('Предпросмотр', preview, 'Изменения применяются ко всему каталогу'),
+    createRow('Цель чтения (страниц в день)', readingGoalChoices, 'Цель отображается в профиле и тепловой карте'),
+    booksGoalRow,
+    createRow('Размер шрифта в читалке', fontChoices, 'Масштаб страницы при открытии книги'),
+  );
 }
 
 function setGridSize(n) {
