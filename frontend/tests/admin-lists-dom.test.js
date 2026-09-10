@@ -36,6 +36,10 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(source, context);
+context.openBookAnalyticsModal = id => calls.push(['analytics', id]);
+context.openAdminBookModal = id => calls.push(['edit', id]);
+context.deleteBook = id => calls.push(['book-delete', id]);
+context.deleteReviewAndRefresh = (bookId, reviewId) => calls.push(['review-delete', bookId, reviewId]);
 
 const payload = '<img src=x onerror=alert(1)>';
 const tbody = dom.window.document.getElementById('books');
