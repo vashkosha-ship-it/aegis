@@ -18,7 +18,6 @@ account-settings.js	tab ? tab.label : ''
 account-settings.js	tab.label
 account-settings.js	topCats.length ? topCats.map(([cat, n]) => { const pct = Math.round(n / topCats[0][1] * 100); return `<div data-static-s
 account-settings.js	weeks.map(w => `<div title="${w} стр." data-dynamic-style="${dynamicStyleToken`flex:1;min-width:4px;height:${Math.max(4,
-admin-screens.js	sensitiveNonce()
 ar-schemes.js	AR_3D.pyramid
 ar-schemes.js	arrows
 ar-schemes.js	cards

@@ -11,7 +11,7 @@ vm.createContext(context);
 vm.runInContext(source, context);
 const target = dom.window.document.getElementById('target');
 context.replaceAdminStaticMarkup(target, '<section><button data-onclick="closeModal()">Закрыть</button></section>');
-assert.equal(target.querySelectorAll('section button').length, 1);
+assert.equal(target.querySelectorAll('section button').length, 0);
 assert.equal(target.textContent, 'Закрыть');
 assert.equal(target.querySelector('b'), null);
 assert.equal((source.match(/\.innerHTML\s*=/g) || []).length, 1);
