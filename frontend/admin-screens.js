@@ -1611,6 +1611,19 @@ async function loadAndRenderAdminUsers() {
   }
 }
 
+function appendAdminMetric(container, value, label, valueStyle) {
+  const card = document.createElement('div');
+  card.setAttribute('data-static-style', 'a553');
+  const valueNode = document.createElement('div');
+  valueNode.setAttribute('data-static-style', valueStyle);
+  valueNode.textContent = String(value);
+  const labelNode = document.createElement('div');
+  labelNode.setAttribute('data-static-style', 'a192');
+  labelNode.textContent = label;
+  card.append(valueNode, labelNode);
+  container.appendChild(card);
+}
+
 function renderAdminUsersWithFilter() {
   const container = document.getElementById('adUsers');
   const users = state._adminUsers || [];
@@ -1621,137 +1634,132 @@ function renderAdminUsersWithFilter() {
 
   const filter = state._adminUsersFilter || 'all';
   const limit = state._adminUsersLimit || 10;
-
-  let sorted = [...users];
+  const sorted = [...users];
   let title = '';
   if (filter === 'top_books') {
-    sorted.sort((a, b) => (b.completed_books || 0) - (a.completed_books || 0));
+    sorted.sort((left, right) => (right.completed_books || 0) - (left.completed_books || 0));
     title = `ТОП-${limit} по прочитанным книгам`;
   } else if (filter === 'top_xp') {
-    sorted.sort((a, b) => (b.xp || 0) - (a.xp || 0));
+    sorted.sort((left, right) => (right.xp || 0) - (left.xp || 0));
     title = `ТОП-${limit} по XP (активности)`;
   } else if (filter === 'top_perfect') {
-    sorted.sort((a, b) => (b.perfect_quizzes || 0) - (a.perfect_quizzes || 0));
+    sorted.sort((left, right) => (right.perfect_quizzes || 0) - (left.perfect_quizzes || 0));
     title = `ТОП-${limit} по тестам на 100%`;
   }
-
   const displayed = filter === 'all' ? sorted : sorted.slice(0, limit);
 
-  // Сводная статистика — по всем юзерам
-  const totalUsers = users.length;
-  const activeUsers = users.filter(u => u.is_active).length;
-  const totalCompleted = users.reduce((s, u) => s + (u.completed_books || 0), 0);
-  const totalAttempts = users.reduce((s, u) => s + (u.quiz_attempts || 0), 0);
+  const actions = document.createElement('div');
+  actions.className = 'admin-actions-bar';
+  actions.setAttribute('data-static-style', 'a561');
+  const actionButton = (label, titleText, style, callback) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.title = titleText;
+    button.setAttribute('data-static-style', style);
+    button.textContent = label;
+    button.addEventListener('click', callback);
+    actions.appendChild(button);
+    return button;
+  };
+  actionButton('Создать пользователя', 'Создать пользователя', 'a562', openCreateUserModal);
+  const pending = actionButton('Заявки', 'Заявки на регистрацию', 'a563', openPendingUsersModal);
+  const badge = document.createElement('span');
+  badge.id = 'pendingUsersBadge';
+  badge.setAttribute('data-static-style', 'a564');
+  pending.appendChild(badge);
+  actionButton('Excel', 'Выгрузка прочитанного в Excel', 'a565', openExportModal);
 
-  const miniDash = `
-    <div data-static-style="a552">
-      <div data-static-style="a553">
-        <div data-static-style="a245">${totalUsers}</div>
-        <div data-static-style="a192">Всего пользователей</div>
-      </div>
-      <div data-static-style="a553">
-        <div data-static-style="a554">${activeUsers}</div>
-        <div data-static-style="a192">Активных</div>
-      </div>
-      <div data-static-style="a553">
-        <div data-static-style="a242">${totalCompleted}</div>
-        <div data-static-style="a192">Книг прочитано (всеми)</div>
-      </div>
-      <div data-static-style="a553">
-        <div data-static-style="a555">${totalAttempts}</div>
-        <div data-static-style="a192">Попыток тестов</div>
-      </div>
-    </div>
-  `;
+  const dashboard = document.createElement('div');
+  dashboard.setAttribute('data-static-style', 'a552');
+  appendAdminMetric(dashboard, users.length, 'Всего пользователей', 'a245');
+  appendAdminMetric(dashboard, users.filter(user => user.is_active).length, 'Активных', 'a554');
+  appendAdminMetric(dashboard, users.reduce((sum, user) => sum + (user.completed_books || 0), 0), 'Книг прочитано (всеми)', 'a242');
+  appendAdminMetric(dashboard, users.reduce((sum, user) => sum + (user.quiz_attempts || 0), 0), 'Попыток тестов', 'a555');
 
-  const filterPanel = `
-    <div data-static-style="a556">
-      <label data-static-style="a192">Показать:</label>
-      <select id="adminUsersFilter" data-onchange="onAdminUsersFilterChange()" data-static-style="a557">
-        <option value="all"${filter==='all'?' selected':''}>Все</option>
-        <option value="top_books"${filter==='top_books'?' selected':''}>ТОП по прочитанным книгам</option>
-        <option value="top_xp"${filter==='top_xp'?' selected':''}>ТОП по XP (активности)</option>
-        <option value="top_perfect"${filter==='top_perfect'?' selected':''}>ТОП по тестам на 100%</option>
-      </select>
-      ${filter !== 'all' ? `
-        <label data-static-style="a558">Размер ТОП:</label>
-        <select id="adminUsersLimit" data-onchange="onAdminUsersLimitChange()" data-static-style="a557">
-          <option value="5"${limit===5?' selected':''}>5</option>
-          <option value="10"${limit===10?' selected':''}>10</option>
-          <option value="25"${limit===25?' selected':''}>25</option>
-          <option value="50"${limit===50?' selected':''}>50</option>
-        </select>
-      ` : ''}
-    </div>
-    ${title ? `<div data-static-style="a559">${title}</div>` : ''}
-  `;
+  const filters = document.createElement('div');
+  filters.setAttribute('data-static-style', 'a556');
+  const filterLabel = document.createElement('label');
+  filterLabel.setAttribute('data-static-style', 'a192');
+  filterLabel.textContent = 'Показать:';
+  const filterSelect = document.createElement('select');
+  filterSelect.id = 'adminUsersFilter';
+  filterSelect.setAttribute('data-static-style', 'a557');
+  replaceSelectOptions(filterSelect, [
+    { value: 'all', label: 'Все', selected: filter === 'all' },
+    { value: 'top_books', label: 'ТОП по прочитанным книгам', selected: filter === 'top_books' },
+    { value: 'top_xp', label: 'ТОП по XP (активности)', selected: filter === 'top_xp' },
+    { value: 'top_perfect', label: 'ТОП по тестам на 100%', selected: filter === 'top_perfect' },
+  ]);
+  filterSelect.addEventListener('change', onAdminUsersFilterChange);
+  filters.append(filterLabel, filterSelect);
+  if (filter !== 'all') {
+    const limitLabel = document.createElement('label');
+    limitLabel.setAttribute('data-static-style', 'a558');
+    limitLabel.textContent = 'Размер ТОП:';
+    const limitSelect = document.createElement('select');
+    limitSelect.id = 'adminUsersLimit';
+    limitSelect.setAttribute('data-static-style', 'a557');
+    replaceSelectOptions(limitSelect, [5, 10, 25, 50].map(value => ({
+      value, label: value, selected: limit === value,
+    })));
+    limitSelect.addEventListener('change', onAdminUsersLimitChange);
+    filters.append(limitLabel, limitSelect);
+  }
 
-  const tableHtml = `
-    <div class="table-wrap"><table>
-      <thead><tr>
-        ${filter !== 'all' ? '<th>#</th>' : ''}
-        <th>ID</th>
-        <th>Логин</th>
-        <th>ФИО</th>
-        <th>Подразделение</th>
-        <th>Email</th>
-        <th>Роль</th>
-        <th>Уровень</th>
-        <th>XP</th>
-        <th>Стрик</th>
-        <th>Книг прочит.</th>
-        <th>Тестов</th>
-        <th>На 100%</th>
-        <th>Страниц</th>
-        <th>Активен</th>
-        <th>Действия</th>
-      </tr></thead>
-      <tbody>
-        ${displayed.map((u, idx) => {
-          const levelInfo = u.cyber_level ? getCyberLevelInfo(u.cyber_level) : null;
-          return `<tr>
-            ${filter !== 'all' ? `<td data-static-style="a560">${idx + 1}</td>` : ''}
-            <td>${u.id}</td>
-            <td>${eh(u.username)}</td>
-            <td>${eh(u.full_name || '—')}</td>
-            <td>${eh(u.department || '—')}</td>
-            <td>${eh(u.email || '—')}</td>
-            <td>${u.role}</td>
-            <td>${levelInfo ? eh(levelInfo.name) : '—'}</td>
-            <td>${u.xp}</td>
-            <td>${u.streak_count}</td>
-            <td>${u.completed_books}</td>
-            <td>${u.quiz_attempts}</td>
-            <td>${u.perfect_quizzes}</td>
-            <td>${u.total_pages_read}</td>
-            <td>${u.is_active ? ICONS.check : ICONS.x}</td>
-            <td>${u.role !== 'admin'
-              ? `<button class="btn-sm danger" data-onclick="deleteAdminUser(${u.id}, '${eh(u.username).replace(/'/g, "\\'")}')" data-nonce="${sensitiveNonce()}">${ICONS.trash}</button>`
-              : '—'}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table></div>
-  `;
+  const fragment = document.createDocumentFragment();
+  fragment.append(actions, dashboard, filters);
+  if (title) {
+    const heading = document.createElement('div');
+    heading.setAttribute('data-static-style', 'a559');
+    heading.textContent = title;
+    fragment.appendChild(heading);
+  }
 
-  const actionsBar = `
-    <div class="admin-actions-bar" data-static-style="a561">
-      <button data-onclick="openCreateUserModal()" title="Создать пользователя" data-static-style="a562">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="11" x2="19" y2="17"/><line x1="16" y1="14" x2="22" y2="14"/></svg>
-        Создать пользователя
-      </button>
-      <button data-onclick="openPendingUsersModal()" title="Заявки на регистрацию" data-static-style="a563">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-        Заявки
-        <span id="pendingUsersBadge" data-static-style="a564"></span>
-      </button>
-      <button data-onclick="openExportModal()" title="Выгрузка прочитанного в Excel" data-static-style="a565">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Excel
-      </button>
-    </div>`;
-
-  container.innerHTML = actionsBar + miniDash + filterPanel + tableHtml;
+  const wrap = document.createElement('div');
+  wrap.className = 'table-wrap';
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const header = document.createElement('tr');
+  const headers = ['ID', 'Логин', 'ФИО', 'Подразделение', 'Email', 'Роль', 'Уровень', 'XP', 'Стрик', 'Книг прочит.', 'Тестов', 'На 100%', 'Страниц', 'Активен', 'Действия'];
+  if (filter !== 'all') headers.unshift('#');
+  headers.forEach(label => {
+    const th = document.createElement('th');
+    th.textContent = label;
+    header.appendChild(th);
+  });
+  thead.appendChild(header);
+  const tbody = document.createElement('tbody');
+  displayed.forEach((user, index) => {
+    const row = document.createElement('tr');
+    if (filter !== 'all') {
+      const place = appendAdminCell(row, index + 1);
+      place.setAttribute('data-static-style', 'a560');
+    }
+    const levelInfo = user.cyber_level ? getCyberLevelInfo(user.cyber_level) : null;
+    [user.id, user.username, user.full_name || '—', user.department || '—', user.email || '—',
+      user.role, levelInfo ? levelInfo.name : '—', user.xp, user.streak_count, user.completed_books,
+      user.quiz_attempts, user.perfect_quizzes, user.total_pages_read].forEach(value => appendAdminCell(row, value));
+    const active = document.createElement('td');
+    appendTrustedIcon(active, user.is_active ? ICONS.check : ICONS.x);
+    row.appendChild(active);
+    const userActions = document.createElement('td');
+    if (user.role !== 'admin') {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'btn-sm danger';
+      appendTrustedIcon(remove, ICONS.trash);
+      remove.addEventListener('click', () => deleteAdminUser(user.id, user.username));
+      userActions.appendChild(remove);
+    } else {
+      userActions.textContent = '—';
+    }
+    row.appendChild(userActions);
+    tbody.appendChild(row);
+  });
+  table.append(thead, tbody);
+  wrap.appendChild(table);
+  fragment.appendChild(wrap);
+  container.replaceChildren(fragment);
   refreshPendingBadge();
 }
 
