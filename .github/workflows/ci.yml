@@ -291,6 +291,9 @@ jobs:
       - name: Тест безопасной таблицы пользователей
         run: node tests/admin-users-dom.test.js
 
+      - name: Тест статических оболочек администратора
+        run: node tests/admin-static-shells.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 

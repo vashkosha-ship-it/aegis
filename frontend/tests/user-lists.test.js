@@ -39,6 +39,7 @@ function replaceWithStaticText(document, container, text, style) {
   };
   const adminContext = {
     document: adminDom.window.document,
+  DOMParser: adminDom.window.DOMParser,
     api: { library: {
       adminLogs: async () => [{
         action: '<img src=x>', detail: '<script>alert(1)</script>',
