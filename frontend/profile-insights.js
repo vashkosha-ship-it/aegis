@@ -161,15 +161,23 @@ async function renderHeatmap() {
   await loadHeatmapFromApi();
   const days = state.heatmapData || [];
 
-  c.innerHTML = days.map(d => {
-    const p = d.pages || 0;
+  const fragment = document.createDocumentFragment();
+  days.forEach(day => {
+    const p = Number(day.pages) || 0;
     let level = 0;
     if (p > 0) level = 1;
     if (p >= 10) level = 2;
     if (p >= 30) level = 3;
     if (p >= 50) level = 4;
-    return `<div class="heatmap-cell level-${level}" data-date="${d.date}" data-pages="${p}" data-onclick="showHeatmapDayDetails('${d.date}')" title="${d.date}: ${p} стр."></div>`;
-  }).join('');
+    const cell = document.createElement('div');
+    cell.className = `heatmap-cell level-${level}`;
+    cell.dataset.date = String(day.date ?? '');
+    cell.dataset.pages = String(p);
+    cell.title = `${cell.dataset.date}: ${p} стр.`;
+    cell.addEventListener('click', () => showHeatmapDayDetails(cell.dataset.date));
+    fragment.appendChild(cell);
+  });
+  c.replaceChildren(fragment);
 }
 
 async function showHeatmapDayDetails(date) {

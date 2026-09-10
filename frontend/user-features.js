@@ -220,16 +220,34 @@ async function renderMyCertificates() {
   try {
     const certs = await api.library.certMine();
     if (!certs.length) { el.replaceChildren(); return; }
-    el.innerHTML = certs.map(c => `
-      <div data-static-style="a138">
-        <div><span data-static-style="a139">${eh(c.category)}</span> <span data-static-style="a140">· ${c.score}%</span></div>
-        <button data-onclick="downloadCertificate('${encodeURIComponent(c.category).replace(/'/g, '')}')" data-static-style="a141">Скачать PDF</button>
-      </div>`).join('');
+    const fragment = document.createDocumentFragment();
+    certs.forEach(cert => {
+      const row = document.createElement('div');
+      row.setAttribute('data-static-style', 'a138');
+      const summary = document.createElement('div');
+      const category = document.createElement('span');
+      category.setAttribute('data-static-style', 'a139');
+      category.textContent = String(cert.category ?? '');
+      const score = document.createElement('span');
+      score.setAttribute('data-static-style', 'a140');
+      score.textContent = `· ${cert.score}%`;
+      summary.append(category, document.createTextNode(' '), score);
+      const download = document.createElement('button');
+      download.type = 'button';
+      download.setAttribute('data-static-style', 'a141');
+      download.textContent = 'Скачать PDF';
+      download.addEventListener('click', () => downloadCertificate(cert.category, false));
+      row.append(summary, download);
+      fragment.appendChild(row);
+    });
+    el.replaceChildren(fragment);
   } catch (_) { el.replaceChildren(); }
 }
 
-async function downloadCertificate(categoryEnc) {
-  const category = decodeURIComponent(categoryEnc);
+async function downloadCertificate(categoryValue, encoded = true) {
+  const category = encoded
+    ? decodeURIComponent(String(categoryValue ?? ''))
+    : String(categoryValue ?? '');
   try {
     const blob = await api.library.certPdfBlob(category);
     const url = URL.createObjectURL(blob);

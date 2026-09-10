@@ -270,8 +270,10 @@ function miniStat(label, value, color) {
 function populateAnalyticsBookSelector() {
   const sel = document.getElementById('analyticsBookSelector');
   if (!sel) return;
-  sel.innerHTML = '<option value="">— выбрать книгу —</option>' +
-    state.books.map(b => `<option value="${b.id}">${eh(b.title)}</option>`).join('');
+  replaceSelectOptions(sel, [
+    { value: '', label: '— выбрать книгу —' },
+    ...state.books.map(book => ({ value: book.id, label: book.title })),
+  ]);
 }
 
 function onAnalyticsBookSelected() {

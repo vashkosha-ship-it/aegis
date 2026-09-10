@@ -50,7 +50,7 @@ const context = {
   state,
   api: { library: {
     leaderboard: async () => [{ place: 1, full_name: '<Alice>', xp: 100, streak_count: 3 }],
-    heatmap: async () => ({ days: [{ date: '2026-09-07', pages: 32 }] }),
+    heatmap: async () => ({ days: [{ date: '2026-09-07"><img src=x>', pages: 32 }] }),
     dayStats: async () => ({
       pages_read: 5, quiz_attempts: 0, annotations_count: 1,
       highlights_count: 1, notes_count: 0,
@@ -78,6 +78,9 @@ vm.runInContext(source, context);
   const cell = dom.window.document.querySelector('.heatmap-cell');
   assert.ok(cell.classList.contains('level-3'));
   assert.equal(cell.dataset.pages, '32');
+  assert.equal(cell.dataset.date, '2026-09-07"><img src=x>');
+  assert.equal(cell.getAttribute('data-onclick'), null);
+  assert.equal(dom.window.document.querySelector('#heatmapContainer img'), null);
 
   await context.renderSkillsRadar();
   assert.equal(charts.length, 1);

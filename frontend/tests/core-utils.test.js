@@ -12,7 +12,7 @@ const appSource = fs.readFileSync(path.join(frontendDir, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
 const swSource = fs.readFileSync(path.join(frontendDir, 'sw.js'), 'utf8');
 
-const dom = new JSDOM('<div id="particlesContainer"></div><div id="messageTarget"><b>old</b></div>');
+const dom = new JSDOM('<div id="particlesContainer"></div><div id="messageTarget"><b>old</b></div><select id="selectTarget"></select>');
 const context = vm.createContext({
   document: dom.window.document,
   Date,
@@ -40,6 +40,15 @@ const message = dom.window.document.querySelector('#messageTarget > span');
 assert.equal(message.textContent, '<img src=x onerror=alert(1)>');
 assert.equal(message.getAttribute('data-static-style'), 'a130');
 assert.equal(message.querySelector('img'), null);
+
+vm.runInContext(
+  `replaceSelectOptions(document.getElementById('selectTarget'), [{ value: '1"><img src=x>', label: '<Book>' }])`,
+  context,
+);
+const option = dom.window.document.querySelector('#selectTarget option');
+assert.equal(option.value, '1"><img src=x>');
+assert.equal(option.textContent, '<Book>');
+assert.equal(option.querySelector('img'), null);
 
 const today = vm.runInContext('getTodayISO()', context);
 const yesterday = vm.runInContext('getYesterdayISO()', context);

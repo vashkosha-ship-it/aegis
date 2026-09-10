@@ -48,6 +48,14 @@ const context = {
     node.setAttribute('data-static-style', style);
     container.replaceChildren(node);
   },
+  replaceSelectOptions: (select, items) => {
+    select.replaceChildren(...items.map(item => {
+      const option = dom.window.document.createElement('option');
+      option.value = String(item.value ?? item);
+      option.textContent = String(item.label ?? item);
+      return option;
+    }));
+  },
   dynamicStyleToken: () => 'test-style',
   Chart: ChartStub,
   api: { library: { adminBookAnalytics: async () => bookAnalytics } },

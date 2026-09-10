@@ -49,6 +49,12 @@ assert.ok(dom.window.document.getElementById('catalogPanel').classList.contains(
 assert.equal(dom.window.document.querySelectorAll('.catalog-chip').length, 3);
 assert.equal(dom.window.document.querySelector('#catalogChips img'), null);
 assert.match(dom.window.document.getElementById('catalogChips').innerHTML, /&lt;img src=x&gt;/);
+assert.equal(dom.window.document.querySelector('.catalog-chip').getAttribute('data-onclick'), null);
+assert.equal(context._catCache, undefined);
+
+dom.window.document.querySelector('.catalog-chip').dispatchEvent(new dom.window.Event('click'));
+assert.deepEqual(Array.from(context.state.filters.categories), ['SOC']);
+context.state.filters.categories = [];
 
 context.toggleCategoryFilter('SOC');
 assert.deepEqual(Array.from(context.state.filters.categories), ['SOC']);
