@@ -1269,28 +1269,31 @@ function renderAdminBookRows(tbody, books) {
 
 function renderAdminBooks() {
   const container = document.getElementById('adBooks');
-  container.innerHTML = `
+  replaceAdminStaticMarkup(container, `
     <div data-static-style="a541">
       <div data-static-style="a542">
         <div data-static-style="a543">Всего книг:</div>
         <div id="adminBooksCount" data-static-style="a544"></div>
       </div>
-      <button data-onclick="openBulkUploadModal()" data-static-style="a545">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/><path d="M12 5v8"/><path d="M8 9l4-4 4 4"/></svg>
-        Массовая загрузка
-      </button>
-      <button data-onclick="reindexAllBooksUI()" data-nonce="${sensitiveNonce()}" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">Индексировать поиск</button>
-      <button data-onclick="openAdminLogs()" title="Журнал действий администраторов" data-static-style="a547">Журнал</button>
-      <button data-onclick="generateMissingCoversUI()" data-nonce="${sensitiveNonce()}" title="Создать обложки для книг без обложки" data-static-style="a547">Обложки</button>
-      <button data-onclick="aiMatchArBooksUI()" data-nonce="${sensitiveNonce()}" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">Подобрать книги для AR</button>
-      <button data-onclick="regenerateAllQuizzesUI()" data-nonce="${sensitiveNonce()}" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">Перегенерировать тесты</button>
+      <button id="adminBulkUploadBtn" data-static-style="a545">Массовая загрузка</button>
+      <button id="adminReindexBtn" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">Индексировать поиск</button>
+      <button id="adminLogsBtn" title="Журнал действий администраторов" data-static-style="a547">Журнал</button>
+      <button id="adminCoversBtn" title="Создать обложки для книг без обложки" data-static-style="a547">Обложки</button>
+      <button id="adminArMatchBtn" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">Подобрать книги для AR</button>
+      <button id="adminRegenerateQuizzesBtn" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">Перегенерировать тесты</button>
     </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Книга</th><th>Автор</th><th>Категория</th><th>Формат</th><th>Рейтинг</th><th>Действия</th></tr></thead>
         <tbody id="adminBooksTableBody"></tbody>
       </table>
-    </div>`;
+    </div>`);
+  document.getElementById('adminBulkUploadBtn').addEventListener('click', openBulkUploadModal);
+  document.getElementById('adminReindexBtn').addEventListener('click', reindexAllBooksUI);
+  document.getElementById('adminLogsBtn').addEventListener('click', openAdminLogs);
+  document.getElementById('adminCoversBtn').addEventListener('click', generateMissingCoversUI);
+  document.getElementById('adminArMatchBtn').addEventListener('click', aiMatchArBooksUI);
+  document.getElementById('adminRegenerateQuizzesBtn').addEventListener('click', regenerateAllQuizzesUI);
   document.getElementById('adminBooksCount').textContent = String(state.books.length);
   renderAdminBookRows(document.getElementById('adminBooksTableBody'), state.books);
 }
