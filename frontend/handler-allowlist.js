@@ -59,7 +59,7 @@ window.AEGIS_ALLOWED_HANDLERS = Object.freeze({
     'toggleTocRead', 'zoomARScheme',
   ],
   change: [
-    'onAnalyticsBookSelected', 'onBookStatusChange',
+    'onAnalyticsBookSelected', 'onBookStatusChange', 'uploadAvatar',
   ],
   input: [
     'onSearchInput',
