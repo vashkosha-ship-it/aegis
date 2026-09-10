@@ -14,7 +14,7 @@ context.replaceAdminStaticMarkup(target, '<section><button data-onclick="closeMo
 assert.equal(target.querySelectorAll('section button').length, 1);
 assert.equal(target.textContent, 'Закрыть');
 assert.equal(target.querySelector('b'), null);
-assert.equal((source.match(/\.innerHTML\s*=/g) || []).length, 1);
+assert.equal((source.match(/\.innerHTML\s*=/g) || []).length, 0);
 assert.match(source, /replaceAdminStaticMarkup\(m,/);
 assert.match(source, /replaceAdminStaticMarkup\(modal,/);
 console.log('admin static shell tests passed');
