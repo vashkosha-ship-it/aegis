@@ -297,6 +297,9 @@ jobs:
       - name: Тест статических оболочек администратора
         run: node tests/admin-static-shells.test.js
 
+      - name: Тест статических UI-компонентов
+        run: node tests/static-ui-dom.test.js
+
       - name: Тест безопасных пользовательских списков
         run: node tests/user-lists.test.js
 

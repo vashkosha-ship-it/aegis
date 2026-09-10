@@ -46,7 +46,7 @@ const context = {
   state: { currentUser: { name: 'alice' }, completedQuizzes: {} },
   ICONS: { chevronLeft: '<', chevronRight: '>', check: 'OK', x: 'X', shield: 'S', education: 'E', refresh: 'R' },
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
-  loadingSpinnerHTML: message => `loading:${message}`,
+  renderLoadingSpinner: (container, message) => { container.textContent = `loading:${message}`; },
   showToast: message => toasts.push(message),
   refreshGamificationFromApi: () => { gamificationRefreshes += 1; },
   console,

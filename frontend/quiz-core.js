@@ -67,7 +67,7 @@ async function fetchQuizForBook(bookId) {
 async function startQuiz(bookId) {
   // Показываем спиннер, пока грузятся/генерируются вопросы (может быть долго при AI-генерации)
   const c = document.getElementById('detailTabTraining');
-  if (c) c.innerHTML = loadingSpinnerHTML('Готовим тест…');
+  renderLoadingSpinner(c, 'Готовим тест…');
   const { questions, sessionToken } = await fetchQuizForBook(bookId);
   if (!questions.length) return showToast('Нет вопросов теста');
 
@@ -95,7 +95,7 @@ function startCombinedQuiz(bookIds) {
 // Бэк отдаёт случайную выборку вопросов, поэтому каждый повтор — новый набор.
 async function retakeQuiz(bookId) {
   const c = document.getElementById('detailTabTraining');
-  if (c) c.innerHTML = loadingSpinnerHTML('Готовим новый тест…');
+  renderLoadingSpinner(c, 'Готовим новый тест…');
   return startQuiz(bookId);
 }
 
