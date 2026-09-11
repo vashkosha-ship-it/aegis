@@ -10,6 +10,8 @@
 """
 from __future__ import annotations
 
+from app import main
+
 
 class TestHealth:
     async def test_health_is_fast_and_simple(self, client):
@@ -54,7 +56,10 @@ class TestReadiness:
         for component in ("database", "redis", "storage", "queue"):
             assert component in checks, f"нет проверки {component}"
 
-    async def test_queue_is_optional(self, client):
-        """Без очереди сайт работает: не идёт только индексация книг."""
+    async def test_queue_requirement_matches_configuration(self, client):
+        """Режим очереди берётся из настройки, а не зашит в endpoint."""
         r = await client.get("../ready")
-        assert r.json()["checks"]["queue"]["required"] is False
+        assert (
+            r.json()["checks"]["queue"]["required"]
+            is main.settings.QUEUE_REQUIRED_FOR_READINESS
+        )

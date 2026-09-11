@@ -16,10 +16,15 @@ WorkingDirectory=/opt/aegis/backend
 # "Permission denied: '/var/www/.gunicorn'".
 Environment="HOME=/opt/aegis/backend"
 EnvironmentFile=/opt/aegis/backend/.env
+# В production невозможность поставить книгу на индексацию означает, что
+# приложение предоставляет не весь заявленный функционал. /ready вернёт 503.
+# env запускает gunicorn с окончательным значением, поэтому запись в .env не
+# сможет случайно ослабить production-проверку.
 
 # -w 2: по числу ядер. Учтите, что счётчики в памяти процесса при этом
 # дублируются на каждый воркер — поэтому rate limiting вынесен в Redis.
-ExecStart=/opt/aegis/backend/.venv/bin/gunicorn app.main:app \
+ExecStart=/usr/bin/env QUEUE_REQUIRED_FOR_READINESS=true \
+    /opt/aegis/backend/.venv/bin/gunicorn app.main:app \
     -k uvicorn.workers.UvicornWorker \
     -w 2 \
     -b 127.0.0.1:8000

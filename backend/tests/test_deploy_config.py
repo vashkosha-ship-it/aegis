@@ -267,6 +267,7 @@ class TestHealthRouting:
         assert '\"redis\":{\"ok\":true' in script
         assert '\"database\":{\"ok\":true' in script
         assert '\"storage\":{\"ok\":true' in script
+        assert '\"queue\":{\"ok\":true,\"required\":true' in script
 
     def test_range_check_requires_auth_and_validates_206(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
@@ -304,6 +305,7 @@ class TestHealthRouting:
         service = BACKEND_SERVICE.read_text(encoding="utf-8")
 
         assert "Requires=redis-server.service" in service
+        assert "ExecStart=/usr/bin/env QUEUE_REQUIRED_FOR_READINESS=true" in service
 
 
 class TestLogRetention:

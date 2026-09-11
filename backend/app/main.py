@@ -20,16 +20,6 @@ logger = logging.getLogger(__name__)
 # удаляется при каждом обращении к /ready.
 READINESS_PROBE_FILENAME = ".readiness-probe"
 
-# Считать ли неработающую очередь поводом объявить сервис неготовым.
-#
-# False: без очереди не идёт индексация новых книг, но читать, проходить тесты
-# и получать сертификаты можно. Снимать сервер с ротации из-за этого — значит
-# променять работающий сайт на неработающий.
-#
-# Поставьте True, если индексация критична настолько, что сервер без неё
-# бесполезен. Тогда /ready начнёт отдавать 503, и балансировщик выведет узел.
-QUEUE_REQUIRED_FOR_READINESS = False
-
 _KNOWN_UNSAFE_SECRET_KEYS = {
     "change-me-to-a-long-random-string-min-32-chars",
     "ci-test-secret-key-not-used-in-production",
@@ -337,11 +327,11 @@ async def _check_storage() -> dict:
 async def _check_queue() -> dict:
     """Очередь фоновых задач: индексация книг.
 
-    По умолчанию не влияет на общий вердикт — см. QUEUE_REQUIRED_FOR_READINESS.
-    Но её состояние видно в ответе, и при неработающей очереди сервис помечен
-    как работающий с ограничениями.
+    В локальной разработке может быть необязательной. Production-unit включает
+    QUEUE_REQUIRED_FOR_READINESS=true: без возможности поставить книгу на
+    индексацию сервис не должен выглядеть готовым к полной работе.
     """
-    required = QUEUE_REQUIRED_FOR_READINESS
+    required = settings.QUEUE_REQUIRED_FOR_READINESS
     try:
         from app.core.queue import get_queue
 
@@ -383,16 +373,17 @@ async def ready(response: Response) -> dict:
     хранилища приложение запущено, но бесполезно. Раньше это выяснялось
     только по жалобам пользователей.
 
-    Отдаёт 503, если недоступна обязательная часть. Необязательная (очередь)
-    на код ответа не влияет, но переводит сервис в состояние degraded — иначе
-    «работает, но книги не индексируются» выглядело бы полностью здоровым.
+    Отдаёт 503, если недоступна обязательная часть. Очередь обязательна в
+    production и необязательна в локальной разработке; во втором случае её
+    сбой переводит сервис в состояние degraded.
     """
     checks: dict[str, dict] = {
         "database": await _safe_check("database", _check_database),
         "redis": await _safe_check("redis", _check_redis),
         "storage": await _safe_check("storage", _check_storage),
         "queue": await _safe_check(
-            "queue", _check_queue, required=QUEUE_REQUIRED_FOR_READINESS
+            "queue", _check_queue,
+            required=settings.QUEUE_REQUIRED_FOR_READINESS,
         ),
     }
 

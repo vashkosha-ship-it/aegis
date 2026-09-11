@@ -149,4 +149,6 @@ unset AEGIS_HEALTH_TOKEN
 
 `/health` и `/ready` должны возвращать JSON backend, а не HTML главной
 страницы. `healthcheck.sh` проверяет не только HTTP 200, но и содержимое JSON,
-включая отдельный успешный статус Redis.
+включая Redis и обязательную production-очередь. Флаг
+`QUEUE_REQUIRED_FOR_READINESS=true` закреплён в `aegis.service`: если ARQ не
+принимает задачи, `/ready` отвечает 503, хотя быстрый `/health` остаётся 200.

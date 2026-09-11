@@ -165,14 +165,15 @@ else
         "HTTP $health, ответ: $(echo "$health_body" | head -c 120)"
 fi
 
-# /ready проверяет зависимости: базу, Redis, хранилище. Одним запросом видно
-# то, ради чего раньше приходилось смотреть каждый сервис по отдельности.
+# /ready проверяет зависимости: базу, Redis, хранилище и очередь. В production
+# очередь обязательна: без неё новые книги невозможно поставить на индексацию.
 ready_body=$(curl -s "$BASE/ready" 2>/dev/null)
 ready_code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/ready" 2>/dev/null)
 if [ "$ready_code" = "200" ] \
     && grep -q '"database":{"ok":true' <<<"$ready_body" \
     && grep -q '"redis":{"ok":true' <<<"$ready_body" \
-    && grep -q '"storage":{"ok":true' <<<"$ready_body"; then
+    && grep -q '"storage":{"ok":true' <<<"$ready_body" \
+    && grep -q '"queue":{"ok":true,"required":true' <<<"$ready_body"; then
     ok "/ready: обязательные зависимости доступны"
 else
     fail "/ready не подтвердил обязательные зависимости" \
