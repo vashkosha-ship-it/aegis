@@ -2001,6 +2001,149 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+
+function _arDetailNode(tagName, options = {}, children = []) {
+  const node = document.createElement(tagName);
+  if (options.id) node.id = options.id;
+  if (options.className) node.className = options.className;
+  if (options.staticStyle) node.dataset.staticStyle = options.staticStyle;
+  if (options.dynamicStyle) node.dataset.dynamicStyle = options.dynamicStyle;
+  if (options.text !== undefined) node.textContent = String(options.text);
+  if (options.disabled) node.disabled = true;
+  if (options.onClick) node.addEventListener('click', options.onClick);
+  children.forEach(child => node.appendChild(child));
+  return node;
+}
+
+function _arDetailTab(id, label, staticStyle) {
+  return _arDetailNode('button', {
+    id: 'killChainTabBtn-' + id,
+    className: 'killchain-tab-btn' + (id === 'attack' ? ' active' : ''),
+    staticStyle,
+    text: label,
+    onClick: () => switchKillChainTab(id),
+  });
+}
+
+function _arDetailList(id, items, visible) {
+  const list = _arDetailNode('ul', { staticStyle: 'a086' });
+  (items || []).forEach(item => {
+    list.appendChild(_arDetailNode('li', { staticStyle: 'a087', text: item }));
+  });
+  return _arDetailNode('div', {
+    id: 'killChainTabContent-' + id,
+    className: 'killchain-tab-content',
+    staticStyle: visible ? 'a085' : 'a088',
+  }, [list]);
+}
+
+function _renderKillChainStageDetails(stage, relatedBooks, stageId) {
+  const content = document.getElementById('arStageDetailContent');
+  if (!content) return;
+
+  const defense = stage.defenseMethod;
+  const defenseColor = defense ? defense.color : '#666';
+
+  const metaphor = _arDetailNode('div', { staticStyle: 'a077' }, [
+    _arDetailNode('div', { staticStyle: 'a078', text: 'МЕТАФОРА' }),
+    _arDetailNode('div', { staticStyle: 'a079', text: stage.metaphor || '—' }),
+  ]);
+
+  const defenseBadge = _arDetailNode('div', {
+    dynamicStyle: dynamicStyleToken`display:flex;align-items:center;gap:10px;background:${defenseColor}20;border:1px solid ${defenseColor}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;`,
+  }, [
+    _arDetailNode('div', {
+      dynamicStyle: dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${defenseColor};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;`,
+      text: defense ? defense.code.charAt(0) : '?',
+    }),
+    _arDetailNode('div', { staticStyle: 'a004' }, [
+      _arDetailNode('div', { staticStyle: 'a080', text: 'МЕТОД ЗАЩИТЫ (6D)' }),
+      _arDetailNode('div', {
+        dynamicStyle: dynamicStyleToken`font-size:13px;font-weight:700;color:${defense ? defense.color : '#fff'};`,
+        text: defense ? defense.code + ' — ' + defense.nameRu : '—',
+      }),
+    ]),
+  ]);
+
+  const tabs = _arDetailNode('div', { staticStyle: 'a082' }, [
+    _arDetailTab('attack', '⚔ АТАКА', 'a083'),
+    _arDetailTab('defense', '🛡 ЗАЩИТА', 'a084'),
+    _arDetailTab('tools', 'ИНСТРУМЕНТЫ', 'a084'),
+  ]);
+
+  let toolsContent;
+  if (stage.defenseTools && stage.defenseTools.length) {
+    const tools = _arDetailNode('div', { staticStyle: 'a089' });
+    stage.defenseTools.forEach(tool => {
+      tools.appendChild(_arDetailNode('div', {
+        dynamicStyle: dynamicStyleToken`background:${defenseColor}25;border:1px solid ${defenseColor}55;color:${defense ? defense.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;`,
+        text: tool,
+      }));
+    });
+    toolsContent = tools;
+  } else {
+    toolsContent = _arDetailNode('div', { staticStyle: 'a090', text: 'Список инструментов не задан' });
+  }
+  const toolsPanel = _arDetailNode('div', {
+    id: 'killChainTabContent-tools',
+    className: 'killchain-tab-content',
+    staticStyle: 'a088',
+  }, [toolsContent]);
+
+  let booksSection;
+  if (relatedBooks.length) {
+    const books = _arDetailNode('div', { staticStyle: 'a093' });
+    relatedBooks.slice(0, 3).forEach(book => {
+      books.appendChild(_arDetailNode('button', {
+        staticStyle: 'a094',
+        onClick: () => openBookFromAR(book.id),
+      }, [
+        _arDetailNode('div', { staticStyle: 'a095', text: book.title }),
+        _arDetailNode('div', { staticStyle: 'a096', text: book.author }),
+      ]));
+    });
+    booksSection = _arDetailNode('div', { staticStyle: 'a091' }, [
+      _arDetailNode('div', { staticStyle: 'a092', text: '📚 КНИГИ ПО ТЕМЕ' }),
+      books,
+    ]);
+  } else {
+    booksSection = _arDetailNode('div', {
+      staticStyle: 'a097',
+      text: 'Книг по теме «' + stage.relatedCategory + '» пока нет',
+    });
+  }
+
+  const lastStage = activeScheme().stages.length;
+  const previousDisabled = stageId === 1;
+  const nextDisabled = stageId === lastStage;
+  const navigation = _arDetailNode('div', { staticStyle: 'a098' }, [
+    _arDetailNode('button', {
+      disabled: previousDisabled,
+      dynamicStyle: dynamicStyleToken`flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${previousDisabled ? 'opacity:0.4;cursor:default;' : ''}`,
+      text: '← Назад',
+      onClick: prevKillChainStage,
+    }),
+    _arDetailNode('button', {
+      disabled: nextDisabled,
+      dynamicStyle: dynamicStyleToken`flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${nextDisabled ? 'opacity:0.4;cursor:default;' : ''}`,
+      text: 'Вперёд →',
+      onClick: nextKillChainStage,
+    }),
+  ]);
+
+  content.replaceChildren(
+    metaphor,
+    defenseBadge,
+    _arDetailNode('div', { staticStyle: 'a081', text: stage.description }),
+    tabs,
+    _arDetailList('attack', stage.attacker, true),
+    _arDetailList('defense', stage.defender, false),
+    toolsPanel,
+    booksSection,
+    navigation,
+  );
+}
+
 function selectKillChainStage(stageId) {
   const stage = activeScheme().stages.find(s => s.id === stageId);
   if (!stage) return;
@@ -2038,89 +2181,8 @@ function selectKillChainStage(stageId) {
     titleEl.textContent = `ЭТАП ${stage.id} — ${stage.nameRu.toUpperCase()}`;
   }
 
-  // Обновляем содержимое панели
-  const contentEl = document.getElementById('arStageDetailContent');
-  if (contentEl) {
-    contentEl.innerHTML = `
-      <div data-static-style="a077">
-        <div data-static-style="a078">МЕТАФОРА</div>
-        <div data-static-style="a079">${eh(stage.metaphor || '—')}</div>
-      </div>
-
-      <div data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;`}">
-        <div data-dynamic-style="${dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;`}">
-          ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
-        </div>
-        <div data-static-style="a004">
-          <div data-static-style="a080">МЕТОД ЗАЩИТЫ (6D)</div>
-          <div data-dynamic-style="${dynamicStyleToken`font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};`}">
-            ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
-          </div>
-        </div>
-      </div>
-
-      <div data-static-style="a081">${eh(stage.description)}</div>
-
-      <div data-static-style="a082">
-        <button data-onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" data-static-style="a083">
-          ${ICONS.iconSword} АТАКА
-        </button>
-        <button data-onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" data-static-style="a084">
-          ${ICONS.iconShield} ЗАЩИТА
-        </button>
-        <button data-onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" data-static-style="a084">
-          ИНСТРУМЕНТЫ
-        </button>
-      </div>
-
-      <div id="killChainTabContent-attack" class="killchain-tab-content" data-static-style="a085">
-        <ul data-static-style="a086">
-          ${stage.attacker.map(a => `<li data-static-style="a087">${eh(a)}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div id="killChainTabContent-defense" class="killchain-tab-content" data-static-style="a088">
-        <ul data-static-style="a086">
-          ${stage.defender.map(d => `<li data-static-style="a087">${eh(d)}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div id="killChainTabContent-tools" class="killchain-tab-content" data-static-style="a088">
-        ${(stage.defenseTools && stage.defenseTools.length) ? `
-          <div data-static-style="a089">
-            ${stage.defenseTools.map(t => `
-              <div data-dynamic-style="${dynamicStyleToken`background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;`}">
-                ${eh(t)}
-              </div>
-            `).join('')}
-          </div>
-        ` : `<div data-static-style="a090">Список инструментов не задан</div>`}
-      </div>
-
-      ${relatedBooks.length > 0 ? `
-        <div data-static-style="a091">
-          <div data-static-style="a092">${ICONS.iconBook} КНИГИ ПО ТЕМЕ</div>
-          <div data-static-style="a093">
-            ${relatedBooks.slice(0, 3).map(b => `
-              <button data-onclick="openBookFromAR(${b.id})" data-static-style="a094">
-                <div data-static-style="a095">${eh(b.title)}</div>
-                <div data-static-style="a096">${eh(b.author)}</div>
-              </button>
-            `).join('')}
-          </div>
-        </div>
-      ` : `
-        <div data-static-style="a097">
-          Книг по теме «${eh(stage.relatedCategory)}» пока нет
-        </div>
-      `}
-
-      <div data-static-style="a098">
-        <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}`}">← Назад</button>
-        <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}`}">Вперёд →</button>
-      </div>
-    `;
-  }
+  // Обновляем содержимое панели безопасными DOM-операциями
+  _renderKillChainStageDetails(stage, relatedBooks, stageId);
 
   // Показываем панель и СРАЗУ открываем полностью (без свайпа)
   const panel = document.getElementById('arStageDetails');
@@ -2259,133 +2321,6 @@ function applyKillChainViewMode() {
   });
 }
   
-  // Обновляем содержимое панели
-  const contentEl = document.getElementById('arStageDetailContent');
-  if (contentEl) {
-    contentEl.innerHTML = `
-      <!-- Метафора визуализации -->
-      <div data-static-style="a077">
-        <div data-static-style="a078">МЕТАФОРА</div>
-        <div data-static-style="a079">${eh(stage.metaphor || '—')}</div>
-      </div>
-
-      <!-- Бейдж метода защиты -->
-      <div data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:10px;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}20;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}66;border-radius:10px;padding:10px 12px;margin-bottom:14px;`}">
-        <div data-dynamic-style="${dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0;`}">
-          ${stage.defenseMethod ? stage.defenseMethod.code.charAt(0) : '?'}
-        </div>
-        <div data-static-style="a004">
-          <div data-static-style="a080">МЕТОД ЗАЩИТЫ (6D)</div>
-          <div data-dynamic-style="${dynamicStyleToken`font-size:13px;font-weight:700;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};`}">
-            ${stage.defenseMethod ? eh(stage.defenseMethod.code + ' — ' + stage.defenseMethod.nameRu) : '—'}
-          </div>
-        </div>
-      </div>
-
-      <!-- Описание -->
-      <div data-static-style="a081">${eh(stage.description)}</div>
-
-      <!-- Вкладки Атака / Защита / Инструменты -->
-      <div data-static-style="a082">
-        <button data-onclick="switchKillChainTab('attack')" id="killChainTabBtn-attack" class="killchain-tab-btn active" data-static-style="a083">
-          ${ICONS.iconSword} АТАКА
-        </button>
-        <button data-onclick="switchKillChainTab('defense')" id="killChainTabBtn-defense" class="killchain-tab-btn" data-static-style="a084">
-          ${ICONS.iconShield} ЗАЩИТА
-        </button>
-        <button data-onclick="switchKillChainTab('tools')" id="killChainTabBtn-tools" class="killchain-tab-btn" data-static-style="a084">
-          ⚙ ИНСТРУМЕНТЫ
-        </button>
-      </div>
-
-      <!-- Содержимое вкладок -->
-      <div id="killChainTabContent-attack" class="killchain-tab-content" data-static-style="a085">
-        <ul data-static-style="a086">
-          ${stage.attacker.map(a => `<li data-static-style="a087">${eh(a)}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div id="killChainTabContent-defense" class="killchain-tab-content" data-static-style="a088">
-        <ul data-static-style="a086">
-          ${stage.defender.map(d => `<li data-static-style="a087">${eh(d)}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div id="killChainTabContent-tools" class="killchain-tab-content" data-static-style="a088">
-        ${(stage.defenseTools && stage.defenseTools.length) ? `
-          <div data-static-style="a089">
-            ${stage.defenseTools.map(t => `
-              <div data-dynamic-style="${dynamicStyleToken`background:${stage.defenseMethod ? stage.defenseMethod.color : '#666'}25;border:1px solid ${stage.defenseMethod ? stage.defenseMethod.color : '#666'}55;color:${stage.defenseMethod ? stage.defenseMethod.color : '#fff'};padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;`}">
-                ${eh(t)}
-              </div>
-            `).join('')}
-          </div>
-        ` : `<div data-static-style="a090">Список инструментов не задан</div>`}
-      </div>
-
-      ${relatedBooks.length > 0 ? `
-        <div data-static-style="a091">
-          <div data-static-style="a092">${ICONS.iconBook} КНИГИ ПО ТЕМЕ</div>
-          <div data-static-style="a093">
-            ${relatedBooks.slice(0, 3).map(b => `
-              <button data-onclick="openBookFromAR(${b.id})" data-static-style="a094">
-                <div data-static-style="a095">${eh(b.title)}</div>
-                <div data-static-style="a096">${eh(b.author)}</div>
-              </button>
-            `).join('')}
-          </div>
-        </div>
-      ` : `
-        <div data-static-style="a097">
-          Книг по теме «${eh(stage.relatedCategory)}» пока нет
-        </div>
-      `}
-
-      <div data-static-style="a098">
-       <button data-onclick="prevKillChainStage()" ${stageId === 1 ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;${stageId === 1 ? 'opacity:0.4;cursor:default;' : ''}`}">← Назад</button>
-        <button data-onclick="nextKillChainStage()" ${stageId === activeScheme().stages.length ? 'disabled' : ''} data-dynamic-style="${dynamicStyleToken`flex:1;padding:12px;background:var(--accent-gradient);border:none;border-radius:10px;color:#000;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;${stageId === activeScheme().stages.length ? 'opacity:0.4;cursor:default;' : ''}`}">Вперёд →</button>
-      </div>
-    `;
-
-  // Показываем панель с анимацией
-  const panel = document.getElementById('arStageDetails');
-  if (panel) {
-    panel.style.display = 'block';
-    const isDesktop = window.innerWidth >= 1024;
-    if (isDesktop) {
-      panel.style.transition = '';
-      panel.style.transform = '';  // CSS берёт управление через класс
-      setTimeout(() => {
-        panel.classList.add('open');
-        // Помечаем корень чтобы сдвинуть контент
-        const root = document.getElementById('arSchemeRoot');
-        if (root) root.classList.add('panel-visible');
-      }, 10);
-      detailsPanelOpen = true;
-    } else {
-      panel.classList.remove('open');
-      setTimeout(() => {
-        const panelHeight = panel.offsetHeight;
-        panel.style.transform = `translateY(${panelHeight - 60}px)`;
-        detailsPanelOpen = false;
-      }, 10);
-    }
-  }
-
-  // Ripple-эффект на выбранной ноде
-  const selectedNode = document.getElementById('arNode' + stageId);
-  if (selectedNode) {
-    const ripple = document.createElement('div');
-    ripple.style.cssText = `position:absolute;top:50%;left:50%;width:100%;height:100%;
-      border-radius:50%;transform:translate(-50%,-50%) scale(1);
-      background:rgba(0,212,255,0.3);animation:arRipple 0.6s ease-out forwards;
-      pointer-events:none;z-index:2;`;
-    selectedNode.style.position = 'relative';
-    selectedNode.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 700);
-  }
-}
-
 function closeKillChainStage() {
   arSelectedStage = null;
   // Сбросить визуальное состояние нод
