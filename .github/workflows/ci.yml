@@ -258,6 +258,9 @@ jobs:
       - name: Тест локальных ответов AI
         run: node tests/ai-responses.test.js
 
+      - name: Тест статических AR-компонентов
+        run: node tests/ar-static-ui-dom.test.js
+
       - name: Тест AI-панели читалки
         run: node tests/reader-ai-panel.test.js
 
