@@ -1,5 +1,7 @@
 """AI-generated catalogue descriptions for administrator workflows."""
 
+from __future__ import annotations
+
 from app.services.deepseek_client import chat_completion
 
 
