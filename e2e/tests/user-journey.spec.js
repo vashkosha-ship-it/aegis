@@ -24,6 +24,16 @@ test('вход, каталог, профиль и настройки работ�
     timeout: 20_000,
   });
 
+  // У свежей учётной записи поверх интерфейса открывается одноразовый тур.
+  // Проверяем его штатное закрытие, иначе он честно перехватывает клики.
+  await page.waitForTimeout(900);
+  const tour = page.locator('#tourOverlay');
+  if (await tour.isVisible()) {
+    await expect(tour).toHaveAttribute('role', 'dialog');
+    await tour.locator('.tour-button--skip').click();
+    await expect(tour).toHaveCount(0);
+  }
+
   const catalogTotal = await page.evaluate(async () => {
     const data = await api.books.list({ per_page: 1, page: 1 });
     return data.total;

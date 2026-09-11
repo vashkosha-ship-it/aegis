@@ -113,8 +113,8 @@ class TestContentSecurityPolicy:
             "не нуждается"
         )
 
-    def test_style_src_exception_is_narrow(self, conf_lines):
-        """'unsafe-inline' допустим только для стилей и только там."""
+    def test_no_directive_allows_inline(self, conf_lines):
+        """Ни скрипты, ни стили больше не требуют unsafe-inline."""
         csp = _header_value(conf_lines, "Content-Security-Policy")
         directives = {
             d.strip().split()[0]: d.strip()
@@ -122,8 +122,6 @@ class TestContentSecurityPolicy:
             if d.strip()
         }
         for name, value in directives.items():
-            if name == "style-src":
-                continue
             assert "'unsafe-inline'" not in value, (
                 f"'unsafe-inline' появился в {name}"
             )
@@ -381,6 +379,24 @@ class TestNoInlineStylesInStaticMarkup:
         ]
         assert not offenders, f"inline style в index.html: строки {offenders[:10]}"
 
+    def test_all_html_uses_external_stylesheets(self):
+        offenders = []
+        for path in INDEX_HTML.parent.glob("*.html"):
+            html = path.read_text(encoding="utf-8")
+            if re.search(r"<style\b|\sstyle\s*=", html, re.IGNORECASE):
+                offenders.append(path.name)
+        assert not offenders, f"inline CSS в HTML: {offenders}"
+
+    def test_javascript_does_not_create_inline_stylesheets(self):
+        offenders = []
+        for path in INDEX_HTML.parent.glob("*.js"):
+            source = path.read_text(encoding="utf-8")
+            if re.search(r"createElement\(\s*['\"]style['\"]\s*\)", source):
+                offenders.append(path.name)
+            if re.search(r"<style\b|<[a-z][^>]*\sstyle\s*=", source, re.IGNORECASE):
+                offenders.append(path.name)
+        assert not offenders, f"inline CSS создаётся из JS: {sorted(set(offenders))}"
+
 
 class TestTemplateStyleExtraction:
     """Неизменяемые стили шаблонов должны жить во внешнем stylesheet."""
@@ -413,4 +429,4 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v290" in service_worker
+        assert "aegis-cache-v291" in service_worker

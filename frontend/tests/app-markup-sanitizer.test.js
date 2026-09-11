@@ -39,7 +39,7 @@ context.replaceWithAppMarkup(target, `
   <img src="javascript:alert(1)" onerror="alert(2)" data-onerror="replaceWithFallback()">
   <a href="javascript:alert(3)" target="_blank">link</a>
   <iframe srcdoc="<script>alert(4)</script>"></iframe>
-  <button data-onclick="navigateTo('home')" data-static-style="safe">Открыть</button>
+  <button data-onclick="navigateTo('home')" data-static-style="safe" style="position:fixed">Открыть</button>
   <svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"></circle></svg>
 `);
 
@@ -50,6 +50,7 @@ assert.equal(target.querySelector('img').dataset.onerror, 'replaceWithFallback()
 assert.equal(target.querySelector('a').hasAttribute('href'), false);
 assert.equal(target.querySelector('a').getAttribute('rel'), 'noopener noreferrer');
 assert.equal(target.querySelector('button').dataset.onclick, "navigateTo('home')");
+assert.equal(target.querySelector('button').hasAttribute('style'), false);
 assert.equal(target.querySelector('svg circle') !== null, true);
 assert.equal(context.pwned, undefined);
 

@@ -1920,32 +1920,9 @@ function showZoomIndicator(percent) {
   setTimeout(() => indicator.remove(), 800);
 }
 
-// Добавляем анимацию для индикатора зума
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes zoomFadeOut {
-    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    70% { opacity: 0.8; }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
-  }
-  
-  @keyframes fadeOut {
-    0% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-  
-  .ar-killchain-node {
-    transition: all 0.2s ease;
-  }
-  
-  .ar-killchain-node:active {
-    transform: scale(0.95);
-  }
-`;
-document.head.appendChild(style);
-
-
-function _arDetailNode(tagName, options = {}, children = []) {
+function _arDetailNode(tagName, options, children) {
+  options = options || {};
+  children = children || [];
   const node = document.createElement(tagName);
   if (options.id) node.id = options.id;
   if (options.className) node.className = options.className;

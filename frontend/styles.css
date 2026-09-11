@@ -3756,3 +3756,52 @@ textarea.app-dialog-input {
   font-weight: 700;
   background: linear-gradient(135deg, #00d4ff, #7b61ff);
 }
+/* CSP-safe service worker update banner. */
+.sw-update-banner {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 80px;
+  z-index: 99999;
+  background: #1e2535;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  font-family: inherit;
+  max-width: 92vw;
+}
+.sw-update-message { font-size: 13px; color: #e8edf5; }
+.sw-update-apply {
+  background: linear-gradient(135deg, #00d4ff, #7b61ff);
+  border: none;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.sw-update-dismiss {
+  background: transparent;
+  border: none;
+  color: #8a93a6;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+@keyframes zoomFadeOut {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  70% { opacity: 0.8; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.ar-killchain-node { transition: all 0.2s ease; }
+.ar-killchain-node:active { transform: scale(0.95); }
