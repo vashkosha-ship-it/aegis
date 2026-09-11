@@ -11,7 +11,8 @@ const source = fs.readFileSync(path.resolve(__dirname, '..', 'ar-schemes.js'), '
 function extractFunction(name) {
   const start = source.indexOf('function ' + name + '(');
   assert.notEqual(start, -1, name + ' must exist');
-  const brace = source.indexOf('{', start);
+  const brace = source.indexOf(') {', start) + 2;
+  assert.ok(brace > 1, name + ' body must exist');
   let depth = 0;
   for (let index = brace; index < source.length; index += 1) {
     if (source[index] === '{') depth += 1;
