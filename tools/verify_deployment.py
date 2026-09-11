@@ -15,6 +15,7 @@ backend/deploy/aegis-security-headers.conf, и проверяет, что все
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 import urllib.error
@@ -47,7 +48,7 @@ def fetch(url: str) -> tuple[int, dict[str, str], bytes]:
             headers = {k.lower(): v for k, v in response.headers.items()}
             return response.status, headers, response.read()
     except urllib.error.HTTPError as e:
-        return e.code, {k.lower(): v for k, v in e.headers.items()}, b""
+        return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
 
 
 def expected_csp() -> str | None:
@@ -170,6 +171,23 @@ def main(base: str) -> int:
             False,
             f"ни один из путей не ответил 200: {', '.join(health_paths)}",
         )
+
+    ready_code, _, ready_raw = fetch(base + "/ready")
+    try:
+        readiness = json.loads(ready_raw)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        readiness = {}
+    queue = readiness.get("checks", {}).get("queue", {})
+    check(
+        "/ready подтверждает полную готовность",
+        ready_code == 200 and readiness.get("status") == "ready",
+        f"код {ready_code}, ответ: {ready_raw[:300]!r}",
+    )
+    check(
+        "очередь обязательна и доступна",
+        queue.get("required") is True and queue.get("ok") is True,
+        f"queue: {queue!r}",
+    )
 
     print(f"\nИтого: {passed} ok, {failed} fail\n")
     return 0 if failed == 0 else 1

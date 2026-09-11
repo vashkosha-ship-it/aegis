@@ -5,9 +5,8 @@
 перемонтировался в read-only после ошибки диска, права слетели при переносе.
 Во всех этих случаях /ready отвечал «готово», а загрузка книг падала.
 
-Отдельно проверяется поведение при неработающей очереди: сервис остаётся
-готовым (читать и проходить тесты можно), но помечается как работающий с
-ограничениями — иначе это состояние выглядит полностью здоровым.
+Отдельно проверяется поведение при неработающей очереди в обоих режимах:
+локально сервис остаётся готовым с ограничениями, а production отвечает 503.
 """
 from __future__ import annotations
 
@@ -110,6 +109,20 @@ def healthy_deps(monkeypatch):
 
 
 class TestQueueDegradation:
+    async def test_check_queue_uses_configuration(self, monkeypatch):
+        monkeypatch.setattr(main.settings, "QUEUE_REQUIRED_FOR_READINESS", True)
+
+        async def _no_queue():
+            return None
+
+        import app.core.queue as queue_module
+
+        monkeypatch.setattr(queue_module, "get_queue", _no_queue)
+        result = await main._check_queue()
+
+        assert result["ok"] is False
+        assert result["required"] is True
+
     async def test_check_failure_does_not_break_endpoint(self, client, monkeypatch, healthy_deps):
         """Сломавшаяся проверка не должна превращаться в пятисотку.
 
@@ -120,6 +133,7 @@ class TestQueueDegradation:
         async def _boom():
             raise ConnectionError("Redis недоступен")
 
+        monkeypatch.setattr(main.settings, "QUEUE_REQUIRED_FOR_READINESS", False)
         monkeypatch.setattr(main, "_check_queue", _boom)
 
         r = await client.get("../ready")
@@ -159,8 +173,8 @@ class TestQueueDegradation:
     async def test_queue_can_be_made_required(self, client, monkeypatch, healthy_deps):
         """Переключатель существует и работает.
 
-        Если индексация окажется критичной, поведение меняется одной
-        константой, а не переписыванием проверки.
+        Production включает обязательный режим одной настройкой, без
+        отдельной реализации endpoint.
         """
         async def _unavailable():
             return {"ok": False, "required": True}

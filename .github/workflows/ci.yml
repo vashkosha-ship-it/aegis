@@ -54,6 +54,7 @@ jobs:
       DATABASE_URL: postgresql+asyncpg://neon:neon_password@localhost:5432/neon_stack
       DATABASE_URL_SYNC: postgresql+psycopg2://neon:neon_password@localhost:5432/neon_stack
       REDIS_URL: redis://localhost:6379/0
+      QUEUE_REQUIRED_FOR_READINESS: "true"
       SECRET_KEY: ci-test-secret-key-not-used-in-production
       DEBUG: "false"
       CORS_ORIGINS: http://localhost:5173
