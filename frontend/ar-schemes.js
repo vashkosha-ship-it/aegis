@@ -838,7 +838,10 @@ function renderARScheme(schemeCode) {
   arSelectedStage = null;
 
   if (!AR_SCHEMES[schemeCode]) {
-    container.innerHTML = `<div data-static-style="a007">Схема в разработке</div>`;
+    const unavailable = document.createElement('div');
+    unavailable.setAttribute('data-static-style', 'a007');
+    unavailable.textContent = 'Схема в разработке';
+    container.replaceChildren(unavailable);
     return;
   }
   arActiveSchemeCode = schemeCode;
@@ -1924,15 +1927,36 @@ function showZoomIndicator(percent) {
 
   const indicator = document.createElement('div');
   indicator.id = 'zoomIndicator';
-  indicator.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-static-style="a076">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      <line x1="11" y1="8" x2="11" y2="14"/>
-      <line x1="8" y1="11" x2="14" y2="11"/>
-    </svg>
-    <span>${percent}%</span>
-  `;
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const icon = document.createElementNS(svgNamespace, 'svg');
+  icon.setAttribute('width', '20');
+  icon.setAttribute('height', '20');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', 'currentColor');
+  icon.setAttribute('stroke-width', '2');
+  icon.setAttribute('data-static-style', 'a076');
+
+  const circle = document.createElementNS(svgNamespace, 'circle');
+  circle.setAttribute('cx', '11');
+  circle.setAttribute('cy', '11');
+  circle.setAttribute('r', '8');
+  icon.appendChild(circle);
+  [
+    ['21', '21', '16.65', '16.65'],
+    ['11', '8', '11', '14'],
+    ['8', '11', '14', '11'],
+  ].forEach(([x1, y1, x2, y2]) => {
+    const line = document.createElementNS(svgNamespace, 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    icon.appendChild(line);
+  });
+  const label = document.createElement('span');
+  label.textContent = `${Math.round(Number(percent) || 0)}%`;
+  indicator.append(icon, label);
   indicator.style.cssText = `
     position: fixed; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
