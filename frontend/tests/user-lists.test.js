@@ -77,6 +77,7 @@ function replaceWithStaticText(document, container, text, style) {
   const loaded = [];
   const deleted = [];
   const assistantContext = {
+    replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
     document: assistantDom.window.document,
     api: { library: {
       chats: async () => [{ id: 9, title: '<img src=x>', message_count: '<script>' }],

@@ -34,6 +34,7 @@ let vibrations = 0;
 let homeRenders = 0;
 const cards = [];
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   state,
   navigator: { vibrate: value => { vibrations += value; } },

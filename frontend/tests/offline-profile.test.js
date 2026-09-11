@@ -31,6 +31,7 @@ const offlineStorage = {
   getQuotaEstimate: async () => quota,
 };
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   replaceWithStaticText: (container, text, style, tag = 'div') => {
     const node = dom.window.document.createElement(tag);

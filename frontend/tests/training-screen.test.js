@@ -26,6 +26,7 @@ const dom = new JSDOM(`
 const calls = [];
 let confirmResult = true;
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   state: {
     trainingTab: 'all',

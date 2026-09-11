@@ -27,6 +27,7 @@ const api = {
   },
 };
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   dynamicStyleToken: () => 'test-style',
   api,

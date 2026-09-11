@@ -18,6 +18,7 @@ const timers = [];
 const reviews = [];
 const toasts = [];
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   state: {
     currentUser: { name: 'alice' },

@@ -29,6 +29,7 @@ const surface = {
   inputEl: () => dom.window.document.getElementById('aiInput'),
 };
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   state,
   assistantSurface: kind => {
