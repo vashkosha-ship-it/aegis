@@ -3805,3 +3805,20 @@ textarea.app-dialog-input {
 }
 .ar-killchain-node { transition: all 0.2s ease; }
 .ar-killchain-node:active { transform: scale(0.95); }
+
+.bulk-ai-description-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  color: var(--text-primary);
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.bulk-ai-description-option input { margin-top: 3px; accent-color: var(--accent); }
+.bulk-ai-description-option span { display: grid; gap: 4px; }
+.bulk-ai-description-option strong { font-size: 13px; }
+.bulk-ai-description-option small { color: var(--text-muted); font-size: 11px; line-height: 1.45; }

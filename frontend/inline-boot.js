@@ -11,8 +11,13 @@ if ('serviceWorker' in navigator) {
       console.log('Service Worker зарегистрирован:', reg.scope);
 
       // Проверяем обновления при загрузке и раз в час
-      reg.update();
-      setInterval(() => reg.update(), 60 * 60 * 1000);
+      const checkForUpdate = () => reg.update().catch(err => {
+        // Обновление SW может временно не сработать из-за офлайна, VPN или
+        // браузерного туннеля. Это не должно превращаться в unhandled rejection.
+        console.info('Проверка обновления Service Worker отложена:', err.message);
+      });
+      checkForUpdate();
+      setInterval(checkForUpdate, 60 * 60 * 1000);
 
       // Отслеживаем появление новой версии SW
       reg.addEventListener('updatefound', () => {

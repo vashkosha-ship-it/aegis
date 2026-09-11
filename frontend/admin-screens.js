@@ -1457,6 +1457,7 @@ async function startBulkUpload() {
 
   const defaultCategory = (document.getElementById('bulkUploadCategory').value || '').trim();
   const categories = defaultCategory ? [defaultCategory] : ['Без категории'];
+  const generateDescriptions = document.getElementById('bulkGenerateDescriptions')?.checked === true;
 
   for (let i = 0; i < bulkUploadQueue.length; i++) {
     const item = bulkUploadQueue[i];
@@ -1503,8 +1504,20 @@ async function startBulkUpload() {
         }
       }
 
+      let descriptionWarning = false;
+      if (generateDescriptions) {
+        item.message = 'ИИ создаёт описание...';
+        renderBulkUploadList();
+        try {
+          await api.books.generateDescription(created.id);
+        } catch (descriptionErr) {
+          descriptionWarning = true;
+          console.warn('Описание не создано для', item.file.name, descriptionErr);
+        }
+      }
+
       item.status = 'done';
-      item.message = 'Создана';
+      item.message = descriptionWarning ? 'Создана · без ИИ-описания' : 'Создана';
     } catch (e) {
       item.status = 'error';
       item.message = 'Ошибка: ' + ((e.detail || e.message || '').substring(0, 40));

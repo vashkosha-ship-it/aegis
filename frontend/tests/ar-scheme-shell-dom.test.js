@@ -111,6 +111,8 @@ for (const name of ['_arSvgElement', 'renderNistScheme', 'renderDidScheme']) {
   assert.equal(container.querySelector('img'), null);
   assert.ok(container.textContent.includes(setup.malicious));
   assert.equal(container.querySelectorAll('.ar-killchain-node').length, 2);
+  assert.equal(container.querySelectorAll('.ar-stage-item').length, 2);
+  assert.equal(container.querySelectorAll('.ar-stage-name').length, 2);
   assert.equal(container.querySelectorAll('.ar-chain-link').length, 1);
   assert.equal(container.querySelectorAll('[data-onclick]').length, 0);
 }
