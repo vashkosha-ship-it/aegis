@@ -41,7 +41,7 @@ test('вход, каталог, профиль и настройки работ�
   expect(catalogTotal, 'авторизованный каталог не отвечает').toBeGreaterThanOrEqual(0);
 
   // Клик проходит через CSP-совместимый data-onclick-диспетчер.
-  await page.locator('#avatarHome').click();
+  await page.locator('[data-screen="profile"]:visible').click();
   await expect(page.locator('#profileScreen')).toHaveClass(/\bactive\b/);
   await expect(page.locator('#profileDisplayName')).not.toHaveText('Пользователь');
 

@@ -43,6 +43,7 @@ from app.schemas.book import (
 )
 from app.services import books as books_service
 from app.services.books import BookNotFound, InvalidStorageKey
+from app.services.deepseek_client import DeepSeekError
 
 logger = logging.getLogger(__name__)
 
@@ -283,6 +284,55 @@ async def update_book(
     await db.commit()
     await db.refresh(book)
     await log_admin_action(db, admin, "book_update", target=f"book:{book.id}", detail=f"Изменена книга «{book.title}»")
+    await db.commit()
+    return books_service.to_public(book)
+
+
+@router.post("/{book_id}/generate-description", response_model=BookPublic)
+async def generate_description(
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> BookPublic:
+    """Admin only: generate and save a cautious catalogue description."""
+    from app.services.admin_audit import log_admin_action
+    from app.services.book_descriptions import generate_book_description
+
+    book = await db.scalar(
+        select(Book)
+        .options(selectinload(Book.categories))
+        .where(Book.id == book_id)
+    )
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    try:
+        description = await generate_book_description(
+            title=book.title,
+            author=book.author,
+            categories=[category.name for category in book.categories],
+        )
+    except DeepSeekError as exc:
+        logger.warning("Description generation failed for book %s: %s", book_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Не удалось сгенерировать описание. "
+                "Проверьте настройки DeepSeek и повторите позже."
+            ),
+        ) from exc
+
+    if not description:
+        raise HTTPException(status_code=502, detail="ИИ вернул пустое описание")
+
+    book.description = description
+    await log_admin_action(
+        db,
+        admin,
+        "book_description_generate",
+        target=f"book:{book.id}",
+        detail=f"ИИ создал описание книги «{book.title}»",
+    )
     await db.commit()
     return books_service.to_public(book)
 

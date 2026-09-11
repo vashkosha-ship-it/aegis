@@ -1538,9 +1538,9 @@ function renderKillChainScheme() {
       dynamicStyle: dynamicStyleToken`position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);`,
       onClick: () => selectKillChainStage(stage.id),
     }, buttonChildren);
-    nodes.appendChild(_arDetailNode('div', { staticStyle: 'a071' }, [
+    nodes.appendChild(_arDetailNode('div', { className: 'ar-stage-item', staticStyle: 'a071' }, [
       button,
-      _arDetailNode('div', { staticStyle: 'a072', text: stage.nameRu }),
+      _arDetailNode('div', { className: 'ar-stage-name', staticStyle: 'a072', text: stage.nameRu }),
     ]));
   });
 
@@ -1575,15 +1575,6 @@ function renderKillChainScheme() {
       if (first) first.style.animation = 'arNodePulse 2s ease-in-out 3';
     }, stages.length * 80 + 200);
 
-    document.querySelectorAll('.ar-killchain-node').forEach((node, index) => {
-      const delay = (index * 300) % 1200;
-      const duration = 2.8 + (index % 3) * 0.4;
-      setTimeout(() => {
-        if (!node.style.animation || !node.style.animation.includes('arNodePulse')) {
-          node.style.animation = `ar3dFloat ${duration}s ease-in-out ${delay}ms infinite`;
-        }
-      }, stages.length * 80 + 800);
-    });
   }, 100);
 }
 

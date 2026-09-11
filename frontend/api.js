@@ -24,6 +24,7 @@
   // перезагрузке страницы он теряется, и приложение получает новый через
   // /auth/refresh (cookie отправится сама).
   let _accessToken = null;
+  let _refreshPromise = null;
 
   // Разовая уборка: до перехода на cookie токены лежали в localStorage.
   // Оставлять их там нельзя — это ровно то, от чего мы уходили: любой скрипт
@@ -60,9 +61,26 @@
     }
   }
 
+  function accessTokenNeedsRefresh(token, marginSeconds = 30) {
+    if (!token) return true;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      return typeof payload.exp === 'number' && payload.exp <= Math.floor(Date.now() / 1000) + marginSeconds;
+    } catch (_) {
+      // Сохраняем совместимость с непрозрачными токенами в тестовых окружениях.
+      return false;
+    }
+  }
+
   // --- базовый fetch с авторизацией и автообновлением токена ---------------
   async function request(path, { method = 'GET', body, headers = {}, auth = true, raw = false } = {}) {
     const url = path.startsWith('http') ? path : BASE + path;
+    if (auth && path !== '/auth/refresh' && accessTokenNeedsRefresh(tokens.access)) {
+      const refreshed = await tryRefresh();
+      if (!refreshed) {
+        throw new ApiError(401, 'Сессия завершена. Войдите снова.');
+      }
+    }
     // credentials: cookie с refresh-токеном должна уходить на /auth/*
     const opts = { method, headers: { ...headers }, credentials: 'include' };
 
@@ -101,20 +119,26 @@
   }
 
   async function tryRefresh() {
+    if (_refreshPromise) return _refreshPromise;
     const csrf = getCsrfToken();
     if (!csrf) { tokens.clear(); return false; }
-    try {
-      const data = await request('/auth/refresh', {
-        method: 'POST',
-        headers: { 'X-CSRF-Token': csrf },
-        auth: false,
-      });
-      tokens.set(data.access_token);
-      return true;
-    } catch (e) {
-      tokens.clear();
-      return false;
-    }
+    _refreshPromise = (async () => {
+      try {
+        const data = await request('/auth/refresh', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': csrf },
+          auth: false,
+        });
+        tokens.set(data.access_token);
+        return true;
+      } catch (e) {
+        tokens.clear();
+        return false;
+      } finally {
+        _refreshPromise = null;
+      }
+    })();
+    return _refreshPromise;
   }
 
   // --- публичный API -------------------------------------------------------
@@ -304,6 +328,7 @@
       categories() { return request('/books/categories/all'); },
       create(payload) { return request('/books', { method: 'POST', body: payload }); },
       update(id, payload) { return request('/books/' + id, { method: 'PATCH', body: payload }); },
+      generateDescription(id) { return request('/books/' + id + '/generate-description', { method: 'POST' }); },
       delete(id) { return request('/books/' + id, { method: 'DELETE' }); },
 
       // URL'ы для прямой подстановки в <img src> и в pdf.js

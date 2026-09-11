@@ -42,6 +42,8 @@ for (const name of modules) {
 }
 assert(index.indexOf('src="app-state.js"') < index.indexOf('src="reader-core.js"'));
 assert(app.split('\n').length < 200, 'app.js must remain a small bootstrap');
-assert.match(worker, /aegis-cache-v291/);
+assert.match(worker, /aegis-cache-v292/);
+assert.ok(index.includes('href="ar-schemes.css"'), 'AR presentation stylesheet must be loaded');
+assert.ok(worker.includes("'/ar-schemes.css'"), 'AR presentation stylesheet must be precached');
 
 console.log('application module extraction tests passed');

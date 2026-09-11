@@ -431,4 +431,4 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v291" in service_worker
+        assert "aegis-cache-v292" in service_worker
