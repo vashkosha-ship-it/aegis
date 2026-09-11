@@ -37,6 +37,8 @@ function createContext() {
     AR_OWASP: { stages: [stage] },
     AR_OSI: { stages: [stage] },
     AR_MITRE: { stages: [stage, { ...stage, id: 2 }] },
+    AR_NIST: { stages: [stage, { ...stage, id: 2 }] },
+    AR_DID: { stages: [stage, { ...stage, id: 2 }] },
     AR_STRIDE: { stages: [stage] },
     dynamicStyleToken: strings => strings.join(''),
     zoomARScheme() {},
@@ -48,7 +50,7 @@ function createContext() {
     setTimeout(callback) { callback(); return 1; },
   };
   vm.createContext(context);
-  ['_arDetailNode', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme']
+  ['_arDetailNode', '_arSvgElement', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme', 'renderNistScheme', 'renderDidScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme']
     .forEach(name => vm.runInContext(extractFunction(name), context));
   return { dom, context, malicious, stage };
 }
@@ -72,6 +74,24 @@ for (const renderer of [
 }
 
 for (const name of ['_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme']) {
+  const body = extractFunction(name);
+  assert.doesNotMatch(body, /innerHTML/);
+  assert.doesNotMatch(body, /data-onclick/);
+}
+for (const renderer of [
+  ({ context }) => context.renderNistScheme(),
+  ({ context }) => context.renderDidScheme(),
+]) {
+  const setup = createContext();
+  renderer(setup);
+  const container = setup.dom.window.document.getElementById('arSchemeContainer');
+  assert.equal(container.querySelector('img'), null);
+  assert.ok(container.textContent.includes(setup.malicious));
+  assert.equal(container.querySelectorAll('#killChainNodes svg').length, 1);
+  assert.equal(container.querySelectorAll('#arStageToggleBtn svg polyline').length, 1);
+}
+
+for (const name of ['_arSvgElement', 'renderNistScheme', 'renderDidScheme']) {
   const body = extractFunction(name);
   assert.doesNotMatch(body, /innerHTML/);
   assert.doesNotMatch(body, /data-onclick/);
