@@ -94,7 +94,7 @@ function renderTocPanel() {
   const pct = Math.round(doneCount / total * 100);
   body.style.textAlign = 'left';
   body.style.padding = '0';
-  body.innerHTML = `
+  replaceWithAppMarkup(body, `
     <div data-static-style="a472">
       <div data-static-style="a505"><span>Прогресс по главам</span><span>${doneCount}/${total} · ${pct}%</span></div>
       <div data-static-style="a446"><div data-dynamic-style="${dynamicStyleToken`height:100%;width:${pct}%;background:var(--accent-gradient);`}"></div></div>
@@ -107,7 +107,7 @@ function renderTocPanel() {
           ${eh(it.title)}${it.page ? `<span data-static-style="a140"> · стр. ${it.page}</span>` : ''}
         </div>
       </div>`;
-    }).join('')}`;
+    }).join('')}`);
 }
 
 function tocGoTo(page) {

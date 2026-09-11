@@ -63,7 +63,7 @@ function showReaderAiPopup(title, loadingText) {
   const p = document.createElement('div');
   p.id = 'readerAiPopup';
   p.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  p.innerHTML = `<div data-static-style="a522">
+  replaceWithAppMarkup(p, `<div data-static-style="a522">
     <div data-static-style="a126">
       <h3 data-static-style="a523">${ICONS.sparkles || ''}<span>${eh(title)}</span></h3>
       <button data-onclick="closeModal('readerAiPopup')" data-static-style="a524">✕</button>
@@ -71,7 +71,7 @@ function showReaderAiPopup(title, loadingText) {
     <div id="readerAiContent" data-static-style="a525">
       <div data-static-style="a526"><span class="ai-spinner" data-static-style="a527"></span>${eh(loadingText)}</div>
     </div>
-  </div>`;
+  </div>`);
   p.onclick = (e) => { if (e.target === p) p.remove(); };
   document.body.appendChild(p);
 }
@@ -86,10 +86,10 @@ async function runReaderAi(prompt, title, loading) {
     const data = await api.assistantChat([{ role: 'user', content: prompt }], ctx);
     const text = (data && (data.reply || data.content || data.message)) || (typeof data === 'string' ? data : '');
     const el = document.getElementById('readerAiContent');
-    if (el) el.innerHTML = (typeof mdAssistant === 'function') ? mdAssistant(text) : eh(text).replace(/\n/g, '<br>');
+    if (el) replaceWithAppMarkup(el, (typeof mdAssistant === 'function') ? mdAssistant(text) : eh(text).replace(/\n/g, '<br>'));
   } catch (err) {
     const el = document.getElementById('readerAiContent');
-    if (el) el.innerHTML = `<div data-static-style="a454">Не удалось получить ответ. ${err && err.status ? '(' + err.status + ')' : ''}</div>`;
+    if (el) replaceWithAppMarkup(el, `<div data-static-style="a454">Не удалось получить ответ. ${err && err.status ? '(' + err.status + ')' : ''}</div>`);
   }
 }
 

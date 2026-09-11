@@ -36,9 +36,9 @@ if ('serviceWorker' in navigator) {
     const bar = document.createElement('div');
     bar.id = 'swUpdateBanner';
     bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:80px;z-index:99999;background:#1e2535;border:1px solid rgba(0,212,255,0.4);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,0.5);font-family:inherit;max-width:92vw;';
-    bar.innerHTML = '<span style="font-size:13px;color:#e8edf5;">Доступна новая версия</span>' +
+    replaceWithAppMarkup(bar, '<span style="font-size:13px;color:#e8edf5;">Доступна новая версия</span>' +
       '<button id="swUpdateBtn" style="background:linear-gradient(135deg,#00d4ff,#7b61ff);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">Обновить</button>' +
-      '<button id="swUpdateDismiss" style="background:transparent;border:none;color:#8a93a6;cursor:pointer;font-size:16px;">✕</button>';
+      '<button id="swUpdateDismiss" style="background:transparent;border:none;color:#8a93a6;cursor:pointer;font-size:16px;">✕</button>');
     document.body.appendChild(bar);
     document.getElementById('swUpdateBtn').onclick = () => {
       worker.postMessage({ type: 'SKIP_WAITING' });

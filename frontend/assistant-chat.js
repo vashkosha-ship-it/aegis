@@ -146,7 +146,7 @@ function assistantRenderBubble(m, surfaceKind, idx) {
 function assistantRender(surface) {
   const el = surface.messagesEl();
   if (!el) return;
-  el.innerHTML = surface.messages.map((m, i) => assistantRenderBubble(m, surface.kind, i)).join('');
+  replaceWithAppMarkup(el, surface.messages.map((m, i) => assistantRenderBubble(m, surface.kind, i)).join(''));
   el.scrollTop = el.scrollHeight;
 }
 
@@ -158,8 +158,8 @@ function assistantRenderStreaming(surface, fullText) {
   const last = bubbles[bubbles.length - 1];
   const wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
   if (last) {
-    last.innerHTML = (typeof mdAssistant === 'function' ? mdAssistant(fullText) : eh(fullText).replace(/\n/g, '<br>'))
-      + '<span class="ai-type-cursor">▋</span>';
+    replaceWithAppMarkup(last, (typeof mdAssistant === 'function' ? mdAssistant(fullText) : eh(fullText).replace(/\n/g, '<br>'))
+      + '<span class="ai-type-cursor">▋</span>');
   }
   if (wasAtBottom) el.scrollTop = el.scrollHeight;
 }
@@ -279,13 +279,13 @@ async function openChatHistory() {
   const m = document.createElement('div');
   m.id = 'chatHistoryModal';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:6000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  m.innerHTML = `<div data-static-style="a304">
+  replaceWithAppMarkup(m, `<div data-static-style="a304">
     <div data-static-style="a126">
       <h3 data-static-style="a127">История диалогов</h3>
       <button data-onclick="closeModal('chatHistoryModal')" data-static-style="a128">✕</button>
     </div>
     <div id="chatHistoryBody" data-static-style="a129">Загружаю…</div>
-  </div>`;
+  </div>`);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
   try {

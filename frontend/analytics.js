@@ -249,7 +249,7 @@ function renderBookAnalytics(d) {
       Никто пока не проходил тест по этой книге
     </div>
   `;
-  c.innerHTML = basicHtml + mylistHtml + progressSummaryHtml + readersHtml + quizHtml;
+  replaceWithAppMarkup(c, basicHtml + mylistHtml + progressSummaryHtml + readersHtml + quizHtml);
 }
 
 function statBox(label, value) {

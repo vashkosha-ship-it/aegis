@@ -136,7 +136,7 @@ async function renderReviews() {
     </div>
   ` : '<div data-static-style="a227">Войдите, чтобы оставить отзыв</div>';
 
-  container.innerHTML = reviewsHtml + formHtml;
+  replaceWithAppMarkup(container, reviewsHtml + formHtml);
 
   if (myReview) reviewRating = myReview.rating;
   else reviewRating = 0;

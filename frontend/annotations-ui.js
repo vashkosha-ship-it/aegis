@@ -52,7 +52,7 @@ async function renderAnnotations() {
   if (!layer || !currentBookId) return;
   const list = await getAnnotations(currentBookId);
   const onPage = list.filter(a => a.page === pdfCurrentPage);
-  layer.innerHTML = onPage.map(a => {
+  replaceWithAppMarkup(layer, onPage.map(a => {
     const x = annotationPercent(a.position?.x, a.type === 'highlight' ? 10 : 15);
     const y = annotationPercent(a.position?.y, a.type === 'highlight' ? 10 : 15);
     if (a.type === 'highlight') {
@@ -62,7 +62,7 @@ async function renderAnnotations() {
       return `<div class="highlight-mark" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;width:${width}%;height:${height}%;background:${color}55;border-bottom:2px solid ${color};`}" title="${eh(a.text)}" data-onclick="showAnnotationDetail(${a.id})"></div>`;
     }
     return `<div class="note-indicator" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;`}" data-onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</div>`;
-  }).join('');
+  }).join(''));
 }
 
 async function showAnnotationDetail(id) {
@@ -72,7 +72,7 @@ async function showAnnotationDetail(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div data-static-style="a228">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div data-static-style="a229"><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},2)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`;
+  replaceWithAppMarkup(t, `<div data-static-style="a228">${eh(ann.text.substring(0, 100))}${ann.text.length > 100 ? '...' : ''}</div><div data-static-style="a229"><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},2)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>${ann.type === 'highlight' ? `<button class="btn-sm" data-onclick="convertToNote(${id})">${ICONS.bookmark} Заметка</button>` : ''}</div>`);
   t.style.left = (ann.position?.x || 10) + '%';
   t.style.top = ((ann.position?.y || 10) + 5) + '%';
   document.getElementById('pdfViewport').appendChild(t);
@@ -85,7 +85,7 @@ async function showNoteTooltip(id) {
   document.querySelectorAll('.note-tooltip').forEach(e => e.remove());
   const t = document.createElement('div');
   t.className = 'note-tooltip';
-  t.innerHTML = `<div data-static-style="a230">${ICONS.bookmark} Заметка</div><div data-static-style="a228">${eh(ann.note)}</div><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},1)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>`;
+  replaceWithAppMarkup(t, `<div data-static-style="a230">${ICONS.bookmark} Заметка</div><div data-static-style="a228">${eh(ann.note)}</div><button class="btn-sm" data-onclick="deleteAnnotationFromTooltip(${currentBookId},${id},1)" data-nonce="${sensitiveNonce()}" data-args="this">${ICONS.trash} Удалить</button>`);
   t.style.left = (ann.position?.x || 15) + '%';
   t.style.top = ((ann.position?.y || 15) + 3) + '%';
   document.getElementById('pdfViewport').appendChild(t);

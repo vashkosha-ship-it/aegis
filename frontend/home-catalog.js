@@ -15,7 +15,7 @@ function renderPaginatedBooks(id, books, query) {
   const pageBooks = books.slice(start, start + BOOKS_PER_PAGE);
   // Книги — напрямую в grid-контейнер (как карточки), без обёртки,
   // иначе grid раскладывает обёртку и пагинатор по ячейкам.
-  container.innerHTML = pageBooks.map(b => cardHTML(b, query)).join('');
+  replaceWithAppMarkup(container, pageBooks.map(b => cardHTML(b, query)).join(''));
 
   // Панель пагинации — в отдельный контейнер под сеткой (вне grid)
   if (!pager) return;
@@ -39,7 +39,7 @@ function renderPaginatedBooks(id, books, query) {
   const numsHtml = nums.map(p =>
     p === '...' ? `<span data-static-style="a320">…</span>` : btn(p, p, p === page, false)
   ).join('');
-  pager.innerHTML = `
+  replaceWithAppMarkup(pager, `
     <div data-static-style="a321">
       ${btn(page - 1, '‹', false, page === 1)}
       ${numsHtml}
@@ -47,7 +47,7 @@ function renderPaginatedBooks(id, books, query) {
     </div>
     <div data-static-style="a322">
       Страница ${page} из ${totalPages} · всего книг: ${total}
-    </div>`;
+    </div>`);
 }
 
 function goToBooksPage(p) {

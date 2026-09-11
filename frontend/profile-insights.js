@@ -205,7 +205,7 @@ async function showHeatmapDayDetails(date) {
   const modal = document.createElement('div');
   modal.id = 'heatmapDayModal';
   modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML = `
+  replaceWithAppMarkup(modal, `
     <div data-static-style="a451">
       <div data-static-style="a126">
         <h3 data-static-style="a127">${formatHeatmapDate(date)}</h3>
@@ -213,16 +213,16 @@ async function showHeatmapDayDetails(date) {
       </div>
       <div id="heatmapDayContent" data-static-style="a453">Загрузка...</div>
     </div>
-  `;
+  `);
   document.body.appendChild(modal);
   document.getElementById('heatmapDayCloseBtn').onclick = () => modal.remove();
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
   try {
     const data = await api.library.dayStats(date);
-    document.getElementById('heatmapDayContent').innerHTML = renderHeatmapDayContent(data);
+    replaceWithAppMarkup(document.getElementById('heatmapDayContent'), renderHeatmapDayContent(data));
   } catch (e) {
-    document.getElementById('heatmapDayContent').innerHTML = `<div data-static-style="a454">Не удалось загрузить статистику</div>`;
+    replaceWithAppMarkup(document.getElementById('heatmapDayContent'), `<div data-static-style="a454">Не удалось загрузить статистику</div>`);
   }
 }
 

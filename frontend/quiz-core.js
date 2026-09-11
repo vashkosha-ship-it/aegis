@@ -6,7 +6,7 @@ function renderQuizQuestion() {
   const userAnswer = currentQuiz.answers[currentQuiz.currentIndex];
   const isAnswered = userAnswer !== -1;
 
-  c.innerHTML = `<div class="quiz-container">
+  replaceWithAppMarkup(c, `<div class="quiz-container">
     <div data-static-style="a091">
       <span data-static-style="a192">Вопрос ${currentQuiz.currentIndex + 1} из ${currentQuiz.questions.length}</span>
     </div>
@@ -26,7 +26,7 @@ function renderQuizQuestion() {
         ? `<button class="btn-quiz primary" data-onclick="nextQuestion()">Далее ${ICONS.chevronRight}</button>`
         : `<button class="btn-quiz primary" data-onclick="finishQuiz()">${ICONS.check} Завершить</button>`}
     </div>
-  </div>`;
+  </div>`);
 }
 function nextQuestion() { if (currentQuiz.currentIndex < currentQuiz.questions.length - 1) { currentQuiz.currentIndex++; renderQuizQuestion(); } }
 function prevQuestion() { if (currentQuiz.currentIndex > 0) { currentQuiz.currentIndex--; renderQuizQuestion(); } }
@@ -157,7 +157,7 @@ async function finishQuiz() {
       </div>`;
     }).join('');
 
-    c.innerHTML = `<div class="quiz-result ${p >= 60 ? 'success' : 'partial'}" data-static-style="a091">
+    replaceWithAppMarkup(c, `<div class="quiz-result ${p >= 60 ? 'success' : 'partial'}" data-static-style="a091">
       <div data-static-style="a255">${p >= 80 ? ICONS.shield : ICONS.education}</div>
       <div data-static-style="a256">${p}%</div>
       <div data-static-style="a257">${s}/${t}</div>
@@ -169,6 +169,6 @@ async function finishQuiz() {
     <div data-static-style="a261">
       <h4 data-static-style="a224">Разбор ответов</h4>
       ${breakdown}
-    </div>`;
+    </div>`);
   }
 }

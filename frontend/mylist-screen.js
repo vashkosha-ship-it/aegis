@@ -17,9 +17,9 @@ function renderMyList() {
     t.classList.toggle('active', t.dataset.mylist === state.mylistTab);
     t.querySelector('.count').textContent = g[t.dataset.mylist]?.length || 0;
   });
-  document.getElementById('mylistGrid').innerHTML = g[state.mylistTab]?.length
+  replaceWithAppMarkup(document.getElementById('mylistGrid'), g[state.mylistTab]?.length
     ? g[state.mylistTab].map(b => cardHTML(b)).join('')
-    : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.bookmark}</div><p>Пусто</p></div>`;
+    : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.bookmark}</div><p>Пусто</p></div>`);
 
   initDragAndDrop();
 }

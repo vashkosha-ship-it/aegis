@@ -45,14 +45,14 @@ async function renderOfflineBooks() {
   }
 
   if (books.length === 0) {
-    container.innerHTML = `
+    replaceWithAppMarkup(container, `
       ${quotaHtml}
       <div data-static-style="a339">
         <div data-static-style="a340">${ICONS.cloudDownload}</div>
         <p>Нет скачанных книг</p>
         <p data-static-style="a341">Откройте книгу и нажмите «Сохранить оффлайн», чтобы читать без интернета</p>
       </div>
-    `;
+    `);
     return;
   }
 
@@ -74,5 +74,5 @@ async function renderOfflineBooks() {
     `;
   }).join('');
 
-  container.innerHTML = quotaHtml + rowsHtml;
+  replaceWithAppMarkup(container, quotaHtml + rowsHtml);
 }
