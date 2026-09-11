@@ -94,6 +94,11 @@ def main(base: str) -> int:
             "'unsafe-eval'" not in _directive(csp, "script-src"),
             _directive(csp, "script-src"),
         )
+        check(
+            "style-src запрещает инлайн",
+            "'unsafe-inline'" not in _directive(csp, "style-src"),
+            _directive(csp, "style-src"),
+        )
 
         wanted = expected_csp()
         if wanted:

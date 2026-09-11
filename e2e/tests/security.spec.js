@@ -26,6 +26,16 @@ test.describe('Заголовки безопасности', () => {
       'внедрённый в DOM текст сможет выполниться как скрипт'
     ).not.toContain("'unsafe-inline'");
     expect(scriptSrc).not.toContain("'unsafe-eval'");
+
+    const styleSrc = csp
+      .split(';')
+      .map((d) => d.trim())
+      .find((d) => d.startsWith('style-src'));
+    expect(styleSrc, 'в политике нет style-src').toBeTruthy();
+    expect(
+      styleSrc,
+      'внедрённый в DOM style-атрибут сможет изменить интерфейс'
+    ).not.toContain("'unsafe-inline'");
   });
 
   test('режим наблюдения выключен', async ({ page }) => {

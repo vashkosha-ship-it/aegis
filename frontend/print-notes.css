@@ -1,0 +1,18 @@
+body {
+  font-family: Arial, sans-serif;
+  color: #111;
+  max-width: 720px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+h1 { font-size: 22px; }
+.meta { color: #888; font-size: 12px; margin-bottom: 20px; }
+.print-note { border-bottom: 1px solid #ddd; padding: 12px 0; }
+.print-note-page { color: #666; font-size: 12px; margin-bottom: 6px; }
+.print-note-text { white-space: pre-wrap; }
+.print-note-comment { background: #f3f4f6; margin-top: 8px; padding: 8px; }
+
+@media print {
+  body { margin: 0 auto; }
+  .print-note { break-inside: avoid; }
+}

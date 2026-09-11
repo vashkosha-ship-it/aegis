@@ -20,7 +20,7 @@ function _sanitizeAppMarkup(root) {
     Array.from(node.attributes).forEach(function (attribute) {
       const name = attribute.name.toLowerCase();
       const value = attribute.value.trim().replace(/[\u0000-\u0020]+/g, '').toLowerCase();
-      if (name.startsWith('on') || name === 'srcdoc') {
+      if (name.startsWith('on') || name === 'srcdoc' || name === 'style') {
         node.removeAttribute(attribute.name);
         return;
       }
@@ -45,7 +45,11 @@ function appMarkupFragment(markup) {
 }
 
 function replaceWithAppMarkup(target, markup) {
-  if (target) target.replaceChildren(appMarkupFragment(markup));
+  if (!target) return;
+  const container = target.tagName === 'TEMPLATE' && target.content
+    ? target.content
+    : target;
+  container.replaceChildren(appMarkupFragment(markup));
 }
 
 /* ---- подмена картинки при ошибке загрузки ---- */

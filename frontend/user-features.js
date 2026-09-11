@@ -621,21 +621,25 @@ async function doExportNotes(fmt) {
 
 function exportNotesPdf(title, author, sorted) {
   const rows = sorted.map(a => `
-    <div data-static-style="a235">
-      <div data-static-style="a236">Страница ${a.page} &middot; ${a.type === 'note' ? 'Заметка' : 'Выделение'}</div>
-      <div data-static-style="a237">${eh(a.text)}</div>
-      ${a.type === 'note' && a.note ? `<div data-static-style="a238"><b>Заметка:</b> ${eh(a.note)}</div>` : ''}
+    <div class="print-note">
+      <div class="print-note-page">Страница ${a.page} &middot; ${a.type === 'note' ? 'Заметка' : 'Выделение'}</div>
+      <div class="print-note-text">${eh(a.text)}</div>
+      ${a.type === 'note' && a.note ? `<div class="print-note-comment"><b>Заметка:</b> ${eh(a.note)}</div>` : ''}
     </div>`).join('');
+  const stylesheet = new URL('/print-notes.css', location.href).href;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Заметки: ${eh(title)}</title>
-    <style>body{font-family:Arial,sans-serif;color:#111;max-width:720px;margin:24px auto;padding:0 16px;}
-    h1{font-size:22px;} .meta{color:#888;font-size:12px;margin-bottom:20px;}</style></head>
+    <link rel="stylesheet" href="${stylesheet}"></head>
     <body><h1>Заметки: ${eh(title)}</h1>
     <div class="meta">${author ? eh(author) + ' &middot; ' : ''}Экспорт: ${new Date().toLocaleDateString('ru-RU')}</div>
-    ${rows}
-    <script>window.onload=()=>{window.print();}<\/script></body></html>`;
+    ${rows}</body></html>`;
   const w = window.open('', '_blank');
   if (!w) { showToast('Разрешите всплывающие окна для PDF'); return; }
-  w.document.write(html); w.document.close();
+  w.document.write(html);
+  w.document.close();
+  const link = w.document.querySelector('link[rel="stylesheet"]');
+  const print = () => w.print();
+  if (link && !link.sheet) link.addEventListener('load', print, { once: true });
+  else print();
 }
 
 async function renderDetailNotes() {
