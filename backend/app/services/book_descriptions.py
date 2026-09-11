@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from app.services.deepseek_client import chat_completion
 
-
 DESCRIPTION_SYSTEM_PROMPT = (
     "Ты редактор каталога библиотеки по кибербезопасности. "
     "Пиши на русском нейтрально и точно. Не выдумывай содержание, "
