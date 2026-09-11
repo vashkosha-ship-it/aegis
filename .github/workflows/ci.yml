@@ -261,6 +261,7 @@ jobs:
       - name: Тест статических AR-компонентов
         run: node tests/ar-static-ui-dom.test.js
           node tests/ar-stage-panel-dom.test.js
+          node tests/ar-scheme-shell-dom.test.js
 
       - name: Тест AI-панели читалки
         run: node tests/reader-ai-panel.test.js

@@ -1130,199 +1130,221 @@ function renderDidScheme() {
 }
 
 // ─── Incident Response: вертикальный таймлайн вех ──────────────────────────
-function renderIrScheme() {
+
+function _createArSchemeShell({
+  scrollStyle,
+  nodesStyle,
+  title,
+  hint,
+  wrapperStyle = null,
+}) {
   const container = document.getElementById('arSchemeContainer');
-  if (!container) return;
-  const scheme = AR_IR;
-  const stages = scheme.stages; // 6 этапов
+  if (!container) return null;
 
-  const items = stages.map((s, i) => {
-    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
-    const isLast = i === stages.length - 1;
-    return `
-      <div data-static-style="a040">
-        <!-- Колонка таймлайна: точка + линия -->
-        <div data-static-style="a041">
-          <div id="arNode${s.id}" data-onclick="selectKillChainStage(${s.id})"
-               data-dynamic-style="${dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${color}22;border:2px solid ${color};
-                      color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;
-                      font-size:13px;cursor:pointer;flex-shrink:0;transition:all 0.25s;z-index:2;`}">${i + 1}</div>
-          ${isLast ? '' : `<div data-dynamic-style="${dynamicStyleToken`flex:1;width:2px;background:linear-gradient(${color},${(stages[i+1].defenseMethod&&stages[i+1].defenseMethod.color)||color});min-height:24px;opacity:0.5;`}"></div>`}
-        </div>
-        <!-- Карточка этапа -->
-        <button data-onclick="selectKillChainStage(${s.id})"
-                data-dynamic-style="${dynamicStyleToken`flex:1;text-align:left;margin-bottom:14px;padding:12px 14px;background:rgba(0,0,0,0.6);
-                       backdrop-filter:blur(10px);border:1px solid ${color}44;border-left:3px solid ${color};
-                       border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;transition:all 0.2s;
-                       opacity:0;transform:translateX(20px);`}" id="arCard${s.id}">
-          <div data-static-style="a042">${s.nameRu}</div>
-          <div data-static-style="a043">${s.name}</div>
-        </button>
-      </div>`;
-  }).join('');
+  const controls = _arDetailNode('div', { staticStyle: 'a009' }, [
+    _arDetailNode('button', { staticStyle: 'a028', text: '+', onClick: () => zoomARScheme('in') }),
+    _arDetailNode('button', { staticStyle: 'a028', text: '−', onClick: () => zoomARScheme('out') }),
+    _arDetailNode('button', { staticStyle: 'a029', text: '⟳', onClick: resetARSchemeZoom }),
+  ]);
 
-  container.innerHTML = `
-    <div id="arSchemeRoot" data-static-style="a008">
-      <div data-static-style="a009">
-        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
-        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
-        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
-      </div>
-      <div id="killChainScrollContainer" data-static-style="a044">
-        <div id="killChainNodes" data-static-style="a045">
-          ${items}
-        </div>
-      </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
-        <div data-static-style="a036">
-          <div data-static-style="a020"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
-        </div>
-        <div id="arStageDetailContent" data-static-style="a024"></div>
-      </div>
-      <div id="arStageHint" data-static-style="a025">Нажми на этап реагирования, чтобы узнать подробнее</div>
-    </div>`;
+  const nodes = _arDetailNode('div', { id: 'killChainNodes', staticStyle: nodesStyle });
+  let scrollChild = nodes;
+  if (wrapperStyle) {
+    scrollChild = _arDetailNode('div', {
+      id: 'killChainWrapper',
+      staticStyle: wrapperStyle,
+    }, [nodes]);
+  }
+  const scroll = _arDetailNode('div', {
+    id: 'killChainScrollContainer',
+    staticStyle: scrollStyle,
+  }, [scrollChild]);
+
+  const toggleIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  toggleIcon.setAttribute('width', '18');
+  toggleIcon.setAttribute('height', '18');
+  toggleIcon.setAttribute('viewBox', '0 0 24 24');
+  toggleIcon.setAttribute('fill', 'none');
+  toggleIcon.setAttribute('stroke', 'currentColor');
+  toggleIcon.setAttribute('stroke-width', '2.5');
+  toggleIcon.setAttribute('stroke-linecap', 'round');
+  toggleIcon.setAttribute('stroke-linejoin', 'round');
+  toggleIcon.dataset.staticStyle = 'a022';
+  const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  chevron.setAttribute('points', '18 15 12 9 6 15');
+  toggleIcon.appendChild(chevron);
+
+  const toggle = _arDetailNode('button', {
+    id: 'arStageToggleBtn',
+    staticStyle: 'a021',
+    onClick: toggleStageDetailsPanel,
+  }, [toggleIcon]);
+  toggle.title = 'Развернуть/свернуть';
+
+  const details = _arDetailNode('div', {
+    id: 'arStageDetails',
+    className: 'ar-stage-details-panel',
+    staticStyle: 'a035',
+  }, [
+    _arDetailNode('div', { staticStyle: 'a036' }, [
+      _arDetailNode('div', { staticStyle: 'a020' }),
+      toggle,
+      _arDetailNode('div', {
+        id: 'arStageDetailTitle',
+        staticStyle: 'a037',
+        text: title,
+      }),
+    ]),
+    _arDetailNode('div', { id: 'arStageDetailContent', staticStyle: 'a024' }),
+  ]);
+
+  const root = _arDetailNode('div', { id: 'arSchemeRoot', staticStyle: 'a008' }, [
+    controls,
+    scroll,
+    details,
+    _arDetailNode('div', { id: 'arStageHint', staticStyle: 'a025', text: hint }),
+  ]);
+  container.replaceChildren(root);
+  return nodes;
+}
+
+function renderIrScheme() {
+  const stages = AR_IR.stages;
+  const nodes = _createArSchemeShell({
+    scrollStyle: 'a044',
+    nodesStyle: 'a045',
+    title: 'НАЖМИТЕ НА ЭТАП',
+    hint: 'Нажми на этап реагирования, чтобы узнать подробнее',
+  });
+  if (!nodes) return;
+
+  stages.forEach((stage, index) => {
+    const color = (stage.defenseMethod && stage.defenseMethod.color) || '#3b82f6';
+    const timeline = _arDetailNode('div', { staticStyle: 'a041' });
+    timeline.appendChild(_arDetailNode('div', {
+      id: 'arNode' + stage.id,
+      dynamicStyle: dynamicStyleToken`width:36px;height:36px;border-radius:50%;background:${color}22;border:2px solid ${color};color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0;transition:all 0.25s;z-index:2;`,
+      text: index + 1,
+      onClick: () => selectKillChainStage(stage.id),
+    }));
+    if (index < stages.length - 1) {
+      const nextColor = (stages[index + 1].defenseMethod && stages[index + 1].defenseMethod.color) || color;
+      timeline.appendChild(_arDetailNode('div', {
+        dynamicStyle: dynamicStyleToken`flex:1;width:2px;background:linear-gradient(${color},${nextColor});min-height:24px;opacity:0.5;`,
+      }));
+    }
+
+    const card = _arDetailNode('button', {
+      id: 'arCard' + stage.id,
+      dynamicStyle: dynamicStyleToken`flex:1;text-align:left;margin-bottom:14px;padding:12px 14px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid ${color}44;border-left:3px solid ${color};border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;transition:all 0.2s;opacity:0;transform:translateX(20px);`,
+      onClick: () => selectKillChainStage(stage.id),
+    }, [
+      _arDetailNode('div', { staticStyle: 'a042', text: stage.nameRu }),
+      _arDetailNode('div', { staticStyle: 'a043', text: stage.name }),
+    ]);
+    nodes.appendChild(_arDetailNode('div', { staticStyle: 'a040' }, [timeline, card]));
+  });
 
   initStageDetailsSwipe();
   initARPan();
-
-  // Анимация: карточки выезжают по очереди сверху вниз
   setTimeout(() => {
-    stages.forEach((s, i) => {
-      const card = document.getElementById('arCard' + s.id);
+    stages.forEach((stage, index) => {
+      const card = document.getElementById('arCard' + stage.id);
       if (!card) return;
       setTimeout(() => {
         card.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1)';
         card.style.opacity = '1';
         card.style.transform = 'translateX(0)';
-      }, i * 90);
+      }, index * 90);
     });
   }, 60);
 }
 
 // ─── STRIDE: сетка 2×3 карточек категорий угроз ────────────────────────────
 function renderStrideScheme() {
-  const container = document.getElementById('arSchemeContainer');
-  if (!container) return;
-  const scheme = AR_STRIDE;
-  const stages = scheme.stages; // 6
+  const stages = AR_STRIDE.stages;
+  const nodes = _createArSchemeShell({
+    scrollStyle: 'a048',
+    nodesStyle: 'a049',
+    title: 'НАЖМИТЕ НА КАТЕГОРИЮ',
+    hint: 'Нажми на категорию угроз, чтобы узнать подробнее',
+  });
+  if (!nodes) return;
 
-  const cards = stages.map((s) => {
-    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
-    return `
-      <button data-onclick="selectKillChainStage(${s.id})" id="arCard${s.id}"
-        data-dynamic-style="${dynamicStyleToken`position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
-               aspect-ratio:1;padding:12px 8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);
-               border:1px solid ${color}55;border-radius:14px;color:#fff;font-family:inherit;cursor:pointer;
-               transition:all 0.25s;overflow:hidden;opacity:0;transform:scale(0.8);`}" id="arNode${s.id}">
-        <div data-dynamic-style="${dynamicStyleToken`position:absolute;top:-10px;right:-6px;font-size:64px;font-weight:900;color:${color};opacity:0.13;line-height:1;`}">${s.code}</div>
-        <div data-dynamic-style="${dynamicStyleToken`width:42px;height:42px;border-radius:12px;background:${color}22;border:1.5px solid ${color};
-                    color:${color};display:flex;align-items:center;justify-content:center;font-weight:900;
-                    font-size:20px;margin-bottom:8px;z-index:1;`}">${s.code}</div>
-        <div data-static-style="a046">${s.nameRu}</div>
-        <div data-static-style="a047">${s.name}</div>
-      </button>`;
-  }).join('');
-
-  container.innerHTML = `
-    <div id="arSchemeRoot" data-static-style="a008">
-      <div data-static-style="a009">
-        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
-        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
-        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
-      </div>
-      <div id="killChainScrollContainer" data-static-style="a048">
-        <div id="killChainNodes" data-static-style="a049">
-          ${cards}
-        </div>
-      </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
-        <div data-static-style="a036">
-          <div data-static-style="a020"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА КАТЕГОРИЮ</div>
-        </div>
-        <div id="arStageDetailContent" data-static-style="a024"></div>
-      </div>
-      <div id="arStageHint" data-static-style="a025">Нажми на категорию угроз, чтобы узнать подробнее</div>
-    </div>`;
+  stages.forEach(stage => {
+    const color = (stage.defenseMethod && stage.defenseMethod.color) || '#3b82f6';
+    nodes.appendChild(_arDetailNode('button', {
+      id: 'arCard' + stage.id,
+      dynamicStyle: dynamicStyleToken`position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:1;padding:12px 8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border:1px solid ${color}55;border-radius:14px;color:#fff;font-family:inherit;cursor:pointer;transition:all 0.25s;overflow:hidden;opacity:0;transform:scale(0.8);`,
+      onClick: () => selectKillChainStage(stage.id),
+    }, [
+      _arDetailNode('div', {
+        dynamicStyle: dynamicStyleToken`position:absolute;top:-10px;right:-6px;font-size:64px;font-weight:900;color:${color};opacity:0.13;line-height:1;`,
+        text: stage.code,
+      }),
+      _arDetailNode('div', {
+        dynamicStyle: dynamicStyleToken`width:42px;height:42px;border-radius:12px;background:${color}22;border:1.5px solid ${color};color:${color};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;margin-bottom:8px;z-index:1;`,
+        text: stage.code,
+      }),
+      _arDetailNode('div', { staticStyle: 'a046', text: stage.nameRu }),
+      _arDetailNode('div', { staticStyle: 'a047', text: stage.name }),
+    ]));
+  });
 
   initStageDetailsSwipe();
   initARPan();
-
   setTimeout(() => {
-    stages.forEach((s, i) => {
-      const card = document.getElementById('arCard' + s.id);
+    stages.forEach((stage, index) => {
+      const card = document.getElementById('arCard' + stage.id);
       if (!card) return;
       setTimeout(() => {
         card.style.transition = 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.22,1,0.36,1)';
         card.style.opacity = '1';
         card.style.transform = 'scale(1)';
-      }, i * 80);
+      }, index * 80);
     });
   }, 60);
 }
 
 function renderGenericScheme(scheme) {
-  const container = document.getElementById('arSchemeContainer');
-  if (!container || !scheme) return;
+  if (!scheme) return;
   const stages = scheme.stages;
+  const nodes = _createArSchemeShell({
+    scrollStyle: 'a012',
+    wrapperStyle: 'a013',
+    nodesStyle: 'a014',
+    title: 'НАЖМИТЕ НА ЭТАП',
+    hint: 'Нажми на этап, чтобы узнать подробнее',
+  });
+  if (!nodes) return;
 
-  container.innerHTML = `
-    <div id="arSchemeRoot" data-static-style="a008">
-      <div data-static-style="a009">
-        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
-        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
-        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
-      </div>
-      <div id="killChainScrollContainer" data-static-style="a012">
-        <div id="killChainWrapper" data-static-style="a013">
-          <div id="killChainNodes" data-static-style="a014">
-            ${stages.map((s) => {
-              const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
-              const badge = (s.code || String(s.id)).toUpperCase().slice(0, 4);
-              return `<button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}"
-                data-dynamic-style="${dynamicStyleToken`display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;
-                       background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
-                       border:1px solid ${color}44;border-left:4px solid ${color};
-                       border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;
-                       transition:all 0.2s;pointer-events:auto;`}">
-                <div data-dynamic-style="${dynamicStyleToken`width:40px;height:36px;border-radius:8px;background:${color}22;
-                            border:1px solid ${color};color:${color};display:flex;align-items:center;
-                            justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;`}">${badge}</div>
-                <div data-static-style="a015">
-                  <div data-static-style="a050">${s.nameRu}</div>
-                  <div data-static-style="a051">${s.name}</div>
-                </div>
-                <div data-dynamic-style="${dynamicStyleToken`width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;`}"></div>
-              </button>`;
-            }).join('')}
-          </div>
-        </div>
-      </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
-        <div data-static-style="a036">
-          <div data-static-style="a020"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
-        </div>
-        <div id="arStageDetailContent" data-static-style="a024"></div>
-      </div>
-      <div id="arStageHint" data-static-style="a025">Нажми на этап, чтобы узнать подробнее</div>
-    </div>`;
+  stages.forEach(stage => {
+    const color = (stage.defenseMethod && stage.defenseMethod.color) || '#3b82f6';
+    const badge = (stage.code || String(stage.id)).toUpperCase().slice(0, 4);
+    nodes.appendChild(_arDetailNode('button', {
+      id: 'arNode' + stage.id,
+      dynamicStyle: dynamicStyleToken`display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border:1px solid ${color}44;border-left:4px solid ${color};border-radius:10px;color:#fff;font-family:inherit;cursor:pointer;text-align:left;transition:all 0.2s;pointer-events:auto;`,
+      onClick: () => selectKillChainStage(stage.id),
+    }, [
+      _arDetailNode('div', {
+        dynamicStyle: dynamicStyleToken`width:40px;height:36px;border-radius:8px;background:${color}22;border:1px solid ${color};color:${color};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;`,
+        text: badge,
+      }),
+      _arDetailNode('div', { staticStyle: 'a015' }, [
+        _arDetailNode('div', { staticStyle: 'a050', text: stage.nameRu }),
+        _arDetailNode('div', { staticStyle: 'a051', text: stage.name }),
+      ]),
+      _arDetailNode('div', {
+        dynamicStyle: dynamicStyleToken`width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;`,
+      }),
+    ]));
+  });
+
   initStageDetailsSwipe();
   initARPan();
-
   setTimeout(() => {
-    stages.forEach((s, i) => {
-      const node = document.getElementById('arNode' + s.id);
+    stages.forEach((stage, index) => {
+      const node = document.getElementById('arNode' + stage.id);
       if (!node) return;
       node.style.opacity = '0';
       node.style.transform = 'translateX(-32px)';
@@ -1330,7 +1352,7 @@ function renderGenericScheme(scheme) {
         node.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1), border-color 0.2s';
         node.style.opacity = '1';
         node.style.transform = 'translateX(0)';
-      }, i * 60);
+      }, index * 60);
     });
   }, 50);
 }
