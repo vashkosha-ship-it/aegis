@@ -1111,10 +1111,14 @@ function renderDidScheme() {
 
 function _createArSchemeShell({
   scrollStyle,
-  nodesStyle,
+  nodesStyle = null,
+  nodesDynamicStyle = null,
   title,
   hint,
   wrapperStyle = null,
+  rootStyle = 'a008',
+  zoomButtonStyle = 'a028',
+  resetButtonStyle = 'a029',
   detailStyle = 'a035',
   detailHeaderStyle = 'a036',
   detailTitleStyle = 'a037',
@@ -1124,12 +1128,16 @@ function _createArSchemeShell({
   if (!container) return null;
 
   const controls = _arDetailNode('div', { staticStyle: 'a009' }, [
-    _arDetailNode('button', { staticStyle: 'a028', text: '+', onClick: () => zoomARScheme('in') }),
-    _arDetailNode('button', { staticStyle: 'a028', text: '−', onClick: () => zoomARScheme('out') }),
-    _arDetailNode('button', { staticStyle: 'a029', text: '⟳', onClick: resetARSchemeZoom }),
+    _arDetailNode('button', { staticStyle: zoomButtonStyle, text: '+', onClick: () => zoomARScheme('in') }),
+    _arDetailNode('button', { staticStyle: zoomButtonStyle, text: '−', onClick: () => zoomARScheme('out') }),
+    _arDetailNode('button', { staticStyle: resetButtonStyle, text: '⟳', onClick: resetARSchemeZoom }),
   ]);
 
-  const nodes = _arDetailNode('div', { id: 'killChainNodes', staticStyle: nodesStyle });
+  const nodes = _arDetailNode('div', {
+    id: 'killChainNodes',
+    staticStyle: nodesStyle,
+    dynamicStyle: nodesDynamicStyle,
+  });
   let scrollChild = nodes;
   if (wrapperStyle) {
     scrollChild = _arDetailNode('div', {
@@ -1180,7 +1188,7 @@ function _createArSchemeShell({
     _arDetailNode('div', { id: 'arStageDetailContent', staticStyle: 'a024' }),
   ]);
 
-  const root = _arDetailNode('div', { id: 'arSchemeRoot', staticStyle: 'a008' }, [
+  const root = _arDetailNode('div', { id: 'arSchemeRoot', staticStyle: rootStyle }, [
     controls,
     ...beforeScroll,
     scroll,
@@ -1477,130 +1485,102 @@ function isKillChainStageStudied(stage) {
 }
 
 function renderKillChainScheme() {
-  // Показываем переключатель режима (он скрыт по умолчанию для других схем)
   const toggle = document.getElementById('arViewModeToggle');
   if (toggle) toggle.style.display = 'flex';
-  // Восстанавливаем сохранённый режим
+
   const savedMode = localStorage.getItem('aegis_killchain_mode') || 'attack';
   arViewMode = savedMode;
-  // Применим режим после рендера узлов (через тик)
   setTimeout(() => setKillChainViewMode(savedMode), 50);
-  const container = document.getElementById('arSchemeContainer');
-  if (!container) {
+
+  const stages = activeScheme().stages;
+  const isVertical = true;
+  currentARSchemeZoom = 1;
+
+  const nodes = _createArSchemeShell({
+    rootStyle: 'a066',
+    zoomButtonStyle: 'a067',
+    resetButtonStyle: 'a068',
+    scrollStyle: 'a069',
+    wrapperStyle: 'a013',
+    nodesDynamicStyle: dynamicStyleToken`display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;`,
+    detailStyle: 'a073',
+    detailHeaderStyle: 'a074',
+    detailTitleStyle: 'a075',
+    title: 'НАЖМИТЕ НА ЭТАП',
+    hint: 'Нажми на этап, чтобы узнать подробнее',
+  });
+  if (!nodes) {
     console.error('arSchemeContainer не найден');
     return;
   }
-  
-  const stages = activeScheme().stages;
-  
-  // Определяем ориентацию
-  const isMobile = window.innerWidth < 768;
-  const isPortrait = window.innerHeight > window.innerWidth;
-  const isVertical = true; // Kill Chain всегда вертикальный (по запросу)
-  
-  // Сбрасываем зум при открытии
-  currentARSchemeZoom = 1;
-  
-  let html = `
-    <div id="arSchemeRoot" data-static-style="a066">
-      ${AR_3D.cube}
-      
-      <!-- Контролы зума -->
-      <div data-static-style="a009">
-        <button data-onclick="zoomARScheme('in')" data-static-style="a067">+</button>
-        <button data-onclick="zoomARScheme('out')" data-static-style="a067">−</button>
-        <button data-onclick="resetARSchemeZoom()" data-static-style="a068">⟳</button>
-      </div>
-      
-      <!-- Контейнер для скролла с поддержкой зума -->
-      <div id="killChainScrollContainer" data-static-style="a069">
-        <div id="killChainWrapper" data-static-style="a013">
-          <div id="killChainNodes" data-dynamic-style="${dynamicStyleToken`display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;`}">
-            ${stages.map((s, i) => `
-              ${i > 0 ? `<div class="ar-chain-link${isVertical ? ' vertical' : ''}" data-dynamic-style="${dynamicStyleToken`width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(0,212,255,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(0,212,255,0.2),inset 0 0 4px rgba(0,0,0,0.4);`}"></div>` : ''}
-              ${(() => {
-                const studied = isKillChainStageStudied(s);
-                const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
-                const checkmark = studied ? `<div data-static-style="a070">✓</div>` : '';
-                return `
-                <div data-static-style="a071">
-                <button data-onclick="selectKillChainStage(${s.id})" id="arNode${s.id}" class="ar-killchain-node" data-dynamic-style="${dynamicStyleToken`position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);`}">
-                  <div data-dynamic-style="${dynamicStyleToken`font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);`}">${s.id}</div>
-                  ${checkmark}
-                </button>
-                <div data-static-style="a072">${s.nameRu}</div>
-                </div>
-                `;
-              })()}
-            `).join('')}
-          </div>
-        </div>
-      </div>
 
-      <!-- Панель деталей этапа (с возможностью свайпа вверх) -->
-      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a073">
-        <div data-static-style="a074">
-          <div data-static-style="a020"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <div data-static-style="a075" id="arStageDetailTitle">НАЖМИТЕ НА ЭТАП</div>
-        </div>
-        <div id="arStageDetailContent" data-static-style="a024">
-          <!-- Содержимое будет подставлено -->
-        </div>
-      </div>
-      
-      <!-- Подсказка -->
-      <div id="arStageHint" data-static-style="a025">
-        Нажми на этап, чтобы узнать подробнее
-      </div>
-    </div>
-  `;
+  stages.forEach((stage, index) => {
+    if (index > 0) {
+      nodes.appendChild(_arDetailNode('div', {
+        className: 'ar-chain-link' + (isVertical ? ' vertical' : ''),
+        dynamicStyle: dynamicStyleToken`width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(0,212,255,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(0,212,255,0.2),inset 0 0 4px rgba(0,0,0,0.4);`,
+      }));
+    }
 
-  container.innerHTML = html;
-  
-  // Инициализируем свайп для панели деталей
+    const studied = isKillChainStageStudied(stage);
+    const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
+    const label = _arDetailNode('div', {
+      dynamicStyle: dynamicStyleToken`font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);`,
+      text: stage.id,
+    });
+    const buttonChildren = [label];
+    if (studied) {
+      buttonChildren.push(_arDetailNode('div', { staticStyle: 'a070', text: '✓' }));
+    }
+    const button = _arDetailNode('button', {
+      id: 'arNode' + stage.id,
+      className: 'ar-killchain-node',
+      dynamicStyle: dynamicStyleToken`position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);`,
+      onClick: () => selectKillChainStage(stage.id),
+    }, buttonChildren);
+    nodes.appendChild(_arDetailNode('div', { staticStyle: 'a071' }, [
+      button,
+      _arDetailNode('div', { staticStyle: 'a072', text: stage.nameRu }),
+    ]));
+  });
+
   initStageDetailsSwipe();
   initARPan();
-  
+
   if (isVertical) {
     setTimeout(() => {
       const scrollContainer = document.getElementById('killChainScrollContainer');
       if (scrollContainer && stages.length > 4) {
-        const hint = document.createElement('div');
-        hint.style.cssText = 'position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);border-radius:20px;padding:6px 14px;font-size:10px;color:#fff;pointer-events:none;animation:fadeOut 2s forwards;z-index:15;';
-        hint.textContent = '↓ Листай вниз ↓';
-        document.getElementById('arSchemeRoot').appendChild(hint);
-        setTimeout(() => hint.remove(), 2000);
+        const scrollHint = document.createElement('div');
+        scrollHint.style.cssText = 'position:absolute;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);border-radius:20px;padding:6px 14px;font-size:10px;color:#fff;pointer-events:none;animation:fadeOut 2s forwards;z-index:15;';
+        scrollHint.textContent = '↓ Листай вниз ↓';
+        document.getElementById('arSchemeRoot').appendChild(scrollHint);
+        setTimeout(() => scrollHint.remove(), 2000);
       }
     }, 500);
   }
 
-  // Анимация появления нод — каждая вылетает с задержкой
   setTimeout(() => {
-    document.querySelectorAll('.ar-killchain-node').forEach((node, i) => {
+    document.querySelectorAll('.ar-killchain-node').forEach((node, index) => {
       node.style.opacity = '0';
       node.style.transform = 'scale(0.5)';
       setTimeout(() => {
         node.style.transition = 'opacity 0.35s ease, transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s';
         node.style.opacity = '1';
         node.style.transform = 'scale(1)';
-      }, i * 80);
+      }, index * 80);
     });
-    // Пульсирующий эффект на первой ноде как подсказка
     setTimeout(() => {
       const first = document.getElementById('arNode1');
       if (first) first.style.animation = 'arNodePulse 2s ease-in-out 3';
     }, stages.length * 80 + 200);
 
-    // 3D floating анимация с разными задержками
-    document.querySelectorAll('.ar-killchain-node').forEach((node, i) => {
-      const delay = (i * 300) % 1200;
-      const dur = 2.8 + (i % 3) * 0.4;
+    document.querySelectorAll('.ar-killchain-node').forEach((node, index) => {
+      const delay = (index * 300) % 1200;
+      const duration = 2.8 + (index % 3) * 0.4;
       setTimeout(() => {
-        if (!node.style.animation || node.style.animation.includes('arNodePulse') === false) {
-          node.style.animation = `ar3dFloat ${dur}s ease-in-out ${delay}ms infinite`;
+        if (!node.style.animation || !node.style.animation.includes('arNodePulse')) {
+          node.style.animation = `ar3dFloat ${duration}s ease-in-out ${delay}ms infinite`;
         }
       }, stages.length * 80 + 800);
     });
