@@ -33,6 +33,9 @@ function createContext() {
   const context = {
     document: dom.window.document,
     AR_IR: { stages: [stage] },
+    AR_OWASP: { stages: [stage] },
+    AR_OSI: { stages: [stage] },
+    AR_MITRE: { stages: [stage, { ...stage, id: 2 }] },
     AR_STRIDE: { stages: [stage] },
     dynamicStyleToken: strings => strings.join(''),
     zoomARScheme() {},
@@ -44,7 +47,7 @@ function createContext() {
     setTimeout(callback) { callback(); return 1; },
   };
   vm.createContext(context);
-  ['_arDetailNode', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme']
+  ['_arDetailNode', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme']
     .forEach(name => vm.runInContext(extractFunction(name), context));
   return { dom, context, malicious, stage };
 }
@@ -53,6 +56,9 @@ for (const renderer of [
   ({ context }) => context.renderIrScheme(),
   ({ context }) => context.renderStrideScheme(),
   ({ context, stage }) => context.renderGenericScheme({ stages: [stage] }),
+  ({ context }) => context.renderOwaspScheme(),
+  ({ context }) => context.renderOsiScheme(),
+  ({ context }) => context.renderMitreScheme(),
 ]) {
   const setup = createContext();
   renderer(setup);
