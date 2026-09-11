@@ -4,20 +4,3 @@
 # осознанно, вместе с объяснением в коммите.
 #
 # Пересобрать: python tools/audit_innerhtml.py --baseline
-
-ar-schemes.js	AR_3D.pyramid
-ar-schemes.js	arrows
-ar-schemes.js	cards
-ar-schemes.js	circles
-ar-schemes.js	cx
-ar-schemes.js	cy
-ar-schemes.js	cy + 14
-ar-schemes.js	cy - 6
-ar-schemes.js	items
-ar-schemes.js	labels
-ar-schemes.js	layers
-ar-schemes.js	percent
-ar-schemes.js	rInner - 6
-ar-schemes.js	segs
-ar-schemes.js	stages.map((s) => { const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6'; const badge = (s.code || Stri
-ar-schemes.js	stages.map((s, i) => { const color = colors[i] || '#3b82f6'; return `<button data-onclick="selectKillChainStage(${s.id})

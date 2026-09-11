@@ -922,193 +922,187 @@ function renderOwaspScheme() {
 // ─── OSI: горизонтальные слои-плашки (L7 сверху, L1 снизу) ──────────────────
 // ─── Универсальный рендер для линейных схем (NIST, IR, Defense in Depth, STRIDE) ───
 // ─── NIST CSF: круговой цикл из 5 функций (SVG-кольцо) ──────────────────────
+function _arSvgElement(tagName, attributes = {}, options = {}) {
+  const node = document.createElementNS('http://www.w3.org/2000/svg', tagName);
+  Object.entries(attributes).forEach(([name, value]) => {
+    if (value !== undefined && value !== null) node.setAttribute(name, String(value));
+  });
+  if (options.staticStyle) node.setAttribute('data-static-style', options.staticStyle);
+  if (options.dynamicStyle) node.setAttribute('data-dynamic-style', options.dynamicStyle);
+  if (options.text !== undefined) node.textContent = String(options.text);
+  if (options.onClick) node.addEventListener('click', options.onClick);
+  return node;
+}
+
 function renderNistScheme() {
-  const container = document.getElementById('arSchemeContainer');
-  if (!container) return;
-  const scheme = AR_NIST;
-  const stages = scheme.stages;
-  const n = stages.length; // 5
-
-  // Геометрия кольца
+  const stages = AR_NIST.stages;
+  const count = stages.length;
   const cx = 150, cy = 150, rOuter = 130, rInner = 70;
-  const gap = 0.04; // зазор между сегментами (рад)
-  const seg = (Math.PI * 2) / n;
+  const gap = 0.04;
+  const segmentAngle = (Math.PI * 2) / count;
 
-  function polar(r, a) {
-    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  function polar(radius, angle) {
+    return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)];
   }
-  // Дуга-сегмент (кольцевой сектор) как SVG path
-  function segmentPath(i) {
-    const a0 = -Math.PI / 2 + i * seg + gap / 2;
-    const a1 = -Math.PI / 2 + (i + 1) * seg - gap / 2;
-    const [x0o, y0o] = polar(rOuter, a0);
-    const [x1o, y1o] = polar(rOuter, a1);
-    const [x1i, y1i] = polar(rInner, a1);
-    const [x0i, y0i] = polar(rInner, a0);
-    const large = (a1 - a0) > Math.PI ? 1 : 0;
+  function segmentPath(index) {
+    const start = -Math.PI / 2 + index * segmentAngle + gap / 2;
+    const end = -Math.PI / 2 + (index + 1) * segmentAngle - gap / 2;
+    const [x0o, y0o] = polar(rOuter, start);
+    const [x1o, y1o] = polar(rOuter, end);
+    const [x1i, y1i] = polar(rInner, end);
+    const [x0i, y0i] = polar(rInner, start);
+    const large = end - start > Math.PI ? 1 : 0;
     return `M ${x0o} ${y0o} A ${rOuter} ${rOuter} 0 ${large} 1 ${x1o} ${y1o} L ${x1i} ${y1i} A ${rInner} ${rInner} 0 ${large} 0 ${x0i} ${y0i} Z`;
   }
-  // Позиция подписи (середина сегмента)
-  function labelPos(i) {
-    const am = -Math.PI / 2 + (i + 0.5) * seg;
-    return polar((rOuter + rInner) / 2, am);
+  function labelPosition(index) {
+    const middle = -Math.PI / 2 + (index + 0.5) * segmentAngle;
+    return polar((rOuter + rInner) / 2, middle);
   }
 
-  const segs = stages.map((s, i) => {
-    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
-    const [lx, ly] = labelPos(i);
-    return `
-      <path id="nistSeg${s.id}" d="${segmentPath(i)}" fill="${color}" fill-opacity="0.22"
-            stroke="${color}" stroke-width="2"
-            data-dynamic-style="${dynamicStyleToken`cursor:pointer;transition:fill-opacity 0.25s, transform 0.4s cubic-bezier(0.22,1,0.36,1);transform-origin:${cx}px ${cy}px;opacity:0;`}"
-            data-onclick="selectKillChainStage(${s.id})"></path>
-      <text x="${lx}" y="${ly + 5}" text-anchor="middle" fill="#fff" font-size="15" font-weight="800"
-            data-static-style="a026">${s.code}</text>`;
-  }).join('');
+  const nodes = _createArSchemeShell({
+    scrollStyle: 'a030',
+    nodesStyle: 'a031',
+    title: 'НАЖМИТЕ НА ФУНКЦИЮ',
+    hint: 'Нажми на функцию цикла, чтобы узнать подробнее',
+  });
+  if (!nodes) return;
 
-  // Стрелки направления цикла (по часовой) — маленькие треугольники между сегментами
-  const arrows = stages.map((s, i) => {
-    const aEnd = -Math.PI / 2 + (i + 1) * seg;
-    const [ax, ay] = polar(rOuter + 12, aEnd);
-    const rot = (aEnd * 180 / Math.PI) + 90;
-    return `<text x="${ax}" y="${ay}" text-anchor="middle" fill="rgba(0,212,255,0.6)" font-size="12"
-              data-static-style="a027" transform="rotate(${rot} ${ax} ${ay})">▶</text>`;
-  }).join('');
+  const svg = _arSvgElement('svg', {
+    width: 300,
+    height: 300,
+    viewBox: '0 0 300 300',
+  }, { staticStyle: 'a032' });
+  svg.appendChild(_arSvgElement('circle', {
+    cx, cy, r: rInner - 6,
+    fill: 'rgba(0,212,255,0.06)',
+    stroke: 'rgba(0,212,255,0.4)',
+    'stroke-width': 1.5,
+  }));
+  svg.appendChild(_arSvgElement('text', {
+    x: cx, y: cy - 6, 'text-anchor': 'middle',
+    fill: '#00d4ff', 'font-size': 20, 'font-weight': 800,
+  }, { staticStyle: 'a033', text: 'NIST' }));
+  svg.appendChild(_arSvgElement('text', {
+    x: cx, y: cy + 14, 'text-anchor': 'middle',
+    fill: 'rgba(255,255,255,0.7)', 'font-size': 11,
+  }, { staticStyle: 'a033', text: 'CSF' }));
 
-  container.innerHTML = `
-    <div id="arSchemeRoot" data-static-style="a008">
-      <div data-static-style="a009">
-        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
-        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
-        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
-      </div>
-      <div id="killChainScrollContainer" data-static-style="a030">
-        <div id="killChainNodes" data-static-style="a031">
-          <svg width="300" height="300" viewBox="0 0 300 300" data-static-style="a032">
-            <circle cx="${cx}" cy="${cy}" r="${rInner - 6}" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
-            <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="#00d4ff" font-size="20" font-weight="800" data-static-style="a033">NIST</text>
-            <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" data-static-style="a033">CSF</text>
-            <g id="nistArrows" data-static-style="a034">${arrows}</g>
-            ${segs}
-          </svg>
-        </div>
-      </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
-        <div data-static-style="a036">
-          <div data-static-style="a020"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА ФУНКЦИЮ</div>
-        </div>
-        <div id="arStageDetailContent" data-static-style="a024"></div>
-      </div>
-      <div id="arStageHint" data-static-style="a025">Нажми на функцию цикла, чтобы узнать подробнее</div>
-    </div>`;
+  const arrows = _arSvgElement('g', { id: 'nistArrows' }, { staticStyle: 'a034' });
+  stages.forEach((stage, index) => {
+    const end = -Math.PI / 2 + (index + 1) * segmentAngle;
+    const [x, y] = polar(rOuter + 12, end);
+    const rotation = end * 180 / Math.PI + 90;
+    arrows.appendChild(_arSvgElement('text', {
+      x, y, 'text-anchor': 'middle',
+      fill: 'rgba(0,212,255,0.6)', 'font-size': 12,
+      transform: `rotate(${rotation} ${x} ${y})`,
+    }, { staticStyle: 'a027', text: '▶' }));
+  });
+  svg.appendChild(arrows);
+
+  stages.forEach((stage, index) => {
+    const color = (stage.defenseMethod && stage.defenseMethod.color) || '#3b82f6';
+    const [labelX, labelY] = labelPosition(index);
+    svg.appendChild(_arSvgElement('path', {
+      id: 'nistSeg' + stage.id,
+      d: segmentPath(index),
+      fill: color,
+      'fill-opacity': 0.22,
+      stroke: color,
+      'stroke-width': 2,
+    }, {
+      dynamicStyle: dynamicStyleToken`cursor:pointer;transition:fill-opacity 0.25s, transform 0.4s cubic-bezier(0.22,1,0.36,1);transform-origin:${cx}px ${cy}px;opacity:0;`,
+      onClick: () => selectKillChainStage(stage.id),
+    }));
+    svg.appendChild(_arSvgElement('text', {
+      x: labelX, y: labelY + 5, 'text-anchor': 'middle',
+      fill: '#fff', 'font-size': 15, 'font-weight': 800,
+    }, { staticStyle: 'a026', text: stage.code }));
+  });
+  nodes.appendChild(svg);
 
   initStageDetailsSwipe();
   initARPan();
-
-  // Анимация: сегменты «раскрываются» по очереди (масштаб + прозрачность), затем появляются стрелки цикла
   setTimeout(() => {
-    stages.forEach((s, i) => {
-      const el = document.getElementById('nistSeg' + s.id);
-      if (!el) return;
-      el.style.transform = 'scale(0.6)';
+    stages.forEach((stage, index) => {
+      const segment = document.getElementById('nistSeg' + stage.id);
+      if (!segment) return;
+      segment.style.transform = 'scale(0.6)';
       setTimeout(() => {
-        el.style.opacity = '1';
-        el.style.transform = 'scale(1)';
-      }, i * 130);
+        segment.style.opacity = '1';
+        segment.style.transform = 'scale(1)';
+      }, index * 130);
     });
-    const arrowsEl = document.getElementById('nistArrows');
-    if (arrowsEl) setTimeout(() => { arrowsEl.style.opacity = '1'; }, n * 130 + 200);
+    const arrowsElement = document.getElementById('nistArrows');
+    if (arrowsElement) setTimeout(() => { arrowsElement.style.opacity = '1'; }, count * 130 + 200);
   }, 60);
 }
 
 // ─── Defense in Depth: концентрические кольца (эшелоны вокруг данных) ───────
 function renderDidScheme() {
-  const container = document.getElementById('arSchemeContainer');
-  if (!container) return;
-  const scheme = AR_DID;
-  const stages = scheme.stages; // 6: phys, perim, net, host, app, data
-  const n = stages.length;
+  const stages = AR_DID.stages;
+  const count = stages.length;
   const cx = 160, cy = 160;
   const rMax = 150, rMin = 34;
-  // равномерные кольца от внешнего к внутреннему
-  const step = (rMax - rMin) / n;
-
-  // Внешний слой (stages[0]) — самое большое кольцо, данные (последний) — центр
-  const rings = stages.map((s, i) => {
-    const rOuter = rMax - i * step;
-    const rInner = rMax - (i + 1) * step;
-    const color = (s.defenseMethod && s.defenseMethod.color) || '#3b82f6';
-    const isCenter = i === n - 1;
-    const labelR = isCenter ? 0 : (rOuter + rInner) / 2;
-    return { s, i, rOuter, rInner, color, isCenter, labelR };
+  const step = (rMax - rMin) / count;
+  const rings = stages.map((stage, index) => {
+    const rOuter = rMax - index * step;
+    const rInner = rMax - (index + 1) * step;
+    return {
+      stage,
+      rOuter,
+      rInner,
+      color: (stage.defenseMethod && stage.defenseMethod.color) || '#3b82f6',
+      isCenter: index === count - 1,
+    };
   });
 
-  // Рисуем от внешнего к внутреннему (большие сзади)
-  const circles = rings.map(({ s, rOuter, color, isCenter }) => {
-    if (isCenter) {
-      return `<circle id="didRing${s.id}" cx="${cx}" cy="${cy}" r="${rOuter}"
-        fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-width="2"
-        data-static-style="a038"
-        data-onclick="selectKillChainStage(${s.id})"></circle>`;
-    }
-    return `<circle id="didRing${s.id}" cx="${cx}" cy="${cy}" r="${rOuter}"
-      fill="${color}" fill-opacity="0.10" stroke="${color}" stroke-width="2"
-      data-static-style="a038"
-      data-onclick="selectKillChainStage(${s.id})"></circle>`;
-  }).join('');
+  const nodes = _createArSchemeShell({
+    scrollStyle: 'a030',
+    nodesStyle: 'a031',
+    title: 'НАЖМИТЕ НА СЛОЙ',
+    hint: 'Нажми на слой защиты, чтобы узнать подробнее',
+  });
+  if (!nodes) return;
 
-  // Подписи слоёв — по верхней части каждого кольца
-  const labels = rings.map(({ s, rOuter, rInner, color, isCenter }) => {
-    if (isCenter) {
-      return `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="12" font-weight="800"
-        data-static-style="a026">${s.nameRu}</text>`;
-    }
-    const ly = cy - (rOuter + rInner) / 2 + 4;
-    return `<text x="${cx}" y="${ly}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700"
-      data-static-style="a026">${s.nameRu}</text>`;
-  }).join('');
+  const svg = _arSvgElement('svg', {
+    width: 320,
+    height: 320,
+    viewBox: '0 0 320 320',
+  }, { staticStyle: 'a039' });
 
-  container.innerHTML = `
-    <div id="arSchemeRoot" data-static-style="a008">
-      <div data-static-style="a009">
-        <button data-onclick="zoomARScheme('in')" data-static-style="a028">+</button>
-        <button data-onclick="zoomARScheme('out')" data-static-style="a028">−</button>
-        <button data-onclick="resetARSchemeZoom()" data-static-style="a029">⟳</button>
-      </div>
-      <div id="killChainScrollContainer" data-static-style="a030">
-        <div id="killChainNodes" data-static-style="a031">
-          <svg width="320" height="320" viewBox="0 0 320 320" data-static-style="a039">
-            ${circles}
-            ${labels}
-          </svg>
-        </div>
-      </div>
-      <div id="arStageDetails" class="ar-stage-details-panel" data-static-style="a035">
-        <div data-static-style="a036">
-          <div data-static-style="a020"></div>
-          <button data-onclick="toggleStageDetailsPanel()" data-args="event" title="Развернуть/свернуть" data-static-style="a021" id="arStageToggleBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" data-static-style="a022"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <div data-static-style="a037" id="arStageDetailTitle">НАЖМИТЕ НА СЛОЙ</div>
-        </div>
-        <div id="arStageDetailContent" data-static-style="a024"></div>
-      </div>
-      <div id="arStageHint" data-static-style="a025">Нажми на слой защиты, чтобы узнать подробнее</div>
-    </div>`;
+  rings.forEach(({ stage, rOuter, color, isCenter }) => {
+    svg.appendChild(_arSvgElement('circle', {
+      id: 'didRing' + stage.id,
+      cx, cy, r: rOuter,
+      fill: color,
+      'fill-opacity': isCenter ? 0.35 : 0.10,
+      stroke: color,
+      'stroke-width': 2,
+    }, {
+      staticStyle: 'a038',
+      onClick: () => selectKillChainStage(stage.id),
+    }));
+  });
+  rings.forEach(({ stage, rOuter, rInner, isCenter }) => {
+    svg.appendChild(_arSvgElement('text', {
+      x: cx,
+      y: isCenter ? cy + 4 : cy - (rOuter + rInner) / 2 + 4,
+      'text-anchor': 'middle',
+      fill: '#fff',
+      'font-size': isCenter ? 12 : 10,
+      'font-weight': isCenter ? 800 : 700,
+    }, { staticStyle: 'a026', text: stage.nameRu }));
+  });
+  nodes.appendChild(svg);
 
   initStageDetailsSwipe();
   initARPan();
-
-  // Анимация: кольца появляются от внешнего к внутреннему
   setTimeout(() => {
-    rings.forEach(({ s }, idx) => {
-      const el = document.getElementById('didRing' + s.id);
-      if (!el) return;
-      setTimeout(() => { el.style.opacity = '1'; }, idx * 120);
+    rings.forEach(({ stage }, index) => {
+      const ring = document.getElementById('didRing' + stage.id);
+      if (!ring) return;
+      setTimeout(() => { ring.style.opacity = '1'; }, index * 120);
     });
   }, 60);
 }
