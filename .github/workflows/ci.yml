@@ -467,11 +467,17 @@ jobs:
   # подключённые скрипты. Дважды за время работы такое расхождение находилось
   # только вручную.
   #
-  # Запускается вручную (Actions → Run workflow) и раз в неделю по расписанию.
+  # Запускается вручную (Actions → Run workflow), раз в неделю по расписанию
+  # и один раз с merge-коммита, помеченного [production-e2e]. Метка позволяет
+  # подтвердить production-прогон из истории репозитория, не отзывая сессии
+  # тестовой учётки на каждом обычном push.
   # Для ручного и планового production-прогона отсутствие секретов — ошибка
   # конфигурации, а не успешный skip. На обычных push/PR этот job не запускается.
   e2e:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[production-e2e]'))
     runs-on: ubuntu-latest
     defaults:
       run:
