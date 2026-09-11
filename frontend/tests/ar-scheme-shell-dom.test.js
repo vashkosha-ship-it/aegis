@@ -48,9 +48,17 @@ function createContext() {
     initStageDetailsSwipe() {},
     initARPan() {},
     setTimeout(callback) { callback(); return 1; },
+    localStorage: { getItem() { return 'attack'; } },
+    window: { innerWidth: 1024, innerHeight: 768 },
+    console,
+    activeScheme() { return { stages: [stage, { ...stage, id: 2 }] }; },
+    isKillChainStageStudied() { return false; },
+    setKillChainViewMode() {},
+    arViewMode: 'attack',
+    currentARSchemeZoom: 1,
   };
   vm.createContext(context);
-  ['_arDetailNode', '_arSvgElement', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme', 'renderNistScheme', 'renderDidScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme']
+  ['_arDetailNode', '_arSvgElement', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme', 'renderNistScheme', 'renderDidScheme', 'renderKillChainScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme']
     .forEach(name => vm.runInContext(extractFunction(name), context));
   return { dom, context, malicious, stage };
 }
@@ -96,4 +104,18 @@ for (const name of ['_arSvgElement', 'renderNistScheme', 'renderDidScheme']) {
   assert.doesNotMatch(body, /innerHTML/);
   assert.doesNotMatch(body, /data-onclick/);
 }
+{
+  const setup = createContext();
+  setup.context.renderKillChainScheme();
+  const container = setup.dom.window.document.getElementById('arSchemeContainer');
+  assert.equal(container.querySelector('img'), null);
+  assert.ok(container.textContent.includes(setup.malicious));
+  assert.equal(container.querySelectorAll('.ar-killchain-node').length, 2);
+  assert.equal(container.querySelectorAll('.ar-chain-link').length, 1);
+  assert.equal(container.querySelectorAll('[data-onclick]').length, 0);
+}
+const killChainSource = extractFunction('renderKillChainScheme');
+assert.doesNotMatch(killChainSource, /innerHTML/);
+assert.doesNotMatch(killChainSource, /data-onclick/);
+assert.doesNotMatch(source, /\.innerHTML\s*=/);
 console.log('AR scheme shell DOM tests passed');
