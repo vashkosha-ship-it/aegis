@@ -30,6 +30,7 @@ const api = {
   books: { coverUrl: id => `/api/books/${id}/cover` },
 };
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   api,
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),

@@ -58,6 +58,7 @@ const state = {
   books: [{ id: 42, title: 'Old' }],
 };
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   api,
   state,

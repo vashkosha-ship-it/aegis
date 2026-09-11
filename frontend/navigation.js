@@ -92,14 +92,14 @@ function ensureReaderHasBook() {
     screen.appendChild(stub);
   }
   stub.style.display = 'flex';
-  stub.innerHTML = `
+  replaceWithAppMarkup(stub, `
     <div data-static-style="a269">📖</div>
     <div data-static-style="a270">
       Вы ещё не начали читать ни одну книгу.
     </div>
     <button data-onclick="navigateTo('home')" data-static-style="a271">
       Выбрать книгу
-    </button>`;
+    </button>`);
 }
 
 // Прячем заглушку, когда книга открывается

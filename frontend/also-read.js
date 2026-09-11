@@ -5,7 +5,7 @@ async function loadAlsoRead(bookId) {
   try {
     const books = await api.library.alsoRead(bookId, 8);
     if (!books || !books.length) { container.replaceChildren(); return; }
-    container.innerHTML = `
+    replaceWithAppMarkup(container, `
       <div class="section-title" data-static-style="a472">Также читают</div>
       <div data-static-style="a473">
         ${books.map(book => `
@@ -17,7 +17,7 @@ async function loadAlsoRead(bookId) {
             <div data-static-style="a344">${eh(book.author)}</div>
           </div>
         `).join('')}
-      </div>`;
+      </div>`);
   } catch (_) {
     container.replaceChildren();
   }

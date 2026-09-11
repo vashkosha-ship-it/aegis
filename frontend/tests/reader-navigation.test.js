@@ -7,6 +7,7 @@ const root = path.join(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'reader-navigation.js'), 'utf8');
 const calls = [];
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   isEpubMode: false,
   epubTotalPages: 8,
   epubCurrentPage: 1,

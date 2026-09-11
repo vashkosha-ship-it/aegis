@@ -8,7 +8,7 @@ let _replyingTo = null;
 async function renderDiscussion() {
   const c = document.getElementById('detailTabDiscussion');
   if (!c || !currentBookId) return;
-  c.innerHTML = `
+  replaceWithAppMarkup(c, `
     <div data-static-style="a204">
       <textarea id="discussInput" placeholder="Написать комментарий..." rows="3" data-static-style="a205"></textarea>
       <div id="discussReplyHint" data-static-style="a206"></div>
@@ -18,7 +18,7 @@ async function renderDiscussion() {
       </div>
     </div>
     <div id="discussList" data-static-style="a129">Загрузка...</div>
-  `;
+  `);
   loadComments();
 }
 
@@ -34,7 +34,7 @@ async function loadComments() {
     }
     list.style.textAlign = 'left';
     list.style.padding = '0';
-    list.innerHTML = comments.map(renderCommentNode).join('');
+    replaceWithAppMarkup(list, comments.map(renderCommentNode).join(''));
   } catch (e) {
     replaceWithStaticText(list, 'Не удалось загрузить обсуждение.', 'a137');
   }

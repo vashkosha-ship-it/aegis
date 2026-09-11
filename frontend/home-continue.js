@@ -27,7 +27,7 @@ function unhideFromResume(bookId) {
 }
 
 function renderBookScroll(id, books, query) {
-  document.getElementById(id).innerHTML = books.map(b => cardHTML(b, query)).join('');
+  replaceWithAppMarkup(document.getElementById(id), books.map(b => cardHTML(b, query)).join(''));
 }
 
 // Сколько книг показывать в блоке «Продолжить». Больше — и он перестаёт быть
@@ -61,8 +61,8 @@ function renderContinueScroll(books, query) {
 
   // Пустой блок с заголовком выглядит поломкой, поэтому прячем целиком.
   if (section) section.style.display = items.length ? '' : 'none';
-  container.innerHTML = items
+  replaceWithAppMarkup(container, items
     .map(b => cardHTML(b, query, { removable: true }))
-    .join('');
+    .join(''));
 }
 

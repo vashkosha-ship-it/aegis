@@ -35,6 +35,7 @@ const escapeHtml = value => String(value ?? '')
   .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   dynamicStyleToken: captureDynamicStyle,
   api: { library: {

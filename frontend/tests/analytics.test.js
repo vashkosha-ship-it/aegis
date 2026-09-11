@@ -41,6 +41,7 @@ const bookAnalytics = {
   readers: [], quiz_attempts: 0, quiz_passed: 0, quiz_avg_percentage: 0,
 };
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   replaceWithStaticText: (container, text, style, tag = 'div') => {
     const node = dom.window.document.createElement(tag);

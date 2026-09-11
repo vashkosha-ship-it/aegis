@@ -39,6 +39,7 @@ const notes = [];
 const toasts = [];
 let promptOptions = null;
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   window: dom.window,
   document: dom.window.document,
   navigator: {},

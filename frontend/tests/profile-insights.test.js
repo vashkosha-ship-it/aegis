@@ -37,6 +37,7 @@ const state = {
   heatmapData: null,
 };
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   appendTrustedIcon: (container, markup) => {
     const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');

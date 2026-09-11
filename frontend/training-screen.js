@@ -73,7 +73,7 @@ function renderTrainingScreen() {
       </div>`).join('')
     : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.education}</div><p>Нет тестов</p></div>`;
 
-  document.getElementById('trainingList').innerHTML = cyberLevelBlock + listHtml;
+  replaceWithAppMarkup(document.getElementById('trainingList'), cyberLevelBlock + listHtml);
 }
 
 function restartOnboardingFromTraining() {

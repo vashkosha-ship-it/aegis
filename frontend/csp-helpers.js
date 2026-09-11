@@ -6,6 +6,48 @@
  * разметке указано data-args="this".
  */
 
+/* Безопасный шлюз для существующих шаблонов интерфейса.
+ * DOMParser не исполняет разметку. Перед переносом в основной документ
+ * дополнительно удаляются исполняемые элементы, inline-события и опасные URL.
+ */
+function _sanitizeAppMarkup(root) {
+  const blockedTags = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'META', 'BASE', 'LINK']);
+  root.querySelectorAll('*').forEach(function (node) {
+    if (blockedTags.has(node.tagName)) {
+      node.remove();
+      return;
+    }
+    Array.from(node.attributes).forEach(function (attribute) {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value.trim().replace(/[\u0000-\u0020]+/g, '').toLowerCase();
+      if (name.startsWith('on') || name === 'srcdoc') {
+        node.removeAttribute(attribute.name);
+        return;
+      }
+      if (['href', 'src', 'xlink:href', 'action', 'formaction'].includes(name)
+          && (value.startsWith('javascript:') || value.startsWith('data:text/html'))) {
+        node.removeAttribute(attribute.name);
+      }
+    });
+    if (node.getAttribute('target') === '_blank') node.setAttribute('rel', 'noopener noreferrer');
+  });
+  return root;
+}
+
+function appMarkupFragment(markup) {
+  const parsed = new DOMParser().parseFromString(String(markup || ''), 'text/html');
+  _sanitizeAppMarkup(parsed.body);
+  const fragment = document.createDocumentFragment();
+  Array.from(parsed.body.childNodes).forEach(function (node) {
+    fragment.appendChild(document.importNode(node, true));
+  });
+  return fragment;
+}
+
+function replaceWithAppMarkup(target, markup) {
+  if (target) target.replaceChildren(appMarkupFragment(markup));
+}
+
 /* ---- подмена картинки при ошибке загрузки ---- */
 
 // Заранее известные варианты замены. Раньше разметка лежала прямо в атрибуте
@@ -50,7 +92,7 @@ const FALLBACK_BUILDERS = {
 function _iconNode(markup) {
   if (!markup) return null;
   const template = document.createElement('template');
-  template.innerHTML = markup;
+  replaceWithAppMarkup(template, markup);
   return template.content.firstElementChild;
 }
 

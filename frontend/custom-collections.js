@@ -20,7 +20,7 @@ async function openAddToCollection(bookId) {
       <span>${eh(col.icon || '📁')} ${eh(col.name)}</span><span data-static-style="a478">${has ? '✓' : '+'}</span>
     </button>`;
   }).join('');
-  m.innerHTML = `<div data-static-style="a479">
+  replaceWithAppMarkup(m, `<div data-static-style="a479">
     <div data-static-style="a126">
       <h3 data-static-style="a127">В коллекцию</h3>
       <button data-onclick="closeModal('addToColModal')" data-static-style="a128">✕</button>
@@ -30,7 +30,7 @@ async function openAddToCollection(bookId) {
       <input id="newColName" placeholder="Новая коллекция" data-static-style="a482">
       <button data-onclick="createCollectionFromModal(${bookId})" data-static-style="a483">Создать</button>
     </div>
-  </div>`;
+  </div>`);
   m.onclick = (e) => { if (e.target === m) m.remove(); };
   document.body.appendChild(m);
 }

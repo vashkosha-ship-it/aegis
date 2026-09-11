@@ -21,6 +21,7 @@ const dom = new JSDOM(html);
 const calls = [];
 const mark = name => () => calls.push(name);
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   state: { currentUser: { role: 'user', is_approved: true }, currentScreen: 'auth' },
   currentBookId: null,

@@ -33,6 +33,7 @@ const state = {
 const avatars = [];
 let dragInitializations = 0;
 const context = {
+  replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   state,
   ICONS: { bookmark: '<svg></svg>' },
