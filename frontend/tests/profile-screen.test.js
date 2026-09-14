@@ -83,6 +83,11 @@ assert.equal(dom.window.document.getElementById('profileAvatarText').textContent
 assert.ok(calls.includes('xp') && calls.includes('offline'));
 assert.deepEqual(calls.at(-1), ['theme', 'dark']);
 assert.equal(dom.window.document.querySelector('#btnOpenSettings svg').getAttribute('data-icon'), 'gear');
+const staticProfile = new JSDOM(indexSource).window.document;
+const staticSettingsButton = staticProfile.getElementById('btnOpenSettings');
+assert.ok(staticSettingsButton.querySelector('svg'), 'шестерёнка должна быть видна до выполнения renderProfile');
+assert.equal(staticSettingsButton.getAttribute('aria-label'), 'Открыть настройки');
+assert.match(staticSettingsButton.getAttribute('data-onclick'), /navigateTo\('settings'\)/);
 
 dom.window.document.getElementById('profileTakeQuizBtn').click();
 assert.ok(calls.some(call => Array.isArray(call) && call[1] === 'onboarding'));
