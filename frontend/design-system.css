@@ -26,6 +26,31 @@
 :where(.training-card, .recommendation-card, .stat-card) {
   transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
+
+/* Book cards always keep the familiar cover-over-text composition. */
+.book-card-compact > .book-card-open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+.book-card-compact .cover-area,
+.book-card-compact .book-card-meta { width: 100%; min-width: 0; }
+.book-card-compact .book-card-meta { padding: 10px; text-align: left; }
+.book-card-compact .continue-remove {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 5;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, .24);
+  background: rgba(5, 10, 18, .82);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .32);
+  backdrop-filter: blur(8px);
+}
+.book-card-compact .continue-remove:hover { border-color: #f87171; color: #fca5a5; }
 @media (hover: hover) {
   :where(.training-card, .recommendation-card, .stat-card):hover {
     border-color: var(--ui-border-strong);

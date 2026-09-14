@@ -242,7 +242,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .books-grid .book-card-compact { min-width: 0; max-width: none; width: 100%; }
 
 /* ========== КАРТОЧКА КНИГИ ========== */
-.book-card-compact { min-width: 120px; max-width: 120px; flex-shrink: 0; background: var(--bg-card); border-radius: 14px; overflow: hidden; cursor: pointer; transition: var(--transition-slow); border: 1px solid var(--border); scroll-snap-align: start; }
+.book-card-compact { position: relative; min-width: 120px; max-width: 120px; flex-shrink: 0; background: var(--bg-card); border-radius: 14px; overflow: hidden; cursor: pointer; transition: var(--transition-slow); border: 1px solid var(--border); scroll-snap-align: start; }
 .book-card-compact.dragging { opacity: 0.5; border-color: var(--accent); border-style: dashed; transform: scale(0.95); }
 @media(min-width: 480px) { .book-card-compact { min-width: 140px; max-width: 140px; } }
 @media(min-width: 768px) { .book-card-compact { min-width: 160px; max-width: 160px; } }
@@ -276,6 +276,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+}
+.book-card-author {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .book-card-year {
   font-size: 10px;

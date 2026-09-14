@@ -246,7 +246,7 @@ function _libraryAction(icon, text, onClick, className = 'btn-detail', staticSty
   const button = _libraryNode('button', className, undefined, staticStyle);
   button.type = 'button';
   appendTrustedIcon(button, icon);
-  button.appendChild(document.createTextNode(' ' + text));
+  if (text) button.appendChild(document.createTextNode(' ' + text));
   button.addEventListener('click', onClick);
   return button;
 }
@@ -318,11 +318,13 @@ function renderBookInfo() {
       actions.appendChild(
         _libraryAction(
           ICONS.cloudCheck,
-          'Удалить из оффлайн',
+          '',
           () => removeBookOffline(book.id),
-          'btn-detail offline-btn-saved',
+          'btn-detail offline-btn-saved detail-icon-action',
         ),
       );
+      actions.lastElementChild.title = 'Удалить офлайн-копию';
+      actions.lastElementChild.setAttribute('aria-label', 'Удалить офлайн-копию');
     } else {
       actions.appendChild(
         _libraryAction(
@@ -358,16 +360,6 @@ function renderBookInfo() {
       ),
     );
   }
-  actions.appendChild(
-    _libraryAction(
-      ICONS.bookmark || '',
-      'В коллекцию',
-      () => openAddToCollection(book.id),
-      'btn-detail',
-      'a470',
-    ),
-  );
-
   info.appendChild(actions);
   hero.append(cover, info);
   const description = _libraryNode('section', 'detail-description-section');
