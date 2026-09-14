@@ -25,7 +25,7 @@ assert.equal(document.querySelectorAll('.nav-item[aria-current="page"]').length,
 assert.equal(document.querySelectorAll('#detailTabs [role="tab"]').length, 5);
 assert.equal(document.querySelectorAll('[role="tabpanel"]').length, 5);
 assert.match(styles, /:focus-visible/);
-assert.match(styles, /font-size: 16px !important/);
+assert.match(styles, /input, select, textarea \{ font-size: 16px; \}/);
 
 for (const file of ['training-screen.js', 'home-recommendations.js', 'home-catalog.js',
   'reviews-core.js', 'annotations-ui.js', 'also-read.js', 'reader-toc.js']) {

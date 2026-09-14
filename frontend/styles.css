@@ -2474,7 +2474,7 @@ select[multiple] option:hover {
   .book-card-year { font-size: 9px !important; }
   .book-card-compact .cover-bg svg { width: 36px !important; height: 44px !important; }
   .book-card-compact .rating-badge,
-  .book-card-compact .progress-badge { font-size: 8px !important; padding: 4px 8px !important; }
+  .book-card-compact .progress-badge { font-size: 8px; padding: 4px 8px !important; }
   .book-card-compact .rating-badge svg { width: 9px !important; height: 9px !important; }
 
   /* === ВКЛАДКИ === */
@@ -2502,25 +2502,25 @@ select[multiple] option:hover {
   .auth-container .btn, .auth-submit-btn { font-size: 14px !important; padding: 15px !important; border-radius: 9px !important; }
 
   /* === ДЕТАЛИ КНИГИ === */
-  #detailScreen .detail-header { padding: 14px 0 12px !important; }
+  #detailScreen .detail-header { padding: 14px 0 12px; }
   #detailScreen .detail-header .btn-back { width: 28px !important; height: 28px !important; font-size: 13px !important; }
   #detailScreen .detail-header > div,
   #detailScreen .detail-header span { font-size: 14px !important; font-weight: 800 !important; }
-  .detail-tabs { margin-bottom: 16px !important; padding: 4px !important; }
-  .detail-tab { font-size: 11px !important; padding: 10px 12px !important; }
-  .detail-content { display: flex !important; gap: 28px !important; flex-wrap: nowrap !important; align-items: flex-start !important; }
-  .detail-cover { width: 200px !important; height: 275px !important; flex-shrink: 0 !important; position: sticky !important; top: 14px !important; }
+  .detail-tabs { margin-bottom: 16px; padding: 4px; }
+  .detail-tab { font-size: 11px; padding: 10px 12px; }
+  .detail-content { display: flex; gap: 28px; flex-wrap: nowrap; align-items: flex-start; }
+  .detail-cover { width: 200px; height: 275px; flex-shrink: 0; position: sticky; top: 14px; }
   .detail-cover svg { width: 70px !important; height: 82px !important; }
-  .detail-info { flex: 1 !important; min-width: 0 !important; }
-  .detail-title { font-size: 23px !important; line-height: 1.2 !important; margin-bottom: 7px !important; }
-  .detail-author { font-size: 13px !important; margin-bottom: 7px !important; }
+  .detail-info { flex: 1; min-width: 0; }
+  .detail-title { font-size: 23px; line-height: 1.2; margin-bottom: 7px; }
+  .detail-author { font-size: 13px; margin-bottom: 7px; }
   .detail-rating { font-size: 12px !important; margin-bottom: 7px !important; }
   .detail-rating svg { width: 13px !important; height: 13px !important; }
   .detail-category { font-size: 10px !important; padding: 4px 10px !important; margin-bottom: 10px !important; }
-  .detail-desc { font-size: 11px !important; line-height: 1.7 !important; margin: 11px 0 !important; }
-  .mylist-status-select { font-size: 10px !important; padding: 10px 12px !important; margin: 11px 0 !important; max-width: 230px !important; }
-  .detail-actions { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; margin-top: 12px !important; }
-  .btn-detail { font-size: 10px !important; padding: 10px 16px !important; border-radius: 8px !important; }
+  .detail-desc { font-size: 11px; line-height: 1.7; margin: 11px 0; }
+  .mylist-status-select { font-size: 10px; padding: 10px 12px; margin: 11px 0; max-width: 230px; }
+  .detail-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .btn-detail { font-size: 10px; padding: 10px 16px; border-radius: 8px; }
   .btn-detail svg { width: 13px !important; height: 13px !important; }
 
   /* === ЧИТАЛКА === */
@@ -2551,14 +2551,14 @@ select[multiple] option:hover {
   /* === ПРОФИЛЬ === */
   .profile-name { font-size: 16px !important; }
   .profile-stat .val { font-size: 16px !important; }
-  .profile-stat .lbl { font-size: 8px !important; }
+  .profile-stat .lbl { font-size: 8px; }
   .settings-section h3 { font-size: 12px !important; }
-  .settings-row { padding: 11px 13px !important; font-size: 10px !important; }
-  .settings-row * { font-size: 10px !important; }
+  .settings-row { padding: 11px 13px !important; font-size: 10px; }
+  .settings-row * { font-size: 10px; }
   .btn-logout { font-size: 10px !important; padding: 11px !important; }
 
   /* === ФОРМЫ / МОДАЛКИ === */
-  input, select, textarea { font-size: 10px !important; padding: 9px 10px !important; }
+  input, select, textarea { font-size: 10px; padding: 9px 10px !important; }
   #addModal h3 { font-size: 15px !important; }
   #addModal label { font-size: 10px !important; }
   #addModal .btn { font-size: 10px !important; padding: 9px !important; }
@@ -2573,7 +2573,7 @@ select[multiple] option:hover {
   .fab-super-btn { width: 38px !important; height: 38px !important; font-size: 20px !important; }
 
   /* === ЧИПСЫ / ТЕГИ === */
-  .catalog-chip, .ai-quick-chip, .achievement-badge { font-size: 10px !important; padding: 4px 10px !important; }
+  .catalog-chip, .ai-quick-chip, .achievement-badge { font-size: 10px; padding: 4px 10px !important; }
 
   /* === AR-СХЕМЫ === */
   .ar-killchain-node { width: 80px !important; height: 80px !important; }
@@ -2611,8 +2611,8 @@ select[multiple] option:hover {
   .book-card-year { font-size: 13px !important; }
   .sidebar-item { font-size: 16px !important; }
   .auth-logo h1 { font-size: 45px !important; }
-  .detail-title { font-size: 35px !important; }
-  .detail-desc { font-size: 16px !important; }
+  .detail-title { font-size: 35px; }
+  .detail-desc { font-size: 16px; }
 }
 /* Кнопки действий админа (Заявки/Excel) — адаптивность на телефоне */
 @media (max-width: 640px) {

@@ -1,8 +1,8 @@
 /* Shared interaction hierarchy and readable minimums. Loaded after legacy CSS. */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: 3px solid #67e8f9 !important;
+  outline: 3px solid #67e8f9;
   outline-offset: 3px;
-  box-shadow: 0 0 0 5px rgba(34, 211, 238, .2) !important;
+  box-shadow: 0 0 0 5px rgba(34, 211, 238, .2);
 }
 
 :where(button, .btn, [role="button"]) {
@@ -35,7 +35,7 @@
 button:disabled {
   cursor: not-allowed;
   opacity: .52;
-  transform: none !important;
+  transform: none;
 }
 
 .sidebar-item,
@@ -52,7 +52,7 @@ button:disabled {
 .sidebar-item { width: 100%; }
 .nav-item { background: transparent; }
 .profile-avatar-lg { padding: 0; }
-.ai-quick-chip { min-height: 34px; font-size: 12px !important; }
+.ai-quick-chip { min-height: 34px; font-size: 12px; }
 .training-card,
 .recommendation-card,
 .book-card-open,
@@ -79,29 +79,29 @@ button:disabled {
 .highlight-mark { min-height: 0; padding: 0; border: 0; }
 .note-indicator { min-height: 24px; min-width: 24px; padding: 0; border: 0; }
 
-.book-card-compact .book-title-text { font-size: 13px !important; line-height: 1.4; }
-.book-card-compact .book-author-text { font-size: 12px !important; line-height: 1.35; }
+.book-card-compact .book-title-text { font-size: 13px; line-height: 1.4; }
+.book-card-compact .book-author-text { font-size: 12px; line-height: 1.35; }
 .book-card-compact .rating-badge,
 .book-card-compact .progress-badge,
 .training-card .status,
-.profile-stat .lbl { font-size: 10px !important; }
-.nav-item .nav-label { font-size: 11px !important; }
+.profile-stat .lbl { font-size: 10px; }
+.nav-item .nav-label { font-size: 11px; }
 .form-group label,
-.catalog-filter-group label { font-size: 12px !important; line-height: 1.35; }
+.catalog-filter-group label { font-size: 12px; line-height: 1.35; }
 .catalog-chip,
 .mylist-tab,
 .training-tab,
 .btn-catalog-action,
 .btn-detail,
 .settings-row,
-.stat-card .stat-label { font-size: 12px !important; }
+.stat-card .stat-label { font-size: 12px; }
 .detail-desc,
 .review-text,
 .ai-message,
 .assistant-message { font-size: 14px; line-height: 1.65; }
 
 @media (max-width: 767px) {
-  input, select, textarea { font-size: 16px !important; }
+  input, select, textarea { font-size: 16px; }
   .catalog-chip, .mylist-tab, .training-tab { min-height: 38px; }
   .nav-item { min-height: 58px; }
 }
