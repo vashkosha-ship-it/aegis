@@ -19,10 +19,20 @@ const html = ids.map(id => `<section id="${id}Screen"></section>`).join('') +
   '<div id="fabSuperContainer"></div>';
 const dom = new JSDOM(html);
 const calls = [];
+const browserWindow = {
+  scrollY: 0,
+  scrollTo(options) {
+    this.scrollY = options.top;
+    calls.push('scroll:' + options.top);
+  },
+};
 const mark = name => () => calls.push(name);
 const context = {
   replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
+  window: browserWindow,
+  requestAnimationFrame(callback) { callback(); return 1; },
+  setTimeout(callback) { callback(); return 1; },
   state: { currentUser: { role: 'user', is_approved: true }, currentScreen: 'auth' },
   currentBookId: null,
   showPendingApprovalScreen: mark('pending'),
@@ -52,7 +62,14 @@ context.navigateTo('home');
 assert.equal(context.state.currentScreen, 'home');
 assert.ok(dom.window.document.getElementById('homeScreen').classList.contains('active'));
 assert.ok(!dom.window.document.getElementById('bottomNav').classList.contains('hidden'));
-assert.deepEqual(calls.slice(-4), ['close-ai', 'home', 'recommendations', 'tour']);
+assert.deepEqual(calls.slice(-5), ['close-ai', 'home', 'recommendations', 'tour', 'scroll:0']);
+assert.equal(browserWindow.scrollY, 0);
+
+browserWindow.scrollY = 640;
+context.navigateTo('detail');
+assert.equal(browserWindow.scrollY, 0, 'new detail screen starts at its header');
+context.navigateTo('home');
+assert.equal(browserWindow.scrollY, 640, 'catalog position is restored on return');
 
 context.navigateTo('auth');
 assert.ok(dom.window.document.getElementById('bottomNav').classList.contains('hidden'));
@@ -77,4 +94,5 @@ assert.equal(stub.style.display, 'none');
 assert.doesNotMatch(appSource, /function navigateTo|function ensureReaderHasBook|const SCREEN_IDS/);
 assert.ok(indexSource.indexOf('navigation.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/navigation\.js['"]/);
+assert.match(source, /SCREENS_WITH_RESTORED_SCROLL/);
 console.log('Navigation tests passed');
