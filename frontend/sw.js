@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v296';
+const CACHE_NAME = 'aegis-cache-v297';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -94,7 +94,7 @@ const PRECACHE_URLS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Кэширую статические ресурсы (v291)');
+      console.log('[SW] Кэширую статические ресурсы (' + CACHE_NAME + ')');
       // Кэшируем поштучно: один сбойный файл не ломает весь прекэш
       return Promise.all(
         PRECACHE_URLS.map((url) =>

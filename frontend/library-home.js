@@ -317,12 +317,15 @@ function renderBookInfo() {
     if (offlineBookIds.has(book.id)) {
       actions.appendChild(
         _libraryAction(
-          ICONS.cloudCheck,
-          'Удалить из оффлайн',
+          ICONS.trash,
+          '',
           () => removeBookOffline(book.id),
-          'btn-detail offline-btn-saved',
+          'btn-detail detail-icon-button offline-btn-saved',
         ),
       );
+      const removeOfflineButton = actions.lastElementChild;
+      removeOfflineButton.title = 'Удалить офлайн-копию';
+      removeOfflineButton.setAttribute('aria-label', 'Удалить офлайн-копию');
     } else {
       actions.appendChild(
         _libraryAction(
@@ -341,7 +344,7 @@ function renderBookInfo() {
       ICONS.target,
       'Смотреть схему атаки',
       () => openARWithScheme('killchain', stage.id),
-      'btn-detail',
+      'btn-detail detail-action-secondary',
       'a468',
     );
     arButton.title = `Открыть схему Cyber Kill Chain на этапе «${stage.nameRu}»`;
@@ -353,20 +356,11 @@ function renderBookInfo() {
         ICONS.settings,
         'Управление',
         () => openAdminBookModal(book.id),
-        'btn-detail',
+        'btn-detail detail-action-admin',
         'a469',
       ),
     );
   }
-  actions.appendChild(
-    _libraryAction(
-      ICONS.bookmark || '',
-      'В коллекцию',
-      () => openAddToCollection(book.id),
-      'btn-detail',
-      'a470',
-    ),
-  );
 
   info.appendChild(actions);
   hero.append(cover, info);

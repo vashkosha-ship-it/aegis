@@ -87,11 +87,12 @@ function cardHTML(b, query, options) {
       ${offlineBookIds.has(b.id) ? `<div class="offline-badge" title="Доступна оффлайн">${ICONS.cloudCheck}</div>` : ''}
       ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" data-dynamic-style="${dynamicStyleToken`width:${pct}%`}"></div>` : ''}
     </div>
-    <div class="book-card-meta">
-      <div class="book-card-title" title="${eh(b.title)}">${eh(b.title)}</div>
+    <div class="info-area">
+      <div class="book-title-text" title="${eh(b.title)}">${eh(b.title)}</div>
+      <div class="book-author-text">${eh(b.author || 'Автор не указан')}</div>
       ${year ? `<div class="book-card-year">${eh(year)}</div>` : ''}
     </div>
     </button>
-    ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" data-static-style="a323">&times;</button>` : ''}
+    ${opts.removable ? `<button type="button" class="book-card-remove" data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»">&times;</button>` : ''}
   </article>`;
 }
