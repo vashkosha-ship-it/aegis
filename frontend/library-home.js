@@ -179,6 +179,9 @@ document.getElementById('detailTabs')?.addEventListener('click', e => {
   state.detailTab = t.dataset.dtab;
   document.querySelectorAll('.detail-tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
+  document.querySelectorAll('.detail-tab').forEach(tab => {
+    tab.setAttribute('aria-selected', String(tab === t));
+  });
   document.querySelectorAll('.detail-tab-content').forEach(x => x.classList.add('hidden'));
   const tabId = 'detailTab' + t.dataset.dtab.charAt(0).toUpperCase() + t.dataset.dtab.slice(1);
   const el = document.getElementById(tabId);
@@ -196,6 +199,9 @@ function openBookDetail(bookId) {
   currentBookId = bookId;
   state.detailTab = 'info';
   document.querySelectorAll('.detail-tab').forEach(t => t.classList.toggle('active', t.dataset.dtab === 'info'));
+  document.querySelectorAll('.detail-tab').forEach(t => {
+    t.setAttribute('aria-selected', String(t.dataset.dtab === 'info'));
+  });
   document.querySelectorAll('.detail-tab-content').forEach(x => x.classList.add('hidden'));
   document.getElementById('detailTabInfo').classList.remove('hidden');
   navigateTo('detail');
@@ -238,6 +244,7 @@ function renderBookInfo() {
   const isAdmin = state.currentUser?.role === 'admin';
   const formatLabel = (book.file_format || 'pdf').toUpperCase();
   const content = _libraryNode('div', 'detail-content');
+  const hero = _libraryNode('div', 'detail-hero');
   const cover = _libraryNode('div', 'detail-cover');
 
   if (book.has_cover) {
@@ -257,7 +264,6 @@ function renderBookInfo() {
     _libraryNode('div', 'detail-author', book.author),
     _libraryIconText(ICONS.star, book.rating),
     _libraryNode('div', 'detail-category', `${bookCategoriesText(book)} • ${formatLabel}`),
-    _libraryNode('div', 'detail-desc', book.desc),
   );
   info.children[2].className = 'detail-rating';
 
@@ -290,7 +296,7 @@ function renderBookInfo() {
   info.appendChild(status);
 
   const actions = _libraryNode('div', 'detail-actions');
-  actions.appendChild(_libraryAction(ICONS.book, 'Читать', () => openReader(book.id)));
+  actions.appendChild(_libraryAction(ICONS.book, 'Читать', () => openReader(book.id), 'btn-detail detail-action-primary'));
   if (book.has_file) {
     if (offlineBookIds.has(book.id)) {
       actions.appendChild(
@@ -347,7 +353,13 @@ function renderBookInfo() {
   );
 
   info.appendChild(actions);
-  content.append(cover, info);
+  hero.append(cover, info);
+  const description = _libraryNode('section', 'detail-description-section');
+  description.append(
+    _libraryNode('h2', 'detail-section-title', 'О книге'),
+    _libraryNode('div', 'detail-desc', book.desc || 'Описание пока не добавлено.'),
+  );
+  content.append(hero, description);
   const alsoRead = _libraryNode('div', null, undefined, 'a471');
   alsoRead.id = 'alsoReadSection';
   target.replaceChildren(content, alsoRead);

@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="styles.css" data-dynamic-stylesheet>
   <link rel="stylesheet" href="desktop.css">
   <link rel="stylesheet" href="ar-schemes.css">
+  <link rel="stylesheet" href="detail-ux.css">
 </head>
 <body>
 
@@ -642,18 +643,18 @@
       <button class="btn-back" data-onclick="navigateTo('home')">←</button>
       <span class="static-style-061">О книге</span>
     </div>
-    <div class="detail-tabs" id="detailTabs">
-      <div class="detail-tab active" data-dtab="info">Описание</div>
-      <div class="detail-tab" data-dtab="reviews">Отзывы</div>
-      <div class="detail-tab" data-dtab="discussion">Обсуждение</div>
-      <div class="detail-tab" data-dtab="training">Тестирование</div>
-      <div class="detail-tab" data-dtab="notes" id="detailTabNotesBtn">Заметки</div>
+    <div class="detail-tabs" id="detailTabs" role="tablist" aria-label="Разделы книги">
+      <button type="button" class="detail-tab active" data-dtab="info" role="tab" aria-selected="true" aria-controls="detailTabInfo">Описание</button>
+      <button type="button" class="detail-tab" data-dtab="reviews" role="tab" aria-selected="false" aria-controls="detailTabReviews">Отзывы</button>
+      <button type="button" class="detail-tab" data-dtab="discussion" role="tab" aria-selected="false" aria-controls="detailTabDiscussion">Обсуждение</button>
+      <button type="button" class="detail-tab" data-dtab="training" role="tab" aria-selected="false" aria-controls="detailTabTraining">Тестирование</button>
+      <button type="button" class="detail-tab" data-dtab="notes" id="detailTabNotesBtn" role="tab" aria-selected="false" aria-controls="detailTabNotes">Заметки</button>
     </div>
-    <div id="detailTabInfo" class="detail-tab-content"></div>
-    <div id="detailTabReviews" class="detail-tab-content hidden"></div>
-    <div id="detailTabDiscussion" class="detail-tab-content hidden"></div>
-    <div id="detailTabTraining" class="detail-tab-content hidden"></div>
-    <div id="detailTabNotes" class="detail-tab-content hidden"></div>
+    <div id="detailTabInfo" class="detail-tab-content" role="tabpanel"></div>
+    <div id="detailTabReviews" class="detail-tab-content hidden" role="tabpanel"></div>
+    <div id="detailTabDiscussion" class="detail-tab-content hidden" role="tabpanel"></div>
+    <div id="detailTabTraining" class="detail-tab-content hidden" role="tabpanel"></div>
+    <div id="detailTabNotes" class="detail-tab-content hidden" role="tabpanel"></div>
   </div>
 
   <!-- ======================== ЧИТАЛКА (PDF + EPUB) ======================== -->

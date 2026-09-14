@@ -2,6 +2,8 @@
 // Ленивая инициализация: запоминаем элементы при первом обращении,
 // чтобы избежать гонки если app.js загружается до конца DOM
 const _screensCache = {};
+const _screenScrollPositions = Object.create(null);
+const SCREENS_WITH_RESTORED_SCROLL = new Set(['home', 'mylist', 'training']);
 const SCREEN_IDS = {
   auth: 'authScreen',
   home: 'homeScreen',
@@ -33,6 +35,25 @@ const screens = new Proxy({}, {
   },
 });
 
+function _currentPageScroll() {
+  return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+}
+
+function _applyScreenScroll(screenName) {
+  const top = SCREENS_WITH_RESTORED_SCROLL.has(screenName)
+    ? (_screenScrollPositions[screenName] || 0)
+    : 0;
+  const target = screens[screenName];
+  if (target) target.scrollTop = 0;
+  window.scrollTo({ top, left: 0, behavior: 'auto' });
+}
+
+function _scheduleScreenScroll(screenName) {
+  const apply = () => _applyScreenScroll(screenName);
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply);
+  else setTimeout(apply, 0);
+}
+
 function navigateTo(s) {
   // Привратник: неодобрённый пользователь не попадает в библиотеку.
   // Разрешены только онбординг (тест уровня) и экран авторизации.
@@ -40,6 +61,10 @@ function navigateTo(s) {
       && s !== 'onboarding' && s !== 'auth') {
     showPendingApprovalScreen();
     return;
+  }
+  const previousScreen = state.currentScreen;
+  if (SCREENS_WITH_RESTORED_SCROLL.has(previousScreen)) {
+    _screenScrollPositions[previousScreen] = _currentPageScroll();
   }
   // Снимаем active со всех известных экранов
   Object.keys(SCREEN_IDS).forEach(key => {
@@ -74,6 +99,7 @@ function navigateTo(s) {
   if (s === 'admin') { renderAdminPanel(); refreshPendingBadge(); }
   if (s === 'reader') { ensureReaderHasBook(); }
   updateFabVisibility();
+  _scheduleScreenScroll(s);
 }
 
 // Если пользователь зашёл в «Читаю», но ещё не открыл ни одной книги —
