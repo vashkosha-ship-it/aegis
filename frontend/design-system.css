@@ -1,0 +1,95 @@
+/* Shared component system. Keep this stylesheet last in the document head. */
+:root {
+  --ui-surface: rgba(15, 23, 38, .92);
+  --ui-surface-raised: rgba(21, 31, 49, .96);
+  --ui-surface-hover: rgba(31, 45, 67, .96);
+  --ui-border: rgba(125, 211, 252, .16);
+  --ui-border-strong: rgba(103, 232, 249, .42);
+  --ui-radius-sm: 10px;
+  --ui-radius-md: 16px;
+  --ui-radius-lg: 22px;
+  --ui-shadow: 0 18px 46px rgba(0, 0, 0, .28);
+  --ui-shadow-hover: 0 20px 50px rgba(0, 0, 0, .36), 0 0 28px rgba(34, 211, 238, .08);
+  --ui-space-2: 10px;
+  --ui-space-4: 24px;
+}
+
+:where(.settings-card, .stat-card, .analytics-card, .training-card,
+  .recommendation-card, .profile-header-card) {
+  border: 1px solid var(--ui-border);
+  background: linear-gradient(145deg, rgba(103, 232, 249, .035), transparent 45%), var(--ui-surface);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .16);
+}
+:where(.stat-card, .analytics-card, .training-card, .recommendation-card) {
+  border-radius: var(--ui-radius-md);
+}
+:where(.training-card, .recommendation-card, .stat-card) {
+  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+@media (hover: hover) {
+  :where(.training-card, .recommendation-card, .stat-card):hover {
+    border-color: var(--ui-border-strong);
+    background-color: var(--ui-surface-hover);
+    box-shadow: var(--ui-shadow-hover);
+    transform: translateY(-2px);
+  }
+}
+
+:where(.shortcuts-modal, .fav-categories-modal, .install-modal) {
+  width: min(92vw, 520px);
+  max-height: min(84vh, 720px);
+  overflow: auto;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface-raised);
+  box-shadow: var(--ui-shadow);
+  color: var(--text-primary);
+  scrollbar-gutter: stable;
+}
+:where(.shortcuts-modal, .fav-categories-modal, .install-modal) :where(h2, h3) {
+  margin-top: 0;
+  line-height: 1.25;
+}
+
+.table-wrap {
+  overflow: auto;
+  max-width: 100%;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+  scrollbar-gutter: stable;
+}
+.table-wrap table { min-width: 620px; }
+.table-wrap th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ui-surface-raised);
+  letter-spacing: .04em;
+}
+.table-wrap tbody tr { transition: background-color .16s ease; }
+.table-wrap tbody tr:hover { background: rgba(103, 232, 249, .055); }
+.table-wrap tbody tr:last-child td { border-bottom: 0; }
+
+:where(.mylist-empty, .fav-categories-empty) {
+  display: grid;
+  place-items: center;
+  gap: var(--ui-space-2);
+  min-height: 180px;
+  padding: var(--ui-space-4);
+  border: 1px dashed var(--ui-border-strong);
+  border-radius: var(--ui-radius-md);
+  background: linear-gradient(145deg, rgba(103, 232, 249, .045), transparent);
+  color: var(--text-muted);
+  text-align: center;
+}
+:where(.mylist-empty, .fav-categories-empty) p { margin: 0; }
+
+@media (max-width: 767px) {
+  :root { --ui-radius-lg: 18px; --ui-space-4: 18px; }
+  :where(.settings-card, .analytics-card, .training-card) { border-radius: var(--ui-radius-sm); }
+  .table-wrap { margin-inline: -4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.training-card, .recommendation-card, .stat-card), .table-wrap tbody tr { transition: none; }
+}

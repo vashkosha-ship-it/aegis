@@ -8,7 +8,7 @@
   top: 0;
   z-index: 120;
   min-height: 54px;
-  padding: calc(10px + var(--safe-area-inset-top)) 0 10px !important;
+  padding: calc(10px + var(--safe-area-inset-top)) 0 10px;
   background: linear-gradient(to bottom, var(--bg-primary) 76%, rgba(7, 11, 20, .92));
   backdrop-filter: blur(18px);
 }
@@ -18,21 +18,21 @@
   top: calc(54px + var(--safe-area-inset-top));
   z-index: 110;
   justify-content: flex-start;
-  gap: 4px !important;
-  padding: 4px !important;
+  gap: 4px;
+  padding: 4px;
   scrollbar-width: none;
   box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
 }
 #detailScreen .detail-tabs::-webkit-scrollbar { display: none; }
 #detailScreen .detail-tab {
-  flex: 0 0 auto !important;
-  min-width: max-content !important;
-  padding: 10px 14px !important;
+  flex: 0 0 auto;
+  min-width: max-content;
+  padding: 10px 14px;
   border: 0;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
-  font-size: 12px !important;
+  font-size: 12px;
   white-space: nowrap;
   overflow: visible;
   text-overflow: clip;
@@ -43,9 +43,9 @@
 }
 
 #detailScreen .detail-content {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
-  gap: 22px !important;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
 }
 #detailScreen .detail-hero {
   display: grid;
@@ -54,27 +54,27 @@
   gap: 16px;
 }
 #detailScreen .detail-cover {
-  position: static !important;
-  top: auto !important;
-  width: 112px !important;
-  height: 158px !important;
-  border-radius: 16px !important;
+  position: static;
+  top: auto;
+  width: 112px;
+  height: 158px;
+  border-radius: 16px;
   box-shadow: 0 16px 34px rgba(0, 0, 0, .34);
 }
-#detailScreen .detail-info { min-width: 0 !important; }
+#detailScreen .detail-info { min-width: 0; }
 #detailScreen .detail-title {
-  font-size: clamp(19px, 4.8vw, 25px) !important;
-  line-height: 1.18 !important;
+  font-size: clamp(19px, 4.8vw, 25px);
+  line-height: 1.18;
   overflow-wrap: anywhere;
 }
-#detailScreen .detail-author { font-size: 13px !important; line-height: 1.4; }
+#detailScreen .detail-author { font-size: 13px; line-height: 1.4; }
 #detailScreen .detail-category { max-width: 100%; line-height: 1.45; }
 #detailScreen .admin-book-stats { gap: 6px; }
 #detailScreen .mylist-status-select {
   width: 100%;
-  max-width: 360px !important;
+  max-width: 360px;
   min-height: 42px;
-  font-size: 13px !important;
+  font-size: 13px;
 }
 #detailScreen .detail-description-section {
   padding: 18px;
@@ -88,22 +88,22 @@
   font-size: 15px;
 }
 #detailScreen .detail-desc {
-  margin: 0 !important;
+  margin: 0;
   color: var(--text-secondary);
-  font-size: 14px !important;
-  line-height: 1.75 !important;
+  font-size: 14px;
+  line-height: 1.75;
   white-space: pre-line;
 }
 #detailScreen .detail-actions {
-  display: grid !important;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px !important;
+  gap: 8px;
 }
 #detailScreen .btn-detail {
   justify-content: center;
   min-height: 42px;
-  padding: 10px 12px !important;
-  font-size: 12px !important;
+  padding: 10px 12px;
+  font-size: 12px;
   text-align: center;
 }
 #detailScreen .detail-action-primary {
@@ -116,14 +116,14 @@
 
 @media (max-width: 420px) {
   #detailScreen .detail-hero { grid-template-columns: 94px minmax(0, 1fr); gap: 12px; }
-  #detailScreen .detail-cover { width: 94px !important; height: 134px !important; }
+  #detailScreen .detail-cover { width: 94px; height: 134px; }
   #detailScreen .detail-actions { grid-template-columns: minmax(0, 1fr); }
   #detailScreen .detail-action-primary { grid-column: auto; }
 }
 
 @media (min-width: 768px) {
   #detailScreen .detail-hero { grid-template-columns: 190px minmax(0, 1fr); gap: 28px; }
-  #detailScreen .detail-cover { width: 190px !important; height: 268px !important; }
+  #detailScreen .detail-cover { width: 190px; height: 268px; }
   #detailScreen .detail-description-section { padding: 22px 24px; }
   #detailScreen .detail-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #detailScreen .detail-action-primary { grid-column: auto; }
