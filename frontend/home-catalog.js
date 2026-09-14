@@ -79,17 +79,19 @@ function cardHTML(b, query, options) {
 
   const year = extractBookYear(b.datePublished);
 
-  return `<div class="book-card-compact" data-onclick="openBookDetail(${b.id})" data-book-id="${b.id}" draggable="true">
+  return `<article class="book-card-compact" data-book-id="${b.id}" draggable="true">
+    <button type="button" class="book-card-open" data-onclick="openBookDetail(${b.id})" aria-label="Открыть книгу">
     <div class="cover-area">
       ${coverInner}
       <div class="rating-badge">${ICONS.star}${b.rating}</div>
       ${offlineBookIds.has(b.id) ? `<div class="offline-badge" title="Доступна оффлайн">${ICONS.cloudCheck}</div>` : ''}
       ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" data-dynamic-style="${dynamicStyleToken`width:${pct}%`}"></div>` : ''}
-      ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" data-static-style="a323">&times;</button>` : ''}
     </div>
     <div class="book-card-meta">
       <div class="book-card-title" title="${eh(b.title)}">${eh(b.title)}</div>
       ${year ? `<div class="book-card-year">${eh(year)}</div>` : ''}
     </div>
-  </div>`;
+    </button>
+    ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" data-static-style="a323">&times;</button>` : ''}
+  </article>`;
 }

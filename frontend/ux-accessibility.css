@@ -1,0 +1,111 @@
+/* Shared interaction hierarchy and readable minimums. Loaded after legacy CSS. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #67e8f9 !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(34, 211, 238, .2) !important;
+}
+
+:where(button, .btn, [role="button"]) {
+  min-height: 40px;
+}
+
+.btn-primary,
+.button-primary {
+  color: #fff;
+  border: 0;
+  background: var(--accent-gradient);
+  box-shadow: 0 8px 22px rgba(0, 212, 255, .2);
+}
+.btn-secondary,
+.button-secondary {
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+.btn-tertiary,
+.button-tertiary {
+  color: var(--accent);
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-tertiary:disabled,
+button:disabled {
+  cursor: not-allowed;
+  opacity: .52;
+  transform: none !important;
+}
+
+.sidebar-item,
+.nav-item,
+.profile-avatar-lg,
+.ai-quick-chip {
+  font-family: inherit;
+}
+.sidebar-item,
+.nav-item {
+  border: 0;
+  text-align: inherit;
+}
+.sidebar-item { width: 100%; }
+.nav-item { background: transparent; }
+.profile-avatar-lg { padding: 0; }
+.ai-quick-chip { min-height: 34px; font-size: 12px !important; }
+.training-card,
+.recommendation-card,
+.book-card-open,
+[data-static-style="a474"],
+.toc-entry-action,
+.star,
+.highlight-mark,
+.note-indicator {
+  font-family: inherit;
+}
+.training-card,
+.recommendation-card,
+.book-card-open,
+[data-static-style="a474"],
+.toc-entry-action {
+  color: inherit;
+  text-align: left;
+}
+.training-card { width: 100%; }
+.book-card-open { display: block; width: 100%; min-height: 0; padding: 0; border: 0; background: transparent; }
+[data-static-style="a474"] { padding: 0; border: 0; background: transparent; }
+.toc-entry-action { min-height: 34px; padding: 0; border: 0; background: transparent; }
+.star { min-width: 36px; min-height: 36px; padding: 6px; border: 0; background: transparent; justify-content: center; }
+.highlight-mark { min-height: 0; padding: 0; border: 0; }
+.note-indicator { min-height: 24px; min-width: 24px; padding: 0; border: 0; }
+
+.book-card-compact .book-title-text { font-size: 13px !important; line-height: 1.4; }
+.book-card-compact .book-author-text { font-size: 12px !important; line-height: 1.35; }
+.book-card-compact .rating-badge,
+.book-card-compact .progress-badge,
+.training-card .status,
+.profile-stat .lbl { font-size: 10px !important; }
+.nav-item .nav-label { font-size: 11px !important; }
+.form-group label,
+.catalog-filter-group label { font-size: 12px !important; line-height: 1.35; }
+.catalog-chip,
+.mylist-tab,
+.training-tab,
+.btn-catalog-action,
+.btn-detail,
+.settings-row,
+.stat-card .stat-label { font-size: 12px !important; }
+.detail-desc,
+.review-text,
+.ai-message,
+.assistant-message { font-size: 14px; line-height: 1.65; }
+
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px !important; }
+  .catalog-chip, .mylist-tab, .training-tab { min-height: 38px; }
+  .nav-item { min-height: 58px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, a, input, select, textarea, [tabindex]) { scroll-behavior: auto; }
+}

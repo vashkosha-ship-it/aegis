@@ -192,6 +192,22 @@ document.getElementById('detailTabs')?.addEventListener('click', e => {
   if (state.detailTab === 'notes') renderDetailNotes();
 });
 
+document.getElementById('detailTabs')?.addEventListener('keydown', event => {
+  const current = event.target.closest('.detail-tab');
+  if (!current) return;
+  const tabs = [...document.querySelectorAll('.detail-tab')];
+  const index = tabs.indexOf(current);
+  let nextIndex = null;
+  if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+  if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+  if (event.key === 'Home') nextIndex = 0;
+  if (event.key === 'End') nextIndex = tabs.length - 1;
+  if (nextIndex === null) return;
+  event.preventDefault();
+  tabs[nextIndex].focus();
+  tabs[nextIndex].click();
+});
+
 function openBookDetail(bookId) {
   const b = state.books.find(x => x.id === bookId);
   if (!b) return;

@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="desktop.css">
   <link rel="stylesheet" href="ar-schemes.css">
   <link rel="stylesheet" href="detail-ux.css">
+  <link rel="stylesheet" href="ux-accessibility.css">
 </head>
 <body>
 
@@ -46,32 +47,32 @@
       <span class="sidebar-logo-text">AEGIS</span>
     </div>
     <div class="sidebar-items">
-      <div class="sidebar-item" data-screen="home" data-onclick="navigateTo('home')">
+      <button type="button" class="sidebar-item" data-screen="home" data-onclick="navigateTo('home')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9L12 2L21 9V20A2 2 0 0 1 19 22H5A2 2 0 0 1 3 20V9Z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span class="item-label">Главная</span>
-      </div>
-      <div class="sidebar-item" data-screen="mylist" data-onclick="navigateTo('mylist')">
+      </button>
+      <button type="button" class="sidebar-item" data-screen="mylist" data-onclick="navigateTo('mylist')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
         <span class="item-label">Закладки</span>
-      </div>
-      <div class="sidebar-item" data-screen="training" data-onclick="navigateTo('training')">
+      </button>
+      <button type="button" class="sidebar-item" data-screen="training" data-onclick="navigateTo('training')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10L12 3L2 10L12 17L22 10Z"/><path d="M6 12V17C6 18.5 8.7 20 12 20C15.3 20 18 18.5 18 17V12"/></svg>
         <span class="item-label">Тестирование</span>
-      </div>
-      <div class="sidebar-item" data-screen="reader" data-onclick="navigateTo('reader')">
+      </button>
+      <button type="button" class="sidebar-item" data-screen="reader" data-onclick="navigateTo('reader')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20V22H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2Z"/></svg>
         <span class="item-label">Читаю</span>
-      </div>
+      </button>
     </div>
     <div class="sidebar-footer">
-      <div class="sidebar-item" data-screen="assistant" data-onclick="navigateTo('assistant')">
+      <button type="button" class="sidebar-item" data-screen="assistant" data-onclick="navigateTo('assistant')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
         <span class="item-label">AI Ассистент</span>
-      </div>
-      <div class="sidebar-item" data-screen="profile" data-onclick="navigateTo('profile')">
+      </button>
+      <button type="button" class="sidebar-item" data-screen="profile" data-onclick="navigateTo('profile')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="item-label">Профиль</span>
-      </div>
+      </button>
     </div>
   </nav>
 
@@ -482,10 +483,10 @@
     </div>
     <div class="profile-header-card">
       <div class="profile-identity">
-        <div class="profile-avatar-lg" data-onclick="clickElement('avatarUpload')">
+        <button type="button" class="profile-avatar-lg" data-onclick="clickElement('avatarUpload')" aria-label="Изменить фотографию профиля">
           <span id="profileAvatarText">U</span>
           <img class="static-style-009" id="profileAvatarImg">
-        </div>
+        </button>
         <input class="static-style-009" type="file" id="avatarUpload" accept="image/*" data-onchange="uploadAvatar()" data-args="event">
         <div class="profile-identity-names">
           <h2 id="profileDisplayName">Пользователь</h2>
@@ -762,11 +763,11 @@
       <button data-onclick="sendAIMessage()" aria-label="Отправить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></button>
     </div>
     <div class="ai-quick-chips">
-      <span class="ai-quick-chip" data-onclick="aiQuick('summary')">Саммари</span>
-      <span class="ai-quick-chip" data-onclick="aiQuick('quiz')">Тест</span>
-      <span class="ai-quick-chip" data-onclick="aiQuick('recommend')">Рекомендации</span>
-      <span class="ai-quick-chip" data-onclick="aiQuick('vacation')">В отпуск</span>
-      <span class="ai-quick-chip" data-onclick="aiQuick('exam')">К экзамену</span>
+      <button type="button" class="ai-quick-chip" data-onclick="aiQuick('summary')">Саммари</button>
+      <button type="button" class="ai-quick-chip" data-onclick="aiQuick('quiz')">Тест</button>
+      <button type="button" class="ai-quick-chip" data-onclick="aiQuick('recommend')">Рекомендации</button>
+      <button type="button" class="ai-quick-chip" data-onclick="aiQuick('vacation')">В отпуск</button>
+      <button type="button" class="ai-quick-chip" data-onclick="aiQuick('exam')">К экзамену</button>
     </div>
   </div>
 
@@ -792,36 +793,36 @@
 
   <!-- ======================== НИЖНЯЯ НАВИГАЦИЯ ======================== -->
   <nav class="bottom-nav" id="bottomNav">
-    <div class="nav-item active" data-screen="home" data-onclick="navigateTo('home')">
+    <button type="button" class="nav-item active" data-screen="home" data-onclick="navigateTo('home')" aria-current="page">
       <span class="nav-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9L12 2L21 9V20A2 2 0 0 1 19 22H5A2 2 0 0 1 3 20V9Z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </span>
       <span class="nav-label">Главная</span>
-    </div>
-    <div class="nav-item" data-screen="mylist" data-onclick="navigateTo('mylist')">
+    </button>
+    <button type="button" class="nav-item" data-screen="mylist" data-onclick="navigateTo('mylist')">
       <span class="nav-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
       </span>
       <span class="nav-label">Закладки</span>
-    </div>
-    <div class="nav-item" data-screen="training" data-onclick="navigateTo('training')">
+    </button>
+    <button type="button" class="nav-item" data-screen="training" data-onclick="navigateTo('training')">
       <span class="nav-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10L12 3L2 10L12 17L22 10Z"/><path d="M6 12V17C6 18.5 8.7 20 12 20C15.3 20 18 18.5 18 17V12"/></svg>
       </span>
       <span class="nav-label">Тестирование</span>
-    </div>
-    <div class="nav-item" data-screen="reader" data-onclick="navigateTo('reader')">
+    </button>
+    <button type="button" class="nav-item" data-screen="reader" data-onclick="navigateTo('reader')">
       <span class="nav-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20V22H6.5A2.5 2.5 0 0 1 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2Z"/></svg>
       </span>
       <span class="nav-label">Читаю</span>
-    </div>
-    <div class="nav-item" data-screen="profile" data-onclick="navigateTo('profile')">
+    </button>
+    <button type="button" class="nav-item" data-screen="profile" data-onclick="navigateTo('profile')">
       <span class="nav-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
       </span>
       <span class="nav-label">Профиль</span>
-    </div>
+    </button>
   </nav>
 
   <!-- ======================== МОДАЛЬНЫЕ ОКНА ======================== -->
@@ -1162,11 +1163,11 @@
       <div class="static-style-137" id="assistantMessages"></div>
 
       <div class="assistant-quick-chips">
-        <span class="ai-quick-chip" data-onclick="assistantQuick('summary')">Саммари</span>
-        <span class="ai-quick-chip" data-onclick="assistantQuick('quiz')">Тест</span>
-        <span class="ai-quick-chip" data-onclick="assistantQuick('recommend')">Рекомендации</span>
-        <span class="ai-quick-chip" data-onclick="assistantQuick('vacation')">В отпуск</span>
-        <span class="ai-quick-chip" data-onclick="assistantQuick('exam')">К экзамену</span>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('summary')">Саммари</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('quiz')">Тест</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('recommend')">Рекомендации</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('vacation')">В отпуск</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('exam')">К экзамену</button>
       </div>
 
       <div class="static-style-138" id="assistantInputBar">

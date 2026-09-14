@@ -129,7 +129,7 @@ async function renderReviews() {
     <div id="reviewForm" data-static-style="a223">
       <h4 data-static-style="a224">${myReview ? 'Обновить мой отзыв' : 'Оставить отзыв'}</h4>
       <div class="star-input">
-        ${[1,2,3,4,5].map(i => `<span class="star ${i <= (myReview?.rating || 0) ? 'filled' : ''}" data-onclick="setReviewStar(${i})">${renderStarSVG(i <= (myReview?.rating || 0))}</span>`).join('')}
+        ${[1,2,3,4,5].map(i => `<button type="button" class="star ${i <= (myReview?.rating || 0) ? 'filled' : ''}" data-onclick="setReviewStar(${i})" aria-label="Поставить оценку ${i} из 5">${renderStarSVG(i <= (myReview?.rating || 0))}</button>`).join('')}
       </div>
       <textarea id="reviewTextInput" rows="3" placeholder="Поделитесь впечатлением..." data-static-style="a225">${eh(myReview?.text || '')}</textarea>
       <button class="btn btn-primary" data-onclick="submitReview()" data-static-style="a226">Отправить</button>
