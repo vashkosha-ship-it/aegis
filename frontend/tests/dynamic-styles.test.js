@@ -24,11 +24,14 @@ vm.runInContext(source, context);
 
 const token = vm.runInContext("dynamicStyleToken`color:#123456;width:${42}%;background:var(--accent)`", context);
 const duplicate = vm.runInContext("dynamicStyleToken`color:#123456;width:${42}%;background:var(--accent)`", context);
+const direct = vm.runInContext("dynamicStyleToken('display:flex;gap:6px')", context);
 assert.match(token, /^ds-[a-z0-9]+$/);
+assert.match(direct, /^ds-[a-z0-9]+$/);
 assert.equal(duplicate, token);
-assert.equal(rules.length, 1);
+assert.equal(rules.length, 2);
 assert.match(rules[0].cssText, /color:#123456/);
 assert.match(rules[0].cssText, /width:42%/);
+assert.match(rules[1].cssText, /display:flex;gap:6px/);
 
 assert.throws(
   () => vm.runInContext("dynamicStyleToken`background:url(https://evil.test/x)`", context),
@@ -37,6 +40,10 @@ assert.throws(
 assert.throws(
   () => vm.runInContext("dynamicStyleToken`color:${'red;position:fixed'}`", context),
   /Unsafe dynamic CSS interpolation/,
+);
+assert.throws(
+  () => vm.runInContext("dynamicStyleToken('background:url(https://evil.test/x)')", context),
+  /Unsafe dynamic CSS value/,
 );
 
 const jsFiles = fs.readdirSync(frontend).filter(name => name.endsWith('.js'));

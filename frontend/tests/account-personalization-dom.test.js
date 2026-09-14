@@ -7,16 +7,31 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 const frontend = path.resolve(__dirname, '..');
+const dynamicStylesSource = fs.readFileSync(path.join(frontend, 'dynamic-styles.js'), 'utf8');
 const source = fs.readFileSync(path.join(frontend, 'account-settings.js'), 'utf8');
-const dom = new JSDOM('<div id="settingsContent"></div>');
+const dom = new JSDOM(`
+  <div class="settings-tabs">
+    <button class="settings-tab" data-stab="personalization"></button>
+  </div>
+  <div id="settingsContent"></div>
+`);
 const icon = '<svg viewBox="0 0 10 10"></svg>';
+const rules = [];
+const sheet = {
+  cssRules: rules,
+  ownerNode: { hasAttribute: name => name === 'data-dynamic-stylesheet' },
+  insertRule: (cssText, index) => rules.splice(index, 0, { cssText }),
+};
+Object.defineProperty(dom.window.document, 'styleSheets', { value: [sheet] });
 const context = {
   document: dom.window.document,
   Node: dom.window.Node,
+  URL,
+  location: { href: 'https://example.test/' },
+  CSS: { supports: () => true },
   state: { currentUser: {}, currentScreen: 'settings' },
   ICONS: { themeMoon: icon, themeSun: icon },
   appendTrustedIcon: container => container.appendChild(dom.window.document.createElement('svg')),
-  dynamicStyleToken: css => 'test:' + css,
   getAppTheme: () => 'dark',
   getGridSize: () => 3,
   getReadingGoal: () => 20,
@@ -26,11 +41,13 @@ const context = {
   console,
 };
 vm.createContext(context);
+vm.runInContext(dynamicStylesSource, context);
 vm.runInContext(source, context);
 
 const content = dom.window.document.getElementById('settingsContent');
-context.renderSettingsPersonalizationTab(content);
+context.openSettingsTab('personalization');
 
+assert.ok(dom.window.document.querySelector('[data-stab="personalization"]').classList.contains('active'));
 assert.equal(content.querySelectorAll('.app-theme-btn').length, 2);
 assert.equal(content.querySelectorAll('.app-theme-btn.active').length, 1);
 assert.equal(content.querySelectorAll('#gridPreview > div').length, 6);
@@ -40,6 +57,7 @@ assert.equal(content.querySelectorAll('.bg-period-btn').length, 3);
 assert.equal(content.querySelectorAll('[data-onclick], [data-args]').length, 0);
 assert.ok(content.querySelectorAll('[data-dynamic-style]').length >= 20);
 assert.equal(content.querySelectorAll('button').length, 23);
+assert.ok(rules.length >= 10);
 
 const fragment = source.slice(
   source.indexOf('function renderSettingsPersonalizationTab'),

@@ -53,6 +53,16 @@ function _normalizeDynamicDeclarations(source) {
 }
 
 function dynamicStyleToken(strings, ...values) {
+  // Most callers use this function as a tagged template. A few DOM builders
+  // assemble a complete declaration list first and pass that trusted string
+  // directly. Handle that form explicitly instead of accidentally reading
+  // only its first character (strings[0]).
+  if (typeof strings === 'string') {
+    if (values.length) throw new Error('Dynamic CSS string does not accept interpolations');
+    const ruleBody = _normalizeDynamicDeclarations(strings);
+    return _registerDynamicStyleRule(ruleBody);
+  }
+
   let source = strings[0];
   for (let i = 0; i < values.length; i++) {
     const value = String(values[i]);
@@ -65,6 +75,10 @@ function dynamicStyleToken(strings, ...values) {
     source += value + strings[i + 1];
   }
   const ruleBody = _normalizeDynamicDeclarations(source);
+  return _registerDynamicStyleRule(ruleBody);
+}
+
+function _registerDynamicStyleRule(ruleBody) {
   const existing = _dynamicStyleTokens.get(ruleBody);
   if (existing) return existing;
 
