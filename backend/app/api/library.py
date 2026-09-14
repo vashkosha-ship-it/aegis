@@ -202,26 +202,34 @@ async def create_review(
 async def list_reviews(
     book_id: int,
     db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
 ) -> list[ReviewPublic]:
-    """All reviews for a book."""
+    """Отзывы о книге доступны только авторизованным пользователям."""
     stmt = (
-        select(Review, User.username)
+        select(Review, User)
         .join(User, User.id == Review.user_id)
         .where(Review.book_id == book_id)
         .order_by(Review.created_at.desc())
     )
     rows = (await db.execute(stmt)).all()
-    return [
-        ReviewPublic(
-            id=r.id,
-            user_id=r.user_id,
-            user_username=username,
-            rating=r.rating,
-            text=r.text,
-            created_at=r.created_at,
+    result = []
+    for review, author in rows:
+        hidden = (
+            author.profile_visibility == "private"
+            and author.id != current.id
+            and current.role.value != "admin"
         )
-        for r, username in rows
-    ]
+        result.append(
+            ReviewPublic(
+                id=review.id,
+                user_id=0 if hidden else review.user_id,
+                user_username="Скрытый пользователь" if hidden else author.username,
+                rating=review.rating,
+                text=review.text,
+                created_at=review.created_at,
+            )
+        )
+    return result
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -260,6 +260,12 @@ class TestHealthRouting:
         assert "location = /ready" in config
         assert "proxy_pass http://127.0.0.1:8000/ready" in config
 
+    def test_nginx_proxies_both_book_formats(self):
+        config = NGINX_CONF.read_text(encoding="utf-8")
+
+        assert r"(?:pdf|epub)$" in config
+        assert "proxy_set_header Range $http_range" in config
+
     def test_healthcheck_validates_json_and_redis(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
 
@@ -431,4 +437,4 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v299" in service_worker
+        assert "aegis-cache-v300" in service_worker

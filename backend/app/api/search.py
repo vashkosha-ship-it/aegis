@@ -31,7 +31,7 @@ async def search_books(
 
     # --- 1. Поиск по метаданным книг ---
     meta_sql = text(
-        "SELECT id, title, author, cover_storage_key, "
+        "SELECT id, title, author, cover_storage_key, file_format, "
         "ts_rank(search_vector, websearch_to_tsquery('russian', :q)) AS rank "
         "FROM books "
         "WHERE search_vector @@ websearch_to_tsquery('russian', :q) "
@@ -45,6 +45,7 @@ async def search_books(
         hits[r["id"]] = SearchHit(
             book_id=r["id"], title=r["title"], author=r["author"],
             has_cover=bool(r["cover_storage_key"]),
+            file_format=r["file_format"] or "pdf",
             rank=float(r["rank"] or 0), matched_in="meta", pages=[],
         )
 
@@ -82,6 +83,7 @@ async def search_books(
             hit = SearchHit(
                 book_id=b.id, title=b.title, author=b.author,
                 has_cover=bool(b.cover_storage_key),
+                file_format=b.file_format or "pdf",
                 rank=float(r["rank"] or 0), matched_in="content", pages=[],
             )
             hits[bid] = hit

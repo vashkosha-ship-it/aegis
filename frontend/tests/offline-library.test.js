@@ -14,11 +14,15 @@ const workerSource = fs.readFileSync(path.join(FRONTEND, 'sw.js'), 'utf8');
 const storage = new Map([['legacy', 'old-value']]);
 const removed = [];
 const saved = [];
+const requestedUrls = [];
 const toasts = [];
 const state = {
   currentUser: { id: 17, name: 'reader' },
   currentScreen: 'home',
-  books: [{ id: 3, title: 'Book', file_format: 'pdf', has_file: true, has_cover: false }],
+  books: [
+    { id: 3, title: 'Book', file_format: 'pdf', has_file: true, has_cover: false },
+    { id: 4, title: 'EPUB Book', file_format: 'epub', has_file: true, has_cover: false },
+  ],
   readingProgress: {},
   mylist: {},
   reviews: {},
@@ -32,7 +36,10 @@ const offlineStorage = {
   remove: async id => removed.push(id),
 };
 const api = {
-  request: async () => ({ blob: async () => fileBlob }),
+  request: async url => {
+    requestedUrls.push(url);
+    return { blob: async () => fileBlob };
+  },
   ApiError: class ApiError extends Error {},
 };
 const context = {
@@ -82,7 +89,13 @@ vm.runInContext(source, context);
   await context.saveBookOffline(3, false);
   assert.equal(saved.length, 1);
   assert.equal(saved[0][2], 'pdf');
+  assert.equal(requestedUrls[0], '/books/3/pdf');
   assert.ok(toasts.includes('Сохранено оффлайн (2.0 МБ)'));
+
+  await context.saveBookOffline(4, false);
+  assert.equal(saved.length, 2);
+  assert.equal(saved[1][2], 'epub');
+  assert.equal(requestedUrls[1], '/books/4/epub');
 
   await context.removeBookOffline(3);
   assert.deepEqual(removed, [3]);

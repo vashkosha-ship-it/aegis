@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     STORAGE_LOCAL_PATH: str = "./storage"
     # Лимиты размеров. Меняй в .env, если книги тяжелее.
     MAX_PDF_SIZE_MB: int = 150
+    MAX_EPUB_SIZE_MB: int = 150
     MAX_COVER_SIZE_MB: int = 5
 
     # S3 / MinIO — пригодятся на Этапе 4
@@ -92,6 +93,10 @@ class Settings(BaseSettings):
     @property
     def MAX_PDF_SIZE_BYTES(self) -> int:
         return self.MAX_PDF_SIZE_MB * 1024 * 1024
+
+    @property
+    def MAX_EPUB_SIZE_BYTES(self) -> int:
+        return self.MAX_EPUB_SIZE_MB * 1024 * 1024
 
     @property
     def MAX_COVER_SIZE_BYTES(self) -> int:

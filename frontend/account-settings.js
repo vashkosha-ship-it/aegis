@@ -1278,8 +1278,12 @@ function updateAvatar(id) {
   if (u.has_avatar) {
     const img = document.createElement('img');
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-    img.src = api.users.avatarUrl(u.id) + '?t=' + Date.now();
     img.onerror = () => { el.textContent = displayName.charAt(0).toUpperCase(); };
+    if (api.users.loadAvatar) {
+      api.users.loadAvatar(img, u.id).catch(() => img.onerror());
+    } else {
+      img.src = api.users.avatarUrl(u.id) + '?t=' + Date.now();
+    }
     el.replaceChildren();
     el.appendChild(img);
   } else {

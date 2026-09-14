@@ -16,7 +16,7 @@ from datetime import UTC, datetime, timedelta
 from time import monotonic
 
 from arq import cron
-from sqlalchemy import delete, select
+from sqlalchemy import delete, or_, select
 
 from app.core.queue import redis_settings
 from app.core.storage import StorageNotFound, get_storage
@@ -26,7 +26,11 @@ from app.models.book import Book
 from app.models.exam_session import ExamSession
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
-from app.services.search_index import index_book_from_path, spool_to_tempfile
+from app.services.search_index import (
+    index_book_from_path,
+    index_epub_from_path,
+    spool_to_tempfile,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -77,24 +81,37 @@ async def _measure_job(ctx: dict, job_name: str):
 
 
 async def _index_one(book_id: int) -> int:
-    """Скачать PDF во временный файл и проиндексировать. Возвращает число страниц."""
+    """Скачать активный файл книги и построить полнотекстовый индекс."""
     storage = get_storage()
 
     async with AsyncSessionLocal() as db:
         book = await db.get(Book, book_id)
-        if not book or not book.pdf_storage_key:
-            logger.warning("Книга %s без PDF — пропускаем", book_id)
+        if not book:
+            logger.warning("Книга %s не найдена — пропускаем", book_id)
+            return 0
+
+        if book.file_format == "epub":
+            storage_key = book.epub_storage_key
+            suffix = ".epub"
+            indexer = index_epub_from_path
+        else:
+            storage_key = book.pdf_storage_key
+            suffix = ".pdf"
+            indexer = index_book_from_path
+
+        if not storage_key:
+            logger.warning("Книга %s без активного файла — пропускаем", book_id)
             return 0
 
         try:
-            chunks = await storage.open_stream(book.pdf_storage_key)
+            chunks = await storage.open_stream(storage_key)
         except StorageNotFound:
-            logger.warning("PDF книги %s не найден в хранилище", book_id)
+            logger.warning("Файл книги %s не найден в хранилище", book_id)
             return 0
 
-        path = await spool_to_tempfile(chunks)
+        path = await spool_to_tempfile(chunks, suffix=suffix)
         try:
-            return await index_book_from_path(db, book_id, path)
+            return await indexer(db, book_id, path)
         finally:
             try:
                 os.unlink(path)
@@ -106,13 +123,13 @@ async def index_book(ctx: dict, book_id: int) -> dict:
     """Задача: проиндексировать одну книгу."""
     async with _measure_job(ctx, "index_book"):
         logger.info("Индексация книги %s — старт", book_id)
-        pages = await _index_one(book_id)
-        logger.info("Индексация книги %s — готово, страниц: %d", book_id, pages)
-        return {"book_id": book_id, "indexed_pages": pages}
+        sections = await _index_one(book_id)
+        logger.info("Индексация книги %s — готово, секций: %d", book_id, sections)
+        return {"book_id": book_id, "indexed_pages": sections}
 
 
 async def index_all_books(ctx: dict) -> dict:
-    """Задача: проиндексировать все книги с PDF."""
+    """Задача: проиндексировать все книги с PDF или EPUB."""
     async with _measure_job(ctx, "index_all_books"):
         return await _index_all_books()
 
@@ -121,7 +138,16 @@ async def _index_all_books() -> dict:
     """Проиндексировать каталог, продолжая работу после сбоя одной книги."""
     async with AsyncSessionLocal() as db:
         book_ids = list(
-            (await db.scalars(select(Book.id).where(Book.pdf_storage_key.isnot(None)))).all()
+            (
+                await db.scalars(
+                    select(Book.id).where(
+                        or_(
+                            Book.pdf_storage_key.isnot(None),
+                            Book.epub_storage_key.isnot(None),
+                        )
+                    )
+                )
+            ).all()
         )
 
     logger.info("Массовая индексация: %d книг", len(book_ids))

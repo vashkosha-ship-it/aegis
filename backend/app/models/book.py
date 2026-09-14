@@ -6,7 +6,18 @@
 """
 from datetime import date, datetime
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Table, Text
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -46,6 +57,14 @@ class Category(Base):
 
 class Book(Base):
     __tablename__ = "books"
+    __table_args__ = (
+        CheckConstraint("file_format IN ('pdf', 'epub')", name="ck_books_file_format"),
+        CheckConstraint(
+            "(pdf_storage_key IS NULL OR file_format = 'pdf') AND "
+            "(epub_storage_key IS NULL OR file_format = 'epub')",
+            name="ck_books_active_file_matches_format",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
@@ -55,6 +74,10 @@ class Book(Base):
 
     # Файлы — на Этапе 1 храним только ключи в S3, сами файлы пока опциональны
     pdf_storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    epub_storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    file_format: Mapped[str] = mapped_column(
+        String(8), default="pdf", nullable=False, server_default="pdf"
+    )
     cover_storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     total_pages: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

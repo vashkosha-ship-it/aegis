@@ -6,10 +6,20 @@
 """
 from __future__ import annotations
 
+import posixpath
+import zipfile
+from typing import BinaryIO
+
 # --- PDF --------------------------------------------------------------------
 
 PDF_MIME = "application/pdf"
 PDF_MAGIC = b"%PDF-"  # все валидные PDF начинаются с этого
+
+# --- EPUB -------------------------------------------------------------------
+
+EPUB_MIME = "application/epub+zip"
+EPUB_ZIP_MAGIC = b"PK\x03\x04"
+ALLOWED_EPUB_MIMES = frozenset({EPUB_MIME, "application/zip", "application/octet-stream"})
 
 # --- Обложки ----------------------------------------------------------------
 
@@ -47,6 +57,63 @@ def validate_pdf_head(head: bytes, *, declared_mime: str | None) -> None:
         raise FileValidationError(
             "File does not look like a PDF (missing %PDF- header)"
         )
+
+
+def validate_epub_head(head: bytes, *, declared_mime: str | None) -> None:
+    """Быстро проверить MIME и ZIP-сигнатуру до сохранения файла."""
+    if declared_mime and declared_mime not in ALLOWED_EPUB_MIMES:
+        raise FileValidationError(
+            f"Expected {EPUB_MIME}, got {declared_mime!r}"
+        )
+    if not head.startswith(EPUB_ZIP_MAGIC):
+        raise FileValidationError("File does not look like an EPUB (missing ZIP header)")
+
+
+def validate_epub_archive(
+    stream: BinaryIO,
+    *,
+    max_files: int = 10_000,
+    max_uncompressed_bytes: int = 1024 * 1024 * 1024,
+) -> None:
+    """Проверить структуру EPUB и ограничить ZIP-bomb/path traversal.
+
+    EPUB является ZIP-контейнером. Одной сигнатуры недостаточно: обычный ZIP
+    иначе прошёл бы загрузку, а архив с огромным распакованным размером мог бы
+    исчерпать память браузера читателя.
+    """
+    try:
+        with zipfile.ZipFile(stream) as archive:
+            entries = archive.infolist()
+            if not entries or len(entries) > max_files:
+                raise FileValidationError("EPUB contains an invalid number of files")
+
+            total = 0
+            for entry in entries:
+                raw_name = entry.filename.replace("\\", "/")
+                normalized = posixpath.normpath(raw_name)
+                if (
+                    raw_name.startswith("/")
+                    or normalized == ".."
+                    or normalized.startswith("../")
+                ):
+                    raise FileValidationError("EPUB contains an unsafe file path")
+                if entry.flag_bits & 0x1:
+                    raise FileValidationError("Encrypted EPUB files are not supported")
+                total += entry.file_size
+                if total > max_uncompressed_bytes:
+                    raise FileValidationError("EPUB is too large after unpacking")
+
+            names = {entry.filename for entry in entries}
+            if "mimetype" not in names or "META-INF/container.xml" not in names:
+                raise FileValidationError("EPUB structure is incomplete")
+            if archive.read("mimetype", pwd=None).strip() != EPUB_MIME.encode("ascii"):
+                raise FileValidationError("EPUB mimetype entry is invalid")
+    except FileValidationError:
+        raise
+    except (OSError, zipfile.BadZipFile, RuntimeError, KeyError) as exc:
+        raise FileValidationError("EPUB archive is damaged or unsupported") from exc
+    finally:
+        stream.seek(0)
 
 
 def detect_cover_ext(head: bytes, *, declared_mime: str | None) -> str:

@@ -43,7 +43,7 @@ async function loadEpub(b) {
         return;
       }
       try {
-        const resp = await api.request('/books/' + b.id + '/pdf', { raw: true });
+        const resp = await api.request('/books/' + b.id + '/epub', { raw: true });
         epubData = await resp.arrayBuffer();
       } catch (err) {
         showToast('Нет связи. Сохраните книгу оффлайн заранее.');
@@ -63,6 +63,7 @@ async function loadEpub(b) {
       width: '100%',
       height: '100%',
       flow: 'paginated',
+      allowScriptedContent: false,
     });
     // Применяем тему после создания rendition
   setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
