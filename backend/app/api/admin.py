@@ -407,7 +407,7 @@ async def book_analytics(
         views=book.views or 0,
         downloads=book.downloads or 0,
         reviews_count=reviews_count,
-        has_file=bool(getattr(book, "pdf_key", None) or getattr(book, "epub_key", None)),
+        has_file=bool(book.pdf_storage_key or book.epub_storage_key),
         mylist=mylist,
         readers_started=started_count,
         readers_completed=completed_count,

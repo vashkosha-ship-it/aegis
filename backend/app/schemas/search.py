@@ -14,6 +14,7 @@ class SearchHit(BaseModel):
     title: str
     author: str
     has_cover: bool = False
+    file_format: str = "pdf"
     rank: float = 0.0
     matched_in: str = "meta"  # 'meta' | 'content' | 'both'
     pages: list[SearchHitPage] = Field(default_factory=list)

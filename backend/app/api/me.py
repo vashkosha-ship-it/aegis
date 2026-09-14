@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Upl
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_current_user_any
+from app.api.deps import (
+    get_current_user,
+    get_current_user_any,
+    get_current_user_optional,
+)
 from app.core.file_validation import (
     FileValidationError,
     detect_cover_ext,
@@ -76,6 +80,9 @@ async def update_me(
     if payload.department is not None:
         dep = payload.department.strip()
         current.department = dep if dep else None
+
+    if payload.profile_visibility is not None:
+        current.profile_visibility = payload.profile_visibility
 
     await db.commit()
     await db.refresh(current)
@@ -339,13 +346,17 @@ users_router = APIRouter(prefix="/users", tags=["users"])
 async def download_user_avatar(
     user_id: int,
     db: AsyncSession = Depends(get_db),
+    current: User | None = Depends(get_current_user_optional),
     storage: StorageBackend = Depends(get_storage),
-    # Авторизация не требуется: аватары — публичные (как обложки)
 ) -> StreamingResponse:
-    """Получить аватар юзера по id. 404 если нет."""
+    """Получить аватар пользователя с учётом видимости профиля."""
     user = await db.get(User, user_id)
     if not user or not user.avatar_url:
         raise HTTPException(status_code=404, detail="Avatar not found")
+    if user.profile_visibility == "private" and (
+        current is None or current.id != user.id
+    ):
+        raise HTTPException(status_code=403, detail="Профиль скрыт настройками приватности")
 
     key = user.avatar_url
     try:
@@ -369,7 +380,7 @@ async def download_user_avatar(
             "Content-Length": str(size),
             # Аватары меняются редко, можно кэшировать. Но не слишком долго,
             # чтобы юзер увидел свой новый аватар сразу. 5 минут — компромисс.
-            "Cache-Control": "public, max-age=300",
+            "Cache-Control": "private, max-age=300",
         },
     )
 

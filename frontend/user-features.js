@@ -224,7 +224,8 @@ function renderFullTextResults(res) {
       pageResult.setAttribute('data-static-style', 'a122');
       const pageNumber = document.createElement('span');
       pageNumber.setAttribute('data-static-style', 'a123');
-      pageNumber.textContent = `с. ${page.page}:`;
+      const locationLabel = hit.file_format === 'epub' ? 'гл.' : 'с.';
+      pageNumber.textContent = `${locationLabel} ${page.page}:`;
       const snippet = String(page.snippet ?? '').replace(/<\/?b>/g, '');
       const askAi = document.createElement('button');
       askAi.type = 'button';
@@ -250,7 +251,9 @@ function askAiAboutSnippet(bookId, page, snippet, title) {
   navigateTo('assistant');
   setTimeout(() => {
     const surface = assistantSurface('full');
-    const prompt = `Объясни простыми словами этот фрагмент из книги «${title}» (стр. ${page}):\n\n«${snippet}»\n\nЧто это означает и почему это важно?`;
+    const book = state.books.find(item => item.id === bookId);
+    const location = book?.file_format === 'epub' ? `глава ${page}` : `стр. ${page}`;
+    const prompt = `Объясни простыми словами этот фрагмент из книги «${title}» (${location}):\n\n«${snippet}»\n\nЧто это означает и почему это важно?`;
     assistantSend(surface, prompt);
   }, 150);
 }

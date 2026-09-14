@@ -959,11 +959,7 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
   try {
     const format = detectFileFormat(file);
     if (format === 'epub') {
-      if (typeof api.books.uploadEpub === 'function') {
-        await api.books.uploadEpub(adminBookModalCurrentId, file);
-      } else {
-        await api.books.uploadPdf(adminBookModalCurrentId, file);
-      }
+      await api.books.uploadEpub(adminBookModalCurrentId, file);
     } else {
       await api.books.uploadPdf(adminBookModalCurrentId, file);
     }
@@ -1110,7 +1106,7 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
     if (bookFile) {
       btn.textContent = 'Загрузка файла...';
       try {
-        if (format === 'epub' && typeof api.books.uploadEpub === 'function') {
+        if (format === 'epub') {
           await api.books.uploadEpub(newId, bookFile);
         } else {
           await api.books.uploadPdf(newId, bookFile);
@@ -1486,7 +1482,7 @@ async function startBulkUpload() {
       item.message = 'Загрузка файла...';
       renderBulkUploadList();
 
-      if (format === 'epub' && typeof api.books.uploadEpub === 'function') {
+      if (format === 'epub') {
         await api.books.uploadEpub(created.id, item.file);
       } else {
         await api.books.uploadPdf(created.id, item.file);

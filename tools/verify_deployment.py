@@ -189,6 +189,19 @@ def main(base: str) -> int:
         f"queue: {queue!r}",
     )
 
+    epub_code, _, _ = fetch(base + "/api/books/0/epub")
+    check(
+        "EPUB-маршрут существует и требует авторизацию",
+        epub_code in {401, 403},
+        f"ожидался 401/403, получен код {epub_code}",
+    )
+    reviews_code, _, _ = fetch(base + "/api/books/0/reviews")
+    check(
+        "отзывы не доступны анонимно",
+        reviews_code in {401, 403},
+        f"ожидался 401/403, получен код {reviews_code}",
+    )
+
     print(f"\nИтого: {passed} ok, {failed} fail\n")
     return 0 if failed == 0 else 1
 

@@ -85,6 +85,7 @@ app = FastAPI(
 # разрешать тело размером с книгу: отдельные пределы снижают цену DoS-запроса.
 _DEFAULT_REQUEST_BODY_BYTES = 2 * 1024 * 1024
 _PDF_REQUEST_BODY_BYTES = settings.MAX_PDF_SIZE_BYTES + 5 * 1024 * 1024
+_EPUB_REQUEST_BODY_BYTES = settings.MAX_EPUB_SIZE_BYTES + 5 * 1024 * 1024
 _COVER_REQUEST_BODY_BYTES = settings.MAX_COVER_SIZE_BYTES + 1 * 1024 * 1024
 _AVATAR_REQUEST_BODY_BYTES = 3 * 1024 * 1024
 
@@ -106,6 +107,8 @@ class BodySizeLimitMiddleware:
         path = scope.get("path", "")
         if path.startswith("/api/books/") and path.endswith("/pdf"):
             return _PDF_REQUEST_BODY_BYTES
+        if path.startswith("/api/books/") and path.endswith("/epub"):
+            return _EPUB_REQUEST_BODY_BYTES
         if path.startswith("/api/books/") and path.endswith("/cover"):
             return _COVER_REQUEST_BODY_BYTES
         if path == "/api/me/avatar":

@@ -8,6 +8,7 @@
 """
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -18,6 +19,7 @@ class BookBase(BaseModel):
     categories: list[str] = Field(default_factory=list, max_length=20)
     description: str = Field(default="", max_length=20_000)
     icon: str = Field(default="📘", max_length=64)
+    file_format: Literal["pdf", "epub"] = "pdf"
 
     @field_validator("categories")
     @classmethod
@@ -91,6 +93,8 @@ class BookPublic(BookBase):
     popularity: int
     total_pages: int
     has_pdf: bool = False
+    has_epub: bool = False
+    has_file: bool = False
     has_cover: bool = False
     date_published: date | None
     created_at: datetime
@@ -109,10 +113,10 @@ class BookListResponse(BaseModel):
 
 
 class BookFileUploadResult(BaseModel):
-    """Возвращается после успешной загрузки PDF или обложки.
+    """Возвращается после успешной загрузки файла книги или обложки.
 
     book_id     — id книги, к которой привязан файл.
-    kind        — "pdf" или "cover".
+    kind        — "pdf", "epub" или "cover".
     size_bytes  — фактический размер записанного файла.
     replaced    — true, если загрузка заменила существующий файл.
     """
@@ -121,6 +125,8 @@ class BookFileUploadResult(BaseModel):
     kind: str
     size_bytes: int
     replaced: bool
+    index_job_id: str | None = None
+    indexing_status: Literal["queued", "not_applicable", "unavailable"] = "not_applicable"
 
 class RequiredBookSet(BaseModel):
     """Пометить книгу обязательной для подразделения. None — снять пометку."""

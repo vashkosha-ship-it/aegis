@@ -118,6 +118,10 @@ def test_only_upload_routes_receive_large_limits():
         > 100 * 1024 * 1024
     )
     assert (
+        middleware._limit_for_scope({"path": "/api/books/42/epub"})
+        > 100 * 1024 * 1024
+    )
+    assert (
         middleware._limit_for_scope({"path": "/api/books/42/cover"})
         < 10 * 1024 * 1024
     )

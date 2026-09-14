@@ -10,7 +10,10 @@
 import asyncio
 import logging
 import os
+import posixpath
 import tempfile
+import xml.etree.ElementTree as ET
+import zipfile
 from collections.abc import AsyncIterator
 from concurrent.futures import ProcessPoolExecutor
 
@@ -53,13 +56,13 @@ class IndexWouldRegress(IndexingError):
     """Новый индекс пуст, а старый — нет. Замена уничтожила бы данные."""
 
 
-async def spool_to_tempfile(chunks: AsyncIterator[bytes]) -> str:
+async def spool_to_tempfile(chunks: AsyncIterator[bytes], *, suffix: str = ".pdf") -> str:
     """Слить поток из хранилища во временный файл и вернуть путь.
 
     Нужен, потому что pypdf требует seek(), а поток из S3/локального хранилища
     последовательный. Временный файл живёт на диске, а не в памяти.
     """
-    fd, path = tempfile.mkstemp(suffix=".pdf", prefix="aegis-index-")
+    fd, path = tempfile.mkstemp(suffix=suffix, prefix="aegis-index-")
     try:
         with os.fdopen(fd, "wb") as f:
             async for chunk in chunks:
@@ -101,6 +104,70 @@ def _extract_pages_worker(path: str) -> list[str]:
     return out
 
 
+def _extract_epub_sections_worker(path: str) -> list[str]:
+    """Извлечь текст EPUB в порядке spine; одна секция становится одной записью."""
+    from html.parser import HTMLParser
+
+    class TextParser(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__()
+            self.parts: list[str] = []
+            self.ignored_depth = 0
+
+        def handle_starttag(self, tag, attrs):
+            if tag.lower() in {"script", "style", "noscript"}:
+                self.ignored_depth += 1
+
+        def handle_endtag(self, tag):
+            if tag.lower() in {"script", "style", "noscript"} and self.ignored_depth:
+                self.ignored_depth -= 1
+
+        def handle_data(self, data):
+            if not self.ignored_depth:
+                self.parts.append(data)
+
+    with zipfile.ZipFile(path) as archive:
+        container = ET.fromstring(archive.read("META-INF/container.xml"))
+        rootfile = next(
+            (
+                node.attrib.get("full-path")
+                for node in container.iter()
+                if node.tag.rsplit("}", 1)[-1] == "rootfile"
+            ),
+            None,
+        )
+        if not rootfile:
+            raise IndexingError("EPUB: не найден OPF package")
+
+        package = ET.fromstring(archive.read(rootfile))
+        manifest = {
+            node.attrib.get("id"): node.attrib.get("href")
+            for node in package.iter()
+            if node.tag.rsplit("}", 1)[-1] == "item"
+        }
+        spine_ids = [
+            node.attrib.get("idref")
+            for node in package.iter()
+            if node.tag.rsplit("}", 1)[-1] == "itemref"
+        ]
+        base = posixpath.dirname(rootfile)
+        out: list[str] = []
+        for item_id in spine_ids[:MAX_PAGES_PER_BOOK]:
+            href = manifest.get(item_id)
+            if not href:
+                continue
+            member = posixpath.normpath(posixpath.join(base, href.split("#", 1)[0]))
+            try:
+                raw = archive.read(member)
+            except KeyError:
+                continue
+            parser = TextParser()
+            parser.feed(raw.decode("utf-8", errors="replace"))
+            text = " ".join(" ".join(parser.parts).replace("\x00", "").split())
+            out.append(text[:MAX_PAGE_CHARS])
+        return out
+
+
 async def _extract_pages(path: str) -> list[str]:
     """Обёртка: запускает извлечение в одноразовом процессе, с таймаутом."""
     size = os.path.getsize(path)
@@ -123,17 +190,40 @@ async def _extract_pages(path: str) -> list[str]:
     finally:
         # cancel_futures + kill: зависший процесс нужно снять принудительно,
         # иначе он продолжит жечь CPU уже после нашего таймаута.
+        processes = dict(getattr(pool, "_processes", None) or {})
         pool.shutdown(wait=False, cancel_futures=True)
-
-        # _processes существует, но равен None, пока пул не запустил рабочие
-        # процессы или уже их снял. getattr с умолчанием тут не спасает:
-        # атрибут есть, просто пустой.
-        processes = getattr(pool, "_processes", None) or {}
-        for proc in list(processes.values()):
+        for proc in processes.values():
             try:
                 if proc.is_alive():
                     proc.kill()
             except Exception:  # noqa: BLE001, S110 — процесс мог завершиться сам
+                pass
+
+
+async def _extract_epub_sections(path: str) -> list[str]:
+    """Извлечь EPUB в изолированном процессе с тем же таймаутом, что PDF."""
+    size = os.path.getsize(path)
+    if size > MAX_PDF_BYTES:
+        raise PdfTooLarge(f"{size} байт — больше допустимых {MAX_PDF_BYTES}")
+    loop = asyncio.get_running_loop()
+    pool = ProcessPoolExecutor(max_workers=1)
+    try:
+        return await asyncio.wait_for(
+            loop.run_in_executor(pool, _extract_epub_sections_worker, path),
+            timeout=EXTRACT_TIMEOUT_SECONDS,
+        )
+    except TimeoutError as exc:
+        raise ExtractionTimeout(
+            f"извлечение EPUB заняло больше {EXTRACT_TIMEOUT_SECONDS} с"
+        ) from exc
+    finally:
+        processes = dict(getattr(pool, "_processes", None) or {})
+        pool.shutdown(wait=False, cancel_futures=True)
+        for proc in processes.values():
+            try:
+                if proc.is_alive():
+                    proc.kill()
+            except Exception:  # noqa: BLE001
                 pass
 
 
@@ -142,6 +232,68 @@ async def count_indexed_pages(db: AsyncSession, book_id: int) -> int:
     return await db.scalar(
         select(func.count(BookPage.id)).where(BookPage.book_id == book_id)
     ) or 0
+
+
+async def _store_sections(
+    db: AsyncSession,
+    book_id: int,
+    sections: list[str],
+    *,
+    force: bool,
+    update_total_pages: bool,
+) -> int:
+    """Атомарно заменить полнотекстовый индекс извлечёнными секциями."""
+    if not sections:
+        raise IndexingError(f"Книга {book_id}: из файла не извлечено ни одной секции")
+
+    rows = [
+        {"book_id": book_id, "page": number, "content": text}
+        for number, text in enumerate(sections, start=1)
+        if text.strip()
+    ]
+    total = len(sections)
+    saved = len(rows)
+    if not rows and not force:
+        existing = await count_indexed_pages(db, book_id)
+        if existing:
+            raise IndexWouldRegress(
+                f"Книга {book_id}: в новом тексте нет ни одной секции, "
+                f"а в индексе сейчас {existing}. Замена отменена."
+            )
+
+    try:
+        await db.execute(
+            delete(BookPage).where(BookPage.book_id == book_id),
+            execution_options={"synchronize_session": False},
+        )
+        for start in range(0, len(rows), PAGE_BATCH_SIZE):
+            await db.execute(insert(BookPage), rows[start:start + PAGE_BATCH_SIZE])
+        if update_total_pages:
+            await db.execute(
+                update(Book).where(Book.id == book_id).values(total_pages=total)
+            )
+        await db.commit()
+    except Exception:
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Книга %s: откат не выполнен, транзакцию откатит сервер",
+                book_id,
+            )
+        logger.exception("Книга %s: индексация не завершена, индекс не изменён", book_id)
+        raise
+
+    if total and saved / total < 0.1:
+        logger.warning(
+            "Книга %s: текстовый слой почти отсутствует (%d из %d секций)",
+            book_id, saved, total,
+        )
+    else:
+        logger.info(
+            "Книга %s: проиндексировано %d секций из %d", book_id, saved, total
+        )
+    return saved
 
 
 async def index_book_from_path(
@@ -169,88 +321,27 @@ async def index_book_from_path(
     # (битый файл, таймаут, нехватка памяти), существующий индекс не пострадает.
     pages = await _extract_pages(pdf_path)
 
-    if not pages:
-        raise IndexingError(
-            f"Книга {book_id}: из файла не извлечено ни одной страницы"
-        )
+    return await _store_sections(
+        db,
+        book_id,
+        pages,
+        force=force,
+        update_total_pages=True,
+    )
 
-    rows = [
-        {"book_id": book_id, "page": page_no, "content": text}
-        for page_no, text in enumerate(pages, start=1)
-        if text.strip()
-    ]
-    total = len(pages)
-    saved = len(rows)
 
-    if not rows and not force:
-        # Текста нет вовсе. Если раньше индекс был, замена уничтожила бы его
-        # без всякой пользы — а причина (заменили файл на скан, сломался
-        # шрифтовый слой) требует человеческого решения, а не молчаливой
-        # потери данных.
-        existing = await count_indexed_pages(db, book_id)
-        if existing:
-            raise IndexWouldRegress(
-                f"Книга {book_id}: в новом тексте нет ни одной страницы, "
-                f"а в индексе сейчас {existing}. Замена отменена. "
-                f"Если это ожидаемо, вызовите с force=True."
-            )
-
-    try:
-        # Одна транзакция на всю замену. Коммит — единственный, в самом конце.
-        # synchronize_session=False: сверять условие с объектами, уже
-        # загруженными в сессию, здесь не нужно — мы удаляем всё разом. А при
-        # включённой сверке SQLAlchemy пытается подгрузить просроченные после
-        # commit объекты прямо посреди удаления и падает на этом.
-        await db.execute(
-            delete(BookPage).where(BookPage.book_id == book_id),
-            execution_options={"synchronize_session": False},
-        )
-
-        # Вставляем пачками: это про размер одного запроса, а не про
-        # атомарность — транзакция всё равно общая. Core insert вместо ORM,
-        # чтобы объекты не оседали в identity map сессии.
-        for start in range(0, len(rows), PAGE_BATCH_SIZE):
-            await db.execute(insert(BookPage), rows[start:start + PAGE_BATCH_SIZE])
-
-        if total:
-            await db.execute(
-                update(Book).where(Book.id == book_id).values(total_pages=total)
-            )
-
-        await db.commit()
-    except Exception:
-        # Откат возвращает прежний индекс целиком — книга остаётся в том
-        # состоянии, в каком была до попытки.
-        #
-        # Сам откат тоже может не удаться: если соединение оборвалось (а это
-        # самый вероятный сбой на коммите), обращаться уже некуда. Данные при
-        # этом в безопасности — незавершённую транзакцию откатывает сам сервер,
-        # как только замечает разрыв. Опасно другое: необработанная ошибка
-        # отката заслонила бы настоящую причину, и в логе осталось бы
-        # «соединение закрыто» вместо того, что произошло на самом деле.
-        try:
-            await db.rollback()
-        except Exception:  # noqa: BLE001
-            logger.warning(
-                "Книга %s: откат не выполнен, соединение потеряно. Транзакцию "
-                "откатит сервер.", book_id,
-            )
-        logger.exception("Книга %s: индексация не завершена, индекс не изменён", book_id)
-        raise
-
-    if total and saved / total < 0.1:
-        # Скан без текстового слоя: файл читается, но искать в нём нечего.
-        # Отдельный уровень лога, чтобы такие книги было видно в мониторинге.
-        logger.warning(
-            "Книга %s: текстовый слой почти отсутствует (%d из %d страниц) — "
-            "вероятно скан, поиск по книге работать не будет",
-            book_id, saved, total,
-        )
-    else:
-        logger.info(
-            "Книга %s: проиндексировано %d страниц из %d", book_id, saved, total
-        )
-    return saved
+async def index_epub_from_path(
+    db: AsyncSession, book_id: int, epub_path: str, *, force: bool = False
+) -> int:
+    """Проиндексировать главы EPUB; пагинация остаётся клиентской."""
+    sections = await _extract_epub_sections(epub_path)
+    return await _store_sections(
+        db,
+        book_id,
+        sections,
+        force=force,
+        update_total_pages=False,
+    )
 
 
 async def index_book_content(db: AsyncSession, book_id: int, pdf_bytes: bytes) -> int:

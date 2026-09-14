@@ -315,6 +315,15 @@
     },
     users: {
       avatarUrl(userId) { return BASE + '/users/' + userId + '/avatar'; },
+      async loadAvatar(img, userId) {
+        const response = await request('/users/' + userId + '/avatar', { raw: true });
+        const objectUrl = URL.createObjectURL(await response.blob());
+        const previous = img.dataset.aegisObjectUrl;
+        img.dataset.aegisObjectUrl = objectUrl;
+        img.src = objectUrl;
+        if (previous) URL.revokeObjectURL(previous);
+        return objectUrl;
+      },
     },
 
     books: {
@@ -334,11 +343,17 @@
       // URL'ы для прямой подстановки в <img src> и в pdf.js
       coverUrl(id) { return BASE + '/books/' + id + '/cover'; },
       pdfUrl(id) { return BASE + '/books/' + id + '/pdf'; },
+      epubUrl(id) { return BASE + '/books/' + id + '/epub'; },
 
       uploadPdf(id, file) {
         const fd = new FormData();
         fd.append('file', file);
         return request('/books/' + id + '/pdf', { method: 'POST', body: fd });
+      },
+      uploadEpub(id, file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        return request('/books/' + id + '/epub', { method: 'POST', body: fd });
       },
       uploadCover(id, file) {
         const fd = new FormData();
@@ -346,11 +361,16 @@
         return request('/books/' + id + '/cover', { method: 'POST', body: fd });
       },
       deletePdf(id) { return request('/books/' + id + '/pdf', { method: 'DELETE' }); },
+      deleteEpub(id) { return request('/books/' + id + '/epub', { method: 'DELETE' }); },
       deleteCover(id) { return request('/books/' + id + '/cover', { method: 'DELETE' }); },
 
       // PDF возвращаем как ArrayBuffer — pdf.js принимает его напрямую
       async fetchPdfBytes(id) {
         const resp = await request('/books/' + id + '/pdf', { raw: true });
+        return resp.arrayBuffer();
+      },
+      async fetchEpubBytes(id) {
+        const resp = await request('/books/' + id + '/epub', { raw: true });
         return resp.arrayBuffer();
       },
       // Данные для прогрессивной загрузки PDF в pdf.js (по Range-запросам):

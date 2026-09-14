@@ -123,9 +123,9 @@ async function saveBookOffline(bookId, silent) {
   if (!silent) showToast('Скачиваем книгу...');
 
   try {
-    const fileResponse = await api.request('/books/' + bookId + '/pdf', { raw: true });
-    const fileBlob = await fileResponse.blob();
     const fileType = book.file_format === 'epub' ? 'epub' : 'pdf';
+    const fileResponse = await api.request('/books/' + bookId + '/' + fileType, { raw: true });
+    const fileBlob = await fileResponse.blob();
 
     let coverBlob = null;
     if (book.has_cover) {

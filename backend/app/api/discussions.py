@@ -67,10 +67,17 @@ def _record_comment(user_id: int) -> None:
     _comment_times.setdefault(user_id, []).append(time.time())
 
 
-def _author(u: User) -> CommentAuthor:
+def _author(u: User, current: User) -> CommentAuthor:
+    hidden = (
+        u.profile_visibility == "private"
+        and u.id != current.id
+        and current.role.value != "admin"
+    )
     return CommentAuthor(
-        id=u.id, username=u.username, full_name=u.full_name,
-        has_avatar=bool(u.avatar_url),
+        id=0 if hidden else u.id,
+        username="Скрытый пользователь" if hidden else u.username,
+        full_name=None if hidden else u.full_name,
+        has_avatar=False if hidden else bool(u.avatar_url),
     )
 
 
@@ -80,7 +87,7 @@ def _to_public(c: BookComment, current: User) -> CommentPublic:
         id=c.id,
         text=c.text,
         created_at=c.created_at.isoformat(),
-        author=_author(c.user),
+        author=_author(c.user, current),
         can_delete=(c.user_id == current.id or is_admin),
         replies=[],
     )

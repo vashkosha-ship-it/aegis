@@ -1,5 +1,6 @@
-"""Book endpoints: catalog (list/CRUD) + Этап 2 (PDF & cover upload/download)."""
+"""Book endpoints: catalog, files (PDF/EPUB/cover) and indexing."""
 
+import asyncio
 import logging
 from typing import Literal
 
@@ -14,7 +15,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import Response, StreamingResponse
-from sqlalchemy import asc, desc, func, or_, select
+from sqlalchemy import asc, delete as sa_delete, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,6 +24,8 @@ from app.core.config import settings
 from app.core.file_validation import (
     FileValidationError,
     detect_cover_ext,
+    validate_epub_archive,
+    validate_epub_head,
     validate_pdf_head,
 )
 from app.core.storage import (
@@ -63,6 +66,30 @@ async def _get_book_or_404(db: AsyncSession, book_id: int) -> Book:
 # Размер «головы» файла, который читаем для magic-bytes проверки.
 # 16 байт хватает на любой формат, что мы поддерживаем.
 _MAGIC_HEAD_BYTES = 16
+
+
+async def _clear_book_index(db: AsyncSession, book: Book) -> None:
+    """Убрать текст старой версии файла до постановки новой индексации."""
+    from app.models.book_page import BookPage
+
+    await db.execute(sa_delete(BookPage).where(BookPage.book_id == book.id))
+    book.total_pages = 0
+
+
+async def _enqueue_book_index(book_id: int) -> tuple[str | None, str]:
+    """Поставить файл книги в очередь, не маскируя успешную загрузку ошибкой."""
+    from app.core.queue import get_queue
+
+    queue = await get_queue()
+    if queue is None:
+        logger.error("Файл книги %s сохранён, но очередь индексации недоступна", book_id)
+        return None, "unavailable"
+    try:
+        job = await queue.enqueue_job("index_book", book_id)
+    except Exception:  # noqa: BLE001 — файл уже сохранён, повтор upload опасен
+        logger.exception("Не удалось поставить файл книги %s на индексацию", book_id)
+        return None, "unavailable"
+    return job.job_id, "queued"
 
 
 # --- catalog: list / get / create / update / delete -------------------------
@@ -352,6 +379,7 @@ async def delete_book(
 
     # Запоминаем ключи до коммита БД.
     pdf_key = book.pdf_storage_key
+    epub_key = book.epub_storage_key
     cover_key = book.cover_storage_key
 
     await db.delete(book)
@@ -362,7 +390,7 @@ async def delete_book(
     # Файлы чистим ПОСЛЕ успешного удаления из БД.
     # Если упадём здесь — останутся osiротевшие файлы, но запись в БД уже удалена.
     # Это лучше, чем обратный сценарий (файлов нет, а ссылка в БД жива).
-    for key in (pdf_key, cover_key):
+    for key in (pdf_key, epub_key, cover_key):
         if not key:
             continue
         try:
@@ -410,7 +438,8 @@ async def upload_book_pdf(
         raise HTTPException(status_code=400, detail=str(e)) from None
 
     # 2) Готовим новый ключ. Старый запоминаем — удалим после успешной записи.
-    old_key = book.pdf_storage_key
+    old_pdf_key = book.pdf_storage_key
+    old_epub_key = book.epub_storage_key
     new_key = StorageBackend.make_key("books/pdf", ".pdf")
 
     # 3) Пишем стримом с лимитом по размеру.
@@ -426,23 +455,106 @@ async def upload_book_pdf(
 
     # 4) Обновляем запись в БД.
     book.pdf_storage_key = new_key
+    book.epub_storage_key = None
+    book.file_format = "pdf"
+    await _clear_book_index(db, book)
     await db.commit()
 
-    # 5) Чистим старый файл (если был). Логируем замену — как договорились.
-    replaced = bool(old_key)
+    # 5) Сразу ставим новую версию PDF на полнотекстовую индексацию.
+    index_job_id, indexing_status = await _enqueue_book_index(book_id)
+
+    # 6) Чистим прежний активный файл независимо от его формата.
+    replaced = bool(old_pdf_key or old_epub_key)
     if replaced:
         logger.info(
-            "Admin %s replaced PDF for book %s: old_key=%s, new_key=%s, new_size=%d",
-            admin.id, book_id, old_key, new_key, size,
+            "Admin %s replaced book file for book %s: old_pdf=%s, old_epub=%s, "
+            "new_key=%s, new_size=%d, indexing=%s",
+            admin.id, book_id, old_pdf_key, old_epub_key, new_key, size, indexing_status,
         )
-        try:
-            await storage.delete(old_key)
-        except Exception:  # noqa: BLE001
-            logger.exception("Failed to delete old PDF %s for book %s", old_key, book_id)
-            # Не срываем запрос: новый файл уже привязан, старый — кандидат на ручную чистку.
+        for old_key in (old_pdf_key, old_epub_key):
+            if old_key and old_key != new_key:
+                try:
+                    await storage.delete(old_key)
+                except Exception:  # noqa: BLE001
+                    logger.exception("Failed to delete old book file %s for book %s", old_key, book_id)
 
     return BookFileUploadResult(
-        book_id=book_id, kind="pdf", size_bytes=size, replaced=replaced
+        book_id=book_id,
+        kind="pdf",
+        size_bytes=size,
+        replaced=replaced,
+        index_job_id=index_job_id,
+        indexing_status=indexing_status,
+    )
+
+
+@router.post(
+    "/{book_id}/epub",
+    response_model=BookFileUploadResult,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_book_epub(
+    book_id: int,
+    file: UploadFile = File(..., description="EPUB file (application/epub+zip)"),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> BookFileUploadResult:
+    """Admin only: проверить EPUB, сохранить и сделать активным файлом книги."""
+    book = await _get_book_or_404(db, book_id)
+    head = await file.read(_MAGIC_HEAD_BYTES)
+    try:
+        validate_epub_head(head, declared_mime=file.content_type)
+        await file.seek(0)
+        await asyncio.to_thread(
+            validate_epub_archive,
+            file.file,
+            max_uncompressed_bytes=settings.MAX_EPUB_SIZE_BYTES * 5,
+        )
+        await file.seek(0)
+    except FileValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from None
+
+    old_pdf_key = book.pdf_storage_key
+    old_epub_key = book.epub_storage_key
+    new_key = StorageBackend.make_key("books/epub", ".epub")
+    try:
+        size = await storage.save_stream(
+            new_key,
+            books_service.stream_upload_remainder(file, b""),
+            max_bytes=settings.MAX_EPUB_SIZE_BYTES,
+        )
+    except StorageError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from None
+
+    book.pdf_storage_key = None
+    book.epub_storage_key = new_key
+    book.file_format = "epub"
+    # Индекс прежней версии не должен оставаться доступным после смены файла.
+    await _clear_book_index(db, book)
+    await db.commit()
+
+    index_job_id, indexing_status = await _enqueue_book_index(book_id)
+
+    replaced = bool(old_pdf_key or old_epub_key)
+    for old_key in (old_pdf_key, old_epub_key):
+        if old_key and old_key != new_key:
+            try:
+                await storage.delete(old_key)
+            except Exception:  # noqa: BLE001
+                logger.exception("Failed to delete old book file %s for book %s", old_key, book_id)
+
+    logger.info(
+        "Admin %s uploaded EPUB for book %s: key=%s, size=%d, indexing=%s",
+        admin.id, book_id, new_key, size, indexing_status,
+    )
+    return BookFileUploadResult(
+        book_id=book_id,
+        kind="epub",
+        size_bytes=size,
+        replaced=replaced,
+        index_job_id=index_job_id,
+        indexing_status=indexing_status,
     )
 
 
@@ -470,8 +582,8 @@ async def reindex_book(
     from app.core.queue import get_queue
 
     book = await _get_book_or_404(db, book_id)
-    if not book.pdf_storage_key:
-        raise HTTPException(status_code=400, detail="У книги нет PDF для индексации")
+    if not (book.pdf_storage_key or book.epub_storage_key):
+        raise HTTPException(status_code=400, detail="У книги нет файла для индексации")
 
     queue = await get_queue()
     if queue is None:
@@ -488,7 +600,7 @@ async def reindex_book(
 async def reindex_all_books(
     _: User = Depends(get_current_admin),
 ) -> dict:
-    """Admin only: поставить в очередь индексацию всех книг с PDF."""
+    """Admin only: поставить в очередь индексацию всех книг с PDF или EPUB."""
     from app.core.queue import get_queue
 
     queue = await get_queue()
@@ -647,7 +759,14 @@ async def reindex_status(
     from app.models.book_page import BookPage
 
     total = await db.scalar(
-        select(func.count()).select_from(Book).where(Book.pdf_storage_key.isnot(None))
+        select(func.count())
+        .select_from(Book)
+        .where(
+            or_(
+                Book.pdf_storage_key.isnot(None),
+                Book.epub_storage_key.isnot(None),
+            )
+        )
     ) or 0
     done = await db.scalar(select(func.count(func.distinct(BookPage.book_id)))) or 0
     pages = await db.scalar(select(func.count()).select_from(BookPage)) or 0
@@ -803,6 +922,7 @@ async def delete_book_pdf(
 
     key = book.pdf_storage_key
     book.pdf_storage_key = None
+    await _clear_book_index(db, book)
     await db.commit()
 
     try:
@@ -811,6 +931,83 @@ async def delete_book_pdf(
         logger.exception("Failed to delete PDF %s for book %s", key, book_id)
 
     logger.info("Admin %s deleted PDF for book %s (key=%s)", admin.id, book_id, key)
+
+
+@router.get("/{book_id}/epub")
+async def download_book_epub(
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_approved_user),
+    storage: StorageBackend = Depends(get_storage),
+):
+    """Отдать EPUB только одобренному пользователю."""
+    book = await _get_book_or_404(db, book_id)
+    key = book.epub_storage_key
+    if not key:
+        raise HTTPException(status_code=404, detail="Book has no EPUB attached")
+
+    try:
+        size = await storage.size(key)
+    except StorageNotFound:
+        logger.error("EPUB missing for book %s (key=%s)", book_id, key)
+        raise HTTPException(status_code=404, detail="EPUB file is missing") from None
+
+    safe_title = "".join(
+        char if char.isascii() and char not in '\\/:*?"<>|' else "_"
+        for char in book.title
+    )
+    headers = {
+        "Content-Type": "application/epub+zip",
+        "Content-Disposition": f'inline; filename="{safe_title or "book"}.epub"',
+        "Content-Length": str(size),
+        "Cache-Control": "private, max-age=0, no-cache",
+    }
+
+    from app.core.config import settings as _settings
+
+    if (
+        getattr(_settings, "STORAGE_BACKEND", "local") == "local"
+        and getattr(_settings, "STORAGE_LOCAL_PATH", None)
+    ):
+        try:
+            headers["X-Accel-Redirect"] = books_service.accel_path_for_key(key)
+        except InvalidStorageKey:
+            raise HTTPException(status_code=500, detail="Invalid storage key") from None
+        headers.pop("Content-Length", None)  # nginx заполнит фактический размер
+        return Response(status_code=200, headers=headers)
+
+    try:
+        chunks = await storage.open_stream(key)
+    except StorageNotFound:
+        raise HTTPException(status_code=404, detail="EPUB file is missing") from None
+
+    if current.role.value != "admin":
+        book.downloads += 1
+        await db.commit()
+    return StreamingResponse(chunks, media_type="application/epub+zip", headers=headers)
+
+
+@router.delete("/{book_id}/epub", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_book_epub(
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> None:
+    """Admin only: отвязать и удалить EPUB. Идемпотентно."""
+    book = await _get_book_or_404(db, book_id)
+    if not book.epub_storage_key:
+        return
+
+    key = book.epub_storage_key
+    book.epub_storage_key = None
+    await _clear_book_index(db, book)
+    await db.commit()
+    try:
+        await storage.delete(key)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to delete EPUB %s for book %s", key, book_id)
+    logger.info("Admin %s deleted EPUB for book %s (key=%s)", admin.id, book_id, key)
 
 
 # ============================================================================

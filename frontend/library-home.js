@@ -6,10 +6,9 @@ function adaptBookFromApi(b) {
   const hasPdf = b.has_pdf === true || b.has_pdf === 'true' || b.has_pdf === 1;
   const hasEpub = b.has_epub === true || b.has_epub === 'true' || b.has_epub === 1;
   const hasFile = b.has_file === true || b.has_file === 'true' || b.has_file === 1;
-  const hasFormat = b.file_format === 'pdf' || b.file_format === 'epub';
-  
-  // Если API вернул has_file напрямую — верим ему. Иначе проверяем has_pdf/has_epub/file_format
-  const has_file = hasFile || hasPdf || hasEpub || hasFormat;
+  // file_format описывает ожидаемый формат, но сам по себе не означает,
+  // что бинарный файл уже загружен.
+  const has_file = hasFile || hasPdf || hasEpub;
 
   return {
     id: b.id,
@@ -19,7 +18,7 @@ function adaptBookFromApi(b) {
     rating: typeof b.rating === 'string' ? b.rating : Number(b.rating).toFixed(1),
     icon: b.icon || ICONS.bookCover,
     desc: b.description || '',
-    has_file: !!(b.has_pdf || b.has_epub || b.has_file),
+    has_file,
     has_cover: !!(b.has_cover || b.cover_url),
     file_format: b.file_format || 'pdf',
     total_pages: b.total_pages || 0,

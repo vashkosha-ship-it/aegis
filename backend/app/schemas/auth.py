@@ -1,5 +1,6 @@
 """Pydantic schemas for authentication endpoints."""
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -86,7 +87,7 @@ class UserUpdate(BaseModel):
     (уникальность, верификация email и т.д.). Только display name."""
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
-    profile_visibility: str | None = None
+    profile_visibility: Literal["public", "private"] | None = None
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
