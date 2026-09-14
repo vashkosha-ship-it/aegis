@@ -88,7 +88,12 @@ function navigateTo(s) {
   }
   state.currentScreen = s;
   document.body.classList.toggle('reader-active', s === 'reader');
-  document.querySelectorAll('.nav-item, .sidebar-item').forEach(i => i.classList.toggle('active', i.dataset.screen === s));
+  document.querySelectorAll('.nav-item, .sidebar-item').forEach(item => {
+    const active = item.dataset.screen === s;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
   closeAIPanel();
   if (s === 'home') { renderHome(); renderRecommendations(); maybeStartOnboardingTour(); }
   if (s === 'mylist') { renderMyList(); initDragAndDrop(); }

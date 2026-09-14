@@ -66,11 +66,11 @@ function renderTrainingScreen() {
   }
 
   const listHtml = f.length
-    ? f.map(t => `<div class="training-card" data-onclick="startQuizFromTraining(${t.bookId})">
+    ? f.map(t => `<button type="button" class="training-card" data-onclick="startQuizFromTraining(${t.bookId})">
         <h4>${eh(t.book.title)}</h4>
         <div class="meta">${eh(bookCategoriesText(t.book))}</div>
         <span class="status ${t.completed ? 'status-completed' : 'status-pending'}">${t.completed ? ICONS.check + ' Пройдено' : ICONS.clock + ' Не пройдено'}</span>
-      </div>`).join('')
+      </button>`).join('')
     : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.education}</div><p>Нет тестов</p></div>`;
 
   replaceWithAppMarkup(document.getElementById('trainingList'), cyberLevelBlock + listHtml);

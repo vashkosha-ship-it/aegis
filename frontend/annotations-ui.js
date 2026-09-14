@@ -59,9 +59,9 @@ async function renderAnnotations() {
       const width = annotationPercent(a.position?.w, 30);
       const height = annotationPercent(a.position?.h, 3);
       const color = annotationColor(a.position?.color);
-      return `<div class="highlight-mark" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;width:${width}%;height:${height}%;background:${color}55;border-bottom:2px solid ${color};`}" title="${eh(a.text)}" data-onclick="showAnnotationDetail(${a.id})"></div>`;
+      return `<button type="button" class="highlight-mark" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;width:${width}%;height:${height}%;background:${color}55;border-bottom:2px solid ${color};`}" title="${eh(a.text)}" aria-label="Открыть выделение" data-onclick="showAnnotationDetail(${a.id})"></button>`;
     }
-    return `<div class="note-indicator" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;`}" data-onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</div>`;
+    return `<button type="button" class="note-indicator" data-dynamic-style="${dynamicStyleToken`left:${x}%;top:${y}%;`}" aria-label="Открыть заметку" data-onclick="showNoteTooltip(${a.id})">${ICONS.bookmark}</button>`;
   }).join(''));
 }
 

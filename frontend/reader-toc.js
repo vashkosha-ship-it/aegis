@@ -103,9 +103,9 @@ function renderTocPanel() {
       const isRead = read.includes(i);
       return `<div data-static-style="a506">
         <button data-onclick="toggleTocRead(${currentBookId},${i})" title="Отметить прочитанным" data-dynamic-style="${dynamicStyleToken`width:22px;height:22px;flex-shrink:0;border-radius:6px;border:2px solid ${isRead ? 'var(--accent)' : 'var(--border-light)'};background:${isRead ? 'var(--accent)' : 'transparent'};color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;`}">${isRead ? '✓' : ''}</button>
-        <div ${it.page ? `data-onclick="tocGoTo(${it.page})"` : ''} data-dynamic-style="${dynamicStyleToken`flex:1;cursor:${it.page ? 'pointer' : 'default'};font-size:13px;color:${isRead ? 'var(--text-muted)' : 'var(--text-primary)'};${isRead ? 'text-decoration:line-through;' : ''}`}">
+        <button type="button" class="toc-entry-action" ${it.page ? `data-onclick="tocGoTo(${it.page})"` : 'disabled'} data-dynamic-style="${dynamicStyleToken`flex:1;cursor:${it.page ? 'pointer' : 'default'};font-size:13px;color:${isRead ? 'var(--text-muted)' : 'var(--text-primary)'};${isRead ? 'text-decoration:line-through;' : ''}`}">
           ${eh(it.title)}${it.page ? `<span data-static-style="a140"> · стр. ${it.page}</span>` : ''}
-        </div>
+        </button>
       </div>`;
     }).join('')}`);
 }
