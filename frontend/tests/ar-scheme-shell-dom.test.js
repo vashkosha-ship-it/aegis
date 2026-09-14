@@ -31,6 +31,7 @@ function createContext() {
     nameRu: malicious,
     defenseMethod: { color: '#123456' },
   };
+  const selectedStages = [];
   const context = {
     document: dom.window.document,
     AR_IR: { stages: [stage] },
@@ -44,7 +45,7 @@ function createContext() {
     zoomARScheme() {},
     resetARSchemeZoom() {},
     toggleStageDetailsPanel() {},
-    selectKillChainStage() {},
+    selectKillChainStage(id) { selectedStages.push(id); },
     initStageDetailsSwipe() {},
     initARPan() {},
     setTimeout(callback) { callback(); return 1; },
@@ -58,9 +59,9 @@ function createContext() {
     currentARSchemeZoom: 1,
   };
   vm.createContext(context);
-  ['_arDetailNode', '_arSvgElement', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme', 'renderNistScheme', 'renderDidScheme', 'renderKillChainScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme']
+  ['_arDetailNode', '_arSvgElement', '_decorateArStageControl', '_decorateArStageCollection', '_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme', 'renderNistScheme', 'renderDidScheme', 'renderKillChainScheme', 'renderOwaspScheme', 'renderOsiScheme', 'renderMitreScheme']
     .forEach(name => vm.runInContext(extractFunction(name), context));
-  return { dom, context, malicious, stage };
+  return { dom, context, malicious, stage, selectedStages };
 }
 
 for (const renderer of [
@@ -79,6 +80,14 @@ for (const renderer of [
   assert.equal(container.querySelectorAll('#arStageDetails').length, 1);
   assert.equal(container.querySelectorAll('#arStageToggleBtn svg polyline').length, 1);
   assert.equal(container.querySelectorAll('#killChainNodes button').length >= 1, true);
+  const controls = [...container.querySelectorAll('.ar-stage-control')];
+  assert.equal(controls.length >= 1, true);
+  controls.forEach(control => {
+    assert.ok(control.getAttribute('aria-label'));
+    assert.equal(control.getAttribute('aria-pressed'), 'false');
+    control.click();
+  });
+  assert.equal(setup.selectedStages.length, controls.length);
 }
 
 for (const name of ['_createArSchemeShell', 'renderIrScheme', 'renderStrideScheme', 'renderGenericScheme']) {
@@ -97,6 +106,14 @@ for (const renderer of [
   assert.ok(container.textContent.includes(setup.malicious));
   assert.equal(container.querySelectorAll('#killChainNodes svg').length, 1);
   assert.equal(container.querySelectorAll('#arStageToggleBtn svg polyline').length, 1);
+  const controls = [...container.querySelectorAll('.ar-stage-control')];
+  assert.equal(controls.length, 2);
+  controls.forEach(control => {
+    assert.equal(control.getAttribute('role'), 'button');
+    assert.equal(control.getAttribute('tabindex'), '0');
+    control.dispatchEvent(new setup.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  });
+  assert.equal(setup.selectedStages.length, controls.length);
 }
 
 for (const name of ['_arSvgElement', 'renderNistScheme', 'renderDidScheme']) {
@@ -115,6 +132,10 @@ for (const name of ['_arSvgElement', 'renderNistScheme', 'renderDidScheme']) {
   assert.equal(container.querySelectorAll('.ar-stage-name').length, 2);
   assert.equal(container.querySelectorAll('.ar-chain-link').length, 1);
   assert.equal(container.querySelectorAll('[data-onclick]').length, 0);
+  const firstCard = container.querySelector('.ar-stage-item');
+  assert.equal(firstCard.tagName, 'BUTTON');
+  firstCard.querySelector('.ar-stage-name').click();
+  assert.deepEqual(setup.selectedStages, [1]);
 }
 const killChainSource = extractFunction('renderKillChainScheme');
 assert.doesNotMatch(killChainSource, /innerHTML/);

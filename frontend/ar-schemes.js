@@ -902,6 +902,7 @@ function renderOwaspScheme() {
     ]));
   });
 
+  _decorateArStageCollection(stages, 'arNode', 'owasp');
   initStageDetailsSwipe();
   initARPan();
   setTimeout(() => {
@@ -932,6 +933,32 @@ function _arSvgElement(tagName, attributes = {}, options = {}) {
   if (options.text !== undefined) node.textContent = String(options.text);
   if (options.onClick) node.addEventListener('click', options.onClick);
   return node;
+}
+
+function _decorateArStageControl(node, stage, variant = 'card') {
+  if (!node || !stage) return node;
+  node.classList.add('ar-stage-control', 'ar-stage-control--' + variant);
+  node.dataset.arStageId = String(stage.id);
+  node.setAttribute('aria-label', `${stage.nameRu || stage.name || stage.code}: открыть описание этапа`);
+  node.setAttribute('aria-pressed', 'false');
+  if (node.tagName.toLowerCase() !== 'button') {
+    node.setAttribute('role', 'button');
+    node.setAttribute('tabindex', '0');
+    node.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      selectKillChainStage(stage.id);
+    });
+  } else {
+    node.type = 'button';
+  }
+  return node;
+}
+
+function _decorateArStageCollection(stages, idPrefix = 'arNode', variant = 'card') {
+  stages.forEach(stage => {
+    _decorateArStageControl(document.getElementById(idPrefix + stage.id), stage, variant);
+  });
 }
 
 function renderNistScheme() {
@@ -1020,6 +1047,7 @@ function renderNistScheme() {
     }, { staticStyle: 'a026', text: stage.code }));
   });
   nodes.appendChild(svg);
+  _decorateArStageCollection(stages, 'nistSeg', 'nist');
 
   initStageDetailsSwipe();
   initARPan();
@@ -1095,6 +1123,7 @@ function renderDidScheme() {
     }, { staticStyle: 'a026', text: stage.nameRu }));
   });
   nodes.appendChild(svg);
+  _decorateArStageCollection(stages, 'didRing', 'did');
 
   initStageDetailsSwipe();
   initARPan();
@@ -1235,6 +1264,7 @@ function renderIrScheme() {
     ]);
     nodes.appendChild(_arDetailNode('div', { staticStyle: 'a040' }, [timeline, card]));
   });
+  _decorateArStageCollection(stages, 'arCard', 'ir');
 
   initStageDetailsSwipe();
   initARPan();
@@ -1281,6 +1311,7 @@ function renderStrideScheme() {
       _arDetailNode('div', { staticStyle: 'a047', text: stage.name }),
     ]));
   });
+  _decorateArStageCollection(stages, 'arCard', 'stride');
 
   initStageDetailsSwipe();
   initARPan();
@@ -1330,6 +1361,7 @@ function renderGenericScheme(scheme) {
       }),
     ]));
   });
+  _decorateArStageCollection(stages, 'arNode', 'generic');
 
   initStageDetailsSwipe();
   initARPan();
@@ -1382,6 +1414,7 @@ function renderOsiScheme() {
       }),
     ]));
   });
+  _decorateArStageCollection(stages, 'arNode', 'osi');
   nodes.appendChild(_arDetailNode('div', { staticStyle: 'a057', text: 'ФИЗИЧЕСКАЯ СРЕДА ▼' }));
 
   initStageDetailsSwipe();
@@ -1447,6 +1480,7 @@ function renderMitreScheme() {
     }
     nodes.appendChild(group);
   });
+  _decorateArStageCollection(stages, 'arNode', 'mitre');
 
   initStageDetailsSwipe();
   initARPan();
@@ -1524,24 +1558,34 @@ function renderKillChainScheme() {
 
     const studied = isKillChainStageStudied(stage);
     const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
-    const label = _arDetailNode('div', {
+    const label = _arDetailNode('span', {
+      className: 'killchain-node-label',
       dynamicStyle: dynamicStyleToken`font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);`,
       text: stage.id,
     });
-    const buttonChildren = [label];
+    const markerChildren = [label];
     if (studied) {
-      buttonChildren.push(_arDetailNode('div', { staticStyle: 'a070', text: '✓' }));
+      markerChildren.push(_arDetailNode('span', { staticStyle: 'a070', text: '✓' }));
     }
-    const button = _arDetailNode('button', {
-      id: 'arNode' + stage.id,
+    const marker = _arDetailNode('span', {
       className: 'ar-killchain-node',
-      dynamicStyle: dynamicStyleToken`position:relative;width:${isVertical ? '76px' : '60px'};height:${isVertical ? '76px' : '60px'};border-radius:50%;background:radial-gradient(circle at 35% 30%, rgba(40,48,68,0.95), rgba(8,10,18,0.95));backdrop-filter:blur(10px);border:4px solid ${borderColor};color:#fff;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0;padding:0;margin:${isVertical ? '4px 0 0' : '0'};box-shadow:0 0 16px ${studied ? 'rgba(16,185,129,0.4)' : 'rgba(0,212,255,0.3)'},inset 0 2px 6px rgba(255,255,255,0.15),inset 0 -3px 8px rgba(0,0,0,0.5);`,
+      dynamicStyle: dynamicStyleToken`border-color:${borderColor};`,
+    }, markerChildren);
+    const card = _arDetailNode('button', {
+      id: 'arNode' + stage.id,
+      className: 'ar-stage-item' + (studied ? ' is-studied' : ''),
+      staticStyle: 'a071',
       onClick: () => selectKillChainStage(stage.id),
-    }, buttonChildren);
-    nodes.appendChild(_arDetailNode('div', { className: 'ar-stage-item', staticStyle: 'a071' }, [
-      button,
-      _arDetailNode('div', { className: 'ar-stage-name', staticStyle: 'a072', text: stage.nameRu }),
-    ]));
+    }, [
+      marker,
+      _arDetailNode('span', { className: 'ar-stage-copy' }, [
+        _arDetailNode('span', { className: 'ar-stage-kicker', text: `Этап ${stage.id} · ${stage.code}` }),
+        _arDetailNode('span', { className: 'ar-stage-name', staticStyle: 'a072', text: stage.nameRu }),
+        _arDetailNode('span', { className: 'ar-stage-action', text: 'Открыть разбор' }),
+      ]),
+    ]);
+    _decorateArStageControl(card, stage, 'killchain');
+    nodes.appendChild(card);
   });
 
   initStageDetailsSwipe();
@@ -1561,7 +1605,7 @@ function renderKillChainScheme() {
   }
 
   setTimeout(() => {
-    document.querySelectorAll('.ar-killchain-node').forEach((node, index) => {
+    document.querySelectorAll('.ar-stage-control--killchain').forEach((node, index) => {
       node.style.opacity = '0';
       node.style.transform = 'scale(0.5)';
       setTimeout(() => {
@@ -2061,22 +2105,10 @@ function selectKillChainStage(stageId) {
 
   arSelectedStage = stageId;
 
-  // Подсветить выбранную ноду
-  activeScheme().stages.forEach(s => {
-    const node = document.getElementById('arNode' + s.id);
-    if (!node) return;
-    if (s.id === stageId) {
-      node.style.background = 'var(--accent-gradient)';
-      node.style.borderColor = '#fff';
-      node.style.transform = 'scale(1.15)';
-      node.style.boxShadow = '0 0 24px rgba(0,212,255,0.7)';
-      node.style.animation = 'arNodePulse 1.5s ease-in-out 2';
-    } else {
-      node.style.background = 'rgba(0,0,0,0.5)';
-      node.style.borderColor = isKillChainStageStudied(s) ? '#10b981' : 'rgba(255,255,255,0.2)';
-      node.style.transform = 'scale(1)';
-      node.style.boxShadow = 'none';
-    }
+  document.querySelectorAll('.ar-stage-control').forEach(node => {
+    const selected = Number(node.dataset.arStageId) === stageId;
+    node.classList.toggle('is-selected', selected);
+    node.setAttribute('aria-pressed', String(selected));
   });
 
   // Скрыть подсказку
@@ -2194,6 +2226,8 @@ function setKillChainViewMode(mode) {
 }
 
 function applyKillChainViewMode() {
+  const root = document.getElementById('arSchemeRoot');
+  if (root) root.dataset.viewMode = arViewMode;
   activeScheme().stages.forEach(s => {
     const node = document.getElementById('arNode' + s.id);
     if (!node) return;
@@ -2217,31 +2251,25 @@ function applyKillChainViewMode() {
       if (first) first.textContent = label;
     }
 
-    // Цвет рамки
-    if (isSelected) {
-      // selectKillChainStage сам красит выбранный — не трогаем
-      return;
-    }
+    node.classList.toggle('is-selected', isSelected);
+    node.classList.toggle('is-studied', isStudied);
+    node.setAttribute('aria-pressed', String(isSelected));
+    // Цветовой акцент хранится отдельно: состояние карточки задаёт CSS.
     let borderColor;
     if (arViewMode === 'defense') {
       borderColor = s.defenseMethod ? s.defenseMethod.color : 'rgba(255,255,255,0.2)';
     } else {
       borderColor = isStudied ? '#10b981' : 'rgba(255,255,255,0.2)';
     }
-    node.style.borderColor = borderColor;
+    node.style.setProperty('--ar-stage-accent', borderColor);
   });
 }
   
 function closeKillChainStage() {
   arSelectedStage = null;
-  // Сбросить визуальное состояние нод
-  activeScheme().stages.forEach(s => {
-    const node = document.getElementById('arNode' + s.id);
-    if (!node) return;
-    node.style.background = 'rgba(0,0,0,0.7)';
-    node.style.borderColor = isKillChainStageStudied(s) ? '#10b981' : 'rgba(0,212,255,0.5)';
-    node.style.transform = 'scale(1)';
-    node.style.boxShadow = 'none';
+  document.querySelectorAll('.ar-stage-control').forEach(node => {
+    node.classList.remove('is-selected');
+    node.setAttribute('aria-pressed', 'false');
   });
   const detailPanel = document.getElementById('arStageDetails');
   if (detailPanel) {
