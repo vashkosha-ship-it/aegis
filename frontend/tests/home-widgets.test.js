@@ -95,15 +95,18 @@ context.offlineBookIds.add(1);
 const card = context.cardHTML({
   id: 1,
   title: '<Book "one">',
+  author: '<Author "one">',
   rating: 5,
   has_cover: false,
   datePublished: '2023-01-01',
 }, '', { removable: true });
 assert.match(card, /&lt;Book &quot;one&quot;&gt;/);
+assert.match(card, /book-card-author[^>]*[^<]*&lt;Author &quot;one&quot;&gt;/);
 assert.match(card, /offline-badge/);
 assert.match(card, /25%/);
 assert.match(card, /book-card-year">2023/);
 assert.match(card, /hideFromResume\(1\)/);
+assert.match(card, /class="continue-remove"/);
 
 filteredBooks = Array.from({ length: 50 }, (_, i) => ({
   id: i + 1,

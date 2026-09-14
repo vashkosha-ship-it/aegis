@@ -78,6 +78,7 @@ function cardHTML(b, query, options) {
     : `<div class="cover-bg">${ICONS.bookCover}</div>`;
 
   const year = extractBookYear(b.datePublished);
+  const author = b.author ? eh(b.author) : 'Автор не указан';
 
   return `<article class="book-card-compact" data-book-id="${b.id}" draggable="true">
     <button type="button" class="book-card-open" data-onclick="openBookDetail(${b.id})" aria-label="Открыть книгу">
@@ -89,9 +90,10 @@ function cardHTML(b, query, options) {
     </div>
     <div class="book-card-meta">
       <div class="book-card-title" title="${eh(b.title)}">${eh(b.title)}</div>
+      <div class="book-card-author" title="${author}">${author}</div>
       ${year ? `<div class="book-card-year">${eh(year)}</div>` : ''}
     </div>
     </button>
-    ${opts.removable ? `<button data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" data-static-style="a323">&times;</button>` : ''}
+    ${opts.removable ? `<button type="button" class="continue-remove" data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»" data-static-style="a323">&times;</button>` : ''}
   </article>`;
 }

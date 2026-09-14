@@ -15,6 +15,8 @@ for (const token of ['--ui-surface', '--ui-border', '--ui-radius-md', '--ui-shad
 for (const selector of ['.settings-card', '.shortcuts-modal', '.table-wrap', '.mylist-empty']) {
   assert.ok(system.includes(selector), `missing component family ${selector}`);
 }
+assert.match(system, /\.book-card-compact > \.book-card-open/);
+assert.match(system, /\.book-card-compact \.continue-remove/);
 assert.doesNotMatch(system, /!important/, 'design system must not add specificity overrides');
 assert.ok(
   index.indexOf('href="design-system.css"') > index.indexOf('href="ux-accessibility.css"'),

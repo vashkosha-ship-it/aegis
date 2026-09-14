@@ -64,14 +64,26 @@ assert.equal(detail.querySelector('.detail-title').textContent, book.title);
 assert.equal(detail.querySelector('.detail-author').textContent, book.author);
 assert.equal(detail.querySelector('.detail-desc').textContent, book.desc);
 assert.equal(detail.querySelector('.mylist-status-select').value, 'reading');
-assert.equal(detail.querySelectorAll('.detail-actions button').length, 5);
+assert.equal(detail.querySelectorAll('.detail-actions button').length, 4);
 assert.ok(detail.querySelector('.detail-hero'));
 assert.equal(detail.querySelector('.detail-hero .detail-desc'), null);
 assert.equal(detail.querySelector('.detail-description-section .detail-desc').textContent, book.desc);
 assert.ok(detail.querySelector('.detail-action-primary'));
+assert.equal(detail.textContent.includes('В коллекцию'), false);
+assert.ok(detail.textContent.includes('Управление'));
 assert.equal(detail.querySelector('img').src.endsWith('/cover/7'), true);
 assert.equal(detail.querySelector('script, svg[onload], img[onerror]'), null);
 assert.equal(detail.querySelectorAll('[data-onclick], [data-onchange], [data-onerror]').length, 0);
+
+context.state.currentUser = { role: 'user' };
+context.offlineBookIds.add(book.id);
+context.renderBookInfo();
+assert.equal(detail.textContent.includes('Управление'), false);
+assert.equal(detail.textContent.includes('В коллекцию'), false);
+const offlineRemove = detail.querySelector('.offline-btn-saved');
+assert.ok(offlineRemove);
+assert.equal(offlineRemove.textContent.trim(), '');
+assert.equal(offlineRemove.getAttribute('aria-label'), 'Удалить офлайн-копию');
 
 context.renderHome();
 const empty = dom.window.document.getElementById('scrollAll');
