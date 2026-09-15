@@ -32,6 +32,8 @@ async def test_description_job_runs_in_worker_and_keeps_progress(
     await db.commit()
     for book in (good, bad, existing):
         await db.refresh(book)
+    good_id = good.id
+    bad_id = bad.id
 
     async def get_queue():
         return FakeQueue()
@@ -65,7 +67,7 @@ async def test_description_job_runs_in_worker_and_keeps_progress(
     monkeypatch.setattr(worker, "generate_book_description", generate)
 
     result = await worker.generate_missing_book_descriptions(
-        {}, payload["job"]["id"], [good.id, bad.id]
+        {}, payload["job"]["id"], [good_id, bad_id]
     )
     assert result["succeeded_books"] == 1
     assert result["failed_books"] == 1
@@ -80,8 +82,8 @@ async def test_description_job_runs_in_worker_and_keeps_progress(
     assert job.started_at is not None
     assert job.finished_at is not None
 
-    saved_good = await db.scalar(select(Book).where(Book.id == good.id))
-    saved_bad = await db.scalar(select(Book).where(Book.id == bad.id))
+    saved_good = await db.scalar(select(Book).where(Book.id == good_id))
+    saved_bad = await db.scalar(select(Book).where(Book.id == bad_id))
     assert saved_good.description == "Описание: Хорошая книга"
     assert saved_bad.description == ""
 
