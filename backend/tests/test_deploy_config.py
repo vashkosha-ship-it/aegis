@@ -282,6 +282,13 @@ class TestHealthRouting:
         assert "cleanup_expired_sessions in WorkerSettings.functions" in script
         assert "cron:cleanup_expired_sessions" not in script
 
+    def test_healthcheck_scopes_worker_errors_to_current_process(self):
+        script = HEALTHCHECK.read_text(encoding="utf-8")
+
+        assert "_SYSTEMD_INVOCATION_ID" in script
+        assert 'grep -ci "ошибка индексации"' in script
+        assert 'grep -ci "traceback\\|ошибка индексации"' not in script
+
     def test_range_check_requires_auth_and_validates_206(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
 

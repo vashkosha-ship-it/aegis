@@ -233,14 +233,28 @@ else
     gray "  — записей об очистке нет (задача идёт ночью, это нормально сразу после деплоя)"
 fi
 
-# Ошибки воркера за сутки: индексация книг падает молча, в интерфейсе это
-# выглядит просто как «поиск ничего не находит».
-worker_errors=$(journalctl -u aegis-worker --since "24 hours ago" --no-pager 2>/dev/null \
-    | grep -ci "traceback\|ошибка индексации" || true)
-if [ "$worker_errors" -eq 0 ]; then
-    ok "воркер без ошибок за сутки"
+# Проверяем только текущий запуск сервиса. Старые, уже исправленные ошибки до
+# деплоя не должны оставлять healthcheck красным ещё сутки. Traceback состоит
+# из множества одноимённых строк, поэтому считаем события индексации, а не
+# каждую строку стека; неизвестный traceback считаем одним событием.
+worker_invocation=$(systemctl show aegis-worker -p InvocationID --value 2>/dev/null || true)
+if [ -n "$worker_invocation" ]; then
+    current_worker_log=$(journalctl \
+        _SYSTEMD_INVOCATION_ID="$worker_invocation" --no-pager 2>/dev/null || true)
+    worker_log_command="journalctl _SYSTEMD_INVOCATION_ID=$worker_invocation --no-pager"
 else
-    fail "у воркера $worker_errors ошибок за сутки" "journalctl -u aegis-worker --since '24 hours ago'"
+    current_worker_log=$(journalctl -u aegis-worker --since "2 hours ago" --no-pager 2>/dev/null || true)
+    worker_log_command="journalctl -u aegis-worker --since '2 hours ago' --no-pager"
+fi
+worker_errors=$(grep -ci "ошибка индексации" <<<"$current_worker_log" || true)
+if [ "$worker_errors" -eq 0 ] && grep -qi "traceback" <<<"$current_worker_log"; then
+    worker_errors=1
+fi
+if [ "$worker_errors" -eq 0 ]; then
+    ok "текущий процесс воркера без ошибок"
+else
+    fail "у текущего процесса воркера событий ошибок: $worker_errors" \
+        "$worker_log_command"
 fi
 
 # ---------------------------------------------------------------------------

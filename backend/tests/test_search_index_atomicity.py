@@ -106,6 +106,16 @@ class TestSuccessfulReplacement:
         assert saved == 2
         assert await _indexed(db, book.id) == ["текст", "ещё текст"]
 
+    async def test_repairs_surrogates_rejected_by_postgresql(self, db, fake_extract):
+        book = await _make_book(db)
+        # Одиночная половина заменяется, корректная пара сохраняет символ 𝟙.
+        fake_extract(["before \ud835 after", "math \ud835\udfd9"])
+
+        saved = await search_index.index_book_from_path(db, book.id, "/dev/null")
+
+        assert saved == 2
+        assert await _indexed(db, book.id) == ["before � after", "math 𝟙"]
+
 
 class TestPartialFailureLeavesOldIndex:
     """Главное свойство: половины индекса не бывает.
