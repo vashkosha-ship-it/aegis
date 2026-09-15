@@ -34,9 +34,18 @@ function replaceWithStaticText(container, text, staticStyle, tagName = 'div') {
 
 function appendTrustedIcon(container, markup) {
   if (!container || !markup) return null;
-  const parsed = new DOMParser().parseFromString(String(markup), 'image/svg+xml');
-  const svg = parsed.documentElement;
-  if (svg.localName !== 'svg' || svg.querySelector('parsererror, script, foreignObject, iframe, object, embed, image, use')) {
+  // HTML-парсер помещает <svg> в SVG namespace. XML-парсер без явного
+  // xmlns создавал внешне правильный, но не рисуемый браузером XML-элемент:
+  // кнопка занимала место, а сама иконка оставалась пустой.
+  const parsed = new DOMParser().parseFromString(String(markup), 'text/html');
+  const svg = parsed.body.firstElementChild;
+  if (
+    !svg
+    || parsed.body.childElementCount !== 1
+    || svg.localName !== 'svg'
+    || svg.namespaceURI !== 'http://www.w3.org/2000/svg'
+    || svg.querySelector('script, foreignObject, iframe, object, embed, image, use')
+  ) {
     return null;
   }
   const nodes = [svg, ...svg.querySelectorAll('*')];

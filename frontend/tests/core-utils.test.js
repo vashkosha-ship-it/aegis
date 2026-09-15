@@ -55,6 +55,11 @@ const iconTarget = dom.window.document.createElement('div');
 context.document.body.appendChild(iconTarget);
 vm.runInContext(`replaceWithTrustedIcon(document.body.lastChild, '<svg viewBox="0 0 10 10"><path d="M0 0h1"/></svg>')`, context);
 assert.equal(iconTarget.querySelectorAll('svg path').length, 1);
+assert.equal(
+  iconTarget.firstElementChild.namespaceURI,
+  'http://www.w3.org/2000/svg',
+  'Иконка должна создаваться в SVG namespace, иначе браузер её не рисует',
+);
 vm.runInContext(`replaceWithTrustedIcon(document.body.lastChild, '<svg onload="alert(1)"><script>alert(2)</script></svg>')`, context);
 assert.equal(iconTarget.childElementCount, 0);
 

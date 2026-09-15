@@ -140,9 +140,21 @@ def main(base: str) -> int:
     ]
     check("скрипты найдены в разметке", bool(scripts))
 
+    script_bodies = {}
     for src in scripts:
-        code, _, _ = fetch(f"{base}/{src.lstrip('/')}")
+        code, _, script_body = fetch(f"{base}/{src.lstrip('/')}")
         check(f"{src} отдаётся", code == 200, f"код {code}")
+        script_bodies[src.lstrip("/")] = script_body.decode(
+            "utf-8", errors="replace"
+        )
+
+    core_utils = script_bodies.get("core-utils.js", "")
+    check(
+        "SVG-иконки создаются в корректном namespace",
+        "'text/html'" in core_utils
+        and "http://www.w3.org/2000/svg" in core_utils,
+        "на сервере старая версия core-utils.js — очистите service worker",
+    )
 
     allowlist = html.find("handler-allowlist.js")
     dispatcher = html.find("inline-handlers.js")

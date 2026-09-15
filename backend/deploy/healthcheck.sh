@@ -44,17 +44,19 @@ for unit in aegis aegis-worker redis-server postgresql nginx; do
     fi
 done
 
-# Воркер должен знать про все задачи, включая плановую очистку.
-#
-# Вывод журнала сохраняем в переменную, а не отдаём в grep через конвейер:
-# grep -q закрывает трубу на первом совпадении, journalctl получает SIGPIPE и
-# умирает с кодом 141. При set -o pipefail код конвейера берётся от него, а не
-# от grep, — и проверка падала ровно тогда, когда задача находилась.
-worker_log=$(journalctl -u aegis-worker -n 50 --no-pager 2>/dev/null || true)
-if grep -q "cron:cleanup_expired_sessions" <<<"$worker_log"; then
+# Проверяем реальную конфигурацию установленного воркера. Поиск стартовой
+# строки только в последних 50 записях давал ложную ошибку, если после запуска
+# воркер успевал записать много сообщений об индексации.
+if (cd "$APP_DIR/backend" && .venv/bin/python - <<'PY' >/dev/null 2>&1
+from app.worker import WorkerSettings, cleanup_expired_sessions
+
+assert cleanup_expired_sessions in WorkerSettings.functions
+assert any(job.coroutine is cleanup_expired_sessions for job in WorkerSettings.cron_jobs)
+PY
+); then
     ok "фоновые задачи зарегистрированы (включая очистку сессий)"
 else
-    fail "воркер не видит задачу очистки" "journalctl -u aegis-worker -n 30"
+    fail "воркер не видит задачу очистки" "cd $APP_DIR/backend && .venv/bin/python -m app.worker"
 fi
 
 # ---------------------------------------------------------------------------
