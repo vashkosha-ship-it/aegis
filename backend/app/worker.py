@@ -17,15 +17,18 @@ from time import monotonic
 
 from arq import cron
 from sqlalchemy import delete, or_, select, update
+from sqlalchemy.orm import selectinload
 
 from app.core.queue import redis_settings
 from app.core.storage import StorageNotFound, get_storage
 from app.db.session import AsyncSessionLocal
 from app.models.admin_log import AdminLog
 from app.models.book import Book
+from app.models.description_job import DescriptionGenerationJob
 from app.models.exam_session import ExamSession
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
+from app.services.book_descriptions import generate_book_description
 from app.services.search_index import (
     IndexingError,
     index_book_from_path,
@@ -201,6 +204,111 @@ async def _index_all_books() -> dict:
     return result
 
 
+async def _record_description_result(
+    job_id: str, *, succeeded: bool, error: str | None = None
+) -> None:
+    values = {
+        "processed_books": DescriptionGenerationJob.processed_books + 1,
+    }
+    if error:
+        values["last_error"] = error[:2000]
+    counter = "succeeded_books" if succeeded else "failed_books"
+    values[counter] = getattr(DescriptionGenerationJob, counter) + 1
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            update(DescriptionGenerationJob)
+            .where(DescriptionGenerationJob.id == job_id)
+            .values(**values)
+        )
+        await db.commit()
+
+
+async def generate_missing_book_descriptions(
+    ctx: dict, job_id: str, book_ids: list[int]
+) -> dict:
+    """Создать отсутствующие описания, не удерживая HTTP-соединение."""
+    async with _measure_job(ctx, "generate_missing_book_descriptions"):
+        try:
+            async with AsyncSessionLocal() as db:
+                job = await db.get(DescriptionGenerationJob, job_id)
+                if job is None:
+                    raise RuntimeError(f"Задача описаний {job_id} не найдена")
+                job.status = "running"
+                job.started_at = datetime.now(UTC)
+                job.finished_at = None
+                job.processed_books = 0
+                job.succeeded_books = 0
+                job.failed_books = 0
+                job.last_error = None
+                await db.commit()
+
+            for book_id in book_ids:
+                try:
+                    async with AsyncSessionLocal() as db:
+                        book = await db.scalar(
+                            select(Book)
+                            .options(selectinload(Book.categories))
+                            .where(Book.id == book_id)
+                        )
+                        if book is None:
+                            raise RuntimeError("Книга удалена до создания описания")
+                        if book.description.strip():
+                            await _record_description_result(job_id, succeeded=True)
+                            continue
+                        title = book.title
+                        author = book.author
+                        categories = [category.name for category in book.categories]
+
+                    description = await generate_book_description(
+                        title=title,
+                        author=author,
+                        categories=categories,
+                    )
+                    if not description:
+                        raise RuntimeError("ИИ вернул пустое описание")
+
+                    async with AsyncSessionLocal() as db:
+                        book = await db.get(Book, book_id)
+                        if book is None:
+                            raise RuntimeError("Книга удалена до сохранения описания")
+                        if not book.description.strip():
+                            book.description = description
+                        await db.commit()
+                    await _record_description_result(job_id, succeeded=True)
+                except Exception as exc:  # noqa: BLE001 — продолжаем остальные книги
+                    message = f"Книга {book_id}: {type(exc).__name__}: {exc}"
+                    logger.warning("Не удалось создать описание: %s", message)
+                    await _record_description_result(
+                        job_id, succeeded=False, error=message
+                    )
+
+            async with AsyncSessionLocal() as db:
+                job = await db.get(DescriptionGenerationJob, job_id)
+                if job:
+                    job.status = "completed"
+                    job.finished_at = datetime.now(UTC)
+                    await db.commit()
+                    result = {
+                        "job_id": job.id,
+                        "total_books": job.total_books,
+                        "succeeded_books": job.succeeded_books,
+                        "failed_books": job.failed_books,
+                    }
+                else:
+                    result = {"job_id": job_id, "status": "missing"}
+            logger.info("Массовые ИИ-описания завершены: %s", result)
+            return result
+        except Exception as exc:
+            async with AsyncSessionLocal() as db:
+                job = await db.get(DescriptionGenerationJob, job_id)
+                if job:
+                    job.status = "failed"
+                    job.last_error = f"{type(exc).__name__}: {exc}"[:2000]
+                    job.finished_at = datetime.now(UTC)
+                    await db.commit()
+            raise
+
+
 async def recover_interrupted_indexing(_ctx: dict) -> None:
     """Закрыть состояния running, оставшиеся после перезапуска воркера.
 
@@ -222,6 +330,40 @@ async def recover_interrupted_indexing(_ctx: dict) -> None:
             logger.warning(
                 "После перезапуска отмечено прерванных индексаций: %d",
                 result.rowcount,
+            )
+        descriptions = await db.execute(
+            update(DescriptionGenerationJob)
+            .where(DescriptionGenerationJob.status == "running")
+            .values(
+                status="failed",
+                last_error="Создание описаний прервано перезапуском воркера",
+                finished_at=datetime.now(UTC),
+            )
+        )
+        await db.commit()
+        if descriptions.rowcount:
+            logger.warning(
+                "После перезапуска отмечено прерванных задач описаний: %d",
+                descriptions.rowcount,
+            )
+        stale_queued = await db.execute(
+            update(DescriptionGenerationJob)
+            .where(
+                DescriptionGenerationJob.status == "queued",
+                DescriptionGenerationJob.created_at
+                < datetime.now(UTC) - timedelta(hours=6),
+            )
+            .values(
+                status="failed",
+                last_error="Задача не была запущена воркером за 6 часов",
+                finished_at=datetime.now(UTC),
+            )
+        )
+        await db.commit()
+        if stale_queued.rowcount:
+            logger.warning(
+                "Отмечено зависших в очереди задач описаний: %d",
+                stale_queued.rowcount,
             )
 
 
@@ -260,6 +402,13 @@ async def _cleanup_expired_sessions() -> dict:
             delete(AdminLog).where(AdminLog.created_at < audit_cutoff)
         )
         removed["admin_logs"] = audit_result.rowcount or 0
+        description_result = await db.execute(
+            delete(DescriptionGenerationJob).where(
+                DescriptionGenerationJob.created_at < audit_cutoff,
+                DescriptionGenerationJob.status.in_(("completed", "failed")),
+            )
+        )
+        removed["description_generation_jobs"] = description_result.rowcount or 0
         await db.commit()
 
     total = sum(removed.values())
@@ -269,7 +418,12 @@ async def _cleanup_expired_sessions() -> dict:
 
 
 class WorkerSettings:
-    functions = [index_book, index_all_books, cleanup_expired_sessions]
+    functions = [
+        index_book,
+        index_all_books,
+        generate_missing_book_descriptions,
+        cleanup_expired_sessions,
+    ]
     on_startup = recover_interrupted_indexing
 
     # Раз в сутки ночью подчищаем отработавшие записи. Отдельный systemd-таймер
@@ -282,6 +436,6 @@ class WorkerSettings:
     # а память растёт линейно числу одновременных книг.
     max_jobs = 2
     # Большая книга может индексироваться долго; таймаут по умолчанию (300с) мал.
-    job_timeout = 3600
+    job_timeout = 21600
     # Результаты держим сутки, чтобы фронт успел их забрать.
     keep_result = 86400

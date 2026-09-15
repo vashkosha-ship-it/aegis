@@ -4,6 +4,7 @@
 данных. Так их видно из одного места и можно переиспользовать в сервисах.
 """
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -82,6 +83,27 @@ class StorageCleanupView(StorageAuditView):
     deleted_count: int
     deleted_bytes: int
     failed_keys: list[str]
+
+
+class DescriptionGenerationJobView(BaseModel):
+    id: str
+    status: Literal["queued", "running", "completed", "failed"]
+    total_books: int
+    processed_books: int
+    succeeded_books: int
+    failed_books: int
+    last_error: str | None
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DescriptionGenerationStart(BaseModel):
+    started: bool
+    reason: str | None = None
+    job: DescriptionGenerationJobView | None = None
 
 
 # ---------------------------------------------------------------------------

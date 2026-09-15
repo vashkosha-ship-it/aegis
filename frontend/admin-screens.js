@@ -361,13 +361,55 @@ async function generateMissingCoversUI() {
   });
 }
 
-let aiDescriptionsInProgress = false;
+let descriptionStatusTimer = null;
+let descriptionJobSeenActive = false;
+
+function descriptionJobSummary(job) {
+  if (!job) return 'ИИ-описания';
+  if (job.status === 'queued') return `ИИ-описания · в очереди (${job.total_books})`;
+  if (job.status === 'running') {
+    return `ИИ-описания · ${job.processed_books}/${job.total_books}`;
+  }
+  return 'ИИ-описания';
+}
+
+async function refreshDescriptionGenerationStatus() {
+  if (descriptionStatusTimer) {
+    clearTimeout(descriptionStatusTimer);
+    descriptionStatusTimer = null;
+  }
+  const button = document.getElementById('adminDescriptionsBtn');
+  if (!button) return;
+  try {
+    const job = await api.library.latestDescriptionGeneration();
+    const active = job && ['queued', 'running'].includes(job.status);
+    button.textContent = descriptionJobSummary(job);
+    button.disabled = Boolean(active);
+    if (job) {
+      button.title = active
+        ? `Фоновая задача: обработано ${job.processed_books} из ${job.total_books}`
+        : `Последний запуск: создано ${job.succeeded_books}, ошибок ${job.failed_books}`;
+    }
+    if (active) {
+      descriptionJobSeenActive = true;
+      descriptionStatusTimer = setTimeout(refreshDescriptionGenerationStatus, 3000);
+    } else if (descriptionJobSeenActive && job) {
+      descriptionJobSeenActive = false;
+      showToast(
+        `ИИ-описания готовы: ${job.succeeded_books}`
+        + (job.failed_books ? ` · ошибок: ${job.failed_books}` : '')
+      );
+      await loadBooksFromApi();
+      const tbody = document.getElementById('adminBooksTableBody');
+      if (tbody) renderAdminBookRows(tbody, state.books);
+    }
+  } catch (error) {
+    button.disabled = false;
+    button.title = 'Не удалось получить статус фоновой задачи';
+  }
+}
 
 async function generateMissingDescriptionsUI() {
-  if (aiDescriptionsInProgress) {
-    showToast('Создание ИИ-описаний уже выполняется');
-    return;
-  }
   const candidates = (state.books || []).filter(book =>
     !String(book.description || book.desc || '').trim()
   );
@@ -381,25 +423,21 @@ async function generateMissingDescriptionsUI() {
     confirmText: 'Создать',
     cancelText: 'Отмена',
     onConfirm: async () => {
-      aiDescriptionsInProgress = true;
-      let done = 0;
-      let failed = 0;
       try {
-        for (const book of candidates) {
-          showToast(`ИИ-описания: ${done + failed} из ${candidates.length}`);
-          try {
-            await api.books.generateDescription(book.id);
-            done += 1;
-          } catch (error) {
-            failed += 1;
-            console.warn('Описание не создано для книги', book.id, error);
-          }
+        const result = await api.library.startDescriptionGeneration();
+        if (result.reason === 'no_missing') {
+          showToast('У всех книг уже есть описание');
+          return;
         }
-        showToast(`Описания созданы: ${done}` + (failed ? ` · не удалось: ${failed}` : ''));
-        await loadBooksFromApi();
-        if (typeof renderAdminPanel === 'function') renderAdminPanel();
-      } finally {
-        aiDescriptionsInProgress = false;
+        if (result.reason === 'already_running') {
+          showToast('Создание ИИ-описаний уже выполняется в фоне');
+        } else {
+          showToast(`Создание ${result.job.total_books} описаний запущено в фоне`);
+        }
+        descriptionJobSeenActive = true;
+        await refreshDescriptionGenerationStatus();
+      } catch (error) {
+        showToast('Не удалось запустить ИИ-описания: ' + (error.detail || error.message));
       }
     },
   });
@@ -1463,6 +1501,7 @@ function renderAdminBooks() {
   document.getElementById('adminRegenerateQuizzesBtn').addEventListener('click', regenerateAllQuizzesUI);
   document.getElementById('adminBooksCount').textContent = String(state.books.length);
   renderAdminBookRows(document.getElementById('adminBooksTableBody'), state.books);
+  refreshDescriptionGenerationStatus();
 }
 
 async function auditStorageUI() {
