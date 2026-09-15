@@ -10,8 +10,10 @@ const frontend = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
 const dom = new JSDOM(`
   <div id="dashboard"></div><div id="progress"></div>
+  <div id="adminIndexStatus"></div>
   <button id="adminSaveFieldsBtn"></button>
   <button id="adminUploadFileBtn"></button>
+  <button id="adminReindexBookBtn"></button>
   <button id="adminDeleteFileBtn"></button>
   <button id="adminUploadCoverBtn"></button>
   <button id="adminDeleteCoverBtn"></button>
@@ -55,6 +57,20 @@ assert.match(progress.textContent, /<script>alert\(1\)<\/script>/);
 assert.match(progress.textContent, /ошибок: <svg onload=alert\(1\)>/);
 assert.equal(progress.querySelector('img, script, svg'), null);
 assert.equal(progress.firstElementChild.getAttribute('data-static-style'), 'a203');
+
+context.renderBookIndexStatus({
+  status: 'failed',
+  error: payload,
+  indexed_sections: 17,
+}, true);
+const indexStatus = dom.window.document.getElementById('adminIndexStatus');
+assert.match(indexStatus.textContent, /Индекс: Ошибка/);
+assert.match(indexStatus.textContent, /<img src=x/);
+assert.equal(indexStatus.querySelector('img'), null);
+assert.equal(dom.window.document.getElementById('adminReindexBookBtn').disabled, false);
+
+context.renderBookIndexStatus({ status: 'running' }, true);
+assert.equal(dom.window.document.getElementById('adminReindexBookBtn').disabled, true);
 
 assert.doesNotMatch(source, /body\.innerHTML = `<div data-static-style="a203"/);
 assert.doesNotMatch(source, /container\.innerHTML = `\s*<div class="stat-cards"/);

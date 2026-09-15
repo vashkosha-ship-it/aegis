@@ -29,6 +29,7 @@ function replaceSelectOptions(document, select, items) {
     <select id="adminEditCategorySelect" multiple></select>
     <button id="adminSaveFieldsBtn"></button>
     <button id="adminUploadFileBtn"></button>
+    <button id="adminReindexBookBtn"></button>
     <button id="adminDeleteFileBtn"></button>
     <button id="adminUploadCoverBtn"></button>
     <button id="adminDeleteCoverBtn"></button>

@@ -289,6 +289,8 @@ async def test_worker_selects_epub_indexer(monkeypatch):
     )
 
     class Session:
+        commits = 0
+
         async def __aenter__(self):
             return self
 
@@ -299,6 +301,12 @@ async def test_worker_selects_epub_indexer(monkeypatch):
             assert model is Book
             assert book_id == 73
             return book
+
+        async def commit(self):
+            self.commits += 1
+
+        async def rollback(self):
+            pass
 
     class Storage:
         async def open_stream(self, key):
@@ -327,6 +335,12 @@ async def test_worker_selects_epub_indexer(monkeypatch):
     monkeypatch.setattr(worker.os, "unlink", lambda _path: None)
 
     assert await worker._index_one(73) == 2
+    assert book.indexing_status == "succeeded"
+    assert book.indexing_error is None
+    assert book.indexed_sections == 2
+    assert book.indexing_started_at is not None
+    assert book.indexing_finished_at is not None
+    assert book.indexed_at is not None
 
 
 @pytest.mark.asyncio
@@ -375,6 +389,8 @@ async def test_pdf_upload_replaces_epub_clears_index_and_enqueues(
     assert response.json()["indexing_status"] == "queued"
 
     await db.refresh(book)
+    assert book.indexing_status == "queued"
+    assert book.indexing_job_id == "index-job-42"
     assert book.file_format == "pdf"
     assert book.pdf_storage_key
     assert book.epub_storage_key is None

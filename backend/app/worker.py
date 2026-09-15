@@ -16,7 +16,7 @@ from datetime import UTC, datetime, timedelta
 from time import monotonic
 
 from arq import cron
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, or_, select, update
 
 from app.core.queue import redis_settings
 from app.core.storage import StorageNotFound, get_storage
@@ -27,6 +27,7 @@ from app.models.exam_session import ExamSession
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
 from app.services.search_index import (
+    IndexingError,
     index_book_from_path,
     index_epub_from_path,
     spool_to_tempfile,
@@ -89,34 +90,60 @@ async def _index_one(book_id: int) -> int:
         if not book:
             logger.warning("Книга %s не найдена — пропускаем", book_id)
             return 0
-
-        if book.file_format == "epub":
-            storage_key = book.epub_storage_key
-            suffix = ".epub"
-            indexer = index_epub_from_path
-        else:
-            storage_key = book.pdf_storage_key
-            suffix = ".pdf"
-            indexer = index_book_from_path
-
-        if not storage_key:
-            logger.warning("Книга %s без активного файла — пропускаем", book_id)
-            return 0
+        book.indexing_status = "running"
+        book.indexing_error = None
+        book.indexing_started_at = datetime.now(UTC)
+        book.indexing_finished_at = None
+        await db.commit()
 
         try:
-            chunks = await storage.open_stream(storage_key)
-        except StorageNotFound:
-            logger.warning("Файл книги %s не найден в хранилище", book_id)
-            return 0
+            if book.file_format == "epub":
+                storage_key = book.epub_storage_key
+                suffix = ".epub"
+                indexer = index_epub_from_path
+            else:
+                storage_key = book.pdf_storage_key
+                suffix = ".pdf"
+                indexer = index_book_from_path
 
-        path = await spool_to_tempfile(chunks, suffix=suffix)
-        try:
-            return await indexer(db, book_id, path)
-        finally:
+            if not storage_key:
+                raise IndexingError("У книги нет активного файла")
+
             try:
-                os.unlink(path)
-            except OSError:
-                pass
+                chunks = await storage.open_stream(storage_key)
+            except StorageNotFound as exc:
+                raise IndexingError("Файл книги отсутствует в хранилище") from exc
+
+            path = await spool_to_tempfile(chunks, suffix=suffix)
+            try:
+                sections = await indexer(db, book_id, path)
+            finally:
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+
+            finished_at = datetime.now(UTC)
+            book = await db.get(Book, book_id)
+            if book:
+                book.indexing_status = "succeeded"
+                book.indexing_error = None
+                book.indexing_finished_at = finished_at
+                book.indexed_at = finished_at
+                book.indexed_sections = sections
+                await db.commit()
+            return sections
+        except Exception as exc:
+            # Индексатор мог откатить свою транзакцию; статус ошибки пишем уже
+            # после rollback, чтобы он не потерялся вместе с неудачной вставкой.
+            await db.rollback()
+            failed_book = await db.get(Book, book_id)
+            if failed_book:
+                failed_book.indexing_status = "failed"
+                failed_book.indexing_error = f"{type(exc).__name__}: {exc}"[:2000]
+                failed_book.indexing_finished_at = datetime.now(UTC)
+                await db.commit()
+            raise
 
 
 async def index_book(ctx: dict, book_id: int) -> dict:
@@ -174,6 +201,30 @@ async def _index_all_books() -> dict:
     return result
 
 
+async def recover_interrupted_indexing(_ctx: dict) -> None:
+    """Закрыть состояния running, оставшиеся после перезапуска воркера.
+
+    Иначе аварийно прерванная книга навсегда выглядит как индексирующаяся и
+    администратор не получает кнопку повторного запуска.
+    """
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            update(Book)
+            .where(Book.indexing_status == "running")
+            .values(
+                indexing_status="failed",
+                indexing_error="Индексация прервана перезапуском воркера",
+                indexing_finished_at=datetime.now(UTC),
+            )
+        )
+        await db.commit()
+        if result.rowcount:
+            logger.warning(
+                "После перезапуска отмечено прерванных индексаций: %d",
+                result.rowcount,
+            )
+
+
 # Сколько храним отработавшие записи после истечения срока. Не удаляем сразу:
 # по ним разбирают инциденты (например, кто и когда предъявил украденный
 # refresh-токен), а место они занимают немного.
@@ -219,6 +270,7 @@ async def _cleanup_expired_sessions() -> dict:
 
 class WorkerSettings:
     functions = [index_book, index_all_books, cleanup_expired_sessions]
+    on_startup = recover_interrupted_indexing
 
     # Раз в сутки ночью подчищаем отработавшие записи. Отдельный systemd-таймер
     # не нужен: планировщик встроен в ARQ.

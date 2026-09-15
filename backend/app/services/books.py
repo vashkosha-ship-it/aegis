@@ -156,6 +156,11 @@ def to_public(book: Book) -> BookPublic:
         has_file=bool(book.pdf_storage_key or book.epub_storage_key),
         file_format=book.file_format,
         has_cover=bool(book.cover_storage_key),
+        indexing_status=book.indexing_status,
+        indexing_started_at=book.indexing_started_at,
+        indexing_finished_at=book.indexing_finished_at,
+        indexed_at=book.indexed_at,
+        indexed_sections=book.indexed_sections,
         date_published=book.date_published,
         created_at=book.created_at,
     )

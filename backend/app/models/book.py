@@ -60,6 +60,10 @@ class Book(Base):
     __table_args__ = (
         CheckConstraint("file_format IN ('pdf', 'epub')", name="ck_books_file_format"),
         CheckConstraint(
+            "indexing_status IN ('not_indexed', 'queued', 'running', 'succeeded', 'failed')",
+            name="ck_books_indexing_status",
+        ),
+        CheckConstraint(
             "(pdf_storage_key IS NULL OR file_format = 'pdf') AND "
             "(epub_storage_key IS NULL OR file_format = 'epub')",
             name="ck_books_active_file_matches_format",
@@ -80,6 +84,20 @@ class Book(Base):
     )
     cover_storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     total_pages: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # Постоянное состояние полнотекстового индекса. ARQ хранит результат задачи
+    # лишь ограниченное время, поэтому админка не должна зависеть от Redis.
+    indexing_status: Mapped[str] = mapped_column(
+        String(16), default="not_indexed", server_default="not_indexed", nullable=False
+    )
+    indexing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    indexing_job_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    indexing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    indexing_finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    indexed_sections: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
 
     # Метрики (бывшие state.bookViews / bookDownloads)
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

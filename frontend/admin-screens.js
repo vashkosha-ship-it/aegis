@@ -544,6 +544,46 @@ function closeAddModal() {
 
 // ========== ADMIN BOOK MODAL ==========
 let adminBookModalCurrentId = null;
+let adminBookModalCurrentFormat = 'pdf';
+
+const BOOK_INDEX_STATUS_LABELS = {
+  not_indexed: 'Не индексировалась',
+  queued: 'В очереди',
+  running: 'Индексируется',
+  succeeded: 'Готово',
+  failed: 'Ошибка',
+};
+
+function bookIndexStatusText(data) {
+  const status = data.status || data.indexing_status || 'not_indexed';
+  const label = BOOK_INDEX_STATUS_LABELS[status] || 'Неизвестно';
+  const sections = Number(data.indexed_sections || 0);
+  const finished = data.finished_at || data.indexing_finished_at || data.indexed_at;
+  const parts = [`Индекс: ${label}`];
+  if (status === 'succeeded') parts.push(`${sections} секц.`);
+  if (finished) {
+    const date = new Date(finished);
+    if (!Number.isNaN(date.getTime())) parts.push(date.toLocaleString('ru-RU'));
+  }
+  if (data.error) {
+    const error = String(data.error);
+    parts.push(error.length > 240 ? `${error.slice(0, 237)}…` : error);
+  }
+  return parts.join(' · ');
+}
+
+function renderBookIndexStatus(data, hasFile = true) {
+  const output = document.getElementById('adminIndexStatus');
+  const retry = document.getElementById('adminReindexBookBtn');
+  if (output) {
+    output.textContent = bookIndexStatusText(data);
+    output.title = data.error ? String(data.error) : '';
+  }
+  if (retry) {
+    const status = data.status || data.indexing_status || 'not_indexed';
+    retry.disabled = !hasFile || status === 'queued' || status === 'running';
+  }
+}
 
 async function openAdminBookModal(bookId) {
   if (!state.currentUser || state.currentUser.role !== 'admin') {
@@ -566,12 +606,15 @@ async function openAdminBookModal(bookId) {
 initCategoryTags('adminCategoriesContainer', book.categories || []);
 
   const format = book.file_format || (book.has_epub ? 'epub' : 'pdf');
+  adminBookModalCurrentFormat = format;
   document.getElementById('adminFileStatus').textContent = (book.has_pdf || book.has_epub)
     ? `Файл загружен (${format.toUpperCase()})`
     : '— Файл ещё не загружен';
   document.getElementById('adminCoverStatus').textContent = book.has_cover
     ? 'Обложка загружена'
     : '— Обложка ещё не загружена';
+  const hasFile = Boolean(book.has_pdf || book.has_epub);
+  renderBookIndexStatus(book, hasFile);
 
   document.getElementById('adminBookFileInput').value = '';
   document.getElementById('adminCoverFile').value = '';
@@ -579,6 +622,14 @@ initCategoryTags('adminCategoriesContainer', book.categories || []);
   renderRecommendDepts(book);
 
   document.getElementById('adminBookModal').classList.remove('hidden');
+  try {
+    const detailedStatus = await api.books.indexStatus(book.id);
+    if (adminBookModalCurrentId === book.id) {
+      renderBookIndexStatus(detailedStatus, hasFile);
+    }
+  } catch (err) {
+    console.warn('Не удалось получить статус индексации книги', err);
+  }
 }
 
 // Вычисляет, каким подразделениям релевантна книга (по совпадению категорий/названия с темами)
@@ -958,12 +1009,20 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
 
   try {
     const format = detectFileFormat(file);
+    let uploadResult;
     if (format === 'epub') {
-      await api.books.uploadEpub(adminBookModalCurrentId, file);
+      uploadResult = await api.books.uploadEpub(adminBookModalCurrentId, file);
     } else {
-      await api.books.uploadPdf(adminBookModalCurrentId, file);
+      uploadResult = await api.books.uploadPdf(adminBookModalCurrentId, file);
     }
+    adminBookModalCurrentFormat = format;
     document.getElementById('adminFileStatus').textContent = `Файл загружен (${format.toUpperCase()})`;
+    renderBookIndexStatus({
+      status: uploadResult.indexing_status === 'queued' ? 'queued' : 'failed',
+      error: uploadResult.indexing_status === 'unavailable'
+        ? 'Очередь индексации недоступна'
+        : null,
+    }, true);
     document.getElementById('adminBookFileInput').value = '';
     showToast('Файл загружен');
     await loadBooksFromApi();
@@ -979,12 +1038,38 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
   }
 });
 
+document.getElementById('adminReindexBookBtn').addEventListener('click', async () => {
+  if (!adminBookModalCurrentId) return;
+  const btn = document.getElementById('adminReindexBookBtn');
+  btn.disabled = true;
+  try {
+    const result = await api.library.reindexBook(adminBookModalCurrentId);
+    renderBookIndexStatus({ status: 'queued', job_id: result.job_id }, true);
+    showToast('Книга поставлена в очередь на индексацию');
+    await loadBooksFromApi();
+    if (state.currentScreen === 'admin') renderAdminPanel();
+  } catch (err) {
+    showToast('Ошибка индексации: ' + (err.detail || err.message));
+    try {
+      const status = await api.books.indexStatus(adminBookModalCurrentId);
+      renderBookIndexStatus(status, true);
+    } catch (_) {
+      btn.disabled = false;
+    }
+  }
+});
+
 document.getElementById('adminDeleteFileBtn').addEventListener('click', async () => {
   if (!adminBookModalCurrentId) return;
   if (!confirm('Удалить файл книги? Файл будет удалён с сервера.')) return;
   try {
-    await api.books.deletePdf(adminBookModalCurrentId);
+    if (adminBookModalCurrentFormat === 'epub') {
+      await api.books.deleteEpub(adminBookModalCurrentId);
+    } else {
+      await api.books.deletePdf(adminBookModalCurrentId);
+    }
     document.getElementById('adminFileStatus').textContent = '— Файл ещё не загружен';
+    renderBookIndexStatus({ status: 'not_indexed' }, false);
     showToast('Файл удалён');
     await loadBooksFromApi();
     if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {
@@ -1227,6 +1312,39 @@ function appendAdminCell(row, value) {
   return cell;
 }
 
+async function retryBookIndexing(bookId, button) {
+  button.disabled = true;
+  try {
+    await api.library.reindexBook(bookId);
+    showToast('Книга поставлена в очередь на индексацию');
+    await loadBooksFromApi();
+    renderAdminBooks();
+  } catch (err) {
+    button.disabled = false;
+    showToast('Ошибка индексации: ' + (err.detail || err.message));
+  }
+}
+
+function appendAdminIndexStatusCell(row, book) {
+  const cell = document.createElement('td');
+  const status = document.createElement('span');
+  status.textContent = bookIndexStatusText(book);
+  cell.appendChild(status);
+  const retryable = (book.has_pdf || book.has_epub)
+    && ['failed', 'not_indexed'].includes(book.indexing_status || 'not_indexed');
+  if (retryable) {
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'btn-sm';
+    retry.title = 'Повторить индексацию';
+    retry.textContent = '↻';
+    retry.addEventListener('click', () => retryBookIndexing(book.id, retry));
+    cell.appendChild(document.createTextNode(' '));
+    cell.appendChild(retry);
+  }
+  row.appendChild(cell);
+}
+
 function renderAdminBookRows(tbody, books) {
   const fragment = document.createDocumentFragment();
   books.forEach(book => {
@@ -1235,6 +1353,7 @@ function renderAdminBookRows(tbody, books) {
     appendAdminCell(row, book.author);
     appendAdminCell(row, bookCategoriesText(book));
     appendAdminCell(row, String(book.file_format || 'pdf').toUpperCase());
+    appendAdminIndexStatusCell(row, book);
     const rating = document.createElement('td');
     appendTrustedIcon(rating, ICONS.star);
     rating.appendChild(document.createTextNode(String(book.rating ?? '')));
@@ -1280,7 +1399,7 @@ function renderAdminBooks() {
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Книга</th><th>Автор</th><th>Категория</th><th>Формат</th><th>Рейтинг</th><th>Действия</th></tr></thead>
+        <thead><tr><th>Книга</th><th>Автор</th><th>Категория</th><th>Формат</th><th>Индекс</th><th>Рейтинг</th><th>Действия</th></tr></thead>
         <tbody id="adminBooksTableBody"></tbody>
       </table>
     </div>`);
