@@ -22,8 +22,17 @@ assert.match(source, /id="adminStorageAuditBtn"/);
 assert.match(source, /function auditStorageUI\(\)/);
 assert.match(source, /id="adminDescriptionsBtn"/);
 assert.match(source, /function generateMissingDescriptionsUI\(\)/);
+assert.match(source, /function refreshDescriptionGenerationStatus\(\)/);
+assert.match(source, /setTimeout\(refreshDescriptionGenerationStatus, 3000\)/);
+assert.doesNotMatch(source, /for \(const book of candidates\)/);
 assert.doesNotMatch(source, /bulkGenerateDescriptions/);
 assert.match(source, /icon: '📘'/);
 assert.match(apiSource, /adminStorageAudit\(graceHours = 24\)/);
 assert.match(apiSource, /adminCleanupStorage\(graceHours = 24\)/);
+assert.match(apiSource, /startDescriptionGeneration\(\)/);
+assert.match(apiSource, /latestDescriptionGeneration\(\)/);
+assert.equal(
+  context.descriptionJobSummary({ status: 'running', processed_books: 3, total_books: 8 }),
+  'ИИ-описания · 3/8',
+);
 console.log('admin static shell tests passed');

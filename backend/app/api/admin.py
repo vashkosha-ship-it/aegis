@@ -1,10 +1,12 @@
 """Admin endpoints: dashboard stats, user management, book analytics."""
 
 import logging
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
@@ -12,6 +14,7 @@ from app.core.security import hash_password
 from app.core.storage import StorageBackend, StorageError, get_storage
 from app.db.session import get_db
 from app.models.book import Book
+from app.models.description_job import DescriptionGenerationJob
 from app.models.library import MyListEntry, MyListStatus, ReadingProgress, Review
 from app.models.quiz import QuizAttempt
 from app.models.user import User, UserRole
@@ -21,6 +24,8 @@ from app.schemas.admin import (
     BookReaderRow,
     CreateUserRequest,
     DashboardStats,
+    DescriptionGenerationJobView,
+    DescriptionGenerationStart,
     MyListBreakdown,
     PendingUserView,
     StorageAuditView,
@@ -31,6 +36,10 @@ from app.services.storage_integrity import audit_storage, delete_orphaned_storag
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _description_job_view(job: DescriptionGenerationJob) -> DescriptionGenerationJobView:
+    return DescriptionGenerationJobView.model_validate(job)
 
 
 def _storage_audit_view(audit) -> dict:
@@ -91,6 +100,113 @@ async def cleanup_orphaned_storage(
         deleted_bytes=deleted_bytes,
         failed_keys=list(failed),
     )
+
+
+@router.get(
+    "/book-descriptions/jobs/latest",
+    response_model=DescriptionGenerationJobView | None,
+)
+async def latest_description_generation_job(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> DescriptionGenerationJobView | None:
+    """Последний постоянный статус массовой генерации описаний."""
+    job = await db.scalar(
+        select(DescriptionGenerationJob)
+        .order_by(DescriptionGenerationJob.created_at.desc())
+        .limit(1)
+    )
+    return _description_job_view(job) if job else None
+
+
+@router.post(
+    "/book-descriptions/jobs",
+    response_model=DescriptionGenerationStart,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def start_description_generation_job(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> DescriptionGenerationStart:
+    """Поставить генерацию отсутствующих описаний в ARQ и сразу ответить UI."""
+    active = await db.scalar(
+        select(DescriptionGenerationJob)
+        .where(DescriptionGenerationJob.status.in_(("queued", "running")))
+        .order_by(DescriptionGenerationJob.created_at.desc())
+        .limit(1)
+    )
+    if active:
+        return DescriptionGenerationStart(
+            started=False,
+            reason="already_running",
+            job=_description_job_view(active),
+        )
+
+    book_ids = list(
+        (
+            await db.scalars(
+                select(Book.id)
+                .where(
+                    or_(
+                        Book.description.is_(None),
+                        func.length(func.trim(Book.description)) == 0,
+                    )
+                )
+                .order_by(Book.id)
+            )
+        ).all()
+    )
+    if not book_ids:
+        return DescriptionGenerationStart(started=False, reason="no_missing")
+
+    job = DescriptionGenerationJob(
+        id=str(uuid4()),
+        status="queued",
+        total_books=len(book_ids),
+        processed_books=0,
+        succeeded_books=0,
+        failed_books=0,
+        created_by_id=admin.id,
+        created_by_username=admin.username,
+    )
+    db.add(job)
+    await db.commit()
+
+    from app.core.queue import get_queue
+
+    try:
+        queue = await get_queue()
+        if queue is None:
+            raise RuntimeError("Очередь фоновых задач недоступна")
+        arq_job = await queue.enqueue_job(
+            "generate_missing_book_descriptions",
+            job.id,
+            book_ids,
+        )
+        if arq_job is None:
+            raise RuntimeError("Очередь не вернула идентификатор задачи")
+        job.arq_job_id = arq_job.job_id
+    except Exception as exc:  # noqa: BLE001
+        job.status = "failed"
+        job.last_error = f"Не удалось поставить задачу в очередь: {exc}"[:2000]
+        job.finished_at = datetime.now(UTC)
+        await db.commit()
+        raise HTTPException(
+            status_code=503, detail="Не удалось запустить создание описаний"
+        ) from None
+
+    from app.services.admin_audit import log_admin_action
+
+    await log_admin_action(
+        db,
+        admin,
+        "book_descriptions_generate",
+        target=f"description-job:{job.id}",
+        detail=f"Запущено создание описаний для {len(book_ids)} книг",
+    )
+    await db.commit()
+    await db.refresh(job)
+    return DescriptionGenerationStart(started=True, job=_description_job_view(job))
 
 
 # ============================================================================

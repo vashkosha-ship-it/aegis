@@ -11,7 +11,7 @@
 | `nginx-aegis.conf` | `/etc/nginx/sites-available/aegis` | сайт, отдача книг, проксирование API |
 | `aegis-security-headers.conf` | `/etc/nginx/snippets/` | CSP и заголовки безопасности |
 | `aegis.service` | `/etc/systemd/system/` | веб-приложение (gunicorn) |
-| `aegis-worker.service` | `/etc/systemd/system/` | фоновые задачи (индексация PDF/EPUB) |
+| `aegis-worker.service` | `/etc/systemd/system/` | фоновые задачи (индексация PDF/EPUB и ИИ-описания) |
 | `20-aegis-retention.conf` | `/etc/systemd/journald.conf.d/` | лимит размера и срока хранения системного журнала |
 | `aegis-backup.service`, `aegis-backup.timer` | `/etc/systemd/system/` | ежедневная резервная копия |
 | `backup.sh`, `RESTORE.md` | остаются в `/opt/aegis/backend/deploy/` | создание копии и инструкция восстановления |

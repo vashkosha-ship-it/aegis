@@ -207,6 +207,14 @@ def main(base: str) -> int:
         storage_audit_code in {401, 403},
         f"ожидался 401/403, получен код {storage_audit_code}",
     )
+    description_job_code, _, _ = fetch(
+        base + "/api/admin/book-descriptions/jobs/latest"
+    )
+    check(
+        "фоновые ИИ-описания доступны только администратору",
+        description_job_code in {401, 403},
+        f"ожидался 401/403, получен код {description_job_code}",
+    )
 
     print(f"\nИтого: {passed} ok, {failed} fail\n")
     return 0 if failed == 0 else 1

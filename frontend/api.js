@@ -534,6 +534,12 @@
       adminCleanupStorage(graceHours = 24) {
         return request('/admin/storage/cleanup-orphans?grace_hours=' + encodeURIComponent(graceHours), { method: 'POST' });
       },
+      startDescriptionGeneration() {
+        return request('/admin/book-descriptions/jobs', { method: 'POST' });
+      },
+      latestDescriptionGeneration() {
+        return request('/admin/book-descriptions/jobs/latest');
+      },
 
       adminPendingUsers() {
         return request('/admin/users/pending');
