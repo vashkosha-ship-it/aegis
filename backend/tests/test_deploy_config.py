@@ -38,6 +38,7 @@ NGINX_CONF = REPO / "backend" / "deploy" / "nginx-aegis.conf"
 BACKEND_SERVICE = REPO / "backend" / "deploy" / "aegis.service"
 WORKER_SERVICE = REPO / "backend" / "deploy" / "aegis-worker.service"
 HEALTHCHECK = REPO / "backend" / "deploy" / "healthcheck.sh"
+DEPLOY_SCRIPT = REPO / "deploy.sh"
 JOURNAL_CONF = REPO / "backend" / "deploy" / "20-aegis-retention.conf"
 ALERT_SERVICE = REPO / "backend" / "deploy" / "aegis-alert@.service"
 BACKUP_SCRIPT = REPO / "backend" / "deploy" / "backup.sh"
@@ -275,6 +276,12 @@ class TestHealthRouting:
         assert '\"storage\":{\"ok\":true' in script
         assert '\"queue\":{\"ok\":true,\"required\":true' in script
 
+    def test_healthcheck_inspects_registered_worker_tasks(self):
+        script = HEALTHCHECK.read_text(encoding="utf-8")
+
+        assert "cleanup_expired_sessions in WorkerSettings.functions" in script
+        assert "cron:cleanup_expired_sessions" not in script
+
     def test_range_check_requires_auth_and_validates_206(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
 
@@ -437,8 +444,11 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v304" in service_worker
+        assert "aegis-cache-v305" in service_worker
 
     def test_deploy_requires_frontend_ci(self):
-        deploy_script = (REPO / "deploy.sh").read_text(encoding="utf-8")
+        deploy_script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
         assert 'REQUIRED_JOBS="backend frontend security"' in deploy_script
+
+    def test_deploy_script_is_executable(self):
+        assert DEPLOY_SCRIPT.stat().st_mode & 0o111
