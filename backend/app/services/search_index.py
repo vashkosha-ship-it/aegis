@@ -56,6 +56,19 @@ class IndexWouldRegress(IndexingError):
     """Новый индекс пуст, а старый — нет. Замена уничтожила бы данные."""
 
 
+def _normalise_unicode(text: str) -> str:
+    """Собрать корректные surrogate-пары и заменить одиночные половины.
+
+    pypdf иногда возвращает UTF-16 surrogate как отдельный Python-символ.
+    PostgreSQL хранит настоящий UTF-8 и закономерно отвергает такую строку.
+    Проход через UTF-16 сохраняет полноценные пары (включая математические
+    символы вне BMP), а одиночную повреждённую половину заменяет на U+FFFD.
+    """
+    return text.encode("utf-16-le", errors="surrogatepass").decode(
+        "utf-16-le", errors="replace"
+    )
+
+
 async def spool_to_tempfile(chunks: AsyncIterator[bytes], *, suffix: str = ".pdf") -> str:
     """Слить поток из хранилища во временный файл и вернуть путь.
 
@@ -99,7 +112,7 @@ def _extract_pages_worker(path: str) -> list[str]:
             txt = ""
         # PostgreSQL не принимает NUL-байт в text-колонке, а он встречается в
         # PDF с битой кодировкой шрифтов и роняет вставку целой книги.
-        txt = txt.replace("\x00", "")
+        txt = _normalise_unicode(txt.replace("\x00", ""))
         out.append(" ".join(txt.split())[:MAX_PAGE_CHARS])
     return out
 
@@ -163,7 +176,9 @@ def _extract_epub_sections_worker(path: str) -> list[str]:
                 continue
             parser = TextParser()
             parser.feed(raw.decode("utf-8", errors="replace"))
-            text = " ".join(" ".join(parser.parts).replace("\x00", "").split())
+            text = _normalise_unicode(
+                " ".join(" ".join(parser.parts).replace("\x00", "").split())
+            )
             out.append(text[:MAX_PAGE_CHARS])
         return out
 
@@ -246,11 +261,11 @@ async def _store_sections(
     if not sections:
         raise IndexingError(f"Книга {book_id}: из файла не извлечено ни одной секции")
 
-    rows = [
-        {"book_id": book_id, "page": number, "content": text}
-        for number, text in enumerate(sections, start=1)
-        if text.strip()
-    ]
+    rows = []
+    for number, text in enumerate(sections, start=1):
+        text = _normalise_unicode(text)
+        if text.strip():
+            rows.append({"book_id": book_id, "page": number, "content": text})
     total = len(sections)
     saved = len(rows)
     if not rows and not force:
