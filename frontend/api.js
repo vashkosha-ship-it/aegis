@@ -52,11 +52,31 @@
   };
 
   // --- ошибка с кодом и деталями (удобно ловить в catch) -------------------
+  function formatApiDetail(detail, status) {
+    if (Array.isArray(detail)) {
+      const messages = detail.map(item => {
+        if (!item || typeof item !== 'object') return String(item);
+        const location = Array.isArray(item.loc)
+          ? item.loc.filter(part => part !== 'body').join('.')
+          : '';
+        const message = item.msg || item.message || JSON.stringify(item);
+        return location ? `${location}: ${message}` : String(message);
+      }).filter(Boolean);
+      return messages.join('; ') || `HTTP ${status}`;
+    }
+    if (detail && typeof detail === 'object') {
+      return String(detail.message || detail.msg || JSON.stringify(detail));
+    }
+    return String(detail || `HTTP ${status}`);
+  }
+
   class ApiError extends Error {
     constructor(status, detail, body) {
-      super(detail || `HTTP ${status}`);
+      const message = formatApiDetail(detail, status);
+      super(message);
       this.status = status;
-      this.detail = detail;
+      this.detail = message;
+      this.rawDetail = detail;
       this.body = body;
     }
   }

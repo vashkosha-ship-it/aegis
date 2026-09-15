@@ -361,6 +361,50 @@ async function generateMissingCoversUI() {
   });
 }
 
+let aiDescriptionsInProgress = false;
+
+async function generateMissingDescriptionsUI() {
+  if (aiDescriptionsInProgress) {
+    showToast('Создание ИИ-описаний уже выполняется');
+    return;
+  }
+  const candidates = (state.books || []).filter(book =>
+    !String(book.description || book.desc || '').trim()
+  );
+  if (!candidates.length) {
+    showToast('У всех книг уже есть описание');
+    return;
+  }
+  showConfirmModal({
+    title: 'Создать ИИ-описания?',
+    message: `Книг без описания: ${candidates.length}. Книги уже загружены, поэтому операция не задерживает массовую загрузку.`,
+    confirmText: 'Создать',
+    cancelText: 'Отмена',
+    onConfirm: async () => {
+      aiDescriptionsInProgress = true;
+      let done = 0;
+      let failed = 0;
+      try {
+        for (const book of candidates) {
+          showToast(`ИИ-описания: ${done + failed} из ${candidates.length}`);
+          try {
+            await api.books.generateDescription(book.id);
+            done += 1;
+          } catch (error) {
+            failed += 1;
+            console.warn('Описание не создано для книги', book.id, error);
+          }
+        }
+        showToast(`Описания созданы: ${done}` + (failed ? ` · не удалось: ${failed}` : ''));
+        await loadBooksFromApi();
+        if (typeof renderAdminPanel === 'function') renderAdminPanel();
+      } finally {
+        aiDescriptionsInProgress = false;
+      }
+    },
+  });
+}
+
 async function regenerateAllQuizzesUI() {
   showConfirmModal({
     title: 'Перегенерировать все тесты?',
@@ -1183,7 +1227,7 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
       author: a,
       categories: cats,
       description: desc,
-      icon: ICONS.bookCover,
+      icon: '📘',
       file_format: format,
     });
     const newId = created.id;
@@ -1367,13 +1411,17 @@ function renderAdminBookRows(tbody, books) {
     analytics.addEventListener('click', () => openBookAnalyticsModal(book.id));
     const settings = document.createElement('button');
     settings.type = 'button';
-    settings.className = 'btn-sm';
-    appendTrustedIcon(settings, ICONS.settings);
+    settings.className = 'btn-sm admin-book-action-icon';
+    settings.title = 'Редактировать книгу';
+    settings.setAttribute('aria-label', 'Редактировать книгу');
+    if (!appendTrustedIcon(settings, ICONS.settingsGear)) settings.textContent = '⚙';
     settings.addEventListener('click', () => openAdminBookModal(book.id));
     const remove = document.createElement('button');
     remove.type = 'button';
-    remove.className = 'btn-sm danger';
-    appendTrustedIcon(remove, ICONS.trash);
+    remove.className = 'btn-sm danger admin-book-action-icon';
+    remove.title = 'Удалить книгу';
+    remove.setAttribute('aria-label', 'Удалить книгу');
+    if (!appendTrustedIcon(remove, ICONS.trash)) remove.textContent = '✕';
     remove.addEventListener('click', () => deleteBook(book.id));
     actions.append(analytics, settings, remove);
     row.appendChild(actions);
@@ -1395,6 +1443,7 @@ function renderAdminBooks() {
       <button id="adminLogsBtn" title="Журнал действий администраторов" data-static-style="a547">Журнал</button>
       <button id="adminStorageAuditBtn" title="Проверить файлы книг, обложек и аватаров" data-static-style="a547">Хранилище</button>
       <button id="adminCoversBtn" title="Создать обложки для книг без обложки" data-static-style="a547">Обложки</button>
+      <button id="adminDescriptionsBtn" title="Создать ИИ-описания для книг без описания" data-static-style="a547">ИИ-описания</button>
       <button id="adminArMatchBtn" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">Подобрать книги для AR</button>
       <button id="adminRegenerateQuizzesBtn" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">Перегенерировать тесты</button>
     </div>
@@ -1409,6 +1458,7 @@ function renderAdminBooks() {
   document.getElementById('adminLogsBtn').addEventListener('click', openAdminLogs);
   document.getElementById('adminStorageAuditBtn').addEventListener('click', auditStorageUI);
   document.getElementById('adminCoversBtn').addEventListener('click', generateMissingCoversUI);
+  document.getElementById('adminDescriptionsBtn').addEventListener('click', generateMissingDescriptionsUI);
   document.getElementById('adminArMatchBtn').addEventListener('click', aiMatchArBooksUI);
   document.getElementById('adminRegenerateQuizzesBtn').addEventListener('click', regenerateAllQuizzesUI);
   document.getElementById('adminBooksCount').textContent = String(state.books.length);
@@ -1607,8 +1657,6 @@ async function startBulkUpload() {
 
   const defaultCategory = (document.getElementById('bulkUploadCategory').value || '').trim();
   const categories = defaultCategory ? [defaultCategory] : ['Без категории'];
-  const generateDescriptions = document.getElementById('bulkGenerateDescriptions')?.checked === true;
-
   for (let i = 0; i < bulkUploadQueue.length; i++) {
     const item = bulkUploadQueue[i];
     if (item.status !== 'pending') continue;
@@ -1620,7 +1668,7 @@ async function startBulkUpload() {
     try {
       const ext = item.file.name.split('.').pop().toLowerCase();
       const format = (ext === 'epub') ? 'epub' : 'pdf';
-      const title = item.file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_-]/g, ' ').trim() || 'Без названия';
+      const title = (item.file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_-]/g, ' ').trim() || 'Без названия').slice(0, 255);
 
       // 1. Создаём книгу
       const created = await api.books.create({
@@ -1628,7 +1676,7 @@ async function startBulkUpload() {
         author: '—',
         categories: categories,
         description: '',
-        icon: ICONS.bookCover,
+        icon: '📘',
         file_format: format,
       });
 
@@ -1654,23 +1702,11 @@ async function startBulkUpload() {
         }
       }
 
-      let descriptionWarning = false;
-      if (generateDescriptions) {
-        item.message = 'ИИ создаёт описание...';
-        renderBulkUploadList();
-        try {
-          await api.books.generateDescription(created.id);
-        } catch (descriptionErr) {
-          descriptionWarning = true;
-          console.warn('Описание не создано для', item.file.name, descriptionErr);
-        }
-      }
-
       item.status = 'done';
-      item.message = descriptionWarning ? 'Создана · без ИИ-описания' : 'Создана';
+      item.message = 'Создана';
     } catch (e) {
       item.status = 'error';
-      item.message = 'Ошибка: ' + ((e.detail || e.message || '').substring(0, 40));
+      item.message = 'Ошибка: ' + String(e.detail || e.message || 'Неизвестная ошибка').slice(0, 120);
       console.error('Bulk upload error:', e);
     }
     renderBulkUploadList();

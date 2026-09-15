@@ -199,7 +199,9 @@ async def _bump_daily_pages(db: AsyncSession, user: User, delta: int) -> None:
     await db.execute(stmt)
 
 
-async def _mark_completed_in_list(db: AsyncSession, user: User, book_id: int) -> None:
+async def _mark_completed_in_list(
+    db: AsyncSession, user: User, book_id: int, completed_at: datetime
+) -> None:
     """Проставить статус «Прочитано» в списке пользователя.
 
     Нужно, чтобы счётчики достижений и карточка книги не расходились с
@@ -213,9 +215,16 @@ async def _mark_completed_in_list(db: AsyncSession, user: User, book_id: int) ->
     )
     if entry:
         entry.status = MyListStatus.COMPLETED
+        if entry.completed_at is None:
+            entry.completed_at = completed_at
     else:
         db.add(
-            MyListEntry(user_id=user.id, book_id=book_id, status=MyListStatus.COMPLETED)
+            MyListEntry(
+                user_id=user.id,
+                book_id=book_id,
+                status=MyListStatus.COMPLETED,
+                completed_at=completed_at,
+            )
         )
 
 
@@ -314,7 +323,7 @@ async def update_reading_progress(
         allowed, reason = _may_count_as_finished(progress, total_pages, total_verified)
         if allowed:
             progress.finished_at = now
-            await _mark_completed_in_list(db, user, book_id)
+            await _mark_completed_in_list(db, user, book_id, now)
             await add_xp(db, user, XP_FOR_FINISHING_BOOK)
             await check_and_award_achievements(db, user, trigger="book_completed")
         else:

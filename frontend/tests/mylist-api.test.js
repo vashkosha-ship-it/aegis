@@ -19,8 +19,11 @@ class ApiError extends Error {
   }
 }
 
-const state = { currentScreen: 'mylist', mylist: { 99: 'stale' } };
-let entries = [{ book_id: 1, status: 'reading' }, { book_id: 2, status: 'planned' }];
+const state = { currentScreen: 'mylist', mylist: { 99: 'stale' }, mylistCompletedAt: {} };
+let entries = [
+  { book_id: 1, status: 'reading', completed_at: null },
+  { book_id: 2, status: 'planned', completed_at: '2026-09-01T10:00:00Z' },
+];
 let loadError = null;
 let mutationError = null;
 const mutations = [];
@@ -37,6 +40,7 @@ const api = {
     setMylistStatus: async (...args) => {
       mutations.push(['set', ...args]);
       if (mutationError) throw mutationError;
+      return { book_id: args[0], status: args[1], completed_at: '2026-09-10T10:00:00Z' };
     },
     removeFromMylist: async (...args) => {
       mutations.push(['remove', ...args]);
@@ -58,6 +62,7 @@ vm.runInContext(source, context);
 (async () => {
   assert.equal(await context.loadMyListFromApi(), true);
   assert.deepEqual({ ...state.mylist }, { 1: 'reading', 2: 'planned' });
+  assert.deepEqual({ ...state.mylistCompletedAt }, { 2: '2026-09-01T10:00:00Z' });
 
   loadError = new Error('offline');
   assert.equal(await context.loadMyListFromApi(), false);
@@ -66,12 +71,14 @@ vm.runInContext(source, context);
 
   await context.updateBookStatus(1, 'completed');
   assert.equal(state.mylist[1], 'completed');
+  assert.equal(state.mylistCompletedAt[1], '2026-09-10T10:00:00Z');
   assert.deepEqual(mutations.at(-1), ['set', 1, 'completed']);
   assert.equal(toasts.at(-1), 'Статус обновлён');
   assert.equal(listRenders, 1);
 
   await context.updateBookStatus(2, null);
   assert.equal(state.mylist[2], undefined);
+  assert.equal(state.mylistCompletedAt[2], undefined);
   assert.deepEqual(mutations.at(-1), ['remove', 2]);
 
   state.mylist[1] = 'reading';

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+from datetime import UTC, datetime
 
 import pytest
 
@@ -25,7 +26,10 @@ class TestExcelFormulaInjection:
         await db.refresh(book)
 
         db.add(MyListEntry(
-            user_id=evil.id, book_id=book.id, status=MyListStatus.COMPLETED
+            user_id=evil.id,
+            book_id=book.id,
+            status=MyListStatus.COMPLETED,
+            completed_at=datetime.now(UTC),
         ))
         await db.commit()
 

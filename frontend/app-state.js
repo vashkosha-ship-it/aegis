@@ -9,7 +9,7 @@ const state = {
   mylistTab: 'reading', mylistSort: 'date-desc', trainingTab: 'all',
   filters: { categories: [], sort: 'default', status: 'all' },
   books: [],
-  readingProgress: {}, mylist: {}, reviews: {}, completedQuizzes: {},
+  readingProgress: {}, mylist: {}, mylistCompletedAt: {}, reviews: {}, completedQuizzes: {},
   pendingAiAction: null,
   analyticsCache: null,
   heatmapData: null,
@@ -36,4 +36,3 @@ state.gamification = {
   achievementsOwned: [],
   achievementsCatalog: [],
 };
-

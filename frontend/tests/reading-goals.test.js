@@ -12,7 +12,14 @@ let widgetRenders = 0;
 const context = {
   document: dom.window.document,
   window: dom.window,
-  state: { mylist: { 1: 'completed', 2: 'reading', 3: 'completed' } },
+  state: {
+    mylist: { 1: 'completed', 2: 'reading', 3: 'completed' },
+    mylistCompletedAt: {
+      1: '2026-09-10T09:00:00Z',
+      3: '2026-08-20T09:00:00Z',
+      4: '2026-09-11T09:00:00Z',
+    },
+  },
   lsGet: key => storage.get(key) || null,
   lsSet: (key, value) => storage.set(key, value),
   lsRemove: key => storage.delete(key),
@@ -29,7 +36,13 @@ assert.strictEqual(context.getReadingGoal(), 35);
 context.setBooksGoal(4, 'month');
 assert.strictEqual(context.getBooksGoal().count, 4);
 assert.strictEqual(context.getBooksGoal().period, 'month');
-assert.strictEqual(context.booksCompletedInPeriod(), 2);
+storage.set('aegis_books_goal', JSON.stringify({
+  count: 4,
+  period: 'month',
+  since: '2026-09-01T00:00:00Z',
+}));
+assert.strictEqual(context.booksCompletedInPeriod(new Date('2026-09-15T00:00:00Z')), 2);
+assert.strictEqual(context.booksCompletedInPeriod(new Date('2026-10-15T00:00:00Z')), 0);
 assert.strictEqual(widgetRenders, 1);
 context.setBooksGoal(0, 'month');
 assert.strictEqual(context.getBooksGoal(), null);
