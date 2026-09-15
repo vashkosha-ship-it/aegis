@@ -22,10 +22,31 @@ function setBooksGoal(count, period) {
   showToast(count ? `Цель: ${count} книг / ${period === 'month' ? 'месяц' : period === 'quarter' ? 'квартал' : 'год'}` : 'Цель снята');
 }
 
-function booksCompletedInPeriod() {
-  if (!getBooksGoal()) return 0;
-  // У записей списка пока нет даты завершения, поэтому учитываются все completed.
-  return Object.values(state.mylist || {}).filter(s => s === 'completed').length;
+function booksGoalPeriodBounds(goal, now = new Date()) {
+  const start = new Date(goal?.since || now);
+  if (Number.isNaN(start.getTime())) return null;
+  const months = goal.period === 'month' ? 1 : goal.period === 'year' ? 12 : 3;
+  let end = new Date(start);
+  end.setUTCMonth(end.getUTCMonth() + months);
+  while (end <= now) {
+    start.setUTCMonth(start.getUTCMonth() + months);
+    end = new Date(start);
+    end.setUTCMonth(end.getUTCMonth() + months);
+  }
+  return { start, end };
+}
+
+function booksCompletedInPeriod(now = new Date()) {
+  const goal = getBooksGoal();
+  if (!goal) return 0;
+  const bounds = booksGoalPeriodBounds(goal, now);
+  if (!bounds) return 0;
+  return Object.values(state.mylistCompletedAt || {}).filter(value => {
+    const completedAt = new Date(value);
+    return !Number.isNaN(completedAt.getTime())
+      && completedAt >= bounds.start
+      && completedAt < bounds.end;
+  }).length;
 }
 
 function getReadingGoal() { return parseInt(lsGet(READING_GOAL_KEY) || '20', 10); }

@@ -20,6 +20,6 @@ for (const id of ['avatarHome', 'avatarMylist', 'avatarTraining']) {
 }
 assert.equal((index.match(/data-screen="profile"/g) || []).length, 2,
   'profile remains available in desktop sidebar and bottom navigation');
-assert.match(index, /id="bulkGenerateDescriptions" checked/);
+assert.doesNotMatch(index, /id="bulkGenerateDescriptions"/);
 
 console.log('Session, PWA and navigation tests passed');

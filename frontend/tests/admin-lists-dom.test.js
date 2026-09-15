@@ -23,11 +23,12 @@ const context = {
   ICONS: {
     star: '<svg data-icon="star"></svg>',
     settings: '<svg data-icon="settings"></svg>',
+    settingsGear: '<svg data-icon="settings-gear"></svg>',
     trash: '<svg data-icon="trash"></svg>',
   },
   appendTrustedIcon: (container, markup) => {
     const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml');
-    container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
+    return container.appendChild(dom.window.document.importNode(parsed.documentElement, true));
   },
   bookCategoriesText: book => book.categories,
   openBookAnalyticsModal: id => calls.push(['analytics', id]),
@@ -56,6 +57,9 @@ assert.equal(tbody.querySelectorAll('tr').length, 1);
 assert.match(tbody.textContent, /<img src=x/);
 assert.equal(tbody.querySelector('img, script'), null);
 assert.equal(tbody.querySelectorAll('button').length, 3);
+assert.equal(tbody.querySelectorAll('[data-icon="settings-gear"]').length, 1);
+assert.equal(tbody.querySelectorAll('[data-icon="trash"]').length, 1);
+assert.equal(tbody.querySelectorAll('button[aria-label]').length, 2);
 tbody.querySelectorAll('button')[2].click();
 assert.deepEqual(calls.pop(), ['book-delete', payload]);
 

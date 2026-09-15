@@ -161,6 +161,7 @@ class TestBookCompletion:
         )
         assert entry is not None
         assert entry.status == MyListStatus.COMPLETED
+        assert entry.completed_at is not None
 
     async def test_completion_awards_xp_once(self, client, db, approved_user):
         """Повторный выход на последнюю страницу не должен доначислять XP."""

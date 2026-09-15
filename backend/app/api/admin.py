@@ -301,8 +301,7 @@ async def export_reading_xlsx(
 ):
     """Выгрузка в Excel: ФИО, подразделение, прочитанные книги за период.
 
-    Период считается по дате завершения чтения (updated_at записи со статусом
-    completed).
+    Период считается по постоянной дате первого завершения книги.
     """
     try:
         df, dt = excel_export.parse_period(date_from, date_to)
@@ -311,18 +310,18 @@ async def export_reading_xlsx(
             status_code=400, detail="Неверный формат даты (нужен ГГГГ-ММ-ДД)"
         ) from e
 
-    conds = [MyListEntry.status == MyListStatus.COMPLETED]
+    conds = [MyListEntry.completed_at.is_not(None)]
     if df:
-        conds.append(MyListEntry.updated_at >= df)
+        conds.append(MyListEntry.completed_at >= df)
     if dt:
-        conds.append(MyListEntry.updated_at <= dt)
+        conds.append(MyListEntry.completed_at < dt)
 
     stmt = (
-        select(User, Book, MyListEntry.updated_at)
+        select(User, Book, MyListEntry.completed_at)
         .join(MyListEntry, MyListEntry.user_id == User.id)
         .join(Book, Book.id == MyListEntry.book_id)
         .where(and_(*conds))
-        .order_by(User.full_name.asc().nulls_last(), MyListEntry.updated_at.asc())
+        .order_by(User.full_name.asc().nulls_last(), MyListEntry.completed_at.asc())
     )
     rows = (await db.execute(stmt)).all()
 

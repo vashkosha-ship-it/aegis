@@ -83,6 +83,11 @@ class MyListEntry(Base):
     status: Mapped[MyListStatus] = mapped_column(
         SAEnum(MyListStatus, name="mylist_status"), nullable=False
     )
+    # Первая подтверждённая дата завершения. updated_at для истории не
+    # подходит: она меняется при любом последующем редактировании статуса.
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )

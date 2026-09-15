@@ -260,7 +260,8 @@ jobs:
         run: node tests/ai-responses.test.js
 
       - name: Тест статических AR-компонентов
-        run: node tests/ar-static-ui-dom.test.js
+        run: |
+          node tests/ar-static-ui-dom.test.js
           node tests/ar-stage-panel-dom.test.js
           node tests/ar-scheme-shell-dom.test.js
 
@@ -283,7 +284,8 @@ jobs:
         run: node tests/dynamic-styles.test.js
 
       - name: Тест безопасных DOM-операций
-        run: node tests/dom-mutations.test.js
+        run: |
+          node tests/dom-mutations.test.js
           node tests/app-markup-sanitizer.test.js
 
       - name: Тест безопасных DOM-фрагментов

@@ -13,6 +13,7 @@ from app.models.library import (
     Annotation,
     DailyPagesRead,
     MyListEntry,
+    MyListStatus,
     ReadingProgress,
     Review,
 )
@@ -108,6 +109,8 @@ async def set_mylist_status(
     else:
         entry = MyListEntry(user_id=current.id, book_id=book_id, status=payload.status)
         db.add(entry)
+    if payload.status == MyListStatus.COMPLETED and entry.completed_at is None:
+        entry.completed_at = datetime.now(UTC)
 
     await db.commit()
     await db.refresh(entry)

@@ -92,11 +92,12 @@ def parse_period(
     date_from: str | None, date_to: str | None
 ) -> tuple[datetime | None, datetime | None]:
     """Разобрать границы периода из ISO-строк. ValueError при плохом формате."""
-    from datetime import UTC
+    from datetime import UTC, timedelta
 
     df = dt = None
     if date_from:
         df = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
     if date_to:
-        dt = datetime.fromisoformat(date_to).replace(tzinfo=UTC)
+        # Верхняя граница исключающая: дата 2026-01-31 включает весь этот день.
+        dt = datetime.fromisoformat(date_to).replace(tzinfo=UTC) + timedelta(days=1)
     return df, dt

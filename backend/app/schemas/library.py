@@ -28,6 +28,7 @@ class MyListUpdate(BaseModel):
 class MyListEntryPublic(BaseModel):
     book_id: int
     status: MyListStatus
+    completed_at: datetime | None
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
