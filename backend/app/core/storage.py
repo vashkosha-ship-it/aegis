@@ -1,15 +1,12 @@
-"""Storage backend abstraction.
-
-Этап 2: используется LocalStorage (файлы пишутся в локальную папку).
-Этап 4: добавится S3Storage (boto3/aioboto3), переключение через STORAGE_BACKEND в .env.
-Контракт сознательно минимален — ровно столько, сколько нужно роутерам книг.
-"""
+"""Абстракция файлового хранилища Aegis."""
 from __future__ import annotations
 
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 import aiofiles
@@ -26,6 +23,15 @@ class StorageError(Exception):
 
 class StorageNotFound(StorageError):
     """Запрашиваемого ключа нет в хранилище."""
+
+
+@dataclass(frozen=True, slots=True)
+class StorageObject:
+    """Метаданные объекта без раскрытия абсолютного пути хранилища."""
+
+    key: str
+    size_bytes: int
+    modified_at: datetime
 
 
 # --- интерфейс --------------------------------------------------------------
@@ -75,6 +81,15 @@ class StorageBackend(ABC):
         StorageNotFound, если ключа нет.
         """
 
+    async def list_objects(self, prefixes: tuple[str, ...]) -> list[StorageObject]:
+        """Перечислить объекты под управляемыми префиксами.
+
+        Не абстрактный метод сохраняет совместимость с тестовыми и будущими
+        реализациями хранилища. Бэкенд обязан реализовать его до включения
+        сверки файлов.
+        """
+        raise StorageError("Storage backend does not support object listing")
+
     # Утилита: генерация нового уникального ключа.
     # Здесь, а не в роутере, чтобы при переезде на S3 можно было
     # подмешать в ключ префикс/шардинг без правок в API.
@@ -88,7 +103,7 @@ class StorageBackend(ABC):
 
 
 class LocalStorage(StorageBackend):
-    """Хранение файлов в локальной папке. Подходит для разработки."""
+    """Хранение файлов в локальной папке."""
 
     # Размер чанка для чтения/записи. 1 МБ — хороший баланс для PDF.
     CHUNK_SIZE = 1024 * 1024
@@ -202,6 +217,38 @@ class LocalStorage(StorageBackend):
 
         return _iter()
 
+    async def list_objects(self, prefixes: tuple[str, ...]) -> list[StorageObject]:
+        """Безопасно просканировать только явно разрешённые префиксы."""
+
+        def _scan() -> list[StorageObject]:
+            objects: list[StorageObject] = []
+            for prefix in prefixes:
+                prefix_path = self._resolve(prefix.strip("/"))
+                if not prefix_path.is_dir():
+                    continue
+                for path in prefix_path.rglob("*"):
+                    try:
+                        # Симлинки не считаем объектами: они могут вести за root.
+                        if path.is_symlink() or not path.is_file():
+                            continue
+                        resolved = path.resolve()
+                        if not resolved.is_relative_to(self.root):
+                            continue
+                        stat = resolved.stat()
+                    except FileNotFoundError:
+                        # Файл мог исчезнуть при параллельной замене.
+                        continue
+                    objects.append(
+                        StorageObject(
+                            key=resolved.relative_to(self.root).as_posix(),
+                            size_bytes=stat.st_size,
+                            modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+                        )
+                    )
+            return sorted(objects, key=lambda item: item.key)
+
+        return await asyncio.to_thread(_scan)
+
 
 # --- фабрика ----------------------------------------------------------------
 
@@ -210,9 +257,6 @@ def _build_storage() -> StorageBackend:
     backend = settings.STORAGE_BACKEND.lower()
     if backend == "local":
         return LocalStorage(Path(settings.STORAGE_LOCAL_PATH))
-    # На Этапе 4 здесь появится:
-    # if backend == "s3":
-    #     return S3Storage(...)
     raise RuntimeError(f"Unknown STORAGE_BACKEND: {settings.STORAGE_BACKEND!r}")
 
 

@@ -1,5 +1,7 @@
 """Admin endpoints: dashboard stats, user management, book analytics."""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import and_, func, select
@@ -7,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
 from app.core.security import hash_password
+from app.core.storage import StorageBackend, StorageError, get_storage
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.library import MyListEntry, MyListStatus, ReadingProgress, Review
@@ -20,10 +23,74 @@ from app.schemas.admin import (
     DashboardStats,
     MyListBreakdown,
     PendingUserView,
+    StorageAuditView,
+    StorageCleanupView,
 )
 from app.services import excel_export
+from app.services.storage_integrity import audit_storage, delete_orphaned_storage
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def _storage_audit_view(audit) -> dict:
+    return {
+        "referenced_count": audit.referenced_count,
+        "stored_count": audit.stored_count,
+        "orphan_count": len(audit.orphan_objects),
+        "orphan_bytes": sum(item.size_bytes for item in audit.orphan_objects),
+        "recent_unreferenced_count": len(audit.recent_unreferenced_objects),
+        "missing_count": len(audit.missing_keys),
+        "orphan_keys": [item.key for item in audit.orphan_objects],
+        "missing_keys": list(audit.missing_keys),
+    }
+
+
+@router.get("/storage/audit", response_model=StorageAuditView)
+async def storage_audit(
+    grace_hours: int = Query(24, ge=1, le=720),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> StorageAuditView:
+    """Сверить управляемые файлы со ссылками в БД без изменения данных."""
+    try:
+        audit = await audit_storage(db, storage, grace_hours=grace_hours)
+    except StorageError as exc:
+        raise HTTPException(status_code=501, detail=str(exc)) from exc
+    return StorageAuditView(**_storage_audit_view(audit))
+
+
+@router.post("/storage/cleanup-orphans", response_model=StorageCleanupView)
+async def cleanup_orphaned_storage(
+    grace_hours: int = Query(24, ge=1, le=720),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> StorageCleanupView:
+    """Удалить только файлы-сироты старше защитного интервала."""
+    try:
+        audit, deleted, failed = await delete_orphaned_storage(
+            db, storage, grace_hours=grace_hours
+        )
+    except StorageError as exc:
+        raise HTTPException(status_code=501, detail=str(exc)) from exc
+    deleted_set = set(deleted)
+    deleted_bytes = sum(
+        item.size_bytes for item in audit.orphan_objects if item.key in deleted_set
+    )
+    logger.info(
+        "Admin %s cleaned orphaned storage: deleted=%d failed=%d",
+        admin.id,
+        len(deleted),
+        len(failed),
+    )
+    return StorageCleanupView(
+        **_storage_audit_view(audit),
+        deleted_count=len(deleted),
+        deleted_bytes=deleted_bytes,
+        failed_keys=list(failed),
+    )
 
 
 # ============================================================================

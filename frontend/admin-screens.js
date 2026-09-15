@@ -1393,6 +1393,7 @@ function renderAdminBooks() {
       <button id="adminBulkUploadBtn" data-static-style="a545">Массовая загрузка</button>
       <button id="adminReindexBtn" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">Индексировать поиск</button>
       <button id="adminLogsBtn" title="Журнал действий администраторов" data-static-style="a547">Журнал</button>
+      <button id="adminStorageAuditBtn" title="Проверить файлы книг, обложек и аватаров" data-static-style="a547">Хранилище</button>
       <button id="adminCoversBtn" title="Создать обложки для книг без обложки" data-static-style="a547">Обложки</button>
       <button id="adminArMatchBtn" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">Подобрать книги для AR</button>
       <button id="adminRegenerateQuizzesBtn" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">Перегенерировать тесты</button>
@@ -1406,11 +1407,45 @@ function renderAdminBooks() {
   document.getElementById('adminBulkUploadBtn').addEventListener('click', openBulkUploadModal);
   document.getElementById('adminReindexBtn').addEventListener('click', reindexAllBooksUI);
   document.getElementById('adminLogsBtn').addEventListener('click', openAdminLogs);
+  document.getElementById('adminStorageAuditBtn').addEventListener('click', auditStorageUI);
   document.getElementById('adminCoversBtn').addEventListener('click', generateMissingCoversUI);
   document.getElementById('adminArMatchBtn').addEventListener('click', aiMatchArBooksUI);
   document.getElementById('adminRegenerateQuizzesBtn').addEventListener('click', regenerateAllQuizzesUI);
   document.getElementById('adminBooksCount').textContent = String(state.books.length);
   renderAdminBookRows(document.getElementById('adminBooksTableBody'), state.books);
+}
+
+async function auditStorageUI() {
+  try {
+    const report = await api.library.adminStorageAudit();
+    const missing = report.missing_count || 0;
+    const orphans = report.orphan_count || 0;
+    const recent = report.recent_unreferenced_count || 0;
+    if (!orphans) {
+      showToast(
+        `Хранилище проверено: сирот нет, потерянных ссылок ${missing}`
+        + (recent ? `, новых неподтверждённых файлов ${recent}` : ''),
+      );
+      return;
+    }
+    showConfirmModal({
+      title: 'Очистить хранилище?',
+      message: `Найдено старых файлов без ссылок: ${orphans}. Потерянных ссылок: ${missing}. Новые файлы младше суток (${recent}) защищены и удалены не будут.`,
+      confirmText: 'Удалить сироты',
+      cancelText: 'Оставить',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const result = await api.library.adminCleanupStorage();
+          showToast(`Удалено файлов: ${result.deleted_count}. Ошибок: ${result.failed_keys.length}.`);
+        } catch (error) {
+          showToast(error && error.detail ? error.detail : 'Не удалось очистить хранилище');
+        }
+      },
+    });
+  } catch (error) {
+    showToast(error && error.detail ? error.detail : 'Не удалось проверить хранилище');
+  }
 }
 // ========== МАССОВАЯ ЗАГРУЗКА КНИГ ==========
 

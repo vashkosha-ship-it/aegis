@@ -201,6 +201,12 @@ def main(base: str) -> int:
         reviews_code in {401, 403},
         f"ожидался 401/403, получен код {reviews_code}",
     )
+    storage_audit_code, _, _ = fetch(base + "/api/admin/storage/audit")
+    check(
+        "аудит хранилища существует и доступен только администратору",
+        storage_audit_code in {401, 403},
+        f"ожидался 401/403, получен код {storage_audit_code}",
+    )
 
     print(f"\nИтого: {passed} ok, {failed} fail\n")
     return 0 if failed == 0 else 1

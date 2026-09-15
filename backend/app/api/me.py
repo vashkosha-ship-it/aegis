@@ -35,6 +35,7 @@ from app.schemas.me import (
     PasswordChangeRequest,
     PublicProfile,
 )
+from app.services.storage_integrity import commit_with_storage_cleanup
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["me"])
@@ -296,7 +297,7 @@ async def upload_my_avatar(
         raise HTTPException(status_code=413, detail=str(e)) from None
 
     current.avatar_url = new_key
-    await db.commit()
+    await commit_with_storage_cleanup(db, storage, new_key)
     await db.refresh(current)
 
     # Удаляем старый файл уже после коммита, чтобы не убить аватар при ошибке БД
