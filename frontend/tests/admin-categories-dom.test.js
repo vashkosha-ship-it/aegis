@@ -12,6 +12,7 @@ const dom = new JSDOM(`
   <div id="bulkUploadList"></div><div id="bulkUploadActions"></div>
   <div id="bulkUploadCategoryPanel"></div><div id="bulkUploadProgress"></div>
   <button id="adminSaveFieldsBtn"></button><button id="adminUploadFileBtn"></button>
+  <button id="adminReindexBookBtn"></button>
   <button id="adminDeleteFileBtn"></button><button id="adminUploadCoverBtn"></button>
   <button id="adminDeleteCoverBtn"></button><button id="adminDeleteBookBtn"></button>
   <button id="saveBookBtn"></button>

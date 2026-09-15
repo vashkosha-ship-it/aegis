@@ -292,6 +292,9 @@ jobs:
       - name: Тест безопасных статусов администратора
         run: node tests/admin-status-dom.test.js
 
+      - name: Тест постоянного статуса индексации
+        run: node tests/indexing-status.test.js
+
       - name: Тест безопасных списков администратора
         run: node tests/admin-lists-dom.test.js
 

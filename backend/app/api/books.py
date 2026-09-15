@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import (
@@ -17,6 +18,7 @@ from fastapi import (
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy import delete as sa_delete
+from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -41,6 +43,7 @@ from app.models.user import User
 from app.schemas.book import (
     BookCreate,
     BookFileUploadResult,
+    BookIndexingStatus,
     BookListResponse,
     BookPublic,
     BookUpdate,
@@ -75,21 +78,52 @@ async def _clear_book_index(db: AsyncSession, book: Book) -> None:
 
     await db.execute(sa_delete(BookPage).where(BookPage.book_id == book.id))
     book.total_pages = 0
+    book.indexing_status = "not_indexed"
+    book.indexing_error = None
+    book.indexing_job_id = None
+    book.indexing_started_at = None
+    book.indexing_finished_at = None
+    book.indexed_at = None
+    book.indexed_sections = 0
 
 
-async def _enqueue_book_index(book_id: int) -> tuple[str | None, str]:
-    """Поставить файл книги в очередь, не маскируя успешную загрузку ошибкой."""
+async def _mark_indexing_failed(db: AsyncSession, book: Book, message: str) -> None:
+    book.indexing_status = "failed"
+    book.indexing_error = message[:2000]
+    book.indexing_finished_at = datetime.now(UTC)
+    await db.commit()
+
+
+async def _enqueue_book_index(
+    db: AsyncSession, book: Book
+) -> tuple[str | None, str]:
+    """Поставить книгу в очередь и зафиксировать результат постановки в БД."""
     from app.core.queue import get_queue
+
+    # Сначала коммитим queued: быстрый воркер не должен быть перезаписан
+    # запоздалым HTTP-запросом обратно из running/succeeded в queued.
+    book.indexing_status = "queued"
+    book.indexing_error = None
+    book.indexing_job_id = None
+    book.indexing_started_at = None
+    book.indexing_finished_at = None
+    await db.commit()
 
     queue = await get_queue()
     if queue is None:
-        logger.error("Файл книги %s сохранён, но очередь индексации недоступна", book_id)
+        logger.error("Файл книги %s сохранён, но очередь индексации недоступна", book.id)
+        await _mark_indexing_failed(db, book, "Очередь индексации недоступна")
         return None, "unavailable"
     try:
-        job = await queue.enqueue_job("index_book", book_id)
-    except Exception:  # noqa: BLE001 — файл уже сохранён, повтор upload опасен
-        logger.exception("Не удалось поставить файл книги %s на индексацию", book_id)
+        job = await queue.enqueue_job("index_book", book.id)
+    except Exception as exc:  # noqa: BLE001 — файл уже сохранён, повтор upload опасен
+        logger.exception("Не удалось поставить файл книги %s на индексацию", book.id)
+        await _mark_indexing_failed(
+            db, book, f"Не удалось поставить задачу в очередь: {exc}"
+        )
         return None, "unavailable"
+    book.indexing_job_id = job.job_id
+    await db.commit()
     return job.job_id, "queued"
 
 
@@ -462,7 +496,7 @@ async def upload_book_pdf(
     await db.commit()
 
     # 5) Сразу ставим новую версию PDF на полнотекстовую индексацию.
-    index_job_id, indexing_status = await _enqueue_book_index(book_id)
+    index_job_id, indexing_status = await _enqueue_book_index(db, book)
 
     # 6) Чистим прежний активный файл независимо от его формата.
     replaced = bool(old_pdf_key or old_epub_key)
@@ -535,7 +569,7 @@ async def upload_book_epub(
     await _clear_book_index(db, book)
     await db.commit()
 
-    index_job_id, indexing_status = await _enqueue_book_index(book_id)
+    index_job_id, indexing_status = await _enqueue_book_index(db, book)
 
     replaced = bool(old_pdf_key or old_epub_key)
     for old_key in (old_pdf_key, old_epub_key):
@@ -580,25 +614,42 @@ async def reindex_book(
     Индексация идёт в фоновом воркере: на большой книге она занимает минуты,
     и держать всё это время HTTP-соединение (и воркер gunicorn) нельзя.
     """
-    from app.core.queue import get_queue
-
     book = await _get_book_or_404(db, book_id)
     if not (book.pdf_storage_key or book.epub_storage_key):
         raise HTTPException(status_code=400, detail="У книги нет файла для индексации")
 
-    queue = await get_queue()
-    if queue is None:
+    job_id, queue_status = await _enqueue_book_index(db, book)
+    if queue_status != "queued":
         raise HTTPException(
             status_code=503,
-            detail="Очередь задач недоступна: не настроен REDIS_URL",
+            detail="Очередь задач недоступна; ошибка сохранена в статусе книги",
         )
+    return {"book_id": book_id, "job_id": job_id, "status": "queued"}
 
-    job = await queue.enqueue_job("index_book", book_id)
-    return {"book_id": book_id, "job_id": job.job_id, "status": "queued"}
+
+@router.get("/{book_id}/index-status", response_model=BookIndexingStatus)
+async def book_index_status(
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> BookIndexingStatus:
+    """Admin only: постоянный статус последней попытки индексации книги."""
+    book = await _get_book_or_404(db, book_id)
+    return BookIndexingStatus(
+        book_id=book.id,
+        status=book.indexing_status,
+        job_id=book.indexing_job_id,
+        error=book.indexing_error,
+        started_at=book.indexing_started_at,
+        finished_at=book.indexing_finished_at,
+        indexed_at=book.indexed_at,
+        indexed_sections=book.indexed_sections,
+    )
 
 
 @router.post("/reindex-all", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_all_books(
+    db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ) -> dict:
     """Admin only: поставить в очередь индексацию всех книг с PDF или EPUB."""
@@ -611,7 +662,42 @@ async def reindex_all_books(
             detail="Очередь задач недоступна: не настроен REDIS_URL",
         )
 
-    job = await queue.enqueue_job("index_all_books")
+    file_filter = or_(
+        Book.pdf_storage_key.isnot(None),
+        Book.epub_storage_key.isnot(None),
+    )
+    await db.execute(
+        sa_update(Book)
+        .where(file_filter)
+        .values(
+            indexing_status="queued", indexing_error=None, indexing_job_id=None,
+            indexing_started_at=None, indexing_finished_at=None,
+        )
+    )
+    await db.commit()
+    try:
+        job = await queue.enqueue_job("index_all_books")
+    except Exception as exc:  # noqa: BLE001
+        await db.execute(
+            sa_update(Book)
+            .where(file_filter, Book.indexing_status == "queued")
+            .values(
+                indexing_status="failed",
+                indexing_error=f"Не удалось поставить массовую индексацию: {exc}"[:2000],
+                indexing_finished_at=datetime.now(UTC),
+            )
+        )
+        await db.commit()
+        raise HTTPException(status_code=503, detail="Не удалось запустить индексацию") from None
+
+    # Меняем только job id: если воркер уже успел перевести книгу в running,
+    # её фактический статус останется нетронутым.
+    await db.execute(
+        sa_update(Book)
+        .where(file_filter, Book.indexing_status == "queued")
+        .values(indexing_job_id=job.job_id)
+    )
+    await db.commit()
     # Кладём id в Redis: статус спрашивает другой запрос (и, возможно, другой
     # воркер gunicorn), поэтому в памяти процесса его хранить нельзя.
     try:
@@ -751,52 +837,35 @@ async def reindex_status(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ) -> dict:
-    """Admin only: прогресс индексации.
-
-    Прогресс считаем по числу книг, у которых уже появился текст: воркер
-    обрабатывает книги по одной и коммитит каждую, поэтому счётчик растёт
-    в реальном времени и переживает перезапуск веб-приложения.
-    """
-    from app.models.book_page import BookPage
-
+    """Admin only: прогресс по постоянным статусам книг в PostgreSQL."""
+    file_filter = or_(
+        Book.pdf_storage_key.isnot(None),
+        Book.epub_storage_key.isnot(None),
+    )
     total = await db.scalar(
         select(func.count())
         .select_from(Book)
-        .where(
-            or_(
-                Book.pdf_storage_key.isnot(None),
-                Book.epub_storage_key.isnot(None),
-            )
-        )
+        .where(file_filter)
     ) or 0
-    done = await db.scalar(select(func.count(func.distinct(BookPage.book_id)))) or 0
-    pages = await db.scalar(select(func.count()).select_from(BookPage)) or 0
+    done = await db.scalar(
+        select(func.count()).select_from(Book)
+        .where(file_filter, Book.indexing_status == "succeeded")
+    ) or 0
+    errors = await db.scalar(
+        select(func.count()).select_from(Book)
+        .where(file_filter, Book.indexing_status == "failed")
+    ) or 0
+    active = await db.scalar(
+        select(func.count()).select_from(Book)
+        .where(file_filter, Book.indexing_status.in_(("queued", "running")))
+    ) or 0
+    pages = await db.scalar(
+        select(func.coalesce(func.sum(Book.indexed_sections), 0)).where(file_filter)
+    ) or 0
 
-    finished = False
-    errors = 0
-    from app.core.queue import get_queue
-
-    queue = await get_queue()
-    if queue is not None:
-        try:
-            job_id = await queue.get(REINDEX_JOB_KEY)
-            if job_id:
-                from arq.jobs import Job
-
-                job = Job(job_id, queue)
-                if await job.status() == "complete":
-                    finished = True
-                    try:
-                        result = await job.result(timeout=1)
-                        if isinstance(result, dict):
-                            errors = result.get("failed", 0)
-                            pages = result.get("indexed_pages", pages)
-                    except Exception:  # noqa: BLE001 — задача упала
-                        errors = 1
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Не удалось получить статус задачи индексации: %s", e)
-
-    percent = int(done / total * 100) if total else 0
+    processed = done + errors
+    finished = total > 0 and active == 0 and processed == total
+    percent = int(processed / total * 100) if total else 0
     return {
         "total": total,
         "done": done,
@@ -804,6 +873,7 @@ async def reindex_status(
         "finished": finished,
         "indexed_pages": pages,
         "errors": errors,
+        "active": active,
         # старые поля — на случай, если их кто-то ещё читает
         "total_books": total,
         "indexed_books": done,

@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 const source = fs.readFileSync(path.resolve(__dirname, '..', 'admin-screens.js'), 'utf8');
-const dom = new JSDOM('<div id="adUsers"></div><button id="adminSaveFieldsBtn"></button><button id="adminUploadFileBtn"></button><button id="adminDeleteFileBtn"></button><button id="adminUploadCoverBtn"></button><button id="adminDeleteCoverBtn"></button><button id="adminDeleteBookBtn"></button><button id="saveBookBtn"></button>');
+const dom = new JSDOM('<div id="adUsers"></div><button id="adminSaveFieldsBtn"></button><button id="adminUploadFileBtn"></button><button id="adminReindexBookBtn"></button><button id="adminDeleteFileBtn"></button><button id="adminUploadCoverBtn"></button><button id="adminDeleteCoverBtn"></button><button id="adminDeleteBookBtn"></button><button id="saveBookBtn"></button>');
 const calls = [];
 const context = {
   document: dom.window.document, console,

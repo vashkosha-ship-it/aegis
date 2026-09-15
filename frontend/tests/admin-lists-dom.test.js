@@ -11,6 +11,7 @@ const source = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
 const dom = new JSDOM(`
   <table><tbody id="books"></tbody></table><div id="reviews"></div>
   <button id="adminSaveFieldsBtn"></button><button id="adminUploadFileBtn"></button>
+  <button id="adminReindexBookBtn"></button>
   <button id="adminDeleteFileBtn"></button><button id="adminUploadCoverBtn"></button>
   <button id="adminDeleteCoverBtn"></button><button id="adminDeleteBookBtn"></button>
   <button id="saveBookBtn"></button>

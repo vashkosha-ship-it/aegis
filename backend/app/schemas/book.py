@@ -96,6 +96,13 @@ class BookPublic(BookBase):
     has_epub: bool = False
     has_file: bool = False
     has_cover: bool = False
+    indexing_status: Literal[
+        "not_indexed", "queued", "running", "succeeded", "failed"
+    ] = "not_indexed"
+    indexing_started_at: datetime | None = None
+    indexing_finished_at: datetime | None = None
+    indexed_at: datetime | None = None
+    indexed_sections: int = 0
     date_published: date | None
     created_at: datetime
 
@@ -127,6 +134,19 @@ class BookFileUploadResult(BaseModel):
     replaced: bool
     index_job_id: str | None = None
     indexing_status: Literal["queued", "not_applicable", "unavailable"] = "not_applicable"
+
+
+class BookIndexingStatus(BaseModel):
+    """Полный статус индексации, доступный только администратору."""
+
+    book_id: int
+    status: Literal["not_indexed", "queued", "running", "succeeded", "failed"]
+    job_id: str | None = None
+    error: str | None = None
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    indexed_at: datetime | None = None
+    indexed_sections: int = 0
 
 class RequiredBookSet(BaseModel):
     """Пометить книгу обязательной для подразделения. None — снять пометку."""
