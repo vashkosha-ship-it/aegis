@@ -43,7 +43,7 @@ GITHUB_REPO="vashkosha-ship-it/aegis"
 # e2e сюда не входит намеренно: он запускается вручную и по расписанию, а не
 # на каждый коммит, поэтому для свежего коммита его результата просто нет.
 # Требовать его — значит блокировать любую выкатку.
-REQUIRED_JOBS="backend security"
+REQUIRED_JOBS="backend frontend security"
 
 FORCE=0
 ROLLBACK=0

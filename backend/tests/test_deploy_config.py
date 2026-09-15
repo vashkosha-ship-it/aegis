@@ -437,4 +437,8 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v301" in service_worker
+        assert "aegis-cache-v302" in service_worker
+
+    def test_deploy_requires_frontend_ci(self):
+        deploy_script = (REPO / "deploy.sh").read_text(encoding="utf-8")
+        assert 'REQUIRED_JOBS="backend frontend security"' in deploy_script

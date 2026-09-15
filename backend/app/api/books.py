@@ -51,6 +51,7 @@ from app.schemas.book import (
 from app.services import books as books_service
 from app.services.books import BookNotFound, InvalidStorageKey
 from app.services.deepseek_client import DeepSeekError
+from app.services.storage_integrity import commit_with_storage_cleanup
 
 logger = logging.getLogger(__name__)
 
@@ -493,7 +494,7 @@ async def upload_book_pdf(
     book.epub_storage_key = None
     book.file_format = "pdf"
     await _clear_book_index(db, book)
-    await db.commit()
+    await commit_with_storage_cleanup(db, storage, new_key)
 
     # 5) Сразу ставим новую версию PDF на полнотекстовую индексацию.
     index_job_id, indexing_status = await _enqueue_book_index(db, book)
@@ -567,7 +568,7 @@ async def upload_book_epub(
     book.file_format = "epub"
     # Индекс прежней версии не должен оставаться доступным после смены файла.
     await _clear_book_index(db, book)
-    await db.commit()
+    await commit_with_storage_cleanup(db, storage, new_key)
 
     index_job_id, indexing_status = await _enqueue_book_index(db, book)
 
@@ -1151,7 +1152,7 @@ async def upload_book_cover(
         raise HTTPException(status_code=413, detail=str(e)) from None
 
     book.cover_storage_key = new_key
-    await db.commit()
+    await commit_with_storage_cleanup(db, storage, new_key)
 
     replaced = bool(old_key)
     if replaced:

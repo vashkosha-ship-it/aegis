@@ -67,6 +67,23 @@ class CreateUserRequest(BaseModel):
     department: str | None = Field(default=None, max_length=64)
 
 
+class StorageAuditView(BaseModel):
+    referenced_count: int
+    stored_count: int
+    orphan_count: int
+    orphan_bytes: int
+    recent_unreferenced_count: int
+    missing_count: int
+    orphan_keys: list[str]
+    missing_keys: list[str]
+
+
+class StorageCleanupView(StorageAuditView):
+    deleted_count: int
+    deleted_bytes: int
+    failed_keys: list[str]
+
+
 # ---------------------------------------------------------------------------
 # Аналитика книги
 # ---------------------------------------------------------------------------

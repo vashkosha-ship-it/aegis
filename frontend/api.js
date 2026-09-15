@@ -507,6 +507,14 @@
         return request('/admin/books/' + bookId + '/analytics');
       },
 
+      adminStorageAudit(graceHours = 24) {
+        return request('/admin/storage/audit?grace_hours=' + encodeURIComponent(graceHours));
+      },
+
+      adminCleanupStorage(graceHours = 24) {
+        return request('/admin/storage/cleanup-orphans?grace_hours=' + encodeURIComponent(graceHours), { method: 'POST' });
+      },
+
       adminPendingUsers() {
         return request('/admin/users/pending');
       },
