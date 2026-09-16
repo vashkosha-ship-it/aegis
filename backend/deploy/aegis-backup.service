@@ -11,7 +11,7 @@ Group=root
 WorkingDirectory=/opt/aegis/backend
 EnvironmentFile=/opt/aegis/backend/.env
 Environment="AEGIS_BACKUP_DIR=/var/backups/aegis"
-Environment="AEGIS_BACKUP_KEEP_DAYS=14"
+Environment="AEGIS_BACKUP_KEEP_COUNT=1"
 ExecStart=/bin/bash /opt/aegis/backend/deploy/backup.sh
 
 UMask=0077

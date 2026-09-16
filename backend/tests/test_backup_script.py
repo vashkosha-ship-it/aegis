@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import os
 import subprocess
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -34,7 +35,7 @@ def test_backup_is_complete_and_checksummed(tmp_path):
         "STORAGE_BACKEND": "local",
         "STORAGE_LOCAL_PATH": str(storage),
         "AEGIS_BACKUP_DIR": str(backup_dir),
-        "AEGIS_BACKUP_KEEP_DAYS": "14",
+        "AEGIS_BACKUP_KEEP_COUNT": "1",
     }
     result = subprocess.run(
         ["bash", str(SCRIPT)],
@@ -59,6 +60,20 @@ def test_backup_is_complete_and_checksummed(tmp_path):
     for filename in ("database.dump", "storage.tar.gz"):
         actual = hashlib.sha256((backup / filename).read_bytes()).hexdigest()
         assert sums[filename] == actual
+
+    first_storage_inode = (backup / "storage.tar.gz").stat().st_ino
+    time.sleep(1.1)  # имена завершённых копий имеют точность до секунды
+    second = subprocess.run(
+        ["bash", str(SCRIPT)],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    completed = [path for path in backup_dir.iterdir() if not path.name.startswith(".")]
+    assert len(completed) == 1
+    assert "reused unchanged storage archive" in second.stdout
+    assert (completed[0] / "storage.tar.gz").stat().st_ino == first_storage_inode
 
 
 def test_backup_refuses_partial_s3_copy(tmp_path):
