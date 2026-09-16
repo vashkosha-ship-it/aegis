@@ -1078,6 +1078,46 @@ document.getElementById('adminSaveFieldsBtn').addEventListener('click', async ()
   }
 });
 
+async function generateAdminBookDescription() {
+  if (!adminBookModalCurrentId) return;
+  const button = document.getElementById('adminGenerateDescriptionBtn');
+  const textarea = document.getElementById('adminEditDescription');
+  if (!button || !textarea) return;
+
+  const run = async () => {
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Создание…';
+    try {
+      const book = await api.books.generateDescription(adminBookModalCurrentId);
+      textarea.value = book.description || '';
+      const cached = (state.books || []).find(item => item.id === adminBookModalCurrentId);
+      if (cached) cached.description = textarea.value;
+      showToast('ИИ-описание создано и сохранено');
+    } catch (error) {
+      showToast('Не удалось создать описание: ' + (error.detail || error.message));
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  };
+
+  if (textarea.value.trim()) {
+    showConfirmModal({
+      title: 'Пересоздать описание?',
+      message: 'Текущее описание будет заменено новым вариантом.',
+      confirmText: 'Пересоздать',
+      cancelText: 'Отмена',
+      onConfirm: run,
+    });
+    return;
+  }
+  await run();
+}
+
+document.getElementById('adminGenerateDescriptionBtn')
+  ?.addEventListener('click', generateAdminBookDescription);
+
 document.getElementById('adminUploadFileBtn').addEventListener('click', async () => {
   if (!adminBookModalCurrentId) return;
   const file = document.getElementById('adminBookFileInput').files[0];
