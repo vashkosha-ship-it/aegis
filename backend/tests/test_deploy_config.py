@@ -361,8 +361,23 @@ class TestBackupConfiguration:
         assert "set -euo pipefail" in script
         assert "pg_dump --format=custom" in script
         assert "sha256sum database.dump storage.tar.gz" in script
-        assert "AEGIS_BACKUP_KEEP_DAYS" in script
+        assert "AEGIS_BACKUP_KEEP_COUNT" in script
+        assert (
+            'Environment="AEGIS_BACKUP_KEEP_COUNT=1"'
+            in _active_lines(BACKUP_SERVICE)
+        )
+        assert "AEGIS_BACKUP_MIN_FREE_BYTES" in script
+        assert "STORAGE_MANIFEST_SHA256" in script
+        assert 'ln "$latest_backup/storage.tar.gz"' in script
         assert ".incomplete-" in script
+
+    def test_healthcheck_reports_storage_and_backup_capacity(self):
+        script = HEALTHCHECK.read_text(encoding="utf-8")
+        assert 'storage_path="$APP_DIR/backend/storage"' in script
+        assert 'backup_path="/var/backups/aegis"' in script
+        assert "безопасный предел 75%" in script
+        assert "резервные копии:" in script
+        assert "моложе 36 часов" in script
 
     def test_restore_requires_integrity_check_and_safety_copy(self):
         document = RESTORE_DOC.read_text(encoding="utf-8")

@@ -261,10 +261,41 @@ fi
 section "Диск и логи"
 
 disk_use=$(df --output=pcent / | tail -1 | tr -dc '0-9')
-if [ "$disk_use" -lt 85 ]; then
+if [ "$disk_use" -lt 75 ]; then
     ok "диск занят на ${disk_use}%"
 else
-    fail "диск занят на ${disk_use}%" "проверьте /opt/aegis/backend/storage и journalctl --disk-usage"
+    fail "диск занят на ${disk_use}% (безопасный предел 75%)" \
+        "проверьте $APP_DIR/backend/storage и /var/backups/aegis"
+fi
+
+storage_path="$APP_DIR/backend/storage"
+backup_path="/var/backups/aegis"
+if [ -d "$storage_path" ]; then
+    storage_size=$(du -sh "$storage_path" 2>/dev/null | cut -f1)
+    storage_bytes=$(du -sb "$storage_path" 2>/dev/null | cut -f1)
+    gray "    файлы книг: $storage_size"
+fi
+if [ -d "$backup_path" ]; then
+    backup_size=$(du -sh "$backup_path" 2>/dev/null | cut -f1)
+    backup_bytes=$(du -sb "$backup_path" 2>/dev/null | cut -f1)
+    gray "    резервные копии: $backup_size"
+    if [ "${storage_bytes:-0}" -gt 0 ] \
+        && [ "$backup_bytes" -gt $((storage_bytes * 4)) ]; then
+        gray "  ⚠ backup занимает больше четырёх размеров storage; старые полные архивы ещё не истекли"
+    fi
+
+    latest_backup=$(find "$backup_path" -mindepth 1 -maxdepth 1 -type d \
+        -name '????????T??????Z' -printf '%T@ %p\n' 2>/dev/null \
+        | sort -nr | head -1 | cut -d' ' -f2-)
+    if [ -n "$latest_backup" ] \
+        && find "$latest_backup" -maxdepth 0 -mmin -2160 | grep -q .; then
+        ok "свежая резервная копия существует"
+    else
+        fail "нет резервной копии моложе 36 часов" \
+            "systemctl status aegis-backup.service"
+    fi
+else
+    fail "каталог резервных копий отсутствует" "проверьте aegis-backup.timer"
 fi
 
 journal_size=$(journalctl --disk-usage 2>/dev/null | grep -o '[0-9.]*[GM]' | head -1)
