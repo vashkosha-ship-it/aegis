@@ -5,13 +5,14 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { groups, readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
 const read = name => fs.readFileSync(path.join(frontend, name), 'utf8');
 
 const app = read('app.js');
 const auth = read('auth-ui.js');
-const account = read('account-settings.js');
+const account = readGroup('account');
 const index = read('index.html');
 const worker = read('sw.js');
 
@@ -23,7 +24,7 @@ for (const symbol of ['renderSettingsScreen', 'renderSettingsSecurityTab', 'open
   assert.match(account, new RegExp(`function ${symbol}\\s*\\(`));
   assert.doesNotMatch(app, new RegExp(`function ${symbol}\\s*\\(`));
 }
-for (const name of ['auth-ui.js', 'account-settings.js']) {
+for (const name of ['auth-ui.js', ...groups.account]) {
   assert(index.indexOf(`src="${name}"`) < index.indexOf('src="app.js"'));
   assert(worker.includes(`'/${name}'`));
 }

@@ -23,10 +23,20 @@ INDEX_HTML = REPO / "frontend" / "index.html"
 APP_JS = REPO / "frontend" / "app.js"
 EXTRACTED_TEMPLATE_JS = [
     REPO / "frontend" / "ar-schemes.js",
+    REPO / "frontend" / "ar-schemes-data.js",
+    REPO / "frontend" / "ar-schemes-renderers.js",
+    REPO / "frontend" / "ar-schemes-interactions.js",
     REPO / "frontend" / "assistant-chat.js",
     REPO / "frontend" / "admin-screens.js",
+    REPO / "frontend" / "admin-users.js",
+    REPO / "frontend" / "admin-ai-operations.js",
+    REPO / "frontend" / "admin-books.js",
+    REPO / "frontend" / "admin-bulk-upload.js",
     REPO / "frontend" / "auth-ui.js",
     REPO / "frontend" / "account-settings.js",
+    REPO / "frontend" / "account-privacy.js",
+    REPO / "frontend" / "account-personalization.js",
+    REPO / "frontend" / "account-profile.js",
     REPO / "frontend" / "app-state.js",
     REPO / "frontend" / "user-features.js",
     REPO / "frontend" / "library-home.js",
@@ -469,7 +479,7 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v306" in service_worker
+        assert "aegis-cache-v307" in service_worker
 
     def test_deploy_requires_frontend_ci(self):
         deploy_script = DEPLOY_SCRIPT.read_text(encoding="utf-8")

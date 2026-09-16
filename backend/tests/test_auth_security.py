@@ -7,8 +7,36 @@ from __future__ import annotations
 
 import pytest
 
-from app.core.security import create_access_token, hash_otp
+from app.core.security import (
+    BCRYPT_MAX_PASSWORD_BYTES,
+    BCRYPT_ROUNDS,
+    create_access_token,
+    hash_otp,
+    hash_password,
+    verify_password,
+)
 from tests.conftest import auth_headers, make_user
+
+
+class TestPasswordHashing:
+    """Прямой bcrypt сохраняет контракт прежнего адаптера passlib."""
+
+    def test_hash_rounds_and_verification(self):
+        hashed = hash_password("StrongPass123!")
+
+        assert hashed.startswith(f"$2b${BCRYPT_ROUNDS:02d}$")
+        assert verify_password("StrongPass123!", hashed)
+        assert not verify_password("wrong", hashed)
+
+    def test_malformed_hash_is_rejected_without_exception(self):
+        assert not verify_password("StrongPass123!", "not-a-bcrypt-hash")
+        assert not verify_password("StrongPass123!", "тоже не bcrypt")
+
+    def test_legacy_72_byte_truncation_is_preserved(self):
+        legacy_password = "a" * BCRYPT_MAX_PASSWORD_BYTES
+        legacy_hash = hash_password(legacy_password)
+
+        assert verify_password(legacy_password + "ignored suffix", legacy_hash)
 
 
 class TestApprovalGate:

@@ -5,9 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+const { readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
-const source = fs.readFileSync(path.join(frontend, 'account-settings.js'), 'utf8');
+const source = readGroup('account');
 const dom = new JSDOM('<div id="settingsContent"></div>');
 const calls = [];
 const context = {

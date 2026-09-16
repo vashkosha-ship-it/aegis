@@ -5,9 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+const { readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
-const adminSource = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
+const adminSource = readGroup('admin');
 const userSource = fs.readFileSync(path.join(frontend, 'user-features.js'), 'utf8');
 
 function replaceSelectOptions(document, select, items) {

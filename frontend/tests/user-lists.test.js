@@ -5,9 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+const { readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
-const adminSource = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
+const adminSource = readGroup('admin');
 const assistantSource = fs.readFileSync(path.join(frontend, 'assistant-chat.js'), 'utf8');
 
 function replaceWithStaticText(document, container, text, style) {

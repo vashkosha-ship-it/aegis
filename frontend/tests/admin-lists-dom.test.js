@@ -5,9 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+const { readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
-const source = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
+const source = readGroup('admin');
 const dom = new JSDOM(`
   <table><tbody id="books"></tbody></table><div id="reviews"></div>
   <button id="adminSaveFieldsBtn"></button><button id="adminUploadFileBtn"></button>

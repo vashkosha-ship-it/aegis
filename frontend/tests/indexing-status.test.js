@@ -3,9 +3,10 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
-const admin = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
+const admin = readGroup('admin');
 const api = fs.readFileSync(path.join(frontend, 'api.js'), 'utf8');
 const markup = fs.readFileSync(path.join(frontend, 'index.html'), 'utf8');
 
