@@ -61,8 +61,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # MinIO — S3-совместимое хранилище. Сейчас книги лежат на диске
-  # (STORAGE_BACKEND=local), контейнер нужен для перехода на S3.
+  # MinIO — локальное S3-совместимое окружение для разработки и проверки
+  # миграции. В production используется внешний приватный bucket.
   minio:
     # Тег обязателен: с latest образ меняется молча, между запусками.
     # Узнать текущий:  docker image inspect minio/minio --format '{{index .RepoTags 0}}'

@@ -52,8 +52,7 @@ class Settings(BaseSettings):
     # включает этот флаг: без индексации production считается неготовым.
     QUEUE_REQUIRED_FOR_READINESS: bool = False
 
-    # --- Storage (Этап 2) ----------------------------------------------------
-    # На Этапе 2 — "local". На Этапе 4 переключим на "s3".
+    # --- Storage ------------------------------------------------------------
     STORAGE_BACKEND: str = "local"
     # Путь относительно рабочей директории, откуда запускается uvicorn (то есть backend/).
     STORAGE_LOCAL_PATH: str = "./storage"
@@ -62,12 +61,22 @@ class Settings(BaseSettings):
     MAX_EPUB_SIZE_MB: int = 150
     MAX_COVER_SIZE_MB: int = 5
 
-    # S3 / MinIO — пригодятся на Этапе 4
+    # S3 / MinIO. S3_ENDPOINT_URL можно оставить пустым для AWS S3; для
+    # совместимых провайдеров указывается полный https URL API.
     S3_ENDPOINT_URL: str = ""
     S3_ACCESS_KEY: str = ""
     S3_SECRET_KEY: str = ""
     S3_BUCKET_BOOKS: str = "neon-books"
     S3_REGION: str = "us-east-1"
+    # Префикс позволяет безопасно делить bucket с другими окружениями.
+    S3_KEY_PREFIX: str = ""
+    # MinIO и некоторые провайдеры требуют path-style адресацию.
+    S3_FORCE_PATH_STYLE: bool = False
+    S3_VERIFY_TLS: bool = True
+    # Пусто — шифрование управляется политикой bucket. Для AWS обычно AES256.
+    S3_SERVER_SIDE_ENCRYPTION: str = ""
+    S3_CONNECT_TIMEOUT_SECONDS: int = 5
+    S3_READ_TIMEOUT_SECONDS: int = 60
 
     # --- SMTP (отправка писем: подтверждение смены email) -------------------
     # Если SMTP_HOST пуст — отправка отключена, код смены пишется в лог (dev-режим).

@@ -13,6 +13,11 @@ pg_restore --list database.dump >/dev/null
 tar -tzf storage.tar.gz >/dev/null
 ```
 
+Для копии, созданной при `STORAGE_BACKEND=s3`, файла `storage.tar.gz` нет:
+вместо него присутствует `STORAGE_BACKEND` со значением `s3`. В этом случае
+проверьте `SHA256SUMS` и `database.dump`, а восстановление объектов выполняйте
+из версий/резервной копии самого S3-провайдера.
+
 ## 2. Остановка приложения и дополнительная страховочная копия
 
 ```bash
@@ -22,6 +27,9 @@ sudo -u postgres pg_dump --format=custom neon_stack \
 cp -a /opt/aegis/backend/storage \
   /var/backups/aegis/pre-restore-storage
 ```
+
+При S3 вместо копирования локального каталога зафиксируйте bucket, prefix и
+идентификатор версии/точки восстановления у провайдера.
 
 ## 3. Восстановление
 
@@ -46,6 +54,11 @@ mv "$RESTORE_TMP" storage
 systemctl start aegis aegis-worker
 bash deploy/healthcheck.sh
 ```
+
+Блок с `tar` и заменой локального `storage` выполняется только для local
+backup. При S3 восстановите требуемые версии объектов средствами провайдера,
+сохранив исходные ключи, затем запустите приложение и выполните аудит
+хранилища из админ-панели.
 
 Не удаляйте `storage.before-restore-*` и страховочный dump, пока не проверены
 авторизация, каталог, открытие книги и поиск.

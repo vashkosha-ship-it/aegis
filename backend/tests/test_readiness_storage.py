@@ -81,14 +81,34 @@ class TestStorageWriteCheck:
         """
         assert os.access(str(storage_dir), os.R_OK) is True
 
-    async def test_external_backend_not_probed(self, tmp_path, monkeypatch):
-        """Для S3 запись файлов на диск ничего не проверяет."""
+    async def test_s3_backend_is_probed(self, tmp_path, monkeypatch):
+        """S3 должен проверять реальную запись, чтение и удаление объекта."""
+        class HealthyS3:
+            called = False
+
+            async def check_writable(self):
+                self.called = True
+
+        storage = HealthyS3()
         monkeypatch.setattr(main.settings, "STORAGE_BACKEND", "s3")
         monkeypatch.setattr(main.settings, "STORAGE_LOCAL_PATH", str(tmp_path))
+        monkeypatch.setattr("app.core.storage.get_storage", lambda: storage)
 
         result = await main._check_storage()
         assert result["ok"] is True
         assert "backend=s3" in result.get("note", "")
+        assert storage.called is True
+
+    async def test_s3_failure_marks_storage_unready(self, monkeypatch):
+        class BrokenS3:
+            async def check_writable(self):
+                raise ConnectionError("S3 unavailable")
+
+        monkeypatch.setattr(main.settings, "STORAGE_BACKEND", "s3")
+        monkeypatch.setattr("app.core.storage.get_storage", lambda: BrokenS3())
+
+        result = await main._check_storage()
+        assert result == {"ok": False, "note": "S3 недоступен"}
 
 
 @pytest.fixture
