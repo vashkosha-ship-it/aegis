@@ -23,7 +23,13 @@ assert.match(source, /function auditStorageUI\(\)/);
 assert.match(source, /id="adminDescriptionsBtn"/);
 assert.match(source, /function generateMissingDescriptionsUI\(\)/);
 assert.match(source, /function refreshDescriptionGenerationStatus\(\)/);
+assert.match(source, /function generateAdminBookDescription\(\)/);
+assert.match(source, /api\.books\.generateDescription\(adminBookModalCurrentId\)/);
 assert.match(source, /setTimeout\(refreshDescriptionGenerationStatus, 3000\)/);
+assert.match(
+  fs.readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf8'),
+  /id="adminGenerateDescriptionBtn"/,
+);
 assert.doesNotMatch(source, /for \(const book of candidates\)/);
 assert.doesNotMatch(source, /bulkGenerateDescriptions/);
 assert.match(source, /icon: '📘'/);

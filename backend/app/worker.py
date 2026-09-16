@@ -28,7 +28,10 @@ from app.models.description_job import DescriptionGenerationJob
 from app.models.exam_session import ExamSession
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
-from app.services.book_descriptions import generate_book_description
+from app.services.book_descriptions import (
+    generate_book_description,
+    load_book_content_excerpt,
+)
 from app.services.search_index import (
     IndexingError,
     index_book_from_path,
@@ -258,11 +261,13 @@ async def generate_missing_book_descriptions(
                         title = book.title
                         author = book.author
                         categories = [category.name for category in book.categories]
+                        content_excerpt = await load_book_content_excerpt(db, book.id)
 
                     description = await generate_book_description(
                         title=title,
                         author=author,
                         categories=categories,
+                        content_excerpt=content_excerpt,
                     )
                     if not description:
                         raise RuntimeError("ИИ вернул пустое описание")

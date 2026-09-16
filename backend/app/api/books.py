@@ -359,7 +359,10 @@ async def generate_description(
 ) -> BookPublic:
     """Admin only: generate and save a cautious catalogue description."""
     from app.services.admin_audit import log_admin_action
-    from app.services.book_descriptions import generate_book_description
+    from app.services.book_descriptions import (
+        generate_book_description,
+        load_book_content_excerpt,
+    )
 
     book = await db.scalar(
         select(Book)
@@ -370,10 +373,12 @@ async def generate_description(
         raise HTTPException(status_code=404, detail="Book not found")
 
     try:
+        content_excerpt = await load_book_content_excerpt(db, book.id)
         description = await generate_book_description(
             title=book.title,
             author=book.author,
             categories=[category.name for category in book.categories],
+            content_excerpt=content_excerpt,
         )
     except DeepSeekError as exc:
         logger.warning("Description generation failed for book %s: %s", book_id, exc)

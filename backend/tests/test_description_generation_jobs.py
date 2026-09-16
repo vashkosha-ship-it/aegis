@@ -54,8 +54,8 @@ async def test_description_job_runs_in_worker_and_keeps_progress(
     assert latest.status_code == 200
     assert latest.json()["id"] == payload["job"]["id"]
 
-    async def generate(*, title, author, categories):
-        del author, categories
+    async def generate(*, title, author, categories, content_excerpt):
+        del author, categories, content_excerpt
         if title == "Проблемная книга":
             raise DeepSeekError("provider unavailable")
         return f"Описание: {title}"
