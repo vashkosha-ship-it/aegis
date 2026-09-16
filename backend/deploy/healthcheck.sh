@@ -270,16 +270,25 @@ fi
 
 storage_path="$APP_DIR/backend/storage"
 backup_path="/var/backups/aegis"
-if [ -d "$storage_path" ]; then
+storage_backend=$(cd "$APP_DIR/backend" \
+    && .venv/bin/python -c 'from app.core.config import settings; print(settings.STORAGE_BACKEND)' \
+    2>/dev/null)
+if [ "$storage_backend" = "local" ] && [ -d "$storage_path" ]; then
     storage_size=$(du -sh "$storage_path" 2>/dev/null | cut -f1)
     storage_bytes=$(du -sb "$storage_path" 2>/dev/null | cut -f1)
     gray "    файлы книг: $storage_size"
+elif [ "$storage_backend" = "s3" ]; then
+    gray "    файлы книг: S3 (доступность подтверждена /ready)"
+else
+    fail "не удалось определить хранилище файлов" \
+        "проверьте STORAGE_BACKEND и /ready"
 fi
 if [ -d "$backup_path" ]; then
     backup_size=$(du -sh "$backup_path" 2>/dev/null | cut -f1)
     backup_bytes=$(du -sb "$backup_path" 2>/dev/null | cut -f1)
     gray "    резервные копии: $backup_size"
-    if [ "${storage_bytes:-0}" -gt 0 ] \
+    if [ "$storage_backend" = "local" ] \
+        && [ "${storage_bytes:-0}" -gt 0 ] \
         && [ "$backup_bytes" -gt $((storage_bytes * 4)) ]; then
         gray "  ⚠ backup занимает больше четырёх размеров storage; старые полные архивы ещё не истекли"
     fi

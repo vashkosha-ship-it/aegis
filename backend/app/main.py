@@ -309,8 +309,19 @@ async def _check_storage() -> dict:
     path = getattr(settings, "STORAGE_LOCAL_PATH", None)
     backend = getattr(settings, "STORAGE_BACKEND", "local")
 
+    if backend == "s3":
+        try:
+            from app.core.storage import get_storage
+
+            await get_storage().check_writable()
+            return {"ok": True, "note": "backend=s3"}
+        except Exception as e:  # noqa: BLE001
+            logger.error("Readiness: S3 недоступен или недоступен для записи: %s", e)
+            return {"ok": False, "note": "S3 недоступен"}
+
     if backend != "local" or not path:
-        return {"ok": True, "note": f"backend={backend}"}
+        logger.error("Readiness: неизвестный backend хранилища: %s", backend)
+        return {"ok": False, "note": f"неизвестный backend={backend}"}
 
     if not os.path.isdir(path):
         logger.error("Readiness: каталог хранилища отсутствует: %s", path)

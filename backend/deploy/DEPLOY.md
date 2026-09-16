@@ -15,6 +15,7 @@
 | `20-aegis-retention.conf` | `/etc/systemd/journald.conf.d/` | лимит размера и срока хранения системного журнала |
 | `aegis-backup.service`, `aegis-backup.timer` | `/etc/systemd/system/` | ежедневная резервная копия |
 | `backup.sh`, `RESTORE.md` | остаются в `/opt/aegis/backend/deploy/` | создание копии и инструкция восстановления |
+| `S3_MIGRATION.md` | остаётся в `/opt/aegis/backend/deploy/` | безопасная миграция PDF, EPUB, обложек и аватаров в S3 |
 | `aegis-alert@.service` | `/etc/systemd/system/` | email при падении backend, worker или backup |
 
 ## Зависимости
@@ -118,6 +119,11 @@ journalctl -u aegis-backup.service -n 20 --no-pager
 Процедура восстановления описана в [RESTORE.md](RESTORE.md). Минимум раз в
 квартал её нужно проверять на отдельной базе: непроверенный backup нельзя
 считать восстанавливаемым.
+
+При `STORAGE_BACKEND=s3` timer сохраняет только PostgreSQL dump и маркер
+backend: скачивание всего bucket на системный диск вернуло бы исходную проблему
+с местом. Для S3 обязательны versioning и отдельная внешняя backup/replication
+политика. Переход выполняется по [S3_MIGRATION.md](S3_MIGRATION.md).
 
 ## Обычный деплой
 

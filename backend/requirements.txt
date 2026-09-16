@@ -56,7 +56,7 @@ pydantic==2.9.2
 pydantic-settings==2.6.0
 python-dotenv==1.2.3
 
-# Storage (для Этапа 2 — пока заготовка)
+# S3 / MinIO backend для PDF, EPUB, обложек и аватаров
 boto3==1.35.49
 
 # AI. Работаем через DeepSeek — обращения идут обычным httpx, отдельный

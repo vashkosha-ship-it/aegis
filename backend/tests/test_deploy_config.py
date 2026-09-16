@@ -360,7 +360,8 @@ class TestBackupConfiguration:
         script = BACKUP_SCRIPT.read_text(encoding="utf-8")
         assert "set -euo pipefail" in script
         assert "pg_dump --format=custom" in script
-        assert "sha256sum database.dump storage.tar.gz" in script
+        assert "sha256sum database.dump storage.tar.gz STORAGE_MANIFEST_SHA256" in script
+        assert "sha256sum database.dump STORAGE_BACKEND" in script
         assert "AEGIS_BACKUP_KEEP_COUNT" in script
         assert (
             'Environment="AEGIS_BACKUP_KEEP_COUNT=1"'
@@ -374,6 +375,8 @@ class TestBackupConfiguration:
     def test_healthcheck_reports_storage_and_backup_capacity(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
         assert 'storage_path="$APP_DIR/backend/storage"' in script
+        assert "print(settings.STORAGE_BACKEND)" in script
+        assert "файлы книг: S3" in script
         assert 'backup_path="/var/backups/aegis"' in script
         assert "безопасный предел 75%" in script
         assert "резервные копии:" in script
