@@ -5,9 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+const { readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
-const source = fs.readFileSync(path.join(frontend, 'ar-schemes.js'), 'utf8');
+const source = readGroup('ar');
 
 function extractFunction(name) {
   const start = source.indexOf('function ' + name + '(');

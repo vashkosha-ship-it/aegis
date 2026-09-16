@@ -3,11 +3,12 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { readGroup } = require('./helpers/module-source');
 
 const frontend = path.resolve(__dirname, '..');
 const api = fs.readFileSync(path.join(frontend, 'api.js'), 'utf8');
 const reader = fs.readFileSync(path.join(frontend, 'reader-core.js'), 'utf8');
-const admin = fs.readFileSync(path.join(frontend, 'admin-screens.js'), 'utf8');
+const admin = readGroup('admin');
 
 assert.match(api, /uploadEpub\(id, file\)/);
 assert.match(api, /'\/books\/' \+ id \+ '\/epub'/);

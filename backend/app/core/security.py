@@ -19,14 +19,24 @@ import hmac
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import bcrypt
 import jwt
 from jwt import PyJWTError
-from passlib.context import CryptContext
 
 from app.core.config import settings
 
-# bcrypt с rounds=12 — золотая середина: безопасно и не слишком медленно
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
+# bcrypt с cost=12 — золотая середина: безопасно и не слишком медленно.
+# Ограничение bcrypt в 72 байта применяем явно. Passlib делала то же молча;
+# явная нормализация сохраняет совместимость со всеми существующими хешами,
+# включая пароли с многобайтными UTF-8 символами на границе лимита.
+BCRYPT_ROUNDS = 12
+BCRYPT_MAX_PASSWORD_BYTES = 72
+
+
+def _bcrypt_password_bytes(plain_password: str) -> bytes:
+    if not isinstance(plain_password, str):
+        raise TypeError("Password must be a string")
+    return plain_password.encode("utf-8")[:BCRYPT_MAX_PASSWORD_BYTES]
 
 
 class TokenError(Exception):
@@ -44,12 +54,24 @@ JWTError = TokenError
 
 def hash_password(plain_password: str) -> str:
     """Hash a plaintext password using bcrypt."""
-    return pwd_context.hash(plain_password)
+    password = _bcrypt_password_bytes(plain_password)
+    return bcrypt.hashpw(password, bcrypt.gensalt(rounds=BCRYPT_ROUNDS)).decode(
+        "ascii"
+    )
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plaintext password against a stored bcrypt hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a plaintext password against a stored bcrypt hash.
+
+    Повреждённый или чужой формат хеша трактуется как неверный пароль, а не
+    как ошибка сервера. Это важно для старых записей и ручных импортов.
+    """
+    try:
+        password = _bcrypt_password_bytes(plain_password)
+        stored = hashed_password.encode("ascii")
+        return bcrypt.checkpw(password, stored)
+    except (AttributeError, TypeError, UnicodeEncodeError, ValueError):
+        return False
 
 
 def create_access_token(

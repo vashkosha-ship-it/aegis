@@ -21,8 +21,12 @@ for (const [name, source] of sources) {
 
 assert.ok(assignments <= 0, `innerHTML assignment count grew to ${assignments}`);
 
-const arSchemes = sources.find(([name]) => name === 'ar-schemes.js')[1];
-const accountSettings = sources.find(([name]) => name === 'account-settings.js')[1];
+const sourceGroup = prefix => sources
+  .filter(([name]) => name === `${prefix}.js` || name.startsWith(`${prefix}-`))
+  .map(([, source]) => source)
+  .join('\n');
+const arSchemes = sourceGroup('ar-schemes');
+const accountSettings = sourceGroup('account');
 const readerCore = sources.find(([name]) => name === 'reader-core.js')[1];
 assert.match(arSchemes, /titleEl\.textContent\s*=/);
 assert.match(accountSettings, /el\.textContent = displayName\.charAt/);

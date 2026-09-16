@@ -5,8 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
+const { readGroup } = require('./helpers/module-source');
 
-const source = fs.readFileSync(path.resolve(__dirname, '..', 'admin-screens.js'), 'utf8');
+const source = readGroup('admin');
 const dom = new JSDOM(`
   <div id="categories"></div><div id="adminRecommendDepts"></div>
   <div id="bulkUploadList"></div><div id="bulkUploadActions"></div>
