@@ -204,3 +204,28 @@ class TestAtomicity:
             f"пропущено {allowed} попыток входа при лимите 5 — параллельные "
             "запросы обходят блокировку"
         )
+
+
+class TestEndpointWiring:
+    """Защищённые маршруты не должны возвращаться к check-then-record."""
+
+    @pytest.mark.parametrize(
+        ("module", "limiter"),
+        [
+            ("auth.py", "email_send_limiter"),
+            ("auth.py", "otp_attempt_limiter"),
+            ("me.py", "email_send_limiter"),
+            ("me.py", "otp_attempt_limiter"),
+            ("assistant.py", "assistant_limiter"),
+            ("discussions.py", "comment_limiter"),
+        ],
+    )
+    def test_routes_use_atomic_acquire(self, module, limiter):
+        from pathlib import Path
+
+        api_dir = Path(__file__).resolve().parents[1] / "app" / "api"
+        source = (api_dir / module).read_text(encoding="utf-8")
+
+        assert f"{limiter}.try_acquire(" in source
+        assert f"{limiter}.record(" not in source
+        assert f"{limiter}.check_allowed(" not in source

@@ -76,8 +76,10 @@ def _client_ip(request: Request) -> str:
 
 async def _guard_email_send(email: str, request: Request) -> None:
     """Не даём заваливать чужой ящик письмами и жечь SMTP-квоту."""
-    for key in (f"email:{email.lower().strip()}", f"ip:{_client_ip(request)}"):
-        allowed, wait = await email_send_limiter.check_allowed(key)
+    # IP проверяем первым: уже заблокированный источник не должен иметь
+    # возможность расходовать лимиты произвольных email-адресов.
+    for key in (f"ip:{_client_ip(request)}", f"email:{email.lower().strip()}"):
+        allowed, wait = await email_send_limiter.try_acquire(key)
         if not allowed:
             raise HTTPException(
                 status_code=429,
@@ -85,22 +87,15 @@ async def _guard_email_send(email: str, request: Request) -> None:
             )
 
 
-async def _record_email_send(email: str, request: Request) -> None:
-    await email_send_limiter.record(f"email:{email.lower().strip()}")
-    await email_send_limiter.record(f"ip:{_client_ip(request)}")
-
-
 async def _guard_otp_attempt(email: str, request: Request) -> None:
     """6-значный код перебирается за минуты — ограничиваем число проверок."""
-    for key in (f"email:{email.lower().strip()}", f"ip:{_client_ip(request)}"):
-        allowed, wait = await otp_attempt_limiter.check_allowed(key)
+    for key in (f"ip:{_client_ip(request)}", f"email:{email.lower().strip()}"):
+        allowed, wait = await otp_attempt_limiter.try_acquire(key)
         if not allowed:
             raise HTTPException(
                 status_code=429,
                 detail=f"Слишком много попыток ввода кода. Попробуйте через {wait} секунд.",
             )
-    await otp_attempt_limiter.record(f"email:{email.lower().strip()}")
-    await otp_attempt_limiter.record(f"ip:{_client_ip(request)}")
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
@@ -112,7 +107,6 @@ async def register(
     """Создать аккаунт читателя. Email обязателен — на него отправляется код подтверждения.
     Аккаунт неактивен до подтверждения email."""
     await _guard_email_send(payload.email, request)
-    await _record_email_send(payload.email, request)
 
     existing = await db.scalar(select(User).where(User.username == payload.username))
     if existing:
@@ -210,7 +204,6 @@ async def resend_code(
 ) -> dict:
     """Выслать новый код подтверждения."""
     await _guard_email_send(payload.email, request)
-    await _record_email_send(payload.email, request)
 
     user = await db.scalar(select(User).where(User.email == payload.email))
     # Не раскрываем существование аккаунта
@@ -406,9 +399,6 @@ async def forgot_password(
     (чтобы нельзя было перебором узнать, какие адреса зарегистрированы).
     """
     await _guard_email_send(payload.email, request)
-    # Считаем саму принятую попытку, а не только успешную SMTP-доставку.
-    # Иначе неизвестные адреса и сбои SMTP позволяют обходить IP-лимит.
-    await _record_email_send(payload.email, request)
 
     user = await db.scalar(select(User).where(User.email == payload.email))
     if user:

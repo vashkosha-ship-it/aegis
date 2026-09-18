@@ -598,3 +598,10 @@ email_send_limiter = SlidingWindowLimiter(
 otp_attempt_limiter = SlidingWindowLimiter(
     max_actions=5, window_seconds=900, prefix="otp"
 )
+
+# Комментарии к книгам: общий для всех gunicorn-воркеров лимит. In-memory
+# счётчик здесь не подходит — он умножал разрешённое число на число процессов
+# и обнулялся при каждом рестарте.
+comment_limiter = SlidingWindowLimiter(
+    max_actions=5, window_seconds=60, prefix="comment"
+)
