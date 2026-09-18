@@ -53,18 +53,10 @@ def get_client_ip(request: Request) -> str:
         # Прямое подключение — верим только фактическому адресу
         return peer
 
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        # Цепочка вида "клиент, прокси1, прокси2" — нужен первый элемент.
-        # Он может быть подделан клиентом, но дальше по цепочке идут наши
-        # прокси, а первый прокси затирает чужие значения своим.
-        candidate = forwarded.split(",")[0].strip()
-        try:
-            ipaddress.ip_address(candidate)
-            return candidate
-        except ValueError:
-            logger.warning("Некорректный X-Forwarded-For: %r", forwarded[:120])
-
+    # nginx обязан перезаписывать оба заголовка значением $remote_addr.
+    # X-Real-IP проверяем первым: даже если X-Forwarded-For по ошибке снова
+    # начнут дополнять через $proxy_add_x_forwarded_for, присланный клиентом
+    # первый элемент не станет адресом для rate limit.
     real_ip = request.headers.get("x-real-ip")
     if real_ip:
         try:
@@ -72,5 +64,19 @@ def get_client_ip(request: Request) -> str:
             return real_ip.strip()
         except ValueError:
             logger.warning("Некорректный X-Real-IP: %r", real_ip[:120])
+
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        # Защита второго уровня для цепочки доверенных proxy: идём справа,
+        # пропускаем их адреса и берём ближайший недоверенный hop. Первый
+        # элемент намеренно не считается особенным — его мог прислать клиент.
+        try:
+            chain = [ipaddress.ip_address(part.strip()) for part in forwarded.split(",")]
+        except ValueError:
+            logger.warning("Некорректный X-Forwarded-For: %r", forwarded[:120])
+        else:
+            for candidate in reversed(chain):
+                if not _is_trusted(str(candidate)):
+                    return str(candidate)
 
     return peer

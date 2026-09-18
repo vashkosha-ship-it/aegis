@@ -151,7 +151,7 @@ async def request_email_change(
         raise HTTPException(status_code=401, detail="Неверный пароль")
 
     # Не даём заваливать чужой ящик письмами со сменой адреса
-    allowed, wait = await email_send_limiter.check_allowed(f"emailchange:{current.id}")
+    allowed, wait = await email_send_limiter.try_acquire(f"emailchange:{current.id}")
     if not allowed:
         raise HTTPException(
             status_code=429,
@@ -174,7 +174,6 @@ async def request_email_change(
     await db.commit()
 
     await send_email_change_code(new_email, code)
-    await email_send_limiter.record(f"emailchange:{current.id}")
     logger.info("User %s requested email change to %s", current.id, new_email)
     return {"status": "code_sent", "email": new_email}
 
@@ -189,14 +188,12 @@ async def confirm_email_change(
     """Подтвердить смену email кодом из письма."""
     from datetime import datetime
 
-    allowed, wait = await otp_attempt_limiter.check_allowed(f"emailchange:{current.id}")
+    allowed, wait = await otp_attempt_limiter.try_acquire(f"emailchange:{current.id}")
     if not allowed:
         raise HTTPException(
             status_code=429,
             detail=f"Слишком много попыток ввода кода. Попробуйте через {wait} секунд.",
         )
-    await otp_attempt_limiter.record(f"emailchange:{current.id}")
-
     if not current.pending_email or not current.email_change_code:
         raise HTTPException(status_code=400, detail="Нет активного запроса на смену email")
 

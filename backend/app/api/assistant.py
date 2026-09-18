@@ -27,18 +27,19 @@ async def chat(
     current: User = Depends(get_current_user),
 ) -> ChatResponse:
     """Отправить сообщение AI-ассистенту."""
-    # Rate limit (20 запросов/час на юзера)
-    allowed, wait = await assistant_limiter.check_allowed(current.id)
+    # Проверка: последнее сообщение должно быть от user
+    if payload.messages[-1].role != "user":
+        raise HTTPException(status_code=400, detail="Last message must be from user")
+
+    # Засчитываем до обращения к платному внешнему API и атомарно: ошибки
+    # провайдера тоже расходуют попытку, иначе ими можно создать шторм повторов.
+    allowed, wait = await assistant_limiter.try_acquire(current.id)
     if not allowed:
         minutes = max(wait // 60, 1)
         raise HTTPException(
             status_code=429,
             detail=f"Слишком много запросов. Попробуйте через {minutes} мин.",
         )
-
-    # Проверка: последнее сообщение должно быть от user
-    if payload.messages[-1].role != "user":
-        raise HTTPException(status_code=400, detail="Last message must be from user")
 
     # Конвертация в формат DeepSeek
     deepseek_messages = [{"role": m.role, "content": m.content} for m in payload.messages]
@@ -52,8 +53,6 @@ async def chat(
         logger.error("DeepSeek error for user %s: %s", current.id, e)
         raise HTTPException(status_code=502, detail=f"Не удалось получить ответ от AI: {e}") from None
 
-    # Записываем что запрос выполнен (только при успехе)
-    await assistant_limiter.record(current.id)
     logger.info("Assistant request from user %s", current.id)
     return ChatResponse(reply=reply)
 
@@ -72,7 +71,10 @@ async def chat_stream(
     """
     import json as _json
 
-    allowed, wait = await assistant_limiter.check_allowed(current.id)
+    if payload.messages[-1].role != "user":
+        raise HTTPException(status_code=400, detail="Last message must be from user")
+
+    allowed, wait = await assistant_limiter.try_acquire(current.id)
     if not allowed:
         minutes = max(wait // 60, 1)
         raise HTTPException(
@@ -80,21 +82,13 @@ async def chat_stream(
             detail=f"Слишком много запросов. Попробуйте через {minutes} мин.",
         )
 
-    if payload.messages[-1].role != "user":
-        raise HTTPException(status_code=400, detail="Last message must be from user")
-
     deepseek_messages = [{"role": m.role, "content": m.content} for m in payload.messages]
     system_prompt = _build_system_prompt(payload)
 
     async def event_gen():
-        got_any = False
         try:
             async for piece in chat_completion_stream(deepseek_messages, system_prompt=system_prompt):
-                got_any = True
                 yield f"data: {_json.dumps({'delta': piece}, ensure_ascii=False)}\n\n"
-            # списываем лимит только при успешной генерации
-            if got_any:
-                await assistant_limiter.record(current.id)
             yield f"data: {_json.dumps({'done': True})}\n\n"
         except DeepSeekError as e:
             logger.error("DeepSeek stream error for user %s: %s", current.id, e)

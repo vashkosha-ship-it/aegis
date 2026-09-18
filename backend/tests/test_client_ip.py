@@ -25,11 +25,28 @@ class TestTrustedProxy:
         assert get_client_ip(req) == "203.0.113.7"
 
     def test_first_entry_of_chain(self):
-        """В цепочке нужен исходный клиент, а не промежуточные прокси."""
+        """Доверенные proxy справа пропускаются до исходного клиента."""
         req = _request(
             "127.0.0.1", {"x-forwarded-for": "203.0.113.7, 10.0.0.5, 10.0.0.6"}
         )
         assert get_client_ip(req) == "203.0.113.7"
+
+    def test_spoofed_first_entry_does_not_win(self):
+        """$proxy_add_x_forwarded_for сохранял подделанный первый элемент."""
+        req = _request(
+            "127.0.0.1", {"x-forwarded-for": "1.2.3.4, 203.0.113.7"}
+        )
+        assert get_client_ip(req) == "203.0.113.7"
+
+    def test_overwritten_real_ip_wins_over_forwarded_chain(self):
+        req = _request(
+            "127.0.0.1",
+            {
+                "x-real-ip": "203.0.113.9",
+                "x-forwarded-for": "1.2.3.4, 198.51.100.8",
+            },
+        )
+        assert get_client_ip(req) == "203.0.113.9"
 
     def test_real_ip_fallback(self):
         req = _request("127.0.0.1", {"x-real-ip": "198.51.100.3"})
