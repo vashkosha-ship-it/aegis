@@ -1,13 +1,15 @@
 // ============================================================================
 // OFFLINE STORAGE — IndexedDB-обёртка для хранения скачанных книг.
 // Хранит PDF/EPUB-файлы (Blob), обложки (Blob), метаданные (плоский объект).
-// Использование: offlineStorage.save(book), offlineStorage.has(id), offlineStorage.get(id).
+// Все операции требуют userId: файлы разных аккаунтов на одном устройстве
+// никогда не используют общие ключи.
 // ============================================================================
 (function () {
   const DB_NAME = 'aegis_offline';
-  const DB_VERSION = 1;
-  const STORE_BOOKS = 'books';      // {id, title, author, file_format, has_cover, total_pages, savedAt}
-  const STORE_FILES = 'files';      // {id, type: 'pdf'|'epub'|'cover', blob}
+  const DB_VERSION = 2;
+  const STORE_BOOKS = 'books';
+  const STORE_FILES = 'files';
+  const INDEX_USER = 'by_user';
 
   let dbPromise = null;
 
@@ -15,16 +17,36 @@
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onerror = () => reject(req.error);
-      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => {
+        dbPromise = null;
+        reject(req.error);
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        db.onversionchange = () => {
+          db.close();
+          dbPromise = null;
+        };
+        resolve(db);
+      };
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains(STORE_BOOKS)) {
-          db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(STORE_FILES)) {
-          // Композитный ключ: bookId + тип файла
-          db.createObjectStore(STORE_FILES, { keyPath: ['bookId', 'type'] });
+        // Записи v1 не содержат владельца. Назначить их текущему аккаунту
+        // небезопасно: на общем устройстве последним мог войти другой человек.
+        // Поэтому однократно удаляем неоднозначный legacy-кэш; книги можно
+        // скачать заново уже в изолированное хранилище.
+        if (e.oldVersion < 2) {
+          if (db.objectStoreNames.contains(STORE_BOOKS)) db.deleteObjectStore(STORE_BOOKS);
+          if (db.objectStoreNames.contains(STORE_FILES)) db.deleteObjectStore(STORE_FILES);
+
+          const books = db.createObjectStore(STORE_BOOKS, { keyPath: ['userId', 'id'] });
+          books.createIndex(INDEX_USER, 'userId', { unique: false });
+
+          const files = db.createObjectStore(
+            STORE_FILES,
+            { keyPath: ['userId', 'bookId', 'type'] },
+          );
+          files.createIndex(INDEX_USER, 'userId', { unique: false });
         }
       };
     });
@@ -44,13 +66,31 @@
     });
   }
 
+  function normalizeUserId(userId) {
+    const normalized = Number(userId);
+    if (!Number.isInteger(normalized) || normalized <= 0) {
+      throw new TypeError('Для офлайн-хранилища требуется корректный userId');
+    }
+    return normalized;
+  }
+
+  function transactionDone(transaction) {
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve(true);
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+  }
+
   // Сохранить книгу: метаданные + файл книги + (опционально) обложка
-  async function save(meta, fileBlob, fileType, coverBlob = null) {
+  async function save(userId, meta, fileBlob, fileType, coverBlob = null) {
+    const ownerId = normalizeUserId(userId);
     const t = await tx([STORE_BOOKS, STORE_FILES], 'readwrite');
     const booksStore = t.objectStore(STORE_BOOKS);
     const filesStore = t.objectStore(STORE_FILES);
 
     booksStore.put({
+      userId: ownerId,
       id: meta.id,
       title: meta.title,
       author: meta.author,
@@ -61,69 +101,90 @@
       savedAt: new Date().toISOString(),
     });
 
-    filesStore.put({ bookId: meta.id, type: fileType, blob: fileBlob });
+    filesStore.put({ userId: ownerId, bookId: meta.id, type: fileType, blob: fileBlob });
     if (coverBlob) {
-      filesStore.put({ bookId: meta.id, type: 'cover', blob: coverBlob });
+      filesStore.put({ userId: ownerId, bookId: meta.id, type: 'cover', blob: coverBlob });
     }
 
-    return new Promise((resolve, reject) => {
-      t.oncomplete = () => resolve(true);
-      t.onerror = () => reject(t.error);
-      t.onabort = () => reject(t.error);
-    });
+    return transactionDone(t);
   }
 
   // Проверить, есть ли книга в оффлайн-хранилище
-  async function has(bookId) {
+  async function has(userId, bookId) {
+    const ownerId = normalizeUserId(userId);
     const t = await tx([STORE_BOOKS]);
-    const result = await reqToPromise(t.objectStore(STORE_BOOKS).get(bookId));
+    const result = await reqToPromise(t.objectStore(STORE_BOOKS).get([ownerId, bookId]));
     return !!result;
   }
 
   // Получить метаданные книги
-  async function getMeta(bookId) {
+  async function getMeta(userId, bookId) {
+    const ownerId = normalizeUserId(userId);
     const t = await tx([STORE_BOOKS]);
-    return reqToPromise(t.objectStore(STORE_BOOKS).get(bookId));
+    return reqToPromise(t.objectStore(STORE_BOOKS).get([ownerId, bookId]));
   }
 
   // Получить файл (PDF/EPUB) как Blob
-  async function getFile(bookId, type) {
+  async function getFile(userId, bookId, type) {
+    const ownerId = normalizeUserId(userId);
     const t = await tx([STORE_FILES]);
-    const result = await reqToPromise(t.objectStore(STORE_FILES).get([bookId, type]));
+    const result = await reqToPromise(
+      t.objectStore(STORE_FILES).get([ownerId, bookId, type]),
+    );
     return result?.blob || null;
   }
 
   // Получить обложку как ObjectURL (для img.src)
-  async function getCoverUrl(bookId) {
-    const blob = await getFile(bookId, 'cover');
+  async function getCoverUrl(userId, bookId) {
+    const blob = await getFile(userId, bookId, 'cover');
     if (!blob) return null;
     return URL.createObjectURL(blob);
   }
 
   // Список всех id сохранённых книг
-  async function listIds() {
+  async function listIds(userId) {
+    const ownerId = normalizeUserId(userId);
     const t = await tx([STORE_BOOKS]);
-    return reqToPromise(t.objectStore(STORE_BOOKS).getAllKeys());
+    const keys = await reqToPromise(
+      t.objectStore(STORE_BOOKS).index(INDEX_USER).getAllKeys(ownerId),
+    );
+    return keys.map(key => key[1]);
   }
 
   // Список всех сохранённых книг с метаданными
-  async function listAll() {
+  async function listAll(userId) {
+    const ownerId = normalizeUserId(userId);
     const t = await tx([STORE_BOOKS]);
-    return reqToPromise(t.objectStore(STORE_BOOKS).getAll());
+    return reqToPromise(t.objectStore(STORE_BOOKS).index(INDEX_USER).getAll(ownerId));
   }
 
   // Удалить книгу: метаданные + все её файлы
-  async function remove(bookId) {
+  async function remove(userId, bookId) {
+    const ownerId = normalizeUserId(userId);
     const t = await tx([STORE_BOOKS, STORE_FILES], 'readwrite');
-    t.objectStore(STORE_BOOKS).delete(bookId);
+    t.objectStore(STORE_BOOKS).delete([ownerId, bookId]);
     // Удаляем все файлы этой книги (pdf, epub, cover)
     ['pdf', 'epub', 'cover'].forEach(type => {
-      t.objectStore(STORE_FILES).delete([bookId, type]);
+      t.objectStore(STORE_FILES).delete([ownerId, bookId, type]);
     });
-    return new Promise((resolve, reject) => {
-      t.oncomplete = () => resolve(true);
-      t.onerror = () => reject(t.error);
-    });
+    return transactionDone(t);
+  }
+
+  // Удалить данные только одного аккаунта, не затрагивая остальных
+  // пользователей этого браузера.
+  async function clearUser(userId) {
+    const ownerId = normalizeUserId(userId);
+    const t = await tx([STORE_BOOKS, STORE_FILES], 'readwrite');
+
+    for (const storeName of [STORE_BOOKS, STORE_FILES]) {
+      const store = t.objectStore(storeName);
+      const request = store.index(INDEX_USER).getAllKeys(ownerId);
+      request.onsuccess = () => {
+        for (const key of request.result) store.delete(key);
+      };
+    }
+
+    return transactionDone(t);
   }
 
   // Оценить, сколько места занято и сколько доступно. Возвращает {usage, quota} в байтах.
@@ -146,6 +207,7 @@
     listIds,
     listAll,
     remove,
+    clearUser,
     getQuotaEstimate,
   };
 })();

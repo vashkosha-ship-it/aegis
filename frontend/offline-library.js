@@ -2,8 +2,13 @@
 const offlineBookIds = new Set();
 const CACHED_USER_KEY = 'aegis_cached_user';
 
-function uk(base) {
-  const id = (state.currentUser && state.currentUser.id) || 'anon';
+function currentOfflineUserId() {
+  const id = Number(state.currentUser && state.currentUser.id);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function uk(base, userId = currentOfflineUserId()) {
+  const id = userId || 'anon';
   return base + ':' + id;
 }
 
@@ -28,8 +33,8 @@ function lsSet(base, value) {
   try { localStorage.setItem(uk(base), value); } catch (_) { /* Хранилище может быть отключено. */ }
 }
 
-function lsRemove(base) {
-  try { localStorage.removeItem(uk(base)); } catch (_) { /* Хранилище может быть отключено. */ }
+function lsRemove(base, userId = currentOfflineUserId()) {
+  try { localStorage.removeItem(uk(base, userId)); } catch (_) { /* Хранилище может быть отключено. */ }
 }
 
 function cacheUserForOffline(user) {
@@ -61,9 +66,9 @@ function userScopedKeys() {
   ];
 }
 
-async function clearUserScopedData() {
+async function clearUserScopedData(userId = currentOfflineUserId() || getCachedUser()?.id) {
   for (const key of userScopedKeys()) {
-    lsRemove(key);
+    lsRemove(key, userId);
     try { localStorage.removeItem(key); } catch (_) { /* Продолжаем очистку остальных ключей. */ }
   }
 
@@ -72,18 +77,22 @@ async function clearUserScopedData() {
   state.reviews = {};
   state.completedQuizzes = {};
   state.books = [];
+  offlineBookIds.clear();
 
-  try {
-    const saved = (await offlineStorage.listAll()) || [];
-    for (const metadata of saved) await offlineStorage.remove(metadata.id);
-  } catch (error) {
-    console.warn('Не удалось очистить офлайн-хранилище:', error);
+  if (userId) {
+    try {
+      await offlineStorage.clearUser(userId);
+    } catch (error) {
+      console.warn('Не удалось очистить офлайн-хранилище:', error);
+    }
   }
 }
 
 async function loadBooksFromOffline() {
+  const userId = currentOfflineUserId();
+  if (!userId) return false;
   try {
-    const saved = (await offlineStorage.listAll()) || [];
+    const saved = (await offlineStorage.listAll(userId)) || [];
     state.books = saved.map(metadata => adaptBookFromApi({
       id: metadata.id,
       title: metadata.title,
@@ -107,9 +116,11 @@ async function loadBooksFromOffline() {
 
 async function loadOfflineBookIds() {
   if (state.currentUser) cacheUserForOffline(state.currentUser);
+  const userId = currentOfflineUserId();
+  offlineBookIds.clear();
+  if (!userId) return;
   try {
-    const ids = await offlineStorage.listIds();
-    offlineBookIds.clear();
+    const ids = await offlineStorage.listIds(userId);
     ids.forEach(id => offlineBookIds.add(id));
   } catch (error) {
     console.error('Не удалось получить список оффлайн-книг:', error);
@@ -117,6 +128,8 @@ async function loadOfflineBookIds() {
 }
 
 async function saveBookOffline(bookId, silent) {
+  const userId = currentOfflineUserId();
+  if (!userId) { if (!silent) showToast('Войдите в аккаунт'); return; }
   const book = state.books.find(candidate => candidate.id === bookId);
   if (!book) { if (!silent) showToast('Книга не найдена'); return; }
   if (!book.has_file) { if (!silent) showToast('У книги нет файла для скачивания'); return; }
@@ -137,7 +150,7 @@ async function saveBookOffline(bookId, silent) {
       }
     }
 
-    await offlineStorage.save(book, fileBlob, fileType, coverBlob);
+    await offlineStorage.save(userId, book, fileBlob, fileType, coverBlob);
     offlineBookIds.add(bookId);
     const sizeMB = (fileBlob.size / 1024 / 1024).toFixed(1);
     if (!silent) showToast(`Сохранено оффлайн (${sizeMB} МБ)`);
@@ -157,8 +170,10 @@ async function saveBookOffline(bookId, silent) {
 
 async function removeBookOffline(bookId) {
   if (!confirm('Удалить книгу из офлайн-хранилища? Файл будет удалён с устройства.')) return;
+  const userId = currentOfflineUserId();
+  if (!userId) { showToast('Войдите в аккаунт'); return; }
   try {
-    await offlineStorage.remove(bookId);
+    await offlineStorage.remove(userId, bookId);
     offlineBookIds.delete(bookId);
     showToast('Удалено из оффлайн');
     if (state.currentScreen === 'detail' && currentBookId === bookId) renderBookInfo();

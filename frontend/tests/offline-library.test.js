@@ -13,7 +13,9 @@ const workerSource = fs.readFileSync(path.join(FRONTEND, 'sw.js'), 'utf8');
 
 const storage = new Map([['legacy', 'old-value']]);
 const removed = [];
+const cleared = [];
 const saved = [];
+const listedFor = [];
 const requestedUrls = [];
 const toasts = [];
 const state = {
@@ -30,10 +32,17 @@ const state = {
 };
 const fileBlob = { size: 2 * 1024 * 1024 };
 const offlineStorage = {
-  listAll: async () => [{ id: 3, title: 'Saved', author: 'A', file_format: 'pdf' }],
-  listIds: async () => [3],
+  listAll: async userId => {
+    listedFor.push(['all', userId]);
+    return [{ id: 3, title: 'Saved', author: 'A', file_format: 'pdf' }];
+  },
+  listIds: async userId => {
+    listedFor.push(['ids', userId]);
+    return [3];
+  },
   save: async (...args) => saved.push(args),
-  remove: async id => removed.push(id),
+  remove: async (...args) => removed.push(args),
+  clearUser: async userId => cleared.push(userId),
 };
 const api = {
   request: async url => {
@@ -85,26 +94,35 @@ vm.runInContext(source, context);
 
   await context.loadOfflineBookIds();
   assert.equal(vm.runInContext('offlineBookIds.has(3)', context), true);
+  assert.deepEqual(listedFor[0], ['ids', 17]);
 
   await context.saveBookOffline(3, false);
   assert.equal(saved.length, 1);
-  assert.equal(saved[0][2], 'pdf');
+  assert.equal(saved[0][0], 17);
+  assert.equal(saved[0][3], 'pdf');
   assert.equal(requestedUrls[0], '/books/3/pdf');
   assert.ok(toasts.includes('Сохранено оффлайн (2.0 МБ)'));
 
   await context.saveBookOffline(4, false);
   assert.equal(saved.length, 2);
-  assert.equal(saved[1][2], 'epub');
+  assert.equal(saved[1][0], 17);
+  assert.equal(saved[1][3], 'epub');
   assert.equal(requestedUrls[1], '/books/4/epub');
 
   await context.removeBookOffline(3);
-  assert.deepEqual(removed, [3]);
+  assert.deepEqual(removed, [[17, 3]]);
   assert.equal(vm.runInContext('offlineBookIds.has(3)', context), false);
+
+  await context.clearUserScopedData(17);
+  assert.deepEqual(cleared, [17]);
+  assert.equal(vm.runInContext('offlineBookIds.size', context), 0);
 
   assert.doesNotMatch(appSource, /const offlineBookIds|function loadBooksFromOffline|function saveBookOffline/);
   assert.ok(indexSource.indexOf('offline-library.js') < indexSource.indexOf('app.js'));
   assert.match(workerSource, /['"]\/offline-library\.js['"]/);
   assert.match(workerSource, /aegis-cache-v[0-9]+/);
+  assert.match(source, /offlineStorage\.listAll\(userId\)/);
+  assert.match(source, /offlineStorage\.clearUser\(userId\)/);
   console.log('Offline library tests passed');
 })().catch(error => {
   console.error(error);

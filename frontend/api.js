@@ -232,12 +232,17 @@
       // Cookie удаляет сервер: из JS httpOnly-cookie не стереть. Заодно он
       // отзывает refresh-токен, иначе утёкшая копия работала бы и после выхода.
       const csrf = getCsrfToken();
-      await request('/auth/logout', {
-        method: 'POST',
-        headers: csrf ? { 'X-CSRF-Token': csrf } : {},
-        auth: false,
-      });
-      tokens.clear();
+      try {
+        await request('/auth/logout', {
+          method: 'POST',
+          headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+          auth: false,
+        });
+      } finally {
+        // Даже если сервер не смог отозвать токен, access-токен и локальные
+        // данные не должны оставаться доступными на этом устройстве.
+        tokens.clear();
+      }
     },
 
     me() {

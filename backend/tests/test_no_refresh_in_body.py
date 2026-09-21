@@ -185,8 +185,10 @@ class TestLogoutHonesty:
 
         r = await client.post("/auth/logout", headers={"X-CSRF-Token": csrf})
         assert r.status_code == 503, r.text
-        # Cookie не стёрта: сеанс действительно не завершён
-        assert client.cookies.get("aegis_refresh")
+        # Текущий браузер очищен даже при сбое отзыва. Ответ остаётся 503,
+        # потому что возможная утёкшая копия токена могла сохраниться.
+        assert not client.cookies.get("aegis_refresh")
+        assert "сервер не подтвердил отзыв" in r.json()["detail"]
 
 
 class TestUserStillWorks:

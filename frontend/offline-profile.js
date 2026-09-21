@@ -18,7 +18,7 @@ async function renderOfflineBooks() {
 
   let books = [];
   try {
-    books = await offlineStorage.listAll();
+    books = await offlineStorage.listAll(state.currentUser.id);
   } catch (e) {
     console.error('Ошибка чтения IndexedDB:', e);
     replaceWithStaticText(container, 'Не удалось прочитать оффлайн-хранилище', 'a334');
