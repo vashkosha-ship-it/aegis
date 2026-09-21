@@ -96,7 +96,9 @@ def _epub_bytes() -> bytes:
 </ol></nav></body></html>""",
         )
         for number in (1, 2):
-            paragraph = (f"Aegis EPUB position marker {number}. " * 80).strip()
+            # locations.generate(1000) должен создать несколько CFI, иначе
+            # фикстура проверит только открытие, но не восстановление позиции.
+            paragraph = (f"Aegis EPUB position marker {number}. " * 400).strip()
             archive.writestr(
                 f"OEBPS/chapter{number}.xhtml",
                 f"""<?xml version="1.0" encoding="UTF-8"?>

@@ -8,7 +8,7 @@ function goToPage(pn) {
     epubCurrentPage = target;
     if (epubRendition) {
       const cfi = epubBook?.locations?.cfiFromLocation(target - 1);
-      epubRendition.display(cfi || undefined);
+      epubRendition.display(typeof cfi === 'string' ? cfi : undefined);
     }
   } else {
     pdfCurrentPage = target;

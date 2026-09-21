@@ -87,7 +87,7 @@ async function loadEpub(b) {
 
     updatePageIndicator();
     const initialCfi = epubBook.locations.cfiFromLocation(epubCurrentPage - 1);
-    await epubRendition.display(initialCfi || undefined);
+    await epubRendition.display(typeof initialCfi === 'string' ? initialCfi : undefined);
 
     epubRendition.on('relocated', (loc) => {
       const current = epubBook.locations.locationFromCfi(loc.start);
