@@ -265,15 +265,20 @@ function showPendingApprovalScreen() {
     }
   };
   document.getElementById('pendingLogoutBtn').onclick = async () => {
+    const userId = currentOfflineUserId();
+    let logoutError = null;
     try {
       await api.logout();
-      overlay.remove();
-      clearNoteKey(); stopSyncPolling();
-      state.currentUser = null;
-      navigateTo('auth');
     } catch (err) {
-      showToast(err && err.detail ? err.detail : 'Не удалось завершить сеанс. Попробуйте ещё раз.');
+      logoutError = err;
+    } finally {
+      await clearLocalSession(userId);
+      overlay.remove();
+      navigateTo('auth');
     }
+    showToast(logoutError && logoutError.detail
+      ? logoutError.detail
+      : 'Вы вышли из аккаунта');
   };
 }
 
@@ -493,6 +498,14 @@ document.getElementById('authForm').addEventListener('submit', async e => {
   }
 });
 
+async function clearLocalSession(userId = currentOfflineUserId()) {
+  api.tokens.clear();
+  clearNoteKey();
+  stopSyncPolling();
+  await clearUserScopedData(userId);
+  state.currentUser = null;
+}
+
 function logout() {
   // Используем кастомный confirm вместо нативного — выглядит в стиле приложения
   showConfirmModal({
@@ -502,16 +515,19 @@ function logout() {
     cancelText: 'Отмена',
     danger: true,
     onConfirm: async () => {
+      const userId = currentOfflineUserId();
+      let logoutError = null;
       try {
         await api.logout();
-        clearNoteKey(); stopSyncPolling();
-        await clearUserScopedData();
-        state.currentUser = null;
-        navigateTo('auth');
-        showToast('Вы вышли из аккаунта');
       } catch (err) {
-        showToast(err && err.detail ? err.detail : 'Не удалось завершить сеанс. Попробуйте ещё раз.');
+        logoutError = err;
+      } finally {
+        await clearLocalSession(userId);
+        navigateTo('auth');
       }
+      showToast(logoutError && logoutError.detail
+        ? logoutError.detail
+        : 'Вы вышли из аккаунта');
     },
   });
 }

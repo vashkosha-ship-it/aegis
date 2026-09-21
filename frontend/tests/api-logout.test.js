@@ -44,7 +44,7 @@ async function main() {
     api.logout(),
     error => error.status === 503 && error.detail === 'Не удалось завершить сеанс',
   );
-  assert.equal(api.tokens.access, 'access-token', 'локальная сессия должна сохраниться');
+  assert.equal(api.tokens.access, null, 'access-токен должен удаляться даже при 503');
   assert.equal(requestOptions.headers['X-CSRF-Token'], 'test-csrf');
 
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');

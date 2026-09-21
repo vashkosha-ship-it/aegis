@@ -277,6 +277,7 @@ async function doDeleteAccount() {
   const pwd = document.getElementById('delAccPassword')?.value || '';
   const conf = document.getElementById('delAccConfirm')?.value || '';
   if (!pwd || !conf) { showToast('Заполните оба поля'); return; }
+  const deletedUserId = currentOfflineUserId();
   try {
     await api.library.deleteAccount(pwd, conf);
     const m = document.getElementById('deleteAccModal');
@@ -284,8 +285,8 @@ async function doDeleteAccount() {
     showToast('Аккаунт удалён');
     // Аккаунт уже удалён сервером, поэтому отдельный отзыв сессии здесь
     // может закономерно вернуть 401. Локальные данные всё равно очищаем.
-    try { await api.logout(); } catch (_) { api.tokens.clear(); }
-    clearNoteKey(); stopSyncPolling();
+    try { await api.logout(); } catch (_) { /* Аккаунт уже удалён. */ }
+    await clearLocalSession(deletedUserId);
     setTimeout(() => location.reload(), 800);
   } catch (err) {
     const msg = err && err.detail ? err.detail : (err && err.status ? 'Ошибка ' + err.status : 'Не удалось удалить');

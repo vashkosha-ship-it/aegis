@@ -25,7 +25,7 @@ async function loadEpub(b) {
     // 1. Сначала пробуем IndexedDB
     if (offlineBookIds.has(b.id)) {
       try {
-        const blob = await offlineStorage.getFile(b.id, 'epub');
+        const blob = await offlineStorage.getFile(currentOfflineUserId(), b.id, 'epub');
         if (blob) {
           epubData = await blob.arrayBuffer();
           fromOffline = true;
@@ -158,7 +158,7 @@ async function loadPdf(b) {
   let fromOffline = false;
   if (offlineBookIds.has(b.id)) {
     try {
-      const blob = await offlineStorage.getFile(b.id, 'pdf');
+      const blob = await offlineStorage.getFile(currentOfflineUserId(), b.id, 'pdf');
       if (blob) {
         bytes = await blob.arrayBuffer();
         fromOffline = true;

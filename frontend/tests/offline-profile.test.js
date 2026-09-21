@@ -23,8 +23,10 @@ let books = [{
 }];
 let quota = { usage: 9 * 1024, quota: 10 * 1024 };
 let storageError = false;
+const listedFor = [];
 const offlineStorage = {
-  listAll: async () => {
+  listAll: async userId => {
+    listedFor.push(userId);
     if (storageError) throw new Error('IndexedDB unavailable');
     return books;
   },
@@ -57,6 +59,7 @@ vm.runInContext(source, context);
   assert.equal(context.formatBytes(2 * 1024 * 1024), '2.0 МБ');
 
   await context.renderOfflineBooks();
+  assert.equal(listedFor[0], 7);
   const container = dom.window.document.getElementById('offlineBooksSection');
   assert.match(container.textContent, /Хранилище почти заполнено/);
   assert.match(container.textContent, /SECURITY/i);

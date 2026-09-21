@@ -4,6 +4,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -297,12 +298,16 @@ async def refresh_token(
     return AccessTokenOnly(access_token=pair.access_token)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
 async def logout(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-) -> None:
+) -> Response | None:
     """Выход: отзываем refresh-токен и удаляем cookie.
 
     Удалить cookie мало: сама по себе она лишь перестаёт отправляться
@@ -336,13 +341,23 @@ async def logout(
             # остался рабочим до конца срока. Если причина выхода в том, что
             # устройство потеряно или токен утёк, такой ответ прямо вредит.
             #
-            # Cookie намеренно НЕ стираем: сеанс не завершён, и делать вид,
-            # что завершён, — та же самая ложь, только на стороне клиента.
+            # Серверный отзыв не подтверждён, поэтому успех не возвращаем.
+            # Но cookie этого браузера удаляем: локальный выход и очистка
+            # данных должны состояться даже во время сбоя БД. Возможная
+            # утёкшая копия refresh-токена останется риском — об этом честно
+            # сообщает ответ 503.
             logger.exception("Не удалось отозвать токен при выходе")
-            raise HTTPException(
+            failure = JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Не удалось завершить сеанс, попробуйте ещё раз",
-            ) from None
+                content={
+                    "detail": (
+                        "Локальный выход выполнен, но сервер не подтвердил отзыв "
+                        "сессии. Смените пароль, если токен мог попасть к постороннему."
+                    )
+                },
+            )
+            clear_auth_cookies(failure)
+            return failure
 
     clear_auth_cookies(response)
 

@@ -28,5 +28,8 @@ for (const name of ['auth-ui.js', ...groups.account]) {
   assert(index.indexOf(`src="${name}"`) < index.indexOf('src="app.js"'));
   assert(worker.includes(`'/${name}'`));
 }
+assert.match(auth, /async function clearLocalSession\s*\(/);
+assert.match(auth, /finally\s*{\s*await clearLocalSession\(userId\)/);
+assert.match(account, /await clearLocalSession\(deletedUserId\)/);
 assert(app.split('\n').length < 1800, 'app.js should stay below 1,800 lines');
 console.log('account module extraction tests passed');
