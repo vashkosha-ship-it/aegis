@@ -163,6 +163,7 @@ def _clear_limiters() -> None:
     from app.core import rate_limit
     from app.core.rate_limit import (
         assistant_limiter,
+        comment_limiter,
         email_send_limiter,
         login_limiter,
         otp_attempt_limiter,
@@ -173,6 +174,7 @@ def _clear_limiters() -> None:
         otp_attempt_limiter,
         login_limiter,
         assistant_limiter,
+        comment_limiter,
     ):
         limiter._store.clear()
 

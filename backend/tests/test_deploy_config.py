@@ -277,6 +277,13 @@ class TestHealthRouting:
         assert r"(?:pdf|epub)$" in config
         assert "proxy_set_header Range $http_range" in config
 
+    def test_nginx_overwrites_untrusted_forwarded_for(self):
+        """Клиентский XFF нельзя добавлять: backend увидит поддельный IP."""
+        config = NGINX_CONF.read_text(encoding="utf-8")
+
+        assert "$proxy_add_x_forwarded_for" not in config
+        assert config.count("proxy_set_header X-Forwarded-For $remote_addr;") == 2
+
     def test_healthcheck_validates_json_and_redis(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
 

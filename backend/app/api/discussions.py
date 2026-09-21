@@ -1,6 +1,5 @@
 """Book discussions endpoints — комментарии к книгам с ответами."""
 import logging
-import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -8,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
+from app.core.rate_limit import comment_limiter
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.book_comment import BookComment
@@ -16,55 +16,6 @@ from app.schemas.discussions import CommentAuthor, CommentCreate, CommentPublic
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["discussions"])
-
-
-# --- Простой in-memory rate-limit на создание комментариев ---
-# Не более N комментариев за окно WINDOW секунд на пользователя.
-import time as _time
-from collections import defaultdict, deque
-
-_COMMENT_MAX = 5          # макс. комментариев
-_COMMENT_WINDOW = 60      # за 60 секунд
-_comment_history: dict[int, deque] = defaultdict(deque)
-
-
-def _check_comment_limit(user_id: int) -> tuple[bool, int]:
-    """Возвращает (разрешено, сколько_секунд_ждать)."""
-    now = _time.time()
-    dq = _comment_history[user_id]
-    # выкидываем старые отметки за пределами окна
-    while dq and now - dq[0] > _COMMENT_WINDOW:
-        dq.popleft()
-    if len(dq) >= _COMMENT_MAX:
-        wait = int(_COMMENT_WINDOW - (now - dq[0])) + 1
-        return False, wait
-    return True, 0
-
-
-def _record_comment(user_id: int) -> None:
-    _comment_history[user_id].append(_time.time())
-
-
-# --- Простой in-memory rate-limit на создание комментариев ---
-# {user_id: [timestamps]}. Не более N комментариев за окно WINDOW секунд.
-_comment_times: dict[int, list[float]] = {}
-_COMMENT_LIMIT = 5          # макс. комментариев
-_COMMENT_WINDOW = 60        # за 60 секунд
-
-
-def _check_comment_rate(user_id: int) -> tuple[bool, int]:
-    """Возвращает (разрешено, сколько секунд ждать)."""
-    now = time.time()
-    times = [t for t in _comment_times.get(user_id, []) if now - t < _COMMENT_WINDOW]
-    _comment_times[user_id] = times
-    if len(times) >= _COMMENT_LIMIT:
-        wait = int(_COMMENT_WINDOW - (now - times[0])) + 1
-        return False, wait
-    return True, 0
-
-
-def _record_comment(user_id: int) -> None:
-    _comment_times.setdefault(user_id, []).append(time.time())
 
 
 def _author(u: User, current: User) -> CommentAuthor:
@@ -140,13 +91,6 @@ async def add_comment(
     current: User = Depends(get_current_user),
 ) -> CommentPublic:
     """Добавить комментарий или ответ (parent_id)."""
-    allowed, wait = _check_comment_limit(current.id)
-    if not allowed:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Слишком часто. Подождите {wait} сек перед следующим комментарием.",
-        )
-
     book = await db.get(Book, book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Книга не найдена")
@@ -160,11 +104,19 @@ async def add_comment(
         if parent.parent_id is not None:
             parent_id = parent.parent_id
 
+    # Проверка и запись выполняются одной Redis-командой: параллельные
+    # запросы и разные gunicorn-воркеры не могут проскочить между ними.
+    allowed, wait = await comment_limiter.try_acquire(current.id)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Слишком часто. Подождите {wait} сек перед следующим комментарием.",
+        )
+
     c = BookComment(book_id=book_id, user_id=current.id, parent_id=parent_id, text=payload.text.strip())
     db.add(c)
     await db.commit()
     await db.refresh(c, ["user"])
-    _record_comment(current.id)
     return _to_public(c, current)
 
 
