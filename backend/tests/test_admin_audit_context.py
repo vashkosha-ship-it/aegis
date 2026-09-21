@@ -32,7 +32,7 @@ async def test_user_approval_records_actor_target_result_request_and_ip(
 
 async def test_invalid_request_id_is_replaced(client):
     response = await client.get(
-        "/health", headers={"X-Request-ID": "bad id with spaces"}
+        "../health", headers={"X-Request-ID": "bad id with spaces"}
     )
     assert response.status_code == 200
     assert response.headers["X-Request-ID"] != "bad id with spaces"
