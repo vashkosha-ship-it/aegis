@@ -32,6 +32,11 @@ async function ensurePdfLoaded() {
 }
 
 async function ensureEpubLoaded() {
+  // epub.js использует JSZip для распаковки EPUB, но его browser-сборка не
+  // включает JSZip внутрь. Загружаем зависимость первой и только затем движок.
+  if (typeof JSZip === 'undefined') {
+    await _loadScript('vendor/jszip.min.js');
+  }
   if (typeof ePub === 'undefined') {
     await _loadScript('vendor/epub.min.js');
   }
