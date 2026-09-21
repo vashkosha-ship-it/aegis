@@ -11,10 +11,10 @@ starlette==1.6.0
 uvicorn[standard]==0.32.0
 
 # Database
-sqlalchemy==2.0.36
+sqlalchemy==2.0.54
 alembic==1.13.3
 asyncpg==0.30.0
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.13
 
 # Auth & security
 # Прямой bcrypt без заброшенной passlib. Существующие $2b$-хеши полностью
