@@ -55,7 +55,10 @@ test('@critical смена пароля и email проходит полный �
   const knownFiles = new Set(
     (await fs.readdir(mailDir)).filter((name) => name.endsWith('.txt')),
   );
-  const newEmail = 'account-changed@e2e.invalid';
+  // Реальное письмо наружу не уходит: SMTP перехвачен локальным capture.
+  // Домен должен пройти строгую EmailStr-валидацию (зоны .invalid/.test она
+  // намеренно отвергает как специальные).
+  const newEmail = 'e2e-account@aegis-sec-library.ru';
   const requested = await page.evaluate(
     ({ email, password }) => api.requestEmailChange(email, password),
     { email: newEmail, password: account.password },

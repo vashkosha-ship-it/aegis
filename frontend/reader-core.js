@@ -68,10 +68,13 @@ async function loadEpub(b) {
     // Применяем тему после создания rendition
   setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
 
-    const location = await epubBook.locations.generate(1000);
+    await epubBook.locations.generate(1000);
     epubRendition.display();
 
-    epubTotalPages = location.total || 1;
+    // epub.js возвращает из generate() массив CFI, а не объект с полем total.
+    // Из-за чтения location.total число страниц всегда становилось равным 1,
+    // и сохранённая позиция любой EPUB-книги сбрасывалась на начало.
+    epubTotalPages = Math.max(1, Number(epubBook.locations.length()) || 1);
     epubCurrentPage = Math.min(state.readingProgress[b.id]?.currentPage || 1, epubTotalPages);
 
     if (!state.readingProgress[b.id]) {
