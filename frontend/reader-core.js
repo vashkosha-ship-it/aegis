@@ -59,6 +59,9 @@ async function loadEpub(b) {
       return;
     }
     epubBook = ePub(epubData);
+    // Убираем спиннер до renderTo: очистка после renderTo удаляет созданный
+    // epub.js iframe и оставляет rendition в неконсистентном состоянии.
+    container.replaceChildren();
     epubRendition = epubBook.renderTo(container, {
       width: '100%',
       height: '100%',
@@ -69,7 +72,6 @@ async function loadEpub(b) {
   setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
 
     await epubBook.locations.generate(1000);
-    epubRendition.display();
 
     // epub.js возвращает из generate() массив CFI, а не объект с полем total.
     // Из-за чтения location.total число страниц всегда становилось равным 1,
@@ -84,12 +86,14 @@ async function loadEpub(b) {
     }
 
     updatePageIndicator();
-    container.replaceChildren();
-    epubRendition.display(epubCurrentPage - 1);
+    const initialCfi = epubBook.locations.cfiFromLocation(epubCurrentPage - 1);
+    await epubRendition.display(initialCfi || undefined);
 
     epubRendition.on('relocated', (loc) => {
       const current = epubBook.locations.locationFromCfi(loc.start);
-      if (current !== null && current !== undefined) {
+      // epub.js возвращает -1 для CFI до первой сгенерированной локации.
+      // Такой результат нельзя превращать в current_page=0: API его отвергает.
+      if (Number.isInteger(current) && current >= 0) {
         epubCurrentPage = current + 1;
         if (state.currentBook) {
           state.readingProgress[state.currentBook.id].currentPage = epubCurrentPage;

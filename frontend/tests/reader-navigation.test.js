@@ -11,6 +11,7 @@ const context = {
   isEpubMode: false,
   epubTotalPages: 8,
   epubCurrentPage: 1,
+  epubBook: { locations: { cfiFromLocation: page => `epubcfi(/6/${page + 2})` } },
   epubRendition: { display: page => calls.push(['epub', page]) },
   pdfTotalPages: 10,
   pdfCurrentPage: 1,
@@ -34,7 +35,7 @@ assert.ok(calls.some(call => call[0] === 'pdf' && call[1] === 10));
 context.isEpubMode = true;
 context.goToPage(3);
 assert.strictEqual(context.epubCurrentPage, 3);
-assert.ok(calls.some(call => call[0] === 'epub' && call[1] === 2));
+assert.ok(calls.some(call => call[0] === 'epub' && call[1] === 'epubcfi(/6/4)'));
 const before = calls.filter(call => call[0] === 'indicator').length;
 context.updateSlider();
 assert.strictEqual(calls.filter(call => call[0] === 'indicator').length, before + 1);
