@@ -71,6 +71,9 @@ async function loadEpub(b) {
     // Применяем тему после создания rendition
   setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
 
+    // До book.ready spine ещё может быть пустым: locations.generate() тогда
+    // молча создаёт ноль CFI и восстановить сохранённую позицию невозможно.
+    await epubBook.ready;
     await epubBook.locations.generate(1000);
 
     // epub.js возвращает из generate() массив CFI, а не объект с полем total.
