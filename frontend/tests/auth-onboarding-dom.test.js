@@ -53,6 +53,16 @@ const verify = authDom.window.document.getElementById('verifyEmailOverlay');
 assert.match(verify.textContent, /<img src=x onerror=alert\(1\)>/);
 assert.equal(verify.querySelector('img'), null);
 assert.equal(verify.querySelectorAll('[data-onclick]').length, 0);
+
+authContext.showAdminMfaScreen(
+  { mfa_token: 'signed-challenge', detail: 'Код отправлен' },
+  'admin',
+  'password',
+);
+const adminMfa = authDom.window.document.getElementById('adminMfaOverlay');
+assert.ok(adminMfa.querySelector('#adminMfaCode'));
+assert.match(adminMfa.textContent, /Защита администратора/);
+assert.equal(adminMfa.querySelectorAll('[data-onclick]').length, 0);
 assert.doesNotMatch(authSource, /\.innerHTML\s*=/);
 
 const onboardingDom = new JSDOM(`

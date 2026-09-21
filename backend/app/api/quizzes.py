@@ -3,7 +3,7 @@ import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -74,9 +74,10 @@ async def get_quiz(
 
 @router.post("/books/{book_id}/quiz/regenerate", response_model=list[QuizQuestionPublic])
 async def regenerate_quiz(
+    request: Request,
     book_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> list[QuizQuestionPublic]:
     """Пересоздать тест книги (удаляет старые вопросы и генерирует заново).
 
@@ -94,6 +95,12 @@ async def regenerate_quiz(
     # Удаляем старые вопросы (попытки прохождения сохраняются — они ссылаются
     # на book_id, а не на конкретные вопросы)
     await db.execute(sa_delete(QuizQuestion).where(QuizQuestion.book_id == book_id))
+    from app.services.admin_audit import log_admin_action
+
+    await log_admin_action(
+        db, admin, "quiz_regenerate", request=request, target=f"book:{book_id}",
+        detail="Пересоздан тест книги",
+    )
     await db.commit()
 
     questions = await quizzes_service.ensure_quiz_for_book(db, book)
@@ -102,8 +109,9 @@ async def regenerate_quiz(
 
 @router.post("/books/quiz/regenerate-all")
 async def regenerate_all_quizzes(
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> dict:
     """Сбросить тесты у всех книг.
 
@@ -116,6 +124,12 @@ async def regenerate_all_quizzes(
     book_ids = (await db.scalars(select(QuizQuestion.book_id).distinct())).all()
     affected = len(set(book_ids))
     await db.execute(sa_delete(QuizQuestion))
+    from app.services.admin_audit import log_admin_action
+
+    await log_admin_action(
+        db, admin, "quizzes_regenerate_all", request=request, target="books:all",
+        detail=f"Сброшены тесты у {affected} книг",
+    )
     await db.commit()
     logger.info("All quizzes reset by admin (%d books affected)", affected)
     return {"status": "ok", "books_cleared": affected}

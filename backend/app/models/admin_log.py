@@ -13,7 +13,7 @@ class AdminLog(Base):
     __tablename__ = "admin_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    admin_id: Mapped[int] = mapped_column(
+    admin_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     admin_username: Mapped[str] = mapped_column(String(64), nullable=False, default="")
@@ -23,11 +23,18 @@ class AdminLog(Base):
     target: Mapped[str | None] = mapped_column(String(128), nullable=True)
     # человекочитаемое описание
     detail: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    result: Mapped[str] = mapped_column(
+        String(16), default="success", nullable=False, server_default="success"
+    )
+    request_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
-    admin: Mapped["User"] = relationship()
+    admin: Mapped["User | None"] = relationship()
 
     def __repr__(self) -> str:
         return f"<AdminLog id={self.id} action={self.action} by={self.admin_username}>"

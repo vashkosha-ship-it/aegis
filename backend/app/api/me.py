@@ -17,7 +17,7 @@ from app.core.file_validation import (
     detect_cover_ext,
 )
 from app.core.rate_limit import email_send_limiter, otp_attempt_limiter
-from app.core.security import hash_otp, hash_password, verify_otp, verify_password
+from app.core.security import hash_new_password, hash_otp, verify_otp, verify_password
 from app.core.storage import (
     StorageBackend,
     StorageError,
@@ -118,7 +118,7 @@ async def change_my_password(
     if len(payload.new_password.strip()) < 8:
         raise HTTPException(status_code=400, detail="Пароль должен быть не короче 8 символов")
 
-    current.password_hash = hash_password(payload.new_password)
+    current.password_hash = hash_new_password(payload.new_password)
     # Смена пароля отзывает все ранее выданные токены (все другие устройства
     # разлогиниваются). Текущему клиенту нужно перелогиниться.
     current.token_version = (current.token_version or 0) + 1

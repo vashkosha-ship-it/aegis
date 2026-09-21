@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_any
 from app.core.client_ip import get_client_ip
+from app.core.config import settings
 from app.core.cookies import (
     clear_auth_cookies,
     csrf_is_valid,
@@ -19,8 +20,14 @@ from app.core.cookies import (
 )
 from app.core.rate_limit import email_send_limiter, login_limiter, otp_attempt_limiter
 from app.core.security import (
+    TokenError,
+    create_admin_mfa_token,
+    decode_token,
+    hash_new_password,
     hash_otp,
     hash_password,
+    hash_recovery_code,
+    password_needs_rehash,
     verify_otp,
     verify_password,
 )
@@ -28,6 +35,9 @@ from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.schemas.auth import (
     AccessTokenOnly,
+    AdminMfaChallenge,
+    AdminMfaVerifyRequest,
+    AdminMfaVerifyResponse,
     ForgotPasswordRequest,
     RegisterResponse,
     ResendCodeRequest,
@@ -38,7 +48,11 @@ from app.schemas.auth import (
     VerifyEmailRequest,
 )
 from app.services import tokens as tokens_service
-from app.services.email_service import EmailError, send_verification_code
+from app.services.email_service import (
+    EmailError,
+    send_admin_login_code,
+    send_verification_code,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -68,6 +82,59 @@ async def _issue_tokens(
     pair = await tokens_service.issue_token_pair(db, user)
     set_auth_cookies(response, pair.refresh_token)
     return AccessTokenOnly(access_token=pair.access_token)
+
+
+def _generate_recovery_codes(count: int = 10) -> list[str]:
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return [
+        "-".join(
+            "".join(secrets.choice(alphabet) for _ in range(4))
+            for _ in range(4)
+        )
+        for _ in range(count)
+    ]
+
+
+async def _start_admin_mfa(
+    db: AsyncSession, user: User, request: Request
+) -> AdminMfaChallenge:
+    destination = (user.email or settings.ADMIN_NOTIFY_EMAIL).strip()
+    if not destination:
+        raise HTTPException(
+            status_code=403,
+            detail="Для администратора не настроен email второго фактора",
+        )
+    await _guard_email_send(destination, request)
+    code = _gen_code()
+    user.admin_mfa_code = hash_otp(code)
+    user.admin_mfa_expires = datetime.now(UTC) + timedelta(minutes=10)
+    await db.commit()
+    try:
+        await send_admin_login_code(destination, code)
+    except EmailError as exc:
+        user.admin_mfa_code = None
+        user.admin_mfa_expires = None
+        await db.commit()
+        raise HTTPException(
+            status_code=502, detail="Не удалось отправить код администратора"
+        ) from exc
+    return AdminMfaChallenge(
+        mfa_token=create_admin_mfa_token(user.id, user.token_version)
+    )
+
+
+async def _complete_password_login(
+    db: AsyncSession,
+    user: User,
+    password: str,
+    request: Request,
+    response: Response,
+) -> AccessTokenOnly | AdminMfaChallenge:
+    if password_needs_rehash(user.password_hash) and len(password.encode("utf-8")) <= 72:
+        user.password_hash = hash_password(password)
+    if user.role == UserRole.ADMIN:
+        return await _start_admin_mfa(db, user, request)
+    return await _issue_tokens(db, user, request, response)
 
 
 def _client_ip(request: Request) -> str:
@@ -121,7 +188,7 @@ async def register(
     user = User(
         username=payload.username,
         email=payload.email,
-        password_hash=hash_password(payload.password),
+        password_hash=hash_new_password(payload.password),
         full_name=payload.full_name,
         department=payload.department,
         role=UserRole.READER,
@@ -224,13 +291,13 @@ async def resend_code(
     return {"detail": "Verification code sent."}
 
 
-@router.post("/login", response_model=AccessTokenOnly)
+@router.post("/login", response_model=AccessTokenOnly | AdminMfaChallenge)
 async def login(
     response: Response,
     payload: UserLogin,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> AccessTokenOnly:
+) -> AccessTokenOnly | AdminMfaChallenge:
     """Authenticate by username + password and return JWT pair."""
     ip = _client_ip(request)
 
@@ -252,8 +319,76 @@ async def login(
     if not user.is_verified:
         raise HTTPException(status_code=403, detail="Email not verified")
 
-    await login_limiter.record_success(ip)
-    return await _issue_tokens(db, user, request, response)
+    result = await _complete_password_login(db, user, payload.password, request, response)
+    if not isinstance(result, AdminMfaChallenge):
+        await login_limiter.record_success(ip)
+    return result
+
+
+@router.post("/admin-mfa/verify", response_model=AdminMfaVerifyResponse)
+async def verify_admin_mfa(
+    payload: AdminMfaVerifyRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> AdminMfaVerifyResponse:
+    """Завершить admin-login email-кодом или одноразовым recovery-кодом."""
+    try:
+        decoded = decode_token(payload.mfa_token)
+        if decoded.get("type") != "admin_mfa":
+            raise TokenError("wrong token type")
+        user_id = int(decoded["sub"])
+    except (TokenError, KeyError, ValueError):
+        raise HTTPException(status_code=401, detail="Недействительный MFA challenge") from None
+
+    user = await db.get(User, user_id)
+    if (
+        not user
+        or not user.is_active
+        or user.role != UserRole.ADMIN
+        or int(decoded.get("tv", -1)) != user.token_version
+    ):
+        raise HTTPException(status_code=401, detail="Недействительный MFA challenge")
+
+    identity = user.email or f"admin:{user.id}"
+    await _guard_otp_attempt(identity, request)
+    now = datetime.now(UTC)
+    expires = user.admin_mfa_expires
+    if expires and expires.tzinfo is None:
+        expires = expires.replace(tzinfo=UTC)
+    email_code_ok = bool(
+        expires
+        and now <= expires
+        and verify_otp(payload.code, user.admin_mfa_code)
+    )
+
+    recovery_hash = hash_recovery_code(payload.code)
+    recovery_codes = list(user.admin_recovery_codes or [])
+    recovery_code_ok = recovery_hash in recovery_codes
+    if not email_code_ok and not recovery_code_ok:
+        raise HTTPException(status_code=400, detail="Неверный или истёкший код")
+
+    if recovery_code_ok:
+        recovery_codes.remove(recovery_hash)
+        user.admin_recovery_codes = recovery_codes
+    user.admin_mfa_code = None
+    user.admin_mfa_expires = None
+
+    plain_recovery_codes: list[str] | None = None
+    if not user.admin_recovery_codes:
+        plain_recovery_codes = _generate_recovery_codes()
+        user.admin_recovery_codes = [
+            hash_recovery_code(code) for code in plain_recovery_codes
+        ]
+    await db.commit()
+    await otp_attempt_limiter.reset(f"email:{identity.lower().strip()}")
+    await login_limiter.record_success(_client_ip(request))
+
+    token = await _issue_tokens(db, user, request, response)
+    return AdminMfaVerifyResponse(
+        access_token=token.access_token,
+        recovery_codes=plain_recovery_codes,
+    )
 
 
 @router.post("/refresh", response_model=AccessTokenOnly)
@@ -393,6 +528,12 @@ async def login_form(
     if not user.is_verified:
         raise HTTPException(status_code=403, detail="Email not verified")
 
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Администратор должен войти через /auth/login с MFA",
+        )
+
     await login_limiter.record_success(ip)
     return await _issue_tokens(db, user, request, response)
 
@@ -429,13 +570,16 @@ async def forgot_password(
     return {"detail": "Если такой email зарегистрирован, на него отправлен код восстановления"}
 
 
-@router.post("/reset-password", response_model=AccessTokenOnly)
+@router.post(
+    "/reset-password",
+    response_model=AccessTokenOnly | AdminMfaChallenge,
+)
 async def reset_password(
     response: Response,
     payload: ResetPasswordRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> AccessTokenOnly:
+) -> AccessTokenOnly | AdminMfaChallenge:
     """Сбросить пароль по коду из письма. При успехе сразу выдаём токены (вход)."""
     await _guard_otp_attempt(payload.email, request)
 
@@ -455,7 +599,7 @@ async def reset_password(
         raise HTTPException(status_code=400, detail="Неверный код")
 
     await otp_attempt_limiter.reset(f"email:{payload.email.lower().strip()}")
-    user.password_hash = hash_password(payload.new_password)
+    user.password_hash = hash_new_password(payload.new_password)
     user.reset_code = None
     user.reset_expires = None
 
@@ -480,4 +624,6 @@ async def reset_password(
     user.token_version = (user.token_version or 0) + 1
     await db.commit()
 
+    if user.role == UserRole.ADMIN:
+        return await _start_admin_mfa(db, user, request)
     return await _issue_tokens(db, user, request, response)

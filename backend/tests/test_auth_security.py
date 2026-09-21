@@ -13,6 +13,8 @@ from app.core.security import (
     create_access_token,
     hash_otp,
     hash_password,
+    password_needs_rehash,
+    validate_new_password,
     verify_password,
 )
 from tests.conftest import auth_headers, make_user
@@ -37,6 +39,16 @@ class TestPasswordHashing:
         legacy_hash = hash_password(legacy_password)
 
         assert verify_password(legacy_password + "ignored suffix", legacy_hash)
+
+    def test_new_passwords_over_72_utf8_bytes_are_rejected(self):
+        with pytest.raises(ValueError, match="72 байта"):
+            validate_new_password("я" * 37)
+
+    def test_lower_cost_hash_is_marked_for_upgrade(self):
+        import bcrypt
+
+        old_hash = bcrypt.hashpw(b"StrongPass123!", bcrypt.gensalt(rounds=10)).decode()
+        assert password_needs_rehash(old_hash)
 
 
 class TestApprovalGate:
@@ -99,6 +111,72 @@ class TestEmailVerification:
         )
         assert r.status_code == 200
         assert "access_token" in r.json()
+
+
+class TestAdminMfa:
+    async def test_admin_login_requires_email_code_and_issues_recovery_codes(
+        self, client, db, admin_user, monkeypatch
+    ):
+        sent: dict[str, str] = {}
+
+        async def fake_send(to: str, code: str) -> None:
+            sent.update(to=to, code=code)
+
+        monkeypatch.setattr("app.api.auth.send_admin_login_code", fake_send)
+        login = await client.post(
+            "/auth/login",
+            json={"username": admin_user.username, "password": "TestPass123!"},
+        )
+        assert login.status_code == 200, login.text
+        challenge = login.json()
+        assert challenge["mfa_required"] is True
+        assert "access_token" not in challenge
+        assert sent["to"] == admin_user.email
+
+        verified = await client.post(
+            "/auth/admin-mfa/verify",
+            json={"mfa_token": challenge["mfa_token"], "code": sent["code"]},
+        )
+        assert verified.status_code == 200, verified.text
+        body = verified.json()
+        assert body["access_token"]
+        assert len(body["recovery_codes"]) == 10
+        assert len(set(body["recovery_codes"])) == 10
+        await db.refresh(admin_user)
+        assert len(admin_user.admin_recovery_codes) == 10
+        assert not set(body["recovery_codes"]) & set(admin_user.admin_recovery_codes)
+
+        reused = await client.post(
+            "/auth/admin-mfa/verify",
+            json={"mfa_token": challenge["mfa_token"], "code": sent["code"]},
+        )
+        assert reused.status_code == 400
+
+        second_login = await client.post(
+            "/auth/login",
+            json={"username": admin_user.username, "password": "TestPass123!"},
+        )
+        recovered = await client.post(
+            "/auth/admin-mfa/verify",
+            json={
+                "mfa_token": second_login.json()["mfa_token"],
+                "code": body["recovery_codes"][0],
+            },
+        )
+        assert recovered.status_code == 200, recovered.text
+        assert recovered.json()["recovery_codes"] is None
+        await db.refresh(admin_user)
+        assert len(admin_user.admin_recovery_codes) == 9
+
+    async def test_admin_oauth_password_endpoint_cannot_bypass_mfa(
+        self, client, admin_user
+    ):
+        response = await client.post(
+            "/auth/token",
+            data={"username": admin_user.username, "password": "TestPass123!"},
+        )
+        assert response.status_code == 403
+        assert "MFA" in response.json()["detail"]
 
 
 class TestTokenRevocation:

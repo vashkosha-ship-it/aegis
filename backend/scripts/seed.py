@@ -31,7 +31,7 @@ from datetime import date
 from sqlalchemy import select
 
 from app.core.config import settings
-from app.core.security import hash_password
+from app.core.security import hash_new_password
 from app.db.session import AsyncSessionLocal
 from app.models.achievement import Achievement
 from app.models.book import Book
@@ -188,7 +188,7 @@ async def _seed_admin(db, password: str) -> None:
     db.add(User(
         username="admin",
         email="admin@neonstack.local",
-        password_hash=hash_password(password),
+        password_hash=hash_new_password(password),
         full_name="Administrator",
         role=UserRole.ADMIN,
         is_verified=True,
@@ -213,7 +213,7 @@ async def _seed_demo_data(db) -> None:
             db.add(User(
                 username="user",
                 email="user@neonstack.local",
-                password_hash=hash_password(password),
+                password_hash=hash_new_password(password),
                 full_name="Demo Reader",
                 role=UserRole.READER,
                 xp=150,

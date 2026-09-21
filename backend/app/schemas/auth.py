@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.core.security import validate_new_password
 from app.models.user import UserRole
 
 
@@ -13,6 +14,11 @@ class UserRegister(BaseModel):
     email: EmailStr  # обязателен — на него приходит код подтверждения
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
+
+    @field_validator("password")
+    @classmethod
+    def _password_policy(cls, value: str) -> str:
+        return validate_new_password(value)
 
 
 class VerifyEmailRequest(BaseModel):
@@ -50,6 +56,21 @@ class AccessTokenOnly(BaseModel):
     """
     access_token: str
     token_type: str = "bearer"
+
+
+class AdminMfaChallenge(BaseModel):
+    mfa_required: Literal[True] = True
+    mfa_token: str
+    detail: str = "Введите код из письма или recovery-код"
+
+
+class AdminMfaVerifyRequest(BaseModel):
+    mfa_token: str = Field(min_length=20, max_length=4096)
+    code: str = Field(min_length=6, max_length=32)
+
+
+class AdminMfaVerifyResponse(AccessTokenOnly):
+    recovery_codes: list[str] | None = None
 
 
 class UserPublic(BaseModel):
@@ -102,7 +123,5 @@ class ResetPasswordRequest(BaseModel):
 
     @field_validator("new_password")
     @classmethod
-    def _min_len(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Пароль должен содержать минимум 8 символов")
-        return v
+    def _password_policy(cls, value: str) -> str:
+        return validate_new_password(value)
