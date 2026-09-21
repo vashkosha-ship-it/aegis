@@ -47,6 +47,21 @@ async function main() {
   assert.equal(api.tokens.access, null, 'access-токен должен удаляться даже при 503');
   assert.equal(requestOptions.headers['X-CSRF-Token'], 'test-csrf');
 
+  let mfaResponse = { mfa_required: true, mfa_token: 'challenge-token' };
+  const mfaApi = loadApi(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => mfaResponse,
+  }));
+  const challenge = await mfaApi.login('admin', 'password');
+  assert.equal(challenge.mfa_required, true);
+  assert.equal(mfaApi.tokens.access, null, 'challenge ещё не является сессией');
+
+  mfaResponse = { access_token: 'admin-access', recovery_codes: ['AAAA-BBBB'] };
+  const verified = await mfaApi.verifyAdminMfa('challenge-token', '123456');
+  assert.equal(verified.recovery_codes[0], 'AAAA-BBBB');
+  assert.equal(mfaApi.tokens.access, 'admin-access');
+
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const progressSource = fs.readFileSync(
     path.join(__dirname, '..', 'reading-progress-sync.js'),

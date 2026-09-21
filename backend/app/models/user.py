@@ -57,6 +57,13 @@ class User(Base):
     reset_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     reset_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Второй фактор администратора. Открытые коды в БД не сохраняются.
+    admin_mfa_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    admin_mfa_expires: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    admin_recovery_codes: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+
     # Одобрение аккаунта администратором (второй этап после подтверждения email)
     is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
 

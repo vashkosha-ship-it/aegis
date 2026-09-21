@@ -4,13 +4,13 @@ import logging
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
-from app.core.security import hash_password
+from app.core.security import hash_new_password
 from app.core.storage import StorageBackend, StorageError, get_storage
 from app.db.session import get_db
 from app.models.book import Book
@@ -32,6 +32,7 @@ from app.schemas.admin import (
     StorageCleanupView,
 )
 from app.services import excel_export
+from app.services.admin_audit import log_admin_action
 from app.services.storage_integrity import audit_storage, delete_orphaned_storage
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,7 @@ async def storage_audit(
 
 @router.post("/storage/cleanup-orphans", response_model=StorageCleanupView)
 async def cleanup_orphaned_storage(
+    request: Request,
     grace_hours: int = Query(24, ge=1, le=720),
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -94,6 +96,16 @@ async def cleanup_orphaned_storage(
         len(deleted),
         len(failed),
     )
+    await log_admin_action(
+        db,
+        admin,
+        "storage_cleanup",
+        request=request,
+        target="storage:orphans",
+        detail=f"Удалено: {len(deleted)}, ошибок: {len(failed)}",
+        result="partial" if failed else "success",
+    )
+    await db.commit()
     return StorageCleanupView(
         **_storage_audit_view(audit),
         deleted_count=len(deleted),
@@ -125,6 +137,7 @@ async def latest_description_generation_job(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def start_description_generation_job(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ) -> DescriptionGenerationStart:
@@ -170,7 +183,7 @@ async def start_description_generation_job(
         created_by_username=admin.username,
     )
     db.add(job)
-    await db.commit()
+    await db.flush()
 
     from app.core.queue import get_queue
 
@@ -190,17 +203,25 @@ async def start_description_generation_job(
         job.status = "failed"
         job.last_error = f"Не удалось поставить задачу в очередь: {exc}"[:2000]
         job.finished_at = datetime.now(UTC)
+        await log_admin_action(
+            db,
+            admin,
+            "book_descriptions_generate",
+            request=request,
+            target=f"description-job:{job.id}",
+            detail=job.last_error,
+            result="failure",
+        )
         await db.commit()
         raise HTTPException(
             status_code=503, detail="Не удалось запустить создание описаний"
         ) from None
 
-    from app.services.admin_audit import log_admin_action
-
     await log_admin_action(
         db,
         admin,
         "book_descriptions_generate",
+        request=request,
         target=f"description-job:{job.id}",
         detail=f"Запущено создание описаний для {len(book_ids)} книг",
     )
@@ -299,6 +320,7 @@ async def list_all_users(
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
+    request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current: User = Depends(get_current_admin),
@@ -311,7 +333,12 @@ async def delete_user(
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
     if user.role == UserRole.ADMIN:
         raise HTTPException(status_code=400, detail="Cannot delete admin accounts")
+    target = f"user:{user.id}:{user.username}"
     await db.delete(user)
+    await log_admin_action(
+        db, current, "user_delete", request=request, target=target,
+        detail=f"Удалён пользователь {user.username}",
+    )
     await db.commit()
 
 
@@ -331,15 +358,21 @@ async def list_pending_users(
 
 @router.post("/users/{user_id}/approve", status_code=status.HTTP_200_OK)
 async def approve_user(
+    request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> dict:
     """Одобрить аккаунт — пользователь получает доступ к библиотеке."""
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.is_approved = True
+    await log_admin_action(
+        db, admin, "user_approve", request=request,
+        target=f"user:{user.id}:{user.username}",
+        detail=f"Одобрен пользователь {user.username}",
+    )
     await db.commit()
 
     # Уведомляем пользователя, что доступ открыт (письмо не критично — не ломаем одобрение)
@@ -355,6 +388,7 @@ async def approve_user(
 
 @router.post("/users/{user_id}/reject", status_code=status.HTTP_200_OK)
 async def reject_user(
+    request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current: User = Depends(get_current_admin),
@@ -367,16 +401,22 @@ async def reject_user(
         raise HTTPException(status_code=400, detail="Cannot reject admin accounts")
     if user.is_approved:
         raise HTTPException(status_code=400, detail="User already approved")
+    target = f"user:{user.id}:{user.username}"
     await db.delete(user)
+    await log_admin_action(
+        db, current, "user_reject", request=request, target=target,
+        detail=f"Отклонена заявка {user.username}",
+    )
     await db.commit()
     return {"detail": "rejected", "user_id": user_id}
 
 
 @router.post("/users/create", status_code=status.HTTP_201_CREATED)
 async def admin_create_user(
+    request: Request,
     payload: CreateUserRequest,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> dict:
     """Создание пользователя администратором. Сразу активен (verified + approved),
     роль — читатель. Email не требуется."""
@@ -395,7 +435,7 @@ async def admin_create_user(
     user = User(
         username=username,
         email=None,
-        password_hash=hash_password(payload.password),
+        password_hash=hash_new_password(payload.password),
         full_name=(payload.full_name or "").strip() or None,
         department=(payload.department or "").strip() or None,
         role=UserRole.READER,
@@ -403,6 +443,12 @@ async def admin_create_user(
         is_approved=True,
     )
     db.add(user)
+    await db.flush()
+    await log_admin_action(
+        db, admin, "user_create", request=request,
+        target=f"user:{user.id}:{user.username}",
+        detail=f"Создан пользователь {user.username}",
+    )
     await db.commit()
     await db.refresh(user)
     return {"detail": "created", "user_id": user.id, "username": user.username}

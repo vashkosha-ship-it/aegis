@@ -1,10 +1,17 @@
 """Схемы личного кабинета: пароль, email, удаление аккаунта, публичный профиль."""
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from app.core.security import validate_new_password
 
 
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def _password_policy(cls, value: str) -> str:
+        return validate_new_password(value)
 
 
 class EmailChangeRequest(BaseModel):

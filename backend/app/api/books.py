@@ -49,6 +49,7 @@ from app.schemas.book import (
     BookUpdate,
 )
 from app.services import books as books_service
+from app.services.admin_audit import log_admin_action
 from app.services.books import BookNotFound, InvalidStorageKey
 from app.services.deepseek_client import DeepSeekError
 from app.services.storage_integrity import commit_with_storage_cleanup
@@ -257,14 +258,20 @@ class RequiredBookBrief(_BaseModel):
 
 @router.post("/{book_id}/required", response_model=RequiredBookBrief)
 async def set_required(
+    request: Request,
     book_id: int,
     payload: RequiredBookSet,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> RequiredBookBrief:
     """Admin only: пометить книгу обязательной для подразделения (или снять)."""
     book = await _get_book_or_404(db, book_id)
     book.required_for_department = (payload.department or None)
+    await log_admin_action(
+        db, admin, "book_required_update", request=request,
+        target=f"book:{book.id}",
+        detail=f"Обязательное подразделение: {book.required_for_department or 'снято'}",
+    )
     await db.commit()
     await db.refresh(book)
     return RequiredBookBrief(
@@ -298,6 +305,7 @@ async def my_required_books(
 
 @router.post("", response_model=BookPublic, status_code=status.HTTP_201_CREATED)
 async def create_book(
+    request: Request,
     payload: BookCreate,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -314,15 +322,19 @@ async def create_book(
         book.categories = await books_service.get_or_create_categories(db, payload.categories)
     
     db.add(book)
+    await db.flush()
+    await log_admin_action(
+        db, admin, "book_create", request=request,
+        target=f"book:{book.id}", detail=f"Создана книга «{book.title}»",
+    )
     await db.commit()
     await db.refresh(book)
-    await log_admin_action(db, admin, "book_create", target=f"book:{book.id}", detail=f"Создана книга «{book.title}»")
-    await db.commit()
     return books_service.to_public(book)
 
 
 @router.patch("/{book_id}", response_model=BookPublic)
 async def update_book(
+    request: Request,
     book_id: int,
     payload: BookUpdate,
     db: AsyncSession = Depends(get_db),
@@ -344,15 +356,18 @@ async def update_book(
     if categories_update is not None:
         book.categories = await books_service.get_or_create_categories(db, categories_update)
     
+    await log_admin_action(
+        db, admin, "book_update", request=request,
+        target=f"book:{book.id}", detail=f"Изменена книга «{book.title}»",
+    )
     await db.commit()
     await db.refresh(book)
-    await log_admin_action(db, admin, "book_update", target=f"book:{book.id}", detail=f"Изменена книга «{book.title}»")
-    await db.commit()
     return books_service.to_public(book)
 
 
 @router.post("/{book_id}/generate-description", response_model=BookPublic)
 async def generate_description(
+    request: Request,
     book_id: int,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -398,6 +413,7 @@ async def generate_description(
         db,
         admin,
         "book_description_generate",
+        request=request,
         target=f"book:{book.id}",
         detail=f"ИИ создал описание книги «{book.title}»",
     )
@@ -407,6 +423,7 @@ async def generate_description(
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book(
+    request: Request,
     book_id: int,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -424,8 +441,10 @@ async def delete_book(
     cover_key = book.cover_storage_key
 
     await db.delete(book)
-    await db.commit()
-    await log_admin_action(db, admin, "book_delete", target=f"book:{book_id}", detail=f"Удалена книга «{book_title}»")
+    await log_admin_action(
+        db, admin, "book_delete", request=request,
+        target=f"book:{book_id}", detail=f"Удалена книга «{book_title}»",
+    )
     await db.commit()
 
     # Файлы чистим ПОСЛЕ успешного удаления из БД.
@@ -462,6 +481,7 @@ async def list_categories(db: AsyncSession = Depends(get_db)) -> list[str]:
     status_code=status.HTTP_200_OK,
 )
 async def upload_book_pdf(
+    request: Request,
     book_id: int,
     file: UploadFile = File(..., description="PDF file (application/pdf)"),
     db: AsyncSession = Depends(get_db),
@@ -499,6 +519,10 @@ async def upload_book_pdf(
     book.epub_storage_key = None
     book.file_format = "pdf"
     await _clear_book_index(db, book)
+    await log_admin_action(
+        db, admin, "pdf_upload", request=request, target=f"book:{book.id}",
+        detail=f"Загружен PDF, {size} байт",
+    )
     await commit_with_storage_cleanup(db, storage, new_key)
 
     # 5) Сразу ставим новую версию PDF на полнотекстовую индексацию.
@@ -535,6 +559,7 @@ async def upload_book_pdf(
     status_code=status.HTTP_200_OK,
 )
 async def upload_book_epub(
+    request: Request,
     book_id: int,
     file: UploadFile = File(..., description="EPUB file (application/epub+zip)"),
     db: AsyncSession = Depends(get_db),
@@ -573,6 +598,10 @@ async def upload_book_epub(
     book.file_format = "epub"
     # Индекс прежней версии не должен оставаться доступным после смены файла.
     await _clear_book_index(db, book)
+    await log_admin_action(
+        db, admin, "epub_upload", request=request, target=f"book:{book.id}",
+        detail=f"Загружен EPUB, {size} байт",
+    )
     await commit_with_storage_cleanup(db, storage, new_key)
 
     index_job_id, indexing_status = await _enqueue_book_index(db, book)
@@ -611,9 +640,10 @@ REINDEX_JOB_KEY = "aegis:reindex_all:job"
 
 @router.post("/{book_id}/reindex", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_book(
+    request: Request,
     book_id: int,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> dict:
     """Admin only: поставить книгу в очередь на переиндексацию.
 
@@ -624,6 +654,10 @@ async def reindex_book(
     if not (book.pdf_storage_key or book.epub_storage_key):
         raise HTTPException(status_code=400, detail="У книги нет файла для индексации")
 
+    await log_admin_action(
+        db, admin, "book_reindex", request=request, target=f"book:{book.id}",
+        detail="Поставлена переиндексация книги",
+    )
     job_id, queue_status = await _enqueue_book_index(db, book)
     if queue_status != "queued":
         raise HTTPException(
@@ -655,8 +689,9 @@ async def book_index_status(
 
 @router.post("/reindex-all", status_code=status.HTTP_202_ACCEPTED)
 async def reindex_all_books(
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> dict:
     """Admin only: поставить в очередь индексацию всех книг с PDF или EPUB."""
     from app.core.queue import get_queue
@@ -671,6 +706,10 @@ async def reindex_all_books(
     file_filter = or_(
         Book.pdf_storage_key.isnot(None),
         Book.epub_storage_key.isnot(None),
+    )
+    await log_admin_action(
+        db, admin, "books_reindex_all", request=request, target="books:all",
+        detail="Запрошена массовая переиндексация",
     )
     await db.execute(
         sa_update(Book)
@@ -745,9 +784,10 @@ class MatchArTopicsRequest(_BaseModel):
 
 @router.post("/ai-match-ar-topics")
 async def ai_match_ar_topics(
+    request: Request,
     payload: MatchArTopicsRequest,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> dict:
     """Admin only: ИИ сопоставляет книги с темами AR-схем и добавляет книгам
     соответствующие категории, чтобы книги появлялись в рекомендациях AR-режима."""
@@ -762,6 +802,11 @@ async def ai_match_ar_topics(
     books = (await db.scalars(select(Book))).all()
     if not books:
         return {"updated": 0, "total": 0}
+
+    await log_admin_action(
+        db, admin, "books_ai_match_ar", request=request, target="books:all",
+        detail=f"Сопоставление с {len(topics)} AR-темами",
+    )
 
     updated = 0
     processed = 0
@@ -986,6 +1031,7 @@ async def download_book_pdf(
 
 @router.delete("/{book_id}/pdf", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book_pdf(
+    request: Request,
     book_id: int,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -1000,6 +1046,10 @@ async def delete_book_pdf(
     key = book.pdf_storage_key
     book.pdf_storage_key = None
     await _clear_book_index(db, book)
+    await log_admin_action(
+        db, admin, "pdf_delete", request=request, target=f"book:{book.id}",
+        detail="PDF отвязан и удалён",
+    )
     await db.commit()
 
     try:
@@ -1066,6 +1116,7 @@ async def download_book_epub(
 
 @router.delete("/{book_id}/epub", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book_epub(
+    request: Request,
     book_id: int,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -1079,6 +1130,10 @@ async def delete_book_epub(
     key = book.epub_storage_key
     book.epub_storage_key = None
     await _clear_book_index(db, book)
+    await log_admin_action(
+        db, admin, "epub_delete", request=request, target=f"book:{book.id}",
+        detail="EPUB отвязан и удалён",
+    )
     await db.commit()
     try:
         await storage.delete(key)
@@ -1098,6 +1153,7 @@ async def delete_book_epub(
     status_code=status.HTTP_200_OK,
 )
 async def upload_book_cover(
+    request: Request,
     book_id: int,
     file: UploadFile = File(..., description="Cover image (JPEG, PNG, WEBP)"),
     db: AsyncSession = Depends(get_db),
@@ -1157,6 +1213,10 @@ async def upload_book_cover(
         raise HTTPException(status_code=413, detail=str(e)) from None
 
     book.cover_storage_key = new_key
+    await log_admin_action(
+        db, admin, "cover_upload", request=request, target=f"book:{book.id}",
+        detail=f"Загружена обложка, {size} байт",
+    )
     await commit_with_storage_cleanup(db, storage, new_key)
 
     replaced = bool(old_key)
@@ -1234,6 +1294,7 @@ async def download_book_cover(
 
 @router.delete("/{book_id}/cover", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_book_cover(
+    request: Request,
     book_id: int,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -1246,6 +1307,10 @@ async def delete_book_cover(
 
     key = book.cover_storage_key
     book.cover_storage_key = None
+    await log_admin_action(
+        db, admin, "cover_delete", request=request, target=f"book:{book.id}",
+        detail="Обложка отвязана и удалена",
+    )
     await db.commit()
 
     try:
@@ -1286,6 +1351,9 @@ async def get_admin_logs(
             "action": r.action,
             "target": r.target,
             "detail": r.detail,
+            "result": r.result,
+            "request_id": r.request_id,
+            "ip_address": r.ip_address,
             "created_at": r.created_at.isoformat(),
         }
         for r in rows

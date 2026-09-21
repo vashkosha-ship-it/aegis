@@ -179,6 +179,16 @@
         body: { username, password },
         auth: false,
       });
+      if (data.access_token) tokens.set(data.access_token);
+      return data;
+    },
+
+    async verifyAdminMfa(mfaToken, code) {
+      const data = await request('/auth/admin-mfa/verify', {
+        method: 'POST',
+        body: { mfa_token: mfaToken, code },
+        auth: false,
+      });
       tokens.set(data.access_token);
       return data;
     },

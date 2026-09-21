@@ -2,7 +2,9 @@
 import asyncio
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -176,6 +178,23 @@ class BodySizeLimitMiddleware:
 
 
 app.add_middleware(BodySizeLimitMiddleware)
+
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
+
+
+class RequestContextMiddleware(BaseHTTPMiddleware):
+    """Единый request ID для ответа, логов и административного аудита."""
+
+    async def dispatch(self, request: Request, call_next):
+        supplied = request.headers.get("X-Request-ID", "").strip()
+        request_id = supplied if _REQUEST_ID_RE.fullmatch(supplied) else uuid4().hex
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
+app.add_middleware(RequestContextMiddleware)
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Добавляем стандартные заголовки безопасности ко всем ответам."""

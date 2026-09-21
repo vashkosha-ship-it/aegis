@@ -31,6 +31,30 @@ from app.core.config import settings
 # включая пароли с многобайтными UTF-8 символами на границе лимита.
 BCRYPT_ROUNDS = 12
 BCRYPT_MAX_PASSWORD_BYTES = 72
+MIN_PASSWORD_LENGTH = 8
+
+
+class PasswordPolicyError(ValueError):
+    """Новый пароль не соответствует единой серверной политике."""
+
+
+def validate_new_password(plain_password: str) -> str:
+    """Проверить новый пароль до bcrypt-хеширования.
+
+    Проверка идёт по байтам, а не по символам: bcrypt различает только первые
+    72 байта. Молчаливое обрезание делало два разных длинных пароля
+    эквивалентными. Старые хеши продолжаем проверять совместимо, но новые
+    усечённые значения больше не создаём.
+    """
+    if not isinstance(plain_password, str):
+        raise PasswordPolicyError("Пароль должен быть строкой")
+    if len(plain_password.strip()) < MIN_PASSWORD_LENGTH:
+        raise PasswordPolicyError(
+            f"Пароль должен содержать минимум {MIN_PASSWORD_LENGTH} символов"
+        )
+    if len(plain_password.encode("utf-8")) > BCRYPT_MAX_PASSWORD_BYTES:
+        raise PasswordPolicyError("Пароль не должен превышать 72 байта UTF-8")
+    return plain_password
 
 
 def _bcrypt_password_bytes(plain_password: str) -> bytes:
@@ -53,11 +77,25 @@ JWTError = TokenError
 
 
 def hash_password(plain_password: str) -> str:
-    """Hash a plaintext password using bcrypt."""
+    """Hash с legacy-совместимостью; для новых паролей используйте hash_new_password."""
     password = _bcrypt_password_bytes(plain_password)
     return bcrypt.hashpw(password, bcrypt.gensalt(rounds=BCRYPT_ROUNDS)).decode(
         "ascii"
     )
+
+
+def hash_new_password(plain_password: str) -> str:
+    """Проверить политику и создать bcrypt-хеш нового пароля."""
+    return hash_password(validate_new_password(plain_password))
+
+
+def password_needs_rehash(hashed_password: str) -> bool:
+    """Нужно ли повысить cost существующего bcrypt-хеша."""
+    try:
+        parts = hashed_password.split("$")
+        return len(parts) < 4 or int(parts[2]) < BCRYPT_ROUNDS
+    except (AttributeError, TypeError, ValueError):
+        return False
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -122,6 +160,21 @@ def create_refresh_token(
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+def create_admin_mfa_token(
+    subject: str | int, token_version: int, expires_minutes: int = 10
+) -> str:
+    """Короткоживущий подписанный challenge после проверки пароля админа."""
+    now = datetime.now(UTC)
+    payload: dict[str, Any] = {
+        "sub": str(subject),
+        "type": "admin_mfa",
+        "tv": token_version,
+        "exp": now + timedelta(minutes=expires_minutes),
+        "iat": now,
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
 def decode_token(token: str) -> dict[str, Any]:
     """Разобрать токен и вернуть содержимое. Бросает TokenError, если он плох.
 
@@ -160,6 +213,15 @@ def hash_otp(code: str) -> str:
     return hmac.new(
         settings.SECRET_KEY.encode("utf-8"),
         code.strip().encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def hash_recovery_code(code: str) -> str:
+    """Домен-отделённый HMAC для одноразового recovery-кода администратора."""
+    return hmac.new(
+        settings.SECRET_KEY.encode("utf-8"),
+        ("admin-recovery:" + code.strip().upper()).encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
 

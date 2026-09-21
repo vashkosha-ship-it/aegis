@@ -6,8 +6,9 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.core.security import validate_new_password
 from app.models.user import UserRole
 
 # ---------------------------------------------------------------------------
@@ -66,6 +67,11 @@ class CreateUserRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
+
+    @field_validator("password")
+    @classmethod
+    def _password_policy(cls, value: str) -> str:
+        return validate_new_password(value)
 
 
 class StorageAuditView(BaseModel):

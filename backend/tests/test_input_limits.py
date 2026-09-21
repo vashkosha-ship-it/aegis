@@ -3,7 +3,9 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.admin import CreateUserRequest
+from app.schemas.auth import ResetPasswordRequest, UserRegister
 from app.schemas.book import BookCreate, BookUpdate
+from app.schemas.me import PasswordChangeRequest
 
 
 @pytest.mark.parametrize(
@@ -55,3 +57,29 @@ def test_admin_create_user_accepts_supported_input():
         department="ИБ",
     )
     assert request.username == "reader_01"
+
+
+@pytest.mark.parametrize(
+    "schema,payload",
+    [
+        (
+            UserRegister,
+            {"username": "reader", "password": "я" * 37, "email": "r@example.com"},
+        ),
+        (
+            ResetPasswordRequest,
+            {"email": "r@example.com", "code": "123456", "new_password": "я" * 37},
+        ),
+        (
+            PasswordChangeRequest,
+            {"current_password": "old", "new_password": "я" * 37},
+        ),
+        (
+            CreateUserRequest,
+            {"username": "reader", "password": "я" * 37},
+        ),
+    ],
+)
+def test_all_new_password_flows_reject_bcrypt_truncation(schema, payload):
+    with pytest.raises(ValidationError, match="72 байта"):
+        schema.model_validate(payload)
