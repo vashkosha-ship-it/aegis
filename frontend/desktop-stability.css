@@ -84,7 +84,8 @@
   }
 
   #detailScreen .detail-desc {
-    max-width: var(--reading-line-length);
+    width: 100%;
+    max-width: none;
   }
 
   /* Keep the header controls and conversation on the same readable axis.
