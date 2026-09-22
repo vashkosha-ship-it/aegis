@@ -83,6 +83,14 @@ test.describe('@critical desktop layout', () => {
           hero: rect('#detailScreen .detail-hero'),
           title: rect('#detailScreen .detail-title'),
           description: rect('#detailScreen .detail-description-section'),
+          descriptionText: rect('#detailScreen .detail-desc'),
+          descriptionInnerWidth: (() => {
+            const section = document.querySelector('#detailScreen .detail-description-section');
+            const style = getComputedStyle(section);
+            return section.clientWidth
+              - parseFloat(style.paddingLeft)
+              - parseFloat(style.paddingRight);
+          })(),
         };
       });
 
@@ -95,6 +103,10 @@ test.describe('@critical desktop layout', () => {
         `${viewport.width}px: description was placed beside the hero`,
       ).toBeGreaterThanOrEqual(detail.hero.bottom - 1);
       expect(detail.content.width).toBeLessThanOrEqual(1201);
+      expect(
+        Math.abs(detail.descriptionText.width - detail.descriptionInnerWidth),
+        `${viewport.width}px: description text does not fill the card`,
+      ).toBeLessThanOrEqual(2);
       await expectNoHorizontalOverflow(page, `book detail at ${viewport.width}px`);
 
       await page.evaluate(() => navigateTo('assistant'));
