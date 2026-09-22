@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v310';
+const CACHE_NAME = 'aegis-cache-v311';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -16,6 +16,7 @@ const PRECACHE_URLS = [
   '/detail-ux.css',
   '/ux-accessibility.css',
   '/design-system.css',
+  '/desktop-stability.css',
   '/print-notes.css',
   '/dynamic-styles.js',
   '/api.js',
@@ -100,16 +101,41 @@ const PRECACHE_URLS = [
   '/icons/icon-512.png',
 ];
 
+// HTML and every CSS layer must enter the new cache as one complete shell.
+// Activating a cache with only some of these files can combine a new DOM with
+// an old responsive layer and visibly break the interface.
+const APP_SHELL_URLS = [
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/desktop.css',
+  '/ar-schemes.css',
+  '/detail-ux.css',
+  '/ux-accessibility.css',
+  '/design-system.css',
+  '/desktop-stability.css',
+];
+
 // Установка: кэшируем статику
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+    caches.open(CACHE_NAME).then(async (cache) => {
       console.log('[SW] Кэширую статические ресурсы (' + CACHE_NAME + ')');
-      // Кэшируем поштучно: один сбойный файл не ломает весь прекэш
-      return Promise.all(
-        PRECACHE_URLS.map((url) =>
+
+      // Каркас интерфейса обязателен целиком. Если хотя бы один файл не
+      // загрузился, новый worker не активируется и текущая рабочая версия
+      // продолжает обслуживать вкладки.
+      await cache.addAll(APP_SHELL_URLS);
+
+      // Остальные ресурсы улучшают офлайн-режим, но отдельный временный сбой
+      // не должен блокировать обновление уже проверенного каркаса.
+      const optionalUrls = PRECACHE_URLS.filter(
+        (url) => !APP_SHELL_URLS.includes(url)
+      );
+      await Promise.all(
+        optionalUrls.map((url) =>
           cache.add(url).catch((err) => {
-            console.warn('[SW] Пропущен ресурс при кэшировании:', url, err.message);
+            console.warn('[SW] Пропущен необязательный ресурс:', url, err.message);
           })
         )
       );
