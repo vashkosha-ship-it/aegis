@@ -47,6 +47,11 @@ assert.match(
 assert.match(layout, /word-break:\s*normal/, 'long titles must wrap by words');
 assert.match(
   layout,
+  /#detailScreen \.detail-desc\s*\{[\s\S]*?width:\s*100%[\s\S]*?max-width:\s*none/,
+  'book description must use the full card width',
+);
+assert.match(
+  layout,
   /#assistantScreen \.top-header,[\s\S]*?max-width:\s*960px\s*!important/,
   'assistant toolbar and conversation must share a readable axis',
 );
