@@ -26,8 +26,13 @@ assert.match(
 );
 assert.match(
   layout,
-  /900px\) and \(max-width:\s*1023\.98px\)[\s\S]*?\.sidebar-nav[\s\S]*?display:\s*none\s*!important/,
-  'sidebar must not cover content before the desktop offset starts',
+  /900px\) and \(max-width:\s*1279\.98px\)[\s\S]*?\.sidebar-nav[\s\S]*?display:\s*none\s*!important/,
+  'sidebar must not cover tablet content before the desktop offset starts',
+);
+assert.match(
+  layout,
+  /@media \(min-width:\s*1280px\)[\s\S]*?margin-left:\s*var\(--desktop-sidebar-width\)\s*!important/,
+  'sidebar offset must start at the same breakpoint as the sidebar',
 );
 assert.match(
   layout,
