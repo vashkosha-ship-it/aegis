@@ -8,7 +8,7 @@ index.html.
 
 Скрипт сравнивает заголовки живого сайта с тем, что записано в
 backend/deploy/aegis-security-headers.conf, и проверяет, что все подключённые
-скрипты отдаются. Запускать после каждого деплоя.
+стили и скрипты отдаются. Запускать после каждого деплоя.
 
 Запуск из корня проекта:
     python tools/verify_deployment.py https://aegis-sec-library.ru
@@ -132,8 +132,31 @@ def main(base: str) -> int:
         value = headers.get(header, "")
         check(f"{header}", must in value, f"получено: {value or 'нет заголовка'}")
 
-    print("\nПодключённые скрипты")
+    print("\nПодключённые стили")
     html = body.decode("utf-8", errors="replace")
+    stylesheets = [
+        href for href in re.findall(
+            r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"', html
+        )
+        if not href.startswith(("http://", "https://", "//"))
+    ]
+    check("стили найдены в разметке", bool(stylesheets))
+    stylesheet_bodies = {}
+    for href in stylesheets:
+        code, _, stylesheet_body = fetch(f"{base}/{href.lstrip('/')}")
+        check(f"{href} отдаётся", code == 200, f"код {code}")
+        stylesheet_bodies[href.lstrip("/")] = stylesheet_body.decode(
+            "utf-8", errors="replace"
+        )
+    desktop_stability = stylesheet_bodies.get("desktop-stability.css", "")
+    check(
+        "финальный desktop-layout подключён",
+        "Canonical desktop layout overrides" in desktop_stability
+        and "#detailScreen .detail-content" in desktop_stability,
+        "на сервере нет актуального desktop-stability.css",
+    )
+
+    print("\nПодключённые скрипты")
     scripts = [
         src for src in re.findall(r'<script[^>]+src="([^"]+)"', html)
         if not src.startswith(("http://", "https://", "//"))
