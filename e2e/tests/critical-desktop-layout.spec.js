@@ -36,15 +36,19 @@ test.describe('@critical desktop layout', () => {
 
       await page.evaluate(() => navigateTo('home'));
       const sidebar = page.locator('#sidebarNav');
-      await expect(sidebar).toBeVisible();
-
-      const inactiveBackground = await page
-        .locator('#sidebarNav .sidebar-item[data-screen="mylist"]')
-        .evaluate((element) => getComputedStyle(element).backgroundColor);
-      expect(
-        inactiveBackground,
-        `${viewport.width}px: native button background leaked into sidebar`,
-      ).toBe('rgba(0, 0, 0, 0)');
+      if (viewport.width >= 1280) {
+        await expect(sidebar).toBeVisible();
+        const inactiveBackground = await page
+          .locator('#sidebarNav .sidebar-item[data-screen="mylist"]')
+          .evaluate((element) => getComputedStyle(element).backgroundColor);
+        expect(
+          inactiveBackground,
+          `${viewport.width}px: native button background leaked into sidebar`,
+        ).toBe('rgba(0, 0, 0, 0)');
+      } else {
+        await expect(sidebar).toBeHidden();
+        await expect(page.locator('#bottomNav')).toBeVisible();
+      }
       await expectNoHorizontalOverflow(page, `home at ${viewport.width}px`);
 
       await page.evaluate(({ bookId, title }) => {
