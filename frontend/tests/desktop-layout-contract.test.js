@@ -1,0 +1,54 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const frontend = path.resolve(__dirname, '..');
+const read = name => fs.readFileSync(path.join(frontend, name), 'utf8');
+
+const index = read('index.html');
+const layout = read('desktop-stability.css');
+const worker = read('sw.js');
+
+const designIndex = index.indexOf('href="design-system.css"');
+const stabilityIndex = index.indexOf('href="desktop-stability.css"');
+assert.ok(designIndex >= 0, 'design-system.css must be loaded');
+assert.ok(
+  stabilityIndex > designIndex,
+  'desktop-stability.css must be the final canonical style layer',
+);
+
+assert.match(
+  layout,
+  /\.sidebar-item\s*\{[\s\S]*?background:\s*transparent/,
+  'native white button backgrounds must not leak into the dark sidebar',
+);
+assert.match(
+  layout,
+  /900px\) and \(max-width:\s*1023\.98px\)[\s\S]*?\.sidebar-nav[\s\S]*?display:\s*none\s*!important/,
+  'sidebar must not cover content before the desktop offset starts',
+);
+assert.match(
+  layout,
+  /#detailScreen \.detail-content\s*\{[\s\S]*?display:\s*grid\s*!important/,
+  'book sections must remain vertically stacked on desktop',
+);
+assert.match(
+  layout,
+  /#detailScreen \.detail-hero\s*\{[\s\S]*?minmax\(0,\s*1fr\)/,
+  'book title column must have a non-collapsing grid track',
+);
+assert.match(layout, /word-break:\s*normal/, 'long titles must wrap by words');
+assert.match(
+  layout,
+  /#assistantScreen \.top-header,[\s\S]*?max-width:\s*960px\s*!important/,
+  'assistant toolbar and conversation must share a readable axis',
+);
+assert.match(
+  worker,
+  /const APP_SHELL_URLS\s*=\s*\[[\s\S]*?'\/desktop-stability\.css'/,
+  'desktop layout layer must be part of the mandatory app shell',
+);
+
+console.log('desktop layout contract tests passed');
