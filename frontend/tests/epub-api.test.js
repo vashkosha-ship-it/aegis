@@ -14,6 +14,11 @@ assert.match(api, /uploadEpub\(id, file\)/);
 assert.match(api, /'\/books\/' \+ id \+ '\/epub'/);
 assert.match(reader, /api\.request\('\/books\/' \+ b\.id \+ '\/epub'/);
 assert.match(reader, /allowScriptedContent:\s*false/);
+assert.match(reader, /await epubBook\.ready/);
+assert.match(reader, /epubBook\.locations\.length\(\)/);
+assert.match(reader, /epubBook\.locations\.cfiFromLocation\(epubCurrentPage - 1\)/);
+assert.match(reader, /typeof initialCfi === 'string'/);
+assert.doesNotMatch(reader, /epubTotalPages\s*=\s*location\.total/);
 assert.match(admin, /await api\.books\.uploadEpub\(adminBookModalCurrentId, file\)/);
 assert.doesNotMatch(admin, /typeof api\.books\.uploadEpub/);
 

@@ -72,6 +72,29 @@ pdfPromise.then(() => {
     1,
     'CSS просмотрщика PDF не должен дублироваться',
   );
+  const epubPromise = vm.runInContext('ensureEpubLoaded()', context);
+  const jszipScript = appended.find((element) => element.src === 'vendor/jszip.min.js');
+  assert.ok(jszipScript, 'ensureEpubLoaded должен сначала добавить jszip.min.js');
+  assert.equal(
+    appended.some((element) => element.src === 'vendor/epub.min.js'),
+    false,
+    'epub.js нельзя загружать до готовности JSZip',
+  );
+  context.JSZip = {};
+  jszipScript.onload();
+  return new Promise((resolve) => setImmediate(resolve)).then(() => {
+    const epubScript = appended.find((element) => element.src === 'vendor/epub.min.js');
+    assert.ok(epubScript, 'после JSZip должен загрузиться epub.min.js');
+    context.ePub = () => {};
+    epubScript.onload();
+    return epubPromise;
+  });
+}).then(() => {
+  assert.ok(
+    appended.findIndex((element) => element.src === 'vendor/jszip.min.js')
+      < appended.findIndex((element) => element.src === 'vendor/epub.min.js'),
+    'JSZip должен быть загружен раньше epub.js',
+  );
   console.log('Vendor loader tests passed');
 }).catch((error) => {
   console.error(error);

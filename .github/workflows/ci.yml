@@ -229,6 +229,134 @@ jobs:
           pip install -r requirements.txt --quiet
           pip list --outdated
 
+  # Критические браузерные сценарии на изолированном локальном стенде.
+  # В отличие от production-e2e этот job выполняется на каждом PR и не меняет
+  # боевые книги, отзывы, пароли или сессии. База и Redis уничтожаются вместе
+  # с runner после завершения job.
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: neon
+          POSTGRES_PASSWORD: neon_password
+          POSTGRES_DB: neon_stack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://neon:neon_password@localhost:5432/neon_stack
+      DATABASE_URL_SYNC: postgresql+psycopg2://neon:neon_password@localhost:5432/neon_stack
+      REDIS_URL: redis://localhost:6379/0
+      QUEUE_REQUIRED_FOR_READINESS: "true"
+      SECRET_KEY: e2e-ci-secret-key-not-used-in-production
+      DEBUG: "true"
+      CORS_ORIGINS: http://aegis.test:8080
+      FRONTEND_BASE_URL: http://aegis.test:8080
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_PATH: ./storage
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1025"
+      SMTP_TLS: "false"
+      E2E_BASE_URL: http://aegis.test:8080
+      E2E_USERNAME: e2e_reader
+      E2E_PASSWORD: e2e-reader-password
+      E2E_ACCOUNT_USERNAME: e2e_account
+      E2E_ACCOUNT_PASSWORD: e2e-account-password
+      E2E_ADMIN_USERNAME: e2e_admin
+      E2E_ADMIN_PASSWORD: e2e-admin-password
+      E2E_ADMIN_RECOVERY_CODE: E2E2-E2E2-E2E2-E2E2
+      AEGIS_E2E_SEED: local-ci-only
+      AEGIS_E2E_MAIL_DIR: /tmp/aegis-e2e-mail
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Установить backend и nginx
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          sudo apt-get update -qq
+          sudo apt-get install -y nginx
+
+      - name: Поднять изолированный стенд
+        run: |
+          mkdir -p "$AEGIS_E2E_MAIL_DIR" backend/storage
+          python e2e/support/smtp_capture.py \
+            --output-dir "$AEGIS_E2E_MAIL_DIR" \
+            >/tmp/aegis-e2e-smtp.log 2>&1 &
+          cd backend
+          alembic upgrade head
+          python -m scripts.seed_e2e
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 \
+            >/tmp/aegis-e2e-backend.log 2>&1 &
+          cd ..
+          sed "s|__WORKSPACE__|$GITHUB_WORKSPACE|g" \
+            e2e/nginx-ci.conf >/tmp/aegis-e2e-nginx.conf
+          nginx -c /tmp/aegis-e2e-nginx.conf
+          echo "127.0.0.1 aegis.test" | sudo tee -a /etc/hosts >/dev/null
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/ready >/dev/null \
+              && curl -fsS -H 'Host: aegis.test' http://127.0.0.1:8080/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/aegis-e2e-backend.log
+          cat /tmp/aegis-e2e-nginx-error.log
+          exit 1
+
+      - name: Установить Playwright
+        working-directory: e2e
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Критические E2E
+        working-directory: e2e
+        run: npx playwright test --grep @critical
+
+      - name: Диагностика при падении
+        if: failure()
+        run: |
+          tail -n 300 /tmp/aegis-e2e-backend.log || true
+          tail -n 300 /tmp/aegis-e2e-nginx-error.log || true
+          tail -n 100 /tmp/aegis-e2e-smtp.log || true
+
+      - name: Отчёт критических E2E
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: critical-e2e-report
+          path: e2e/test-results/
+          retention-days: 7
+
   # Браузерные проверки развёрнутого сайта.
   #
   # Отдельно от остальных задач и не на каждый коммит: они требуют работающего
@@ -295,5 +423,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: e2e/playwright-report/
+          path: e2e/test-results/
           retention-days: 7
