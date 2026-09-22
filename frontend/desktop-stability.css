@@ -26,9 +26,9 @@
   background: transparent !important;
 }
 
-/* The sidebar used to appear at 900px while the content offset started only at
-   1024px, covering the application between those breakpoints. */
-@media (min-width: 900px) and (max-width: 1023.98px) {
+/* Tablet and small desktop widths intentionally use the bottom navigation.
+   Keep the sidebar and its content offset disabled until the same breakpoint. */
+@media (min-width: 900px) and (max-width: 1279.98px) {
   .sidebar-nav {
     display: none !important;
   }
@@ -39,23 +39,6 @@
 }
 
 @media (min-width: 1024px) {
-  .sidebar-nav {
-    width: var(--desktop-sidebar-width) !important;
-  }
-
-  #app {
-    width: auto !important;
-    min-width: 0;
-    margin-left: var(--desktop-sidebar-width) !important;
-    padding-inline: clamp(20px, 2.1vw, 36px) !important;
-  }
-
-  body:has(#authScreen.active) #app,
-  body:has(#onboardingScreen.active) #app,
-  body.reader-active #app {
-    margin-left: 0 !important;
-  }
-
   /* Book detail has two vertical sections: the cover/info hero and the
      description card. A legacy desktop flex rule placed both in one row and
      squeezed the title down to a single character. */
@@ -140,6 +123,25 @@
 
   #assistantScreen #assistantInputBar {
     width: 100%;
+  }
+}
+
+@media (min-width: 1280px) {
+  .sidebar-nav {
+    width: var(--desktop-sidebar-width) !important;
+  }
+
+  #app {
+    width: auto !important;
+    min-width: 0;
+    margin-left: var(--desktop-sidebar-width) !important;
+    padding-inline: clamp(20px, 2.1vw, 36px) !important;
+  }
+
+  body:has(#authScreen.active) #app,
+  body:has(#onboardingScreen.active) #app,
+  body.reader-active #app {
+    margin-left: 0 !important;
   }
 }
 
