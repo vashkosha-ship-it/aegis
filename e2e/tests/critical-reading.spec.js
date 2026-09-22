@@ -68,8 +68,9 @@ test.describe('@critical чтение PDF и EPUB', () => {
       openReader(bookId);
     }, epub.id);
     await page.waitForFunction(() => {
+      if (!epubBook || !epubRendition?.manager || epubCurrentPage < 2) return false;
       const cfi = epubRendition?.currentLocation()?.start?.cfi;
-      return epubBook && epubCurrentPage >= 2 && cfi?.startsWith('epubcfi(');
+      return cfi?.startsWith('epubcfi(');
     });
     const location = await page.evaluate(() => {
       const current = epubRendition.currentLocation();
