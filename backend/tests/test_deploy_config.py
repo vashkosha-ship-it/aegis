@@ -490,7 +490,10 @@ class TestTemplateStyleExtraction:
 
     def test_deploy_requires_frontend_ci(self):
         deploy_script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
-        assert 'REQUIRED_JOBS="backend frontend security"' in deploy_script
+        assert (
+            'REQUIRED_JOBS="backend frontend security e2e-smoke"'
+            in deploy_script
+        )
 
     def test_deploy_script_is_executable(self):
         assert DEPLOY_SCRIPT.stat().st_mode & 0o111

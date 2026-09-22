@@ -40,10 +40,9 @@ TOKEN_FILE="$REPO_DIR/.deploy-token"
 GITHUB_REPO="vashkosha-ship-it/aegis"
 
 # Проверки, без которых выкатка запрещена. Имена — как в ci.yml.
-# e2e сюда не входит намеренно: он запускается вручную и по расписанию, а не
-# на каждый коммит, поэтому для свежего коммита его результата просто нет.
-# Требовать его — значит блокировать любую выкатку.
-REQUIRED_JOBS="backend frontend security"
+# Production-e2e сюда не входит: он запускается вручную и по расписанию.
+# Изолированный e2e-smoke выполняется на каждом коммите и обязателен для выкладки.
+REQUIRED_JOBS="backend frontend security e2e-smoke"
 
 FORCE=0
 ROLLBACK=0
