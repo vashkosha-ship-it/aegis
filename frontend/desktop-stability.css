@@ -11,6 +11,65 @@
   --reading-line-length: 78ch;
 }
 
+/* The reader keeps essential controls visible on narrow phones and moves the
+   remaining actions into an explicit overflow menu. The old single nowrap row
+   was wider than a 390px viewport and silently clipped its last buttons. */
+.reader-toolbar {
+  position: relative;
+}
+
+.reader-toolbar-secondary {
+  display: contents;
+}
+
+.reader-toolbar-more {
+  display: none;
+}
+
+@media (max-width: 599.98px) {
+  .reader-toolbar-row {
+    min-width: 0;
+  }
+
+  .reader-toolbar-actions {
+    position: relative;
+    min-width: 0;
+  }
+
+  .reader-toolbar-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .reader-toolbar-secondary {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 130;
+    grid-template-columns: repeat(3, 38px);
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-card);
+  }
+
+  .reader-toolbar-secondary.is-open {
+    display: grid;
+  }
+
+  .reader-toolbar-secondary .btn-nav-page {
+    width: 38px !important;
+    height: 38px !important;
+  }
+}
+
 /* Native button defaults are white in Chromium. Sidebar buttons must always
    inherit the application theme, including before hover/active state. */
 .sidebar-item {

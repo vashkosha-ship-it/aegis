@@ -101,13 +101,9 @@ async function forgotPasswordReset() {
   const btn = document.getElementById('fpResetBtn');
   btn.disabled = true; btn.textContent = 'Сбрасываю…';
   try {
-    const result = await api.resetPassword(window._fpEmail, code, newPass);
+    await api.resetPassword(window._fpEmail, code, newPass);
     showToast('Пароль изменён, выполняется вход…');
     document.getElementById('forgotPasswordModal').remove();
-    if (result.mfa_required) {
-      showAdminMfaScreen(result, null, newPass);
-      return;
-    }
     const user = await api.me();
     if (typeof deriveNoteKey === 'function') await deriveNoteKey(newPass, user.username);
     location.reload();
@@ -410,64 +406,6 @@ async function finishAuthenticatedLogin(password, username) {
   else navigateTo('home');
 }
 
-function showAdminRecoveryCodes(codes) {
-  if (!codes || !codes.length) return;
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'adminRecoveryCodesModal';
-  const panel = authNode('div', undefined, 'a272');
-  panel.append(
-    authNode('h3', 'Аварийные коды администратора', 'a274'),
-    authNode('p', 'Сохраните их сейчас в менеджере паролей. Каждый код работает один раз.', 'a276'),
-  );
-  const codeBox = authNode('textarea', codes.join('\n'), 'a277');
-  codeBox.readOnly = true;
-  codeBox.rows = Math.min(codes.length, 10);
-  const close = authNode('button', 'Я сохранила коды', 'a278');
-  close.addEventListener('click', () => overlay.remove());
-  panel.append(codeBox, close);
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-}
-
-function showAdminMfaScreen(challenge, username, password) {
-  const old = document.getElementById('adminMfaOverlay');
-  if (old) old.remove();
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'adminMfaOverlay';
-  const panel = authNode('div', undefined, 'a272');
-  const input = authNode('input', undefined, 'a277');
-  input.type = 'text';
-  input.id = 'adminMfaCode';
-  input.placeholder = 'Код из письма или recovery-код';
-  input.autocomplete = 'one-time-code';
-  const verify = authNode('button', 'Подтвердить вход', 'a278');
-  verify.addEventListener('click', async () => {
-    const code = input.value.trim();
-    if (!code) return showToast('Введите код администратора');
-    verify.disabled = true;
-    try {
-      const result = await api.verifyAdminMfa(challenge.mfa_token, code);
-      overlay.remove();
-      await finishAuthenticatedLogin(password, username);
-      showAdminRecoveryCodes(result.recovery_codes);
-    } catch (error) {
-      showToast(formatApiError(error));
-      verify.disabled = false;
-    }
-  });
-  panel.append(
-    authNode('h3', 'Защита администратора', 'a274'),
-    authNode('p', challenge.detail || 'Введите код из письма.', 'a276'),
-    input,
-    verify,
-  );
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-  input.focus();
-}
-
 document.getElementById('authForm').addEventListener('submit', async e => {
   e.preventDefault();
   const n = document.getElementById('authName').value.trim();
@@ -519,11 +457,7 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       showVerifyEmailScreen(email);
       return;
     } else {
-      const loginResult = await api.login(n, p);
-      if (loginResult.mfa_required) {
-        showAdminMfaScreen(loginResult, n, p);
-        return;
-      }
+      await api.login(n, p);
     }
     await finishAuthenticatedLogin(p, n);
   } catch (err) {

@@ -1,7 +1,9 @@
 const { test, expect } = require('@playwright/test');
-const { login, fixtureBooks } = require('./helpers/session');
+const { login, loginAdmin, openApp, fixtureBooks } = require('./helpers/session');
 
 const viewports = [
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
   { width: 1024, height: 768 },
   { width: 1366, height: 768 },
   { width: 1920, height: 1080 },
@@ -18,8 +20,33 @@ async function expectNoHorizontalOverflow(page, label) {
   ).toBeLessThanOrEqual(geometry.clientWidth + 1);
 }
 
-test.describe('@critical desktop layout', () => {
-  test('sidebar, book details and assistant remain stable at desktop widths', async ({ page }) => {
+async function expectInteractiveControlsInsideViewport(page, screenSelector, label) {
+  const escaped = await page.locator(screenSelector).evaluate((screen) => {
+    const isInsideHorizontalScroller = (element) => {
+      for (let parent = element.parentElement; parent && parent !== screen; parent = parent.parentElement) {
+        const style = getComputedStyle(parent);
+        if (['auto', 'scroll'].includes(style.overflowX) && parent.scrollWidth > parent.clientWidth) {
+          return true;
+        }
+      }
+      return false;
+    };
+    return [...screen.querySelectorAll('button, a, input, select, textarea')]
+      .filter((element) => {
+        const style = getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+        return style.display !== 'none' && style.visibility !== 'hidden'
+          && box.width > 0 && box.height > 0 && !isInsideHorizontalScroller(element)
+          && (box.left < -1 || box.right > innerWidth + 1);
+      })
+      .slice(0, 10)
+      .map((element) => `${element.tagName.toLowerCase()}#${element.id}.${element.className}`);
+  });
+  expect(escaped, `${label}: controls escaped the viewport`).toEqual([]);
+}
+
+test.describe('@critical responsive layout', () => {
+  test('navigation, core screens, book details and assistant remain stable', async ({ page }) => {
     await page.setViewportSize(viewports[0]);
     await login(page);
     const { pdf } = await fixtureBooks(page);
@@ -28,7 +55,13 @@ test.describe('@critical desktop layout', () => {
     await page.evaluate(async () => {
       await loadBooksFromApi();
       navigateTo('home');
+      localStorage.setItem('aegis_tour_done', '1');
     });
+    await page.waitForTimeout(750);
+    const tour = page.locator('#tourOverlay');
+    if (await tour.isVisible()) {
+      await tour.locator('.tour-button--skip').click();
+    }
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
@@ -130,10 +163,59 @@ test.describe('@critical desktop layout', () => {
 
       expect(assistant.header.width).toBeLessThanOrEqual(961);
       expect(assistant.body.width).toBeLessThanOrEqual(961);
-      expect(Math.abs(assistant.header.left - assistant.body.left)).toBeLessThanOrEqual(1);
+      const headerCenter = assistant.header.left + assistant.header.width / 2;
+      const bodyCenter = assistant.body.left + assistant.body.width / 2;
+      expect(Math.abs(headerCenter - bodyCenter)).toBeLessThanOrEqual(1);
       expect(assistant.toolbar.left).toBeGreaterThanOrEqual(assistant.header.left);
       expect(assistant.toolbar.right).toBeLessThanOrEqual(assistant.header.right + 1);
       await expectNoHorizontalOverflow(page, `assistant at ${viewport.width}px`);
+
+      for (const screen of ['mylist', 'training', 'profile', 'settings', 'onboarding']) {
+        await page.evaluate((name) => navigateTo(name), screen);
+        const selector = `#${screen}Screen`;
+        await expect(page.locator(selector)).toHaveClass(/\bactive\b/);
+        await expectNoHorizontalOverflow(page, `${screen} at ${viewport.width}px`);
+        await expectInteractiveControlsInsideViewport(
+          page,
+          selector,
+          `${screen} at ${viewport.width}px`,
+        );
+      }
+
+      if (viewport.width === 390) {
+        await page.evaluate((bookId) => openReader(bookId), pdf.id);
+        await expect(page.locator('#readerScreen')).toHaveClass(/\bactive\b/);
+        await expect(page.locator('#btnReaderMore')).toBeVisible();
+        await expect(page.locator('#readerToolbarSecondary')).toBeHidden();
+        await expectInteractiveControlsInsideViewport(page, '#readerScreen', 'reader at 390px');
+        await page.locator('#btnReaderMore').click();
+        await expect(page.locator('#readerToolbarSecondary')).toBeVisible();
+        const menu = await page.locator('#readerToolbarSecondary').boundingBox();
+        expect(menu.x).toBeGreaterThanOrEqual(0);
+        expect(menu.x + menu.width).toBeLessThanOrEqual(viewport.width + 1);
+        await page.evaluate(() => closeReader());
+      }
+    }
+  });
+
+  test('authentication and admin screens stay within supported widths', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openApp(page);
+    await expect(page.locator('#authScreen')).toHaveClass(/\bactive\b/);
+    await expectNoHorizontalOverflow(page, 'auth at 390px');
+    await expectInteractiveControlsInsideViewport(page, '#authScreen', 'auth at 390px');
+
+    await loginAdmin(page);
+    for (const viewport of [viewports[0], viewports[3]]) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(() => navigateTo('admin'));
+      await expect(page.locator('#adminScreen')).toHaveClass(/\bactive\b/);
+      await expectNoHorizontalOverflow(page, `admin at ${viewport.width}px`);
+      await expectInteractiveControlsInsideViewport(
+        page,
+        '#adminScreen',
+        `admin at ${viewport.width}px`,
+      );
     }
   });
 });

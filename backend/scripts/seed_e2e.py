@@ -17,7 +17,7 @@ from sqlalchemy import delete
 from sqlalchemy.engine import make_url
 
 from app.core.config import settings
-from app.core.security import hash_new_password, hash_recovery_code
+from app.core.security import hash_new_password
 from app.db.session import AsyncSessionLocal
 from app.models.book import Book
 from app.models.book_page import BookPage
@@ -123,7 +123,6 @@ async def seed() -> None:
     reader_password = _required("E2E_PASSWORD")
     account_password = _required("E2E_ACCOUNT_PASSWORD")
     admin_password = _required("E2E_ADMIN_PASSWORD")
-    recovery_code = _required("E2E_ADMIN_RECOVERY_CODE")
 
     pdf_key = _write_fixture(Path("books/pdf/e2e-smoke.pdf"), _pdf_bytes())
     epub_key = _write_fixture(Path("books/epub/e2e-smoke.epub"), _epub_bytes())
@@ -161,7 +160,6 @@ async def seed() -> None:
                     role=UserRole.ADMIN,
                     is_verified=True,
                     is_approved=True,
-                    admin_recovery_codes=[hash_recovery_code(recovery_code)],
                 ),
             ]
         )

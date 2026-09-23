@@ -160,21 +160,6 @@ def create_refresh_token(
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_admin_mfa_token(
-    subject: str | int, token_version: int, expires_minutes: int = 10
-) -> str:
-    """Короткоживущий подписанный challenge после проверки пароля админа."""
-    now = datetime.now(UTC)
-    payload: dict[str, Any] = {
-        "sub": str(subject),
-        "type": "admin_mfa",
-        "tv": token_version,
-        "exp": now + timedelta(minutes=expires_minutes),
-        "iat": now,
-    }
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-
-
 def decode_token(token: str) -> dict[str, Any]:
     """Разобрать токен и вернуть содержимое. Бросает TokenError, если он плох.
 
@@ -213,15 +198,6 @@ def hash_otp(code: str) -> str:
     return hmac.new(
         settings.SECRET_KEY.encode("utf-8"),
         code.strip().encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
-
-
-def hash_recovery_code(code: str) -> str:
-    """Домен-отделённый HMAC для одноразового recovery-кода администратора."""
-    return hmac.new(
-        settings.SECRET_KEY.encode("utf-8"),
-        ("admin-recovery:" + code.strip().upper()).encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
 

@@ -183,16 +183,6 @@
       return data;
     },
 
-    async verifyAdminMfa(mfaToken, code) {
-      const data = await request('/auth/admin-mfa/verify', {
-        method: 'POST',
-        body: { mfa_token: mfaToken, code },
-        auth: false,
-      });
-      tokens.set(data.access_token);
-      return data;
-    },
-
     async register(username, password, email = null, full_name = null, department = null) {
       // Регистрация больше НЕ выдаёт токены — аккаунт ждёт подтверждения email
       return await request('/auth/register', {

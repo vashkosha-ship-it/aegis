@@ -12,7 +12,6 @@ const credentials = {
   admin: {
     username: process.env.E2E_ADMIN_USERNAME || 'e2e_admin',
     password: process.env.E2E_ADMIN_PASSWORD,
-    recoveryCode: process.env.E2E_ADMIN_RECOVERY_CODE,
   },
 };
 
@@ -27,7 +26,6 @@ async function login(page, account = credentials.reader) {
     ({ username, password }) => window.api.login(username, password),
     account,
   );
-  expect(result.mfa_required).not.toBe(true);
   const user = await page.evaluate(() => window.api.me());
   await page.evaluate((current) => {
     state.currentUser = {
@@ -45,14 +43,9 @@ async function login(page, account = credentials.reader) {
 
 async function loginAdmin(page) {
   await openApp(page);
-  const challenge = await page.evaluate(
+  await page.evaluate(
     ({ username, password }) => window.api.login(username, password),
     credentials.admin,
-  );
-  expect(challenge.mfa_required).toBe(true);
-  await page.evaluate(
-    ({ token, code }) => window.api.verifyAdminMfa(token, code),
-    { token: challenge.mfa_token, code: credentials.admin.recoveryCode },
   );
   const user = await page.evaluate(() => window.api.me());
   expect(user.role).toBe('admin');

@@ -58,21 +58,6 @@ class AccessTokenOnly(BaseModel):
     token_type: str = "bearer"
 
 
-class AdminMfaChallenge(BaseModel):
-    mfa_required: Literal[True] = True
-    mfa_token: str
-    detail: str = "Введите код из письма или recovery-код"
-
-
-class AdminMfaVerifyRequest(BaseModel):
-    mfa_token: str = Field(min_length=20, max_length=4096)
-    code: str = Field(min_length=6, max_length=32)
-
-
-class AdminMfaVerifyResponse(AccessTokenOnly):
-    recovery_codes: list[str] | None = None
-
-
 class UserPublic(BaseModel):
     id: int
     username: str

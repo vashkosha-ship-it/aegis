@@ -2,7 +2,34 @@
 document.addEventListener('DOMContentLoaded', () => {
   initPullToRefresh();
   initReaderBrightnessGesture();
+  initReaderToolbarMenu();
 });
+
+function closeReaderToolbarMenu() {
+  const menu = document.getElementById('readerToolbarSecondary');
+  const button = document.getElementById('btnReaderMore');
+  menu?.classList.remove('is-open');
+  button?.setAttribute('aria-expanded', 'false');
+}
+
+function initReaderToolbarMenu() {
+  const menu = document.getElementById('readerToolbarSecondary');
+  const button = document.getElementById('btnReaderMore');
+  const actions = document.querySelector('.reader-toolbar-actions');
+  if (!menu || !button || !actions) return;
+
+  button.addEventListener('click', () => {
+    const open = menu.classList.toggle('is-open');
+    button.setAttribute('aria-expanded', String(open));
+    if (open) menu.querySelector('button')?.focus();
+  });
+  menu.addEventListener('click', event => {
+    if (event.target.closest('button')) setTimeout(closeReaderToolbarMenu, 0);
+  });
+  document.addEventListener('click', event => {
+    if (!actions.contains(event.target)) closeReaderToolbarMenu();
+  });
+}
 
 // ===== A2: Gesture-zone яркости (вертикальный свайп слева в читалке) =====
 let readerBrightness = parseFloat(localStorage.getItem('aegis_reader_brightness') || '1');
@@ -35,6 +62,7 @@ function initReaderBrightnessGesture() {
 
 // Ctrl+F / Cmd+F в читалке открывает панель
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeReaderToolbarMenu();
   if ((e.ctrlKey || e.metaKey) && e.key === 'f' && state.currentScreen === 'reader') {
     e.preventDefault();
     if (!readerSearchActive) toggleReaderSearch();
@@ -43,6 +71,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 function closeReader() {
+  closeReaderToolbarMenu();
   hideEpubSelectionPopup();
   closeReaderSearch();
   if (window._pdfTextCache) window._pdfTextCache = {};
@@ -78,4 +107,3 @@ function closeReader() {
   // Иначе на home — он сам перерисуется
 
 }
-
