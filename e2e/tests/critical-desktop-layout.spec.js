@@ -218,4 +218,60 @@ test.describe('@critical responsive layout', () => {
       );
     }
   });
+
+  test('themes, icon controls and dialogs remain accessible', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await login(page);
+
+    const auditTheme = async theme => page.evaluate(selectedTheme => {
+      setAppTheme(selectedTheme, false);
+      const parse = value => {
+        const parts = value.match(/[\d.]+/g).slice(0, 3).map(Number);
+        return parts.map(channel => channel / 255);
+      };
+      const luminance = value => parse(value)
+        .map(channel => channel <= 0.04045
+          ? channel / 12.92
+          : ((channel + 0.055) / 1.055) ** 2.4)
+        .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+      const ratio = (foreground, background) => {
+        const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+        return (values[0] + 0.05) / (values[1] + 0.05);
+      };
+      const root = getComputedStyle(document.documentElement);
+      const missingNames = [...document.querySelectorAll('button')]
+        .filter(button => {
+          const style = getComputedStyle(button);
+          if (style.display === 'none' || style.visibility === 'hidden') return false;
+          const name = button.getAttribute('aria-label')
+            || button.getAttribute('aria-labelledby')
+            || button.title
+            || button.textContent.trim();
+          return !name;
+        })
+        .map(button => button.id || button.className);
+      return {
+        mutedOnCard: ratio(root.getPropertyValue('--text-muted'), root.getPropertyValue('--bg-card')),
+        accentOnCard: ratio(root.getPropertyValue('--accent'), root.getPropertyValue('--bg-card')),
+        missingNames,
+      };
+    }, theme);
+
+    for (const theme of ['dark', 'light']) {
+      const result = await auditTheme(theme);
+      expect(result.mutedOnCard, `${theme}: muted text contrast`).toBeGreaterThanOrEqual(4.5);
+      expect(result.accentOnCard, `${theme}: accent text contrast`).toBeGreaterThanOrEqual(4.5);
+      expect(result.missingNames, `${theme}: unnamed visible icon controls`).toEqual([]);
+    }
+
+    const opener = page.locator('.btn-shortcuts-icon');
+    await opener.focus();
+    await page.evaluate(() => openShortcutsModal());
+    const dialog = page.locator('#shortcutsModal[role="dialog"][aria-modal="true"]');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator(':focus')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(opener).toBeFocused();
+  });
 });
