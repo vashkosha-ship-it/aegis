@@ -222,6 +222,10 @@ test.describe('@critical responsive layout', () => {
   test('themes, icon controls and dialogs remain accessible', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await login(page);
+    await page.evaluate(() => {
+      localStorage.setItem('aegis_tour_done', '1');
+      document.getElementById('tourOverlay')?.remove();
+    });
 
     const auditTheme = async theme => page.evaluate(selectedTheme => {
       setAppTheme(selectedTheme, false);
@@ -268,8 +272,7 @@ test.describe('@critical responsive layout', () => {
     }
 
     const opener = page.locator('.btn-shortcuts-icon');
-    await opener.focus();
-    await page.evaluate(() => openShortcutsModal());
+    await opener.click();
     const dialog = page.locator('#shortcutsModal[role="dialog"][aria-modal="true"]');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(':focus')).toHaveCount(1);
