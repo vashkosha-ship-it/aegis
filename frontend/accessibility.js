@@ -93,6 +93,7 @@ function a11yHandleDialogKeydown(event) {
     else dialog.click();
     event.preventDefault();
     event.stopImmediatePropagation();
+    a11yDeactivateClosedDialogs();
     queueMicrotask(a11yDeactivateClosedDialogs);
     return;
   }
