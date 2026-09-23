@@ -220,7 +220,7 @@ test.describe('@critical responsive layout', () => {
   });
 
   test('themes, icon controls and dialogs remain accessible', async ({ page }) => {
-    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.setViewportSize({ width: 1024, height: 768 });
     await login(page);
     await page.evaluate(() => {
       localStorage.setItem('aegis_tour_done', '1');
