@@ -163,7 +163,9 @@ test.describe('@critical responsive layout', () => {
 
       expect(assistant.header.width).toBeLessThanOrEqual(961);
       expect(assistant.body.width).toBeLessThanOrEqual(961);
-      expect(Math.abs(assistant.header.left - assistant.body.left)).toBeLessThanOrEqual(1);
+      const headerCenter = assistant.header.left + assistant.header.width / 2;
+      const bodyCenter = assistant.body.left + assistant.body.width / 2;
+      expect(Math.abs(headerCenter - bodyCenter)).toBeLessThanOrEqual(1);
       expect(assistant.toolbar.left).toBeGreaterThanOrEqual(assistant.header.left);
       expect(assistant.toolbar.right).toBeLessThanOrEqual(assistant.header.right + 1);
       await expectNoHorizontalOverflow(page, `assistant at ${viewport.width}px`);
