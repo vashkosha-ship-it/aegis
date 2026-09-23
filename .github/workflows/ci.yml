@@ -281,7 +281,6 @@ jobs:
       E2E_ACCOUNT_PASSWORD: e2e-account-password
       E2E_ADMIN_USERNAME: e2e_admin
       E2E_ADMIN_PASSWORD: e2e-admin-password
-      E2E_ADMIN_RECOVERY_CODE: E2E2-E2E2-E2E2-E2E2
       AEGIS_E2E_SEED: local-ci-only
       AEGIS_E2E_MAIL_DIR: /tmp/aegis-e2e-mail
 

@@ -1,10 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { loginAdmin, fixtureBooks } = require('./helpers/session');
 
-test.skip(
-  !process.env.E2E_ADMIN_PASSWORD || !process.env.E2E_ADMIN_RECOVERY_CODE,
-  'Административный E2E требует временного CI-администратора',
-);
+test.skip(!process.env.E2E_ADMIN_PASSWORD, 'Административный E2E требует временного CI-администратора');
 
 test('@critical администратор загружает книгу, запускает задачи и видит audit trail', async ({ page }) => {
   await loginAdmin(page);

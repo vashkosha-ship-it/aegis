@@ -87,7 +87,6 @@ async def send_email_change_code(to: str, code: str) -> None:
     )
     await send_email(to, subject, body)
 
-
 async def send_verification_code(to: str, code: str) -> None:
     """Письмо с кодом подтверждения регистрации."""
     subject = "Aegis — подтверждение регистрации"
@@ -145,16 +144,5 @@ async def send_password_reset_code(to: str, code: str) -> None:
         f"Ваш код для сброса пароля: {code}\n\n"
         "Код действителен 30 минут. Если вы не запрашивали сброс пароля, "
         "просто проигнорируйте это письмо — ваш пароль останется прежним."
-    )
-    await send_email(to, subject, body)
-
-
-async def send_admin_login_code(to: str, code: str) -> None:
-    """Отправить второй фактор для административной учётной записи."""
-    subject = "Aegis — код входа администратора"
-    body = (
-        "Получена попытка входа в административную учётную запись Aegis.\n\n"
-        f"Одноразовый код: {code}\n\n"
-        "Код действителен 10 минут. Если это были не вы, смените пароль."
     )
     await send_email(to, subject, body)

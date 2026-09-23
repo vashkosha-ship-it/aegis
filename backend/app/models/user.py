@@ -57,7 +57,9 @@ class User(Base):
     reset_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     reset_expires: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Второй фактор администратора. Открытые коды в БД не сохраняются.
+    # Не используются после удаления второго фактора администратора. Поля
+    # временно сохранены для совместимости с откатом на предыдущий релиз;
+    # удалить их можно отдельной миграцией после стабилизационного периода.
     admin_mfa_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
     admin_mfa_expires: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

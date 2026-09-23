@@ -113,70 +113,30 @@ class TestEmailVerification:
         assert "access_token" in r.json()
 
 
-class TestAdminMfa:
-    async def test_admin_login_requires_email_code_and_issues_recovery_codes(
-        self, client, db, admin_user, monkeypatch
-    ):
-        sent: dict[str, str] = {}
-
-        async def fake_send(to: str, code: str) -> None:
-            sent.update(to=to, code=code)
-
-        monkeypatch.setattr("app.api.auth.send_admin_login_code", fake_send)
+class TestAdminLogin:
+    async def test_admin_login_finishes_after_password(self, client, admin_user):
         login = await client.post(
             "/auth/login",
             json={"username": admin_user.username, "password": "TestPass123!"},
         )
         assert login.status_code == 200, login.text
-        challenge = login.json()
-        assert challenge["mfa_required"] is True
-        assert "access_token" not in challenge
-        assert sent["to"] == admin_user.email
+        assert login.json()["access_token"]
+        assert "mfa_required" not in login.json()
 
-        verified = await client.post(
-            "/auth/admin-mfa/verify",
-            json={"mfa_token": challenge["mfa_token"], "code": sent["code"]},
-        )
-        assert verified.status_code == 200, verified.text
-        body = verified.json()
-        assert body["access_token"]
-        assert len(body["recovery_codes"]) == 10
-        assert len(set(body["recovery_codes"])) == 10
-        await db.refresh(admin_user)
-        assert len(admin_user.admin_recovery_codes) == 10
-        assert not set(body["recovery_codes"]) & set(admin_user.admin_recovery_codes)
-
-        reused = await client.post(
-            "/auth/admin-mfa/verify",
-            json={"mfa_token": challenge["mfa_token"], "code": sent["code"]},
-        )
-        assert reused.status_code == 400
-
-        second_login = await client.post(
-            "/auth/login",
-            json={"username": admin_user.username, "password": "TestPass123!"},
-        )
-        recovered = await client.post(
-            "/auth/admin-mfa/verify",
-            json={
-                "mfa_token": second_login.json()["mfa_token"],
-                "code": body["recovery_codes"][0],
-            },
-        )
-        assert recovered.status_code == 200, recovered.text
-        assert recovered.json()["recovery_codes"] is None
-        await db.refresh(admin_user)
-        assert len(admin_user.admin_recovery_codes) == 9
-
-    async def test_admin_oauth_password_endpoint_cannot_bypass_mfa(
-        self, client, admin_user
-    ):
+    async def test_admin_can_use_oauth_password_endpoint(self, client, admin_user):
         response = await client.post(
             "/auth/token",
             data={"username": admin_user.username, "password": "TestPass123!"},
         )
-        assert response.status_code == 403
-        assert "MFA" in response.json()["detail"]
+        assert response.status_code == 200, response.text
+        assert response.json()["access_token"]
+
+    async def test_removed_admin_mfa_endpoint_is_not_available(self, client):
+        response = await client.post(
+            "/auth/admin-mfa/verify",
+            json={"mfa_token": "x" * 32, "code": "123456"},
+        )
+        assert response.status_code == 404
 
 
 class TestTokenRevocation:

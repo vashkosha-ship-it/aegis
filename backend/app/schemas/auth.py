@@ -1,7 +1,5 @@
 """Pydantic schemas for authentication endpoints."""
 from datetime import datetime
-from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import validate_new_password
@@ -56,21 +54,6 @@ class AccessTokenOnly(BaseModel):
     """
     access_token: str
     token_type: str = "bearer"
-
-
-class AdminMfaChallenge(BaseModel):
-    mfa_required: Literal[True] = True
-    mfa_token: str
-    detail: str = "Введите код из письма или recovery-код"
-
-
-class AdminMfaVerifyRequest(BaseModel):
-    mfa_token: str = Field(min_length=20, max_length=4096)
-    code: str = Field(min_length=6, max_length=32)
-
-
-class AdminMfaVerifyResponse(AccessTokenOnly):
-    recovery_codes: list[str] | None = None
 
 
 class UserPublic(BaseModel):
