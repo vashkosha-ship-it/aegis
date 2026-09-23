@@ -56,6 +56,10 @@ test.describe('@critical responsive layout', () => {
       await loadBooksFromApi();
       navigateTo('home');
     });
+    const tour = page.locator('#tourOverlay');
+    if (await tour.isVisible()) {
+      await tour.locator('.tour-button--skip').click();
+    }
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
