@@ -226,7 +226,10 @@ test.describe('@critical responsive layout', () => {
     const auditTheme = async theme => page.evaluate(selectedTheme => {
       setAppTheme(selectedTheme, false);
       const parse = value => {
-        const parts = value.match(/[\d.]+/g).slice(0, 3).map(Number);
+        const normalized = value.trim();
+        const parts = normalized.startsWith('#')
+          ? [1, 3, 5].map(index => parseInt(normalized.slice(index, index + 2), 16))
+          : normalized.match(/[\d.]+/g).slice(0, 3).map(Number);
         return parts.map(channel => channel / 255);
       };
       const luminance = value => parse(value)
