@@ -55,7 +55,9 @@ test.describe('@critical responsive layout', () => {
     await page.evaluate(async () => {
       await loadBooksFromApi();
       navigateTo('home');
+      localStorage.setItem('aegis_tour_done', '1');
     });
+    await page.waitForTimeout(750);
     const tour = page.locator('#tourOverlay');
     if (await tour.isVisible()) {
       await tour.locator('.tour-button--skip').click();
