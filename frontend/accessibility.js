@@ -63,7 +63,12 @@ function a11yDeactivateClosedDialogs() {
     const entry = a11yDialogs[index];
     if (a11yIsVisible(entry.dialog)) continue;
     a11yDialogs.splice(index, 1);
-    if (entry.returnFocus?.isConnected) entry.returnFocus.focus();
+    const restore = entry.returnFocus;
+    if (restore?.isConnected) {
+      restore.focus();
+      queueMicrotask(() => { if (restore.isConnected) restore.focus(); });
+      requestAnimationFrame(() => { if (restore.isConnected) restore.focus(); });
+    }
   }
 }
 

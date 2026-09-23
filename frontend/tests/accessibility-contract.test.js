@@ -78,5 +78,8 @@ assert.equal(dom.window.document.activeElement.id, 'first');
 dom.window.document.getElementById('last').focus();
 dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
 assert.equal(dom.window.document.activeElement.id, 'first');
+dom.window.document.getElementById('last').addEventListener('click', () => dialog.remove());
+dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+assert.equal(dom.window.document.activeElement, opener);
 
 console.log('Accessibility and theme contract passed');
