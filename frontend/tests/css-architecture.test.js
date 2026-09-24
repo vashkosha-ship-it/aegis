@@ -9,11 +9,11 @@ const read = name => fs.readFileSync(path.join(frontend, name), 'utf8');
 const tokens = read('css/layout-tokens.css');
 const entrypoint = read('desktop-stability.css');
 const worker = read('sw.js');
-const componentFiles = [
-  'css/components/reader-toolbar.css',
-  'css/components/detail-assistant.css',
-  'css/components/responsive-shell.css',
-];
+const componentFiles = fs.readdirSync(path.join(frontend, 'css/components'))
+  .filter(name => name.endsWith('.css'))
+  .sort()
+  .map(name => `css/components/${name}`);
+const importantBaseline = JSON.parse(read('css/important-baseline.json'));
 
 for (const token of [
   '--breakpoint-phone', '--breakpoint-tablet', '--breakpoint-desktop',
@@ -34,17 +34,33 @@ for (const file of componentFiles) {
   ));
 }
 
-const cssFiles = fs.readdirSync(frontend).filter(name => name.endsWith('.css'));
-const legacyImportant = cssFiles.reduce((count, name) => (
-  count + (read(name).match(/!important/g) || []).length
+const cssFiles = [
+  ...fs.readdirSync(frontend).filter(name => name.endsWith('.css')),
+  'css/layout-tokens.css',
+  ...componentFiles,
+].sort();
+for (const file of cssFiles) {
+  const count = (read(file).match(/!important/g) || []).length;
+  const limit = importantBaseline[file] || 0;
+  assert.ok(count <= limit, `${file}: !important increased ${count} > ${limit}`);
+}
+for (const file of Object.keys(importantBaseline)) {
+  assert.ok(cssFiles.includes(file), `stale !important baseline: ${file}`);
+}
+const currentImportant = cssFiles.reduce((sum, file) => (
+  sum + (read(file).match(/!important/g) || []).length
 ), 0);
-assert.ok(legacyImportant <= 775, `!important baseline increased: ${legacyImportant}`);
+const importantLimit = Object.values(importantBaseline).reduce((sum, count) => sum + count, 0);
+assert.ok(currentImportant <= importantLimit, `total !important increased: ${currentImportant}`);
 
-const arbitraryHighZ = cssFiles.flatMap(name => (
-  [...read(name).matchAll(/z-index:\s*(\d+)/g)]
-    .map(match => ({ name, value: Number(match[1]) }))
+const arbitraryHighZ = cssFiles.flatMap(file => (
+  [...read(file).matchAll(/z-index:\s*(\d+)/g)]
+    .map(match => ({ file, value: Number(match[1]) }))
     .filter(item => item.value >= 100)
 ));
 assert.deepEqual(arbitraryHighZ, [], 'high z-index values must use semantic tokens');
 
-console.log('CSS architecture contract passed');
+const importOwners = cssFiles.filter(file => /@import\s/.test(read(file)));
+assert.deepEqual(importOwners, ['desktop-stability.css'], 'only final CSS entrypoint may import components');
+
+console.log(`CSS architecture contract passed: ${componentFiles.length} components, ${currentImportant}/${importantLimit} !important`);
