@@ -6,7 +6,7 @@
 #detailScreen .detail-header {
   position: sticky;
   top: 0;
-  z-index: 120;
+  z-index: var(--z-sticky);
   min-height: 54px;
   padding: calc(10px + var(--safe-area-inset-top)) 0 10px;
   background: linear-gradient(to bottom, var(--bg-primary) 76%, rgba(7, 11, 20, .92));
@@ -16,7 +16,7 @@
 #detailScreen .detail-tabs {
   position: sticky;
   top: calc(54px + var(--safe-area-inset-top));
-  z-index: 110;
+  z-index: var(--z-sticky);
   justify-content: flex-start;
   gap: 4px;
   padding: 4px;

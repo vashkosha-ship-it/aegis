@@ -1,0 +1,20 @@
+/* Navigation and application shell use one shared sidebar threshold. */
+.sidebar-item {
+  -webkit-appearance: none; appearance: none; background: transparent;
+  color: var(--text-muted); font: inherit; text-align: left;
+}
+.sidebar-item:not(.active):not(:hover) { background: transparent; }
+@media (min-width: 768px) and (max-width: 1279.98px) {
+  .sidebar-nav { display: none !important; }
+  .bottom-nav:not(.hidden) { display: flex !important; }
+}
+@media (min-width: 1280px) {
+  .sidebar-nav { width: var(--desktop-sidebar-width) !important; }
+  #app {
+    width: auto !important; min-width: 0; margin-left: var(--desktop-sidebar-width) !important;
+    padding-inline: clamp(20px, 2.1vw, 36px) !important;
+  }
+  body:has(#authScreen.active) #app,
+  body:has(#onboardingScreen.active) #app,
+  body.reader-active #app { margin-left: 0 !important; }
+}

@@ -7,7 +7,7 @@ const { JSDOM } = require('jsdom');
 
 const frontend = path.resolve(__dirname, '..');
 const index = fs.readFileSync(path.join(frontend, 'index.html'), 'utf8');
-const css = fs.readFileSync(path.join(frontend, 'desktop-stability.css'), 'utf8');
+const css = fs.readFileSync(path.join(frontend, 'css/components/reader-toolbar.css'), 'utf8');
 const lifecycle = fs.readFileSync(path.join(frontend, 'reader-lifecycle.js'), 'utf8');
 const document = new JSDOM(index).window.document;
 
