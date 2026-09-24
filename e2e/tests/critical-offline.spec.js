@@ -4,8 +4,12 @@ const { login, fixtureBooks } = require('./helpers/session');
 test.describe('PWA offline shell', () => {
   test.use({ serviceWorkers: 'allow' });
 
-  test('@critical приложение полностью запускается без сети', async ({ page, context }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
+  test('@critical приложение полностью запускается без сети', async ({ page, context, baseURL }) => {
+    const launchUrl = new URL('/', baseURL);
+    // Chromium считает localhost доверенным origin даже на локальном HTTP-стенде.
+    // В production используется HTTPS, поэтому подмена нужна только CI.
+    if (launchUrl.protocol === 'http:') launchUrl.hostname = 'localhost';
+    await page.goto(launchUrl.href, { waitUntil: 'networkidle' });
     await page.evaluate(() => navigator.serviceWorker.ready);
     if (!await page.evaluate(() => Boolean(navigator.serviceWorker.controller))) {
       await page.reload({ waitUntil: 'networkidle' });
