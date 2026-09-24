@@ -271,9 +271,15 @@ test.describe('@critical responsive layout', () => {
       expect(result.missingNames, `${theme}: unnamed visible icon controls`).toEqual([]);
     }
 
-    const opener = page.locator('.nav-item:visible').first();
-    await opener.focus();
-    await page.evaluate(() => openShortcutsModal());
+    await page.evaluate(() => {
+      const opener = document.createElement('button');
+      opener.id = 'a11y-dialog-opener';
+      opener.textContent = 'Открыть справку';
+      document.body.append(opener);
+      opener.focus();
+      openShortcutsModal();
+    });
+    const opener = page.locator('#a11y-dialog-opener');
     const dialog = page.locator('#shortcutsModal[role="dialog"][aria-modal="true"]');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(':focus')).toHaveCount(1);
