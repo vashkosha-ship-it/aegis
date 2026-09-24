@@ -105,7 +105,3 @@ button:disabled {
   .catalog-chip, .mylist-tab, .training-tab { min-height: 38px; }
   .nav-item { min-height: 58px; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  :where(button, a, input, select, textarea, [tabindex]) { scroll-behavior: auto; }
-}

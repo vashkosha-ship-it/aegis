@@ -19,7 +19,7 @@
   --bronze: #d97706;
   --text-primary: #e8eaed;
   --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-muted: #929bad;
   --border: #1e293b;
   --border-light: #273345;
   --shadow-card: 0 8px 32px rgba(0,0,0,0.3);
@@ -48,12 +48,12 @@
   --bg-card: #ffffff;
   --bg-card-hover: #f1f5f9;
   --bg-elevated: #ffffff;
-  --accent: #0284c7;
-  --accent-light: #0ea5e9;
-  --accent-gradient: linear-gradient(135deg, #0284c7, #7c3aed);
+  --accent: #0369a1;
+  --accent-light: #0369a1;
+  --accent-gradient: linear-gradient(135deg, #0369a1, #6d28d9);
   --text-primary: #1e293b;
   --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-muted: #596579;
   --border: #e2e8f0;
   --border-light: #cbd5e1;
   --shadow-card: 0 4px 16px rgba(15,23,42,0.08);
@@ -81,6 +81,19 @@ body {
   position: relative;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+/* Системная настройка уменьшения движения имеет приоритет над всеми
+   компонентными и динамическими анимациями приложения. */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-delay: 0s !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ========== ФОНОВЫЕ ЭФФЕКТЫ ========== */

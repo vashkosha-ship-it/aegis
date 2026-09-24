@@ -2,15 +2,25 @@
 
 /* Глобальные сочетания клавиш приложения. */
 
+let shortcutsReturnFocus = null;
+
 /* Окно подсказок и фокус командного поиска относятся к клавиатурной навигации. */
 function openShortcutsModal() {
+  shortcutsReturnFocus = document.activeElement;
   document.getElementById('shortcutsModal')?.classList.add('show');
   document.getElementById('shortcutsOverlay')?.classList.add('show');
 }
 
 function closeShortcutsModal() {
-  document.getElementById('shortcutsModal')?.classList.remove('show');
+  const modal = document.getElementById('shortcutsModal');
+  const wasOpen = modal?.classList.contains('show');
+  modal?.classList.remove('show');
   document.getElementById('shortcutsOverlay')?.classList.remove('show');
+  if (wasOpen && shortcutsReturnFocus?.isConnected) {
+    const target = shortcutsReturnFocus;
+    shortcutsReturnFocus = null;
+    setTimeout(() => target.focus(), 0);
+  }
 }
 
 function openCommandPalette() {
@@ -68,4 +78,3 @@ document.addEventListener('keydown', e => {
     }
   }
 });
-
