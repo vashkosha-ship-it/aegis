@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 const frontendDir = path.join(__dirname, '..');
+const accessibilitySource = fs.readFileSync(path.join(frontendDir, 'accessibility.js'), 'utf8');
 const source = fs.readFileSync(path.join(frontendDir, 'pwa-install.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(frontendDir, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
@@ -24,7 +25,9 @@ const context = vm.createContext({
   showToast: message => toasts.push(message),
   closeModal: id => dom.window.document.getElementById(id)?.remove(),
   console,
+  setTimeout: callback => { callback(); return 1; },
 });
+vm.runInContext(accessibilitySource, context);
 vm.runInContext(source, context);
 
 vm.runInContext('showInstallBanner()', context);

@@ -60,6 +60,7 @@ function showInstallBanner() {
   install.id = 'installBannerBtn';
   const close = installNode('button', '✕', 'a511');
   close.id = 'installBannerClose';
+  close.setAttribute('aria-label', 'Закрыть предложение установки');
   banner.append(copy, install, close);
   document.body.appendChild(banner);
   install.onclick = triggerInstall;
@@ -98,6 +99,9 @@ function showAndroidInstallInstructions() {
     m = document.createElement('div');
     m.id = 'androidInstallModal';
     m.className = 'install-modal';
+    m.setAttribute('role', 'dialog');
+    m.setAttribute('aria-modal', 'true');
+    m.setAttribute('aria-label', 'Установка приложения');
     document.body.appendChild(m);
   }
   const panel = installNode('div', undefined, 'a512');
@@ -114,9 +118,11 @@ function showAndroidInstallInstructions() {
   );
   const note = installNode('p', 'Если приложение не появилось на рабочем столе — проверьте список всех приложений (свайп вверх). В настройках Xiaomi включите «Добавлять значки на рабочий стол».', 'a516');
   const close = installNode('button', 'Понятно', 'a517');
-  close.addEventListener('click', () => m.remove());
+  const closeModal = () => { releaseFocusTrap(m); m.remove(); };
+  close.addEventListener('click', closeModal);
   panel.append(steps, note, close);
   m.replaceChildren(panel);
+  activateFocusTrap(m, { initialFocus: close, onEscape: closeModal });
 }
 
 function showIOSInstallInstructions() {
@@ -125,6 +131,9 @@ function showIOSInstallInstructions() {
     m = document.createElement('div');
     m.id = 'iosInstallModal';
     m.className = 'install-modal';
+    m.setAttribute('role', 'dialog');
+    m.setAttribute('aria-modal', 'true');
+    m.setAttribute('aria-label', 'Установка на iPhone или iPad');
     document.body.appendChild(m);
   }
   const panel = installNode('div', undefined, 'a518');
@@ -138,7 +147,9 @@ function showIOSInstallInstructions() {
     document.createTextNode('3. Нажмите «Добавить»'),
   );
   const close = installNode('button', 'Понятно', 'a517');
-  close.addEventListener('click', () => m.remove());
+  const closeModal = () => { releaseFocusTrap(m); m.remove(); };
+  close.addEventListener('click', closeModal);
   panel.append(steps, close);
   m.replaceChildren(panel);
+  activateFocusTrap(m, { initialFocus: close, onEscape: closeModal });
 }

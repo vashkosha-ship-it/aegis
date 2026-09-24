@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 const frontendDir = path.join(__dirname, '..');
+const accessibilitySource = fs.readFileSync(path.join(frontendDir, 'accessibility.js'), 'utf8');
 const source = fs.readFileSync(path.join(frontendDir, 'keyboard-shortcuts.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(frontendDir, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
@@ -14,7 +15,7 @@ const swSource = fs.readFileSync(path.join(frontendDir, 'sw.js'), 'utf8');
 
 const dom = new JSDOM(`
   <div id="selectionToolbar"></div>
-  <div id="shortcutsModal"></div>
+  <div id="shortcutsModal"><button id="shortcutClose">Закрыть</button><button id="shortcutLast">Последняя</button></div>
   <div id="shortcutsOverlay"></div>
   <input id="searchInput">
   <div class="note-tooltip"></div>
@@ -23,6 +24,7 @@ const calls = [];
 const record = name => (...args) => calls.push([name, ...args]);
 const context = vm.createContext({
   document: dom.window.document,
+  window: dom.window,
   state: { currentScreen: 'home' },
   arActive: false,
   closeReader: record('closeReader'),
@@ -40,6 +42,7 @@ const context = vm.createContext({
     return 1;
   },
 });
+vm.runInContext(accessibilitySource, context);
 vm.runInContext(source, context);
 
 function press(key, options = {}) {
@@ -82,7 +85,8 @@ dom.window.document.getElementById('searchInput').blur();
 press('?');
 assert.ok(dom.window.document.getElementById('shortcutsModal').classList.contains('show'));
 assert.ok(dom.window.document.getElementById('shortcutsOverlay').classList.contains('show'));
-press('?');
+assert.equal(dom.window.document.activeElement.id, 'shortcutClose');
+press('Escape');
 assert.ok(!dom.window.document.getElementById('shortcutsModal').classList.contains('show'));
 assert.ok(!dom.window.document.getElementById('shortcutsOverlay').classList.contains('show'));
 

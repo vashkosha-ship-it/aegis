@@ -4,12 +4,16 @@
 
 /* Окно подсказок и фокус командного поиска относятся к клавиатурной навигации. */
 function openShortcutsModal() {
-  document.getElementById('shortcutsModal')?.classList.add('show');
+  const modal = document.getElementById('shortcutsModal');
+  modal?.classList.add('show');
   document.getElementById('shortcutsOverlay')?.classList.add('show');
+  activateFocusTrap(modal, { initialFocus: modal?.querySelector('button'), onEscape: closeShortcutsModal });
 }
 
 function closeShortcutsModal() {
-  document.getElementById('shortcutsModal')?.classList.remove('show');
+  const modal = document.getElementById('shortcutsModal');
+  releaseFocusTrap(modal);
+  modal?.classList.remove('show');
   document.getElementById('shortcutsOverlay')?.classList.remove('show');
 }
 
@@ -17,7 +21,7 @@ function openCommandPalette() {
   const input = document.getElementById('searchInput');
   if (!input) return;
   input.focus();
-  input.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  input.scrollIntoView?.({ behavior: preferredScrollBehavior(), block: 'center' });
 }
 
 // ========== KEYBOARD SHORTCUTS ==========
@@ -68,4 +72,3 @@ document.addEventListener('keydown', e => {
     }
   }
 });
-

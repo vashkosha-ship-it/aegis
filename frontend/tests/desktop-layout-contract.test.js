@@ -16,8 +16,10 @@ const stabilityIndex = index.indexOf('href="desktop-stability.css"');
 assert.ok(designIndex >= 0, 'design-system.css must be loaded');
 assert.ok(
   stabilityIndex > designIndex,
-  'desktop-stability.css must be the final canonical style layer',
+  'desktop-stability.css must load after the legacy design layers',
 );
+assert.ok(index.indexOf('href="accessibility-themes.css"') > stabilityIndex,
+  'accessibility theme overrides must be the final style layer');
 
 assert.match(
   layout,

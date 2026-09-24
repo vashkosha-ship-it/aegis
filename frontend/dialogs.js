@@ -73,13 +73,9 @@ function showConfirmModal({
   actions.append(cancelButton, confirmButton);
   panel.append(description, actions);
 
-  let escapeHandler;
   const close = () => {
+    releaseFocusTrap(overlay);
     overlay.remove();
-    document.removeEventListener('keydown', escapeHandler);
-  };
-  escapeHandler = event => {
-    if (event.key === 'Escape') close();
   };
 
   cancelButton.addEventListener('click', close);
@@ -88,8 +84,7 @@ function showConfirmModal({
     if (typeof onConfirm === 'function') onConfirm();
   });
   bindDialogClose(overlay, close);
-  document.addEventListener('keydown', escapeHandler);
-  confirmButton.focus();
+  activateFocusTrap(overlay, { initialFocus: confirmButton, onEscape: close });
 }
 
 function showPromptModal({
@@ -126,18 +121,16 @@ function showPromptModal({
   actions.append(cancelButton, confirmButton);
   panel.append(input, actions);
 
-  let keyHandler;
   const close = () => {
+    releaseFocusTrap(overlay);
     overlay.remove();
-    document.removeEventListener('keydown', keyHandler);
   };
   const submit = () => {
     const result = input.value.trim();
     close();
     if (typeof onConfirm === 'function') onConfirm(result);
   };
-  keyHandler = event => {
-    if (event.key === 'Escape') close();
+  const keyHandler = event => {
     if (event.key === 'Enter' && !multiline) {
       event.preventDefault();
       submit();
@@ -147,6 +140,6 @@ function showPromptModal({
   cancelButton.addEventListener('click', close);
   confirmButton.addEventListener('click', submit);
   bindDialogClose(overlay, close);
-  document.addEventListener('keydown', keyHandler);
-  setTimeout(() => input.focus(), 50);
+  input.addEventListener('keydown', keyHandler);
+  activateFocusTrap(overlay, { initialFocus: input, onEscape: close });
 }

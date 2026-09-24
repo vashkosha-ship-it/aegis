@@ -1,0 +1,38 @@
+:root {
+  color-scheme: dark;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --focus-ring: #67e8f9;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #475569;
+  --accent: #0369a1;
+  --accent-light: #075985;
+  --border: #cbd5e1;
+  --border-light: #94a3b8;
+  --focus-ring: #075985;
+}
+
+::placeholder { color: var(--text-muted); opacity: 1; }
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .cyber-bg .grid, .cyber-bg .scan-line, .ai-type-cursor { animation: none !important; }
+}

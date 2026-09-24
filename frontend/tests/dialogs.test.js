@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 const frontendDir = path.join(__dirname, '..');
+const accessibilitySource = fs.readFileSync(path.join(frontendDir, 'accessibility.js'), 'utf8');
 const source = fs.readFileSync(path.join(frontendDir, 'dialogs.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(frontendDir, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
@@ -15,11 +16,13 @@ const swSource = fs.readFileSync(path.join(frontendDir, 'sw.js'), 'utf8');
 const dom = new JSDOM('<body></body>');
 const context = vm.createContext({
   document: dom.window.document,
+  window: dom.window,
   setTimeout: callback => {
     callback();
     return 1;
   },
 });
+vm.runInContext(accessibilitySource, context);
 vm.runInContext(source, context);
 
 let confirmed = 0;
@@ -36,6 +39,7 @@ vm.runInContext('showConfirmModal(confirmOptions)', context);
 let modal = dom.window.document.getElementById('confirmModal');
 assert.ok(modal);
 assert.equal(modal.getAttribute('role'), 'dialog');
+assert.equal(dom.window.document.activeElement.id, 'confirmOkBtn');
 assert.equal(modal.querySelector('.app-dialog-title').textContent, '<img src=x onerror=alert(1)>');
 assert.equal(modal.querySelector('.app-dialog-message').textContent, '<script>alert(1)</script>');
 assert.equal(modal.querySelector('img, script, b, i'), null);

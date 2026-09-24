@@ -83,13 +83,16 @@ function filterByCategory(category) {
   setHomeBooksTab('all');
   renderHome();
   document.getElementById('scrollAll')?.scrollIntoView({
-    behavior: 'smooth',
+    behavior: preferredScrollBehavior(),
     block: 'start',
   });
 }
 
 function closeFavCatsPicker() {
-  document.getElementById('favCatsPickerModal')?.remove();
+  const modal = document.getElementById('favCatsPickerModal');
+  if (!modal) return;
+  releaseFocusTrap(modal);
+  modal.remove();
 }
 
 function openFavCatsPicker() {
@@ -130,7 +133,7 @@ function openFavCatsPicker() {
   });
   document.body.appendChild(modal);
   renderFavCatsPicker();
-  closeButton.focus();
+  activateFocusTrap(modal, { initialFocus: closeButton, onEscape: closeFavCatsPicker });
 }
 
 function renderFavCatsPicker() {
@@ -166,4 +169,3 @@ function renderFavCatsPicker() {
     body.appendChild(button);
   });
 }
-
