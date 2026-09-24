@@ -51,6 +51,15 @@ def fetch(url: str) -> tuple[int, dict[str, str], bytes]:
         return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
 
 
+def valid_static_resource(path: str, headers: dict[str, str], body: bytes) -> tuple[bool, str]:
+    content_type = headers.get("content-type", "").lower()
+    expected = "text/css" if path.endswith(".css") else "javascript"
+    text = body.lstrip().lower()
+    html_fallback = text.startswith((b"<!doctype html", b"<html"))
+    ok = expected in content_type and bool(body.strip()) and not html_fallback
+    return ok, f"Content-Type={content_type or 'нет'}, bytes={len(body)}, html={html_fallback}"
+
+
 def expected_csp() -> str | None:
     """Действующая политика из конфига в репозитории (без комментариев)."""
     if not HEADERS_CONF.exists():
@@ -143,8 +152,9 @@ def main(base: str) -> int:
     check("стили найдены в разметке", bool(stylesheets))
     stylesheet_bodies = {}
     for href in stylesheets:
-        code, _, stylesheet_body = fetch(f"{base}/{href.lstrip('/')}")
-        check(f"{href} отдаётся", code == 200, f"код {code}")
+        code, resource_headers, stylesheet_body = fetch(f"{base}/{href.lstrip('/')}")
+        valid, detail = valid_static_resource(href, resource_headers, stylesheet_body)
+        check(f"{href} отдаётся как CSS", code == 200 and valid, f"код {code}; {detail}")
         stylesheet_bodies[href.lstrip("/")] = stylesheet_body.decode(
             "utf-8", errors="replace"
         )
@@ -165,8 +175,9 @@ def main(base: str) -> int:
 
     script_bodies = {}
     for src in scripts:
-        code, _, script_body = fetch(f"{base}/{src.lstrip('/')}")
-        check(f"{src} отдаётся", code == 200, f"код {code}")
+        code, resource_headers, script_body = fetch(f"{base}/{src.lstrip('/')}")
+        valid, detail = valid_static_resource(src, resource_headers, script_body)
+        check(f"{src} отдаётся как JavaScript", code == 200 and valid, f"код {code}; {detail}")
         script_bodies[src.lstrip("/")] = script_body.decode(
             "utf-8", errors="replace"
         )
