@@ -1,5 +1,6 @@
 /* Canonical desktop layout overrides entrypoint. Component rules live in css/components. */
 @import url("css/layout-tokens.css");
+@import url("css/components/ar-menu.css");
 @import url("css/components/reader-toolbar.css");
 @import url("css/components/detail-assistant.css");
 @import url("css/components/responsive-shell.css");

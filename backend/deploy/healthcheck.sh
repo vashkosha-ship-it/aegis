@@ -107,7 +107,7 @@ check_static_resource() {
     fi
 }
 
-check_static_resource "sw.js" "javascript" "aegis-cache-v316"
+check_static_resource "sw.js" "javascript" "aegis-cache-v317"
 check_static_resource "styles.css" "text/css" ":root"
 check_static_resource "accessibility.js" "javascript" "aegisAccessibility"
 check_static_resource "css/layout-tokens.css" "text/css" "--z-modal"
