@@ -98,7 +98,7 @@ check_static_resource() {
         | awk 'tolower($0) ~ /^content-type:/ {print tolower($0)}' \
         | tail -1)
     if grep -q "$expected_type" <<<"$content_type" \
-        && grep -Fq "$marker" <<<"$response_body" \
+        && grep -Fq -- "$marker" <<<"$response_body" \
         && ! grep -Eiq '^[[:space:]]*<!doctype[[:space:]]+html|^[[:space:]]*<html([[:space:]>])' <<<"$response_body"; then
         ok "$path: тип и содержимое корректны"
     else

@@ -305,6 +305,7 @@ class TestHealthRouting:
         assert 'section "Статика PWA"' in script
         assert 'check_static_resource "sw.js" "javascript"' in script
         assert 'check_static_resource "styles.css" "text/css"' in script
+        assert 'grep -Fq -- "$marker"' in script
         assert "возможен HTML-fallback" in script
 
     def test_healthcheck_scopes_worker_errors_to_current_process(self):
