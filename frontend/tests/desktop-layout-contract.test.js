@@ -38,7 +38,7 @@ assert.match(
 );
 assert.match(
   detail,
-  /#detailScreen \.detail-content\s*\{[\s\S]*?display:\s*grid/,
+  /#detailScreen \.detail-content\s*\{[\s\S]*?display:\s*grid\s*!important/,
   'book sections must remain vertically stacked on desktop',
 );
 assert.match(
