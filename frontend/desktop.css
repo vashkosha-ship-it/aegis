@@ -42,7 +42,7 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    z-index: 900;
+    z-index: var(--z-navigation);
     padding: 13px 8px 16px;
     overflow: hidden;
     transition: width var(--transition);
@@ -1172,7 +1172,7 @@
     right: 21px;
     left: auto;
     transform: none;
-    z-index: 800;
+    z-index: var(--z-navigation);
   }
 }
 

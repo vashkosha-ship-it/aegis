@@ -1,0 +1,20 @@
+/* Reader toolbar and compact overflow menu. */
+.reader-toolbar { position: relative; }
+.reader-toolbar-secondary { display: contents; }
+.reader-toolbar-more { display: none; }
+@media (max-width: 599.98px) {
+  .reader-toolbar-row, .reader-toolbar-actions { min-width: 0; }
+  .reader-toolbar-actions { position: relative; }
+  .reader-toolbar-more {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 30px; width: 30px; height: 30px;
+  }
+  .reader-toolbar-secondary {
+    display: none; position: absolute; top: calc(100% + 10px); right: 0;
+    z-index: var(--z-navigation); grid-template-columns: repeat(3, 38px);
+    gap: 8px; padding: 10px; border: 1px solid var(--border);
+    border-radius: 12px; background: var(--bg-elevated); box-shadow: var(--shadow-card);
+  }
+  .reader-toolbar-secondary.is-open { display: grid; }
+  .reader-toolbar-secondary .btn-nav-page { width: 38px; height: 38px; }
+}

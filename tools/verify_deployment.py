@@ -152,7 +152,7 @@ def main(base: str) -> int:
     check(
         "финальный desktop-layout подключён",
         "Canonical desktop layout overrides" in desktop_stability
-        and "#detailScreen .detail-content" in desktop_stability,
+        and 'css/components/detail-assistant.css' in desktop_stability,
         "на сервере нет актуального desktop-stability.css",
     )
 

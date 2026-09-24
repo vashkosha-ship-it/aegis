@@ -1,0 +1,18 @@
+/* Canonical breakpoints: 600, 768, 1024, 1280, 1600 and 2000px. */
+:root {
+  --breakpoint-phone: 600px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+  --breakpoint-sidebar: 1280px;
+  --breakpoint-wide: 1600px;
+  --breakpoint-ultrawide: 2000px;
+  --desktop-sidebar-width: clamp(176px, 12vw, 208px);
+  --reading-line-length: 78ch;
+  --z-content: 1;
+  --z-sticky: 100;
+  --z-navigation: 300;
+  --z-overlay: 600;
+  --z-modal: 700;
+  --z-toast: 800;
+  --z-critical: 900;
+}
