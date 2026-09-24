@@ -87,6 +87,32 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+section "Статика PWA"
+
+check_static_resource() {
+    local path="$1" expected_type="$2" marker="$3"
+    local response_headers response_body content_type
+    response_headers=$(curl -fsS -D - -o /dev/null "$BASE/$path" 2>/dev/null || true)
+    response_body=$(curl -fsS "$BASE/$path" 2>/dev/null || true)
+    content_type=$(tr -d '\r' <<<"$response_headers" \
+        | awk 'tolower($0) ~ /^content-type:/ {print tolower($0)}' \
+        | tail -1)
+    if grep -q "$expected_type" <<<"$content_type" \
+        && grep -Fq "$marker" <<<"$response_body" \
+        && ! grep -Eiq '^[[:space:]]*<!doctype[[:space:]]+html|^[[:space:]]*<html([[:space:]>])' <<<"$response_body"; then
+        ok "$path: тип и содержимое корректны"
+    else
+        fail "$path отдаётся некорректно" \
+            "Content-Type: ${content_type:-нет}; возможен HTML-fallback"
+    fi
+}
+
+check_static_resource "sw.js" "javascript" "aegis-cache-v316"
+check_static_resource "styles.css" "text/css" ":root"
+check_static_resource "accessibility.js" "javascript" "aegisAccessibility"
+check_static_resource "css/layout-tokens.css" "text/css" "--z-modal"
+
+# ---------------------------------------------------------------------------
 section "Доступ к файлам книг"
 
 # Внутренний путь для X-Accel-Redirect. Снаружи он обязан быть недоступен:

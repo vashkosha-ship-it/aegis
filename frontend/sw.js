@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v315';
+const CACHE_NAME = 'aegis-cache-v316';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -12,6 +12,7 @@ const PRECACHE_URLS = [
   '/offline.css',
   '/offline.js',
   '/styles.css',
+  '/desktop.css',
   '/ar-schemes.css',
   '/detail-ux.css',
   '/ux-accessibility.css',
@@ -23,6 +24,9 @@ const PRECACHE_URLS = [
   '/css/components/responsive-shell.css',
   '/print-notes.css',
   '/dynamic-styles.js',
+  '/handler-allowlist.js',
+  '/inline-handlers.js',
+  '/offline-storage.js',
   '/api.js',
   '/notes-crypto.js',
   '/annotations-core.js',
@@ -66,6 +70,7 @@ const PRECACHE_URLS = [
   '/loading-ui.js',
   '/core-utils.js',
   '/notifications.js',
+  '/csp-helpers.js',
   '/dialogs.js',
   '/accessibility.js',
   '/pomodoro.js',
@@ -101,6 +106,7 @@ const PRECACHE_URLS = [
   '/reader-selection-ai.js',
   '/reader-lifecycle.js',
   '/reader-navigation.js',
+  '/inline-boot.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -109,46 +115,67 @@ const PRECACHE_URLS = [
 // HTML and every CSS layer must enter the new cache as one complete shell.
 // Activating a cache with only some of these files can combine a new DOM with
 // an old responsive layer and visibly break the interface.
-const APP_SHELL_URLS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/desktop.css',
-  '/ar-schemes.css',
-  '/detail-ux.css',
-  '/ux-accessibility.css',
-  '/design-system.css',
-  '/desktop-stability.css',
-  '/css/layout-tokens.css',
-  '/css/components/reader-toolbar.css',
-  '/css/components/detail-assistant.css',
-  '/css/components/responsive-shell.css',
-];
+const APP_SHELL_URLS = [...PRECACHE_URLS];
+
+function expectedContentTypes(pathname) {
+  if (pathname === '/' || pathname.endsWith('.html')) return ['text/html'];
+  if (pathname.endsWith('.css')) return ['text/css'];
+  if (pathname.endsWith('.js')) return ['javascript'];
+  if (pathname.endsWith('.json')) return ['application/json', 'application/manifest+json'];
+  if (/\.(?:png|webp|jpe?g|svg|ico)$/i.test(pathname)) return ['image/'];
+  return [];
+}
+
+async function validateStaticResponse(requestUrl, response) {
+  const pathname = new URL(requestUrl, self.location.origin).pathname;
+  if (!response || !response.ok) {
+    throw new Error(`${pathname}: HTTP ${response?.status || 'нет ответа'}`);
+  }
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const expected = expectedContentTypes(pathname);
+  if (expected.length && !expected.some(type => contentType.includes(type))) {
+    throw new Error(`${pathname}: неверный Content-Type ${contentType || 'отсутствует'}`);
+  }
+  if (pathname.endsWith('.js') || pathname.endsWith('.css')) {
+    const body = (await response.clone().text()).trimStart();
+    if (!body || /^<!doctype\s+html|^<html[\s>]/i.test(body)) {
+      throw new Error(`${pathname}: вместо статического ресурса получен HTML`);
+    }
+  }
+  return response;
+}
+
+async function fetchValidatedStatic(request) {
+  const response = await fetch(request, { cache: 'no-store' });
+  return validateStaticResponse(
+    typeof request === 'string' ? request : request.url,
+    response,
+  );
+}
+
+async function cacheValidatedResponse(cache, request, response) {
+  const validated = await validateStaticResponse(
+    typeof request === 'string' ? request : request.url,
+    response,
+  );
+  await cache.put(request, validated.clone());
+  return validated;
+}
 
 // Установка: кэшируем статику
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async (cache) => {
+    (async () => {
       console.log('[SW] Кэширую статические ресурсы (' + CACHE_NAME + ')');
-
-      // Каркас интерфейса обязателен целиком. Если хотя бы один файл не
-      // загрузился, новый worker не активируется и текущая рабочая версия
-      // продолжает обслуживать вкладки.
-      await cache.addAll(APP_SHELL_URLS);
-
-      // Остальные ресурсы улучшают офлайн-режим, но отдельный временный сбой
-      // не должен блокировать обновление уже проверенного каркаса.
-      const optionalUrls = PRECACHE_URLS.filter(
-        (url) => !APP_SHELL_URLS.includes(url)
+      // Сначала загружаем и проверяем весь shell в памяти. В кэш ничего не
+      // попадает, пока каждый CSS/JS/HTML не подтвердил тип и содержимое.
+      const responses = await Promise.all(
+        APP_SHELL_URLS.map(async url => [url, await fetchValidatedStatic(url)])
       );
-      await Promise.all(
-        optionalUrls.map((url) =>
-          cache.add(url).catch((err) => {
-            console.warn('[SW] Пропущен необязательный ресурс:', url, err.message);
-          })
-        )
-      );
-    })
+      await caches.delete(CACHE_NAME);
+      const cache = await caches.open(CACHE_NAME);
+      await Promise.all(responses.map(([url, response]) => cache.put(url, response)));
+    })()
   );
   // Применяем новый SW сразу — иначе обновления app.js/стилей «зависают»
   // до полного закрытия всех вкладок. Баннер «Обновить» остаётся как доп. сигнал.
@@ -197,11 +224,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
+        return fetchValidatedStatic(event.request).then(async (response) => {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(event.request, response.clone());
           return response;
         });
       })
@@ -215,12 +240,11 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       Promise.race([
-        fetch(event.request).then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
+        fetch(event.request).then(async (response) => {
+          const validated = await validateStaticResponse(event.request.url, response);
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put('/index.html', validated.clone());
+          return validated;
         }),
         new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
       ]).then((response) => {
@@ -240,12 +264,10 @@ self.addEventListener('fetch', (event) => {
   // свежую версию из сети, а кэш используем только как офлайн-фолбэк.
   if (isSameOrigin) {
     event.respondWith(
-      fetch(event.request).then((response) => {
-        if (event.request.method === 'GET' && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
+      fetch(event.request).then(async (response) => {
+        if (event.request.method !== 'GET') return response;
+        const cache = await caches.open(CACHE_NAME);
+        return cacheValidatedResponse(cache, event.request, response);
       }).catch(() => {
         return caches.match(event.request).then((cached) => {
           if (cached) return cached;

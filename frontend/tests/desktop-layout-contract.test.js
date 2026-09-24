@@ -63,7 +63,7 @@ assert.match(entrypoint, /css\/components\/detail-assistant\.css/);
 assert.match(entrypoint, /css\/components\/responsive-shell\.css/);
 assert.match(
   worker,
-  /const APP_SHELL_URLS\s*=\s*\[[\s\S]*?'\/desktop-stability\.css'/,
+  /const APP_SHELL_URLS\s*=\s*\[\.\.\.PRECACHE_URLS\]/,
   'desktop layout layer must be part of the mandatory app shell',
 );
 

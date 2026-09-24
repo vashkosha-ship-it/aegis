@@ -299,6 +299,14 @@ class TestHealthRouting:
         assert "cleanup_expired_sessions in WorkerSettings.functions" in script
         assert "cron:cleanup_expired_sessions" not in script
 
+    def test_healthcheck_rejects_static_html_fallbacks(self):
+        script = HEALTHCHECK.read_text(encoding="utf-8")
+
+        assert 'section "Статика PWA"' in script
+        assert 'check_static_resource "sw.js" "javascript"' in script
+        assert 'check_static_resource "styles.css" "text/css"' in script
+        assert "возможен HTML-fallback" in script
+
     def test_healthcheck_scopes_worker_errors_to_current_process(self):
         script = HEALTHCHECK.read_text(encoding="utf-8")
 
@@ -486,7 +494,7 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v315" in service_worker
+        assert "aegis-cache-v316" in service_worker
 
     def test_deploy_requires_frontend_ci(self):
         deploy_script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
