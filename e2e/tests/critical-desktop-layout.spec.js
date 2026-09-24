@@ -271,8 +271,9 @@ test.describe('@critical responsive layout', () => {
       expect(result.missingNames, `${theme}: unnamed visible icon controls`).toEqual([]);
     }
 
-    const opener = page.locator('.btn-shortcuts-icon');
-    await opener.click();
+    const opener = page.locator('.nav-item:visible').first();
+    await opener.focus();
+    await page.evaluate(() => openShortcutsModal());
     const dialog = page.locator('#shortcutsModal[role="dialog"][aria-modal="true"]');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(':focus')).toHaveCount(1);
