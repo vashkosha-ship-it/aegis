@@ -293,11 +293,23 @@ function showVerifyEmailScreen(email) {
   const panel = authNode('div', undefined, 'a292');
   panel.append(authNode('div', '✉️', 'a293'), authNode('h2', 'Подтвердите email', 'a294'));
   const sent = authNode('p', undefined, 'a295');
-  sent.append(
-    document.createTextNode('Мы отправили код подтверждения на'), document.createElement('br'),
-    authNode('b', email, 'a154'), document.createElement('br'),
-    authNode('span', 'Проверьте папку «Спам», если письма нет', 'a192'),
-  );
+  const emailInput = authNode('input', undefined, 'a277');
+  emailInput.type = 'email';
+  emailInput.id = 'verifyEmailInput';
+  emailInput.placeholder = 'Email аккаунта';
+  emailInput.autocomplete = 'email';
+  if (email) {
+    sent.append(
+      document.createTextNode('Мы отправили код подтверждения на'), document.createElement('br'),
+      authNode('b', email, 'a154'), document.createElement('br'),
+      authNode('span', 'Проверьте папку «Спам», если письма нет', 'a192'),
+    );
+    emailInput.classList.add('hidden');
+  } else {
+    sent.append(
+      authNode('span', 'Введите email аккаунта — мы проверим адрес и покажем поле для кода.', 'a192'),
+    );
+  }
   const input = authNode('input', undefined, 'a296');
   input.type = 'text';
   input.id = 'verifyCodeInput';
@@ -312,7 +324,7 @@ function showVerifyEmailScreen(email) {
   const back = authNode('button', 'Назад', 'a176');
   back.id = 'verifyBackBtn';
   actions.append(resend, back);
-  panel.append(sent, input, verify, actions);
+  panel.append(sent, emailInput, input, verify, actions);
   overlay.replaceChildren(panel);
 
   input.focus();
@@ -320,6 +332,14 @@ function showVerifyEmailScreen(email) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') submitVerifyCode(); });
   resend.onclick = async () => {
     try {
+      if (!pendingVerifyEmail) {
+        pendingVerifyEmail = emailInput.value.trim();
+        if (!pendingVerifyEmail || !pendingVerifyEmail.includes('@')) {
+          pendingVerifyEmail = null;
+          showToast('Введите email аккаунта');
+          return;
+        }
+      }
       await api.resendCode(pendingVerifyEmail);
       showToast('Код отправлен повторно');
     } catch (err) {
@@ -334,6 +354,15 @@ function showVerifyEmailScreen(email) {
 }
 
 async function submitVerifyCode() {
+  const emailInput = document.getElementById('verifyEmailInput');
+  if (!pendingVerifyEmail && emailInput) {
+    pendingVerifyEmail = emailInput.value.trim();
+    if (!pendingVerifyEmail || !pendingVerifyEmail.includes('@')) {
+      pendingVerifyEmail = null;
+      showToast('Введите email аккаунта');
+      return;
+    }
+  }
   const code = document.getElementById('verifyCodeInput').value.trim();
   if (code.length < 4) return showToast('Введите код из письма');
   const btn = document.getElementById('verifyCodeBtn');
@@ -469,14 +498,9 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       try {
         // Узнаём email по аккаунту нельзя без входа — просим ввести email для повторной отправки
         const emailForVerify = document.getElementById('authEmail')?.value?.trim();
-        if (emailForVerify) {
-          pendingVerifyEmail = emailForVerify;
-          pendingVerifyCreds = { username: loginName, password: loginPass };
-          await api.resendCode(emailForVerify);
-          showVerifyEmailScreen(emailForVerify);
-        } else {
-          showToast('Подтвердите email. Введите его в поле email и попробуйте снова.');
-        }
+        pendingVerifyEmail = emailForVerify || null;
+        pendingVerifyCreds = { username: loginName, password: loginPass };
+        showVerifyEmailScreen(emailForVerify || '');
       } catch (_) {
         showToast('Подтвердите email перед входом');
       }

@@ -54,6 +54,12 @@ assert.match(verify.textContent, /<img src=x onerror=alert\(1\)>/);
 assert.equal(verify.querySelector('img'), null);
 assert.equal(verify.querySelectorAll('[data-onclick]').length, 0);
 
+authContext.showVerifyEmailScreen('');
+const verifyLogin = authDom.window.document.getElementById('verifyEmailOverlay');
+assert.ok(verifyLogin.querySelector('#verifyEmailInput'));
+assert.ok(verifyLogin.querySelector('#verifyCodeInput'));
+assert.match(verifyLogin.textContent, /Введите email аккаунта/);
+
 assert.doesNotMatch(authSource, /showAdminMfaScreen|adminMfaOverlay|recovery_codes/);
 assert.doesNotMatch(authSource, /\.innerHTML\s*=/);
 
