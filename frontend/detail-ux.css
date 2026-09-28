@@ -116,11 +116,13 @@
 }
 #detailScreen .detail-action-primary {
   grid-column: 1 / -1;
-  color: #061018;
-  border: 0;
-  background: linear-gradient(135deg, #67e8f9, #8b5cf6);
+  color: #f8fafc;
+  border: 1px solid rgba(103, 232, 249, .42);
+  background: linear-gradient(135deg, #087ea4, #4330a8);
+  box-shadow: 0 10px 24px rgba(8, 126, 164, .24);
   font-weight: 800;
 }
+#detailScreen .detail-action-primary:hover { background: linear-gradient(135deg, #076b8b, #35268c); }
 
 #detailScreen .offline-btn-saved {
   width: 42px;
