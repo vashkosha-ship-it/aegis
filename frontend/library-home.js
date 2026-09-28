@@ -326,14 +326,15 @@ function renderBookInfo() {
       removeOfflineButton.title = 'Удалить офлайн-копию';
       removeOfflineButton.setAttribute('aria-label', 'Удалить офлайн-копию');
     } else {
-      actions.appendChild(
-        _libraryAction(
+      const saveOfflineButton = _libraryAction(
           ICONS.cloudDownload,
           'Сохранить оффлайн',
           () => saveBookOffline(book.id),
           'btn-detail offline-btn-save',
-        ),
-      );
+        );
+      saveOfflineButton.title = 'Сохранить книгу для чтения без сети';
+      saveOfflineButton.setAttribute('aria-label', 'Сохранить книгу для чтения без сети');
+      actions.appendChild(saveOfflineButton);
     }
   }
 
