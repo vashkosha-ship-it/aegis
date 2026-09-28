@@ -39,3 +39,30 @@ function showToast(message) {
     setTimeout(() => toast.remove(), 300);
   }, 2500);
 }
+
+function showActionToast(message, actionLabel, action) {
+  document.querySelector('.toast')?.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-action';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+
+  const text = document.createElement('span');
+  text.textContent = String(message ?? '');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'toast-action-button';
+  button.textContent = String(actionLabel || 'Открыть');
+  button.addEventListener('click', () => {
+    toast.remove();
+    action?.();
+  }, { once: true });
+
+  toast.append(text, button);
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('is-hiding');
+    setTimeout(() => toast.remove(), 300);
+  }, 6000);
+}
