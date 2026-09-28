@@ -101,6 +101,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 async function loadProgressFromApi(flushQueue = true) {
+  if (api.isAuthBootstrapPending?.() && !state.currentUser) return false;
   try {
     const entries = await api.library.progress();
     const serverProgress = {};
