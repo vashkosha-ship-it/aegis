@@ -79,18 +79,34 @@ async function startARCamera() {
     console.error('Ошибка доступа к камере:', e);
     let errorMsg = 'Нет доступа к камере. ';
     if (e.name === 'NotAllowedError') {
-      errorMsg += 'Разрешите доступ к камере в настройках браузера.';
+      errorMsg += 'Разрешите камеру в настройках сайта. Если Aegis открыт как приложение, откройте меню приложения → «Открыть в браузере», затем нажмите на значок замка/настроек сайта и включите «Камера». Схема уже доступна без камеры.';
     } else if (e.name === 'NotFoundError') {
       errorMsg += 'Камера не найдена на устройстве.';
     } else {
       errorMsg += 'Схема будет показана на тёмном фоне.';
     }
     showToast(errorMsg);
+    showARCameraHelp(e.name === 'NotAllowedError');
     // Не падаем — схема всё равно рендерится поверх чёрного фона
   }
 }
+
+function showARCameraHelp(permissionDenied) {
+  const modal = document.getElementById('arModal');
+  if (!modal) return;
+  modal.querySelector('.ar-camera-help')?.remove();
+  const help = document.createElement('div');
+  help.className = 'ar-camera-help';
+  help.setAttribute('role', 'status');
+  help.append(
+    Object.assign(document.createElement('strong'), { textContent: permissionDenied ? 'Камера недоступна' : 'Камера не подключена' }),
+    Object.assign(document.createElement('span'), { textContent: permissionDenied ? 'Откройте Aegis в обычном браузере и разрешите камеру в настройках сайта. Схему можно продолжить смотреть без камеры.' : 'Схема продолжает работать без видеоподложки.' }),
+  );
+  modal.querySelector('.ar-container')?.appendChild(help);
+}
 function closeAR() {
   console.log('closeAR вызвана');
+  document.getElementById('arModal')?.querySelector('.ar-camera-help')?.remove();
   const toggle = document.getElementById('arViewModeToggle');
   if (toggle) toggle.style.display = 'none';
   
