@@ -107,6 +107,7 @@ assert.match(card, /book-card-year">2023/);
 assert.match(card, /hideFromResume\(1\)/);
 assert.match(card, /book-author-text">Author One/);
 assert.match(card, /class="book-card-remove"/);
+assert.match(card, /aria-label="Открыть книгу: /);
 
 filteredBooks = Array.from({ length: 50 }, (_, i) => ({
   id: i + 1,
