@@ -25,6 +25,7 @@
   // /auth/refresh (cookie отправится сама).
   let _accessToken = null;
   let _refreshPromise = null;
+  let _authBootstrapPending = true;
 
   // Разовая уборка: до перехода на cookie токены лежали в localStorage.
   // Оставлять их там нельзя — это ровно то, от чего мы уходили: любой скрипт
@@ -164,6 +165,8 @@
   // --- публичный API -------------------------------------------------------
   const api = {
     isAuthenticated: () => !!tokens.access,
+    isAuthBootstrapPending: () => _authBootstrapPending,
+    setAuthBootstrapPending: pending => { _authBootstrapPending = Boolean(pending); },
 
     // Восстановить сессию после перезагрузки страницы: access-токен в памяти
     // потерян, но refresh-cookie осталась.
