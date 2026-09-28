@@ -15,8 +15,16 @@
 for (const key of ['aegis_biometric_enabled', 'aegis_biometric_cred', 'aegis_biometric_declined']) {
   try { localStorage.removeItem(key); } catch (_) { /* Очистка устаревших данных необязательна. */ }
 }
+const hadCachedSession = typeof getCachedUser === 'function' && Boolean(getCachedUser());
 tryAutoLogin().then(ok => {
   navigateTo(ok ? 'home' : 'auth');
+  if (!ok && hadCachedSession && typeof showActionToast === 'function') {
+    showActionToast(
+      'Сессия завершена. Войдите снова.',
+      'Войти',
+      () => document.getElementById('authName')?.focus(),
+    );
+  }
 });
 
 
