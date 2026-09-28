@@ -1,0 +1,4 @@
+/* Stable full-ring loader and blue primary book action. */
+.aegis-spinner { width:52px; height:52px; box-sizing:border-box; border:5px solid rgba(103,232,249,.2); border-top-color:#22d3ee; border-right-color:#6366f1; border-radius:50%; animation:aegisSpin .85s linear infinite; }
+#detailScreen .detail-action-primary { color:#fff; border:1px solid rgba(147,197,253,.55); background:linear-gradient(135deg,#2563eb,#4f46e5); box-shadow:0 8px 24px rgba(37,99,235,.28); }
+#detailScreen .detail-action-primary:hover { color:#fff; background:linear-gradient(135deg,#1d4ed8,#4338ca); }
