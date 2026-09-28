@@ -71,6 +71,7 @@ assert.equal(detail.querySelector('.detail-description-section .detail-desc').te
 assert.ok(detail.querySelector('.detail-action-primary'));
 assert.ok(detail.querySelector('.detail-action-admin'));
 assert.equal(detail.querySelector('.detail-actions').textContent.includes('В коллекцию'), false);
+assert.equal(detail.querySelector('.offline-btn-save').getAttribute('aria-label'), 'Сохранить книгу для чтения без сети');
 context.offlineBookIds.add(book.id);
 context.renderBookInfo();
 assert.equal(detail.querySelector('.offline-btn-saved').getAttribute('aria-label'), 'Удалить офлайн-копию');
