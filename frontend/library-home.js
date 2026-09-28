@@ -43,6 +43,7 @@ function ensureProgress(book) {
 }
 
 async function loadBooksFromApi() {
+  if (api.isAuthBootstrapPending?.() && !state.currentUser) return false;
   // Показываем скелетон-заглушки, пока книги грузятся (вместо пустого экрана)
   if (!state.books || state.books.length === 0) {
     showSkeleton('scrollPopular', 6);
