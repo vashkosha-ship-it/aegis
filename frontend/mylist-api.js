@@ -1,5 +1,6 @@
 // Синхронизация статусов «Моего списка» с API.
 async function loadMyListFromApi() {
+  if (api.isAuthBootstrapPending?.() && !state.currentUser) return false;
   try {
     const entries = await api.library.mylist();
     state.mylist = {};
