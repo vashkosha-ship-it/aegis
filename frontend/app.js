@@ -25,6 +25,8 @@ tryAutoLogin().then(ok => {
       () => document.getElementById('authName')?.focus(),
     );
   }
+}).finally(() => {
+  api.setAuthBootstrapPending(false);
 });
 
 
