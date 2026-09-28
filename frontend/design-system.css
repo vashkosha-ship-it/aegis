@@ -177,12 +177,12 @@
 }
 #detailScreen .detail-action-primary {
   flex: 1 1 180px;
-  color: #041017;
-  border-color: transparent;
-  background: #67e8f9;
-  box-shadow: 0 8px 24px rgba(34, 211, 238, .18);
+  color: #ffffff;
+  border-color: rgba(147, 197, 253, .55);
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, .28);
 }
-#detailScreen .detail-action-primary:hover { background: #a5f3fc; color: #041017; }
+#detailScreen .detail-action-primary:hover { background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%); color: #ffffff; }
 #detailScreen .detail-action-secondary { flex: 1 1 180px; }
 #detailScreen .detail-action-admin { margin-left: auto; }
 #detailScreen .detail-icon-button {
