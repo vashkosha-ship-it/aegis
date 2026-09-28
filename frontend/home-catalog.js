@@ -80,7 +80,7 @@ function cardHTML(b, query, options) {
   const year = extractBookYear(b.datePublished);
 
   return `<article class="book-card-compact" data-book-id="${b.id}" draggable="true">
-    <button type="button" class="book-card-open" data-onclick="openBookDetail(${b.id})" aria-label="Открыть книгу">
+    <button type="button" class="book-card-open" data-onclick="openBookDetail(${b.id})" aria-label="Открыть книгу: ${eh(b.title)}">
     <div class="cover-area">
       ${coverInner}
       <div class="rating-badge">${ICONS.star}${b.rating}</div>
