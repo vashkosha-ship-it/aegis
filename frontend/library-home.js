@@ -68,13 +68,23 @@ async function loadBooksFromApi() {
     saveState();
     return true;
   } catch (err) {
-    console.error('Не удалось загрузить книги с API:', err);
+    if (!api.isNetworkError?.(err) && err?.status !== 401) {
+      console.error('Не удалось загрузить книги с API:', err);
+    }
     // Нет сети — показываем скачанные книги из оффлайн-хранилища вместо пустого экрана
     if (!navigator.onLine) {
       const ok = await loadBooksFromOffline();
       if (ok) { showToast('Офлайн-режим: показаны скачанные книги'); return true; }
     }
-    showToast('Не удаётся загрузить книги с сервера');
+    if (typeof showActionToast === 'function') {
+      showActionToast(
+        getApiErrorMessage(err, 'Не удаётся загрузить книги с сервера'),
+        'Повторить',
+        () => loadBooksFromApi().then(() => renderHome()),
+      );
+    } else {
+      showToast(getApiErrorMessage(err, 'Не удаётся загрузить книги с сервера'));
+    }
     state.books = [];
     return false;
   }

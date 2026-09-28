@@ -66,3 +66,10 @@ function showActionToast(message, actionLabel, action) {
     setTimeout(() => toast.remove(), 300);
   }, 6000);
 }
+
+function getApiErrorMessage(error, fallback = 'Не удалось выполнить запрос') {
+  if (error?.isNetworkError || !navigator.onLine) return 'Нет соединения с сервером';
+  if (error?.status === 401) return 'Сессия завершена. Войдите снова.';
+  if (error?.status >= 500) return 'Сервис временно недоступен';
+  return error?.detail || fallback;
+}

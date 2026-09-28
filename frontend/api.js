@@ -79,6 +79,7 @@
       this.detail = message;
       this.rawDetail = detail;
       this.body = body;
+      this.isNetworkError = status === 0;
     }
   }
 
@@ -117,14 +118,23 @@
       }
     }
 
-    let response = await fetch(url, opts);
+    let response;
+    try {
+      response = await fetch(url, opts);
+    } catch (error) {
+      throw new ApiError(0, 'Нет соединения с сервером', { cause: error?.message });
+    }
 
     // 401 + есть refresh — пробуем обновить токен и повторить запрос ровно один раз
     if (response.status === 401 && auth && path !== '/auth/refresh') {
       const refreshed = await tryRefresh();
       if (refreshed) {
         opts.headers['Authorization'] = 'Bearer ' + tokens.access;
-        response = await fetch(url, opts);
+        try {
+          response = await fetch(url, opts);
+        } catch (error) {
+          throw new ApiError(0, 'Нет соединения с сервером', { cause: error?.message });
+        }
       }
     }
 
@@ -174,6 +184,7 @@
     baseUrl: BASE,
     tokens,
     ApiError,
+    isNetworkError: error => error instanceof ApiError && error.isNetworkError,
     request,
 
     async login(username, password) {
