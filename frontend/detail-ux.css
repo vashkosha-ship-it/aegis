@@ -22,6 +22,9 @@
   padding: 4px;
   scrollbar-width: none;
   box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
+  overflow-x: auto;
+  scroll-padding-inline: 12px;
+  overscroll-behavior-inline: contain;
 }
 #detailScreen .detail-tabs::-webkit-scrollbar { display: none; }
 #detailScreen .detail-tab {
@@ -40,6 +43,11 @@
 #detailScreen .detail-tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+#detailScreen .detail-tab[aria-selected="true"] {
+  color: var(--text-primary);
+  background: rgba(0, 212, 255, .12);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 #detailScreen .detail-content {
@@ -114,11 +122,22 @@
   font-weight: 800;
 }
 
+#detailScreen .offline-btn-saved {
+  width: 42px;
+  min-width: 42px;
+  padding-inline: 0;
+  color: #86efac;
+  border-color: rgba(34, 197, 94, .42);
+  background: rgba(34, 197, 94, .12);
+}
+#detailScreen .offline-btn-saved svg { width: 18px; height: 18px; }
+
 @media (max-width: 420px) {
   #detailScreen .detail-hero { grid-template-columns: 94px minmax(0, 1fr); gap: 12px; }
   #detailScreen .detail-cover { width: 94px; height: 134px; }
   #detailScreen .detail-actions { grid-template-columns: minmax(0, 1fr); }
   #detailScreen .detail-action-primary { grid-column: auto; }
+  #detailScreen .offline-btn-saved { justify-self: start; }
 }
 
 @media (min-width: 768px) {
