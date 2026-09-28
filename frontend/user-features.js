@@ -12,7 +12,7 @@ function calculateLevel(totalXp) {
 }
 
 async function loadGamificationFromApi() {
-  if (!state.currentUser) return false;
+  if (!state.currentUser || (api.isAuthBootstrapPending?.() && !state.currentUser)) return false;
   try {
     const me = await api.me();
     state.gamification.xp = me.xp || 0;
