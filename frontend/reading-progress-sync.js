@@ -118,7 +118,11 @@ async function loadProgressFromApi(flushQueue = true) {
     const local = state.readingProgress || {};
     Object.keys(local).forEach(bid => {
       const lp = local[bid], sp = serverProgress[bid];
-      if (lp && lp.started && (!sp || (lp.currentPage || 0) > (sp.currentPage || 0))) {
+      // A foldable can restore the app before the last progress request has
+      // reached the server. Preserve the local "started" flag even when both
+      // page numbers are equal; otherwise the Continue block disappears on
+      // the next open.
+      if (lp && lp.started && (!sp || !sp.started || (lp.currentPage || 0) > (sp.currentPage || 0))) {
         serverProgress[bid] = lp;
         queueProgress(Number(bid), lp.currentPage, lp.totalPages);
       }
