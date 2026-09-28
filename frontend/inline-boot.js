@@ -1,5 +1,6 @@
 if ('serviceWorker' in navigator) {
     let refreshing = false;
+    let registrationRetryTimer = null;
     // Когда новый SW взял управление — перезагружаем страницу один раз
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing) return;
@@ -7,7 +8,7 @@ if ('serviceWorker' in navigator) {
       window.location.reload();
     });
 
-    navigator.serviceWorker.register('sw.js').then(reg => {
+    const registerServiceWorker = () => navigator.serviceWorker.register('sw.js').then(reg => {
       console.log('Service Worker зарегистрирован:', reg.scope);
 
       // Проверяем обновления при загрузке и раз в час
@@ -30,10 +31,28 @@ if ('serviceWorker' in navigator) {
           }
         });
       });
-    }).catch(err => {
-      console.error('Service Worker не зарегистрирован:', err);
     });
+
+    const retryRegistration = () => {
+      if (!navigator.onLine || registrationRetryTimer) return;
+      registrationRetryTimer = setTimeout(() => {
+        registrationRetryTimer = null;
+        registerServiceWorker().catch(() => {
+          // Временная ошибка сети не должна засорять консоль и ломать приложение.
+        });
+      }, 5000);
+    };
+
+    registerServiceWorker().catch(() => {
+      // SW необязателен для онлайн-запуска: повторим регистрацию после сети.
+      retryRegistration();
+    });
+    window.addEventListener('online', retryRegistration, { passive: true });
   }
+
+  document.querySelector('link[rel="manifest"]')?.addEventListener('error', () => {
+    document.documentElement.dataset.manifestUnavailable = 'true';
+  }, { once: true });
 
   // Плашка «Доступно обновление» — мягко, без принудительной перезагрузки
   function showUpdateBanner(worker) {
