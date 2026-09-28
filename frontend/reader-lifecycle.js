@@ -3,7 +3,26 @@ document.addEventListener('DOMContentLoaded', () => {
   initPullToRefresh();
   initReaderBrightnessGesture();
   initReaderToolbarMenu();
+  initReaderFocusMode();
 });
+
+function setReaderFocusMode(hidden) {
+  document.body.classList.toggle('reader-focus-mode', Boolean(hidden));
+  const zone = document.getElementById('readerGestureZone');
+  zone?.setAttribute('aria-label', hidden ? 'Режим чтения. Нажмите по центру, чтобы показать панель.' : 'Область чтения. Нажмите по центру, чтобы скрыть панель.');
+}
+
+function initReaderFocusMode() {
+  const zone = document.getElementById('readerGestureZone');
+  if (!zone) return;
+  zone.addEventListener('click', event => {
+    if (event.target.closest('button, input, select, a, .tap-zone, .selection-toolbar')) return;
+    const rect = zone.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    if (x < rect.width * .28 || x > rect.width * .72) return;
+    setReaderFocusMode(!document.body.classList.contains('reader-focus-mode'));
+  });
+}
 
 function closeReaderToolbarMenu() {
   const menu = document.getElementById('readerToolbarSecondary');
@@ -71,6 +90,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 function closeReader() {
+  setReaderFocusMode(false);
   closeReaderToolbarMenu();
   hideEpubSelectionPopup();
   closeReaderSearch();
