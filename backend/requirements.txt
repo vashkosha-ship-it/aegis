@@ -14,7 +14,7 @@ uvicorn[standard]==0.32.0
 sqlalchemy==2.0.36
 alembic==1.13.3
 asyncpg==0.30.0
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.13
 
 # Auth & security
 # Прямой bcrypt без заброшенной passlib. Существующие $2b$-хеши полностью
@@ -51,7 +51,7 @@ pypdf==6.16.2
 # Settings
 pydantic==2.9.2
 pydantic-settings==2.6.0
-python-dotenv==1.2.3
+python-dotenv==1.2.4
 
 # S3 / MinIO backend для PDF, EPUB, обложек и аватаров
 boto3==1.35.49
