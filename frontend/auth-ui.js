@@ -11,6 +11,10 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   document.getElementById('registerDepartmentField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerFirstNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerLastNameField').classList.toggle('hidden', !isRegister);
+  // Согласие нужно только при регистрации. Раньше блок висел и на вкладке
+  // «Вход», а required у чекбокса не давал отправить форму входа.
+  document.getElementById('registerConsentField').classList.toggle('hidden', !isRegister);
+  document.getElementById('registerConsent').required = isRegister;
   document.getElementById('authPass').required = !isRegister;
   // Обновляем текст кнопки и заголовка формы
   const submitText = document.getElementById('authSubmitText');

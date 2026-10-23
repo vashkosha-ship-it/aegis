@@ -3823,3 +3823,50 @@ textarea.app-dialog-input {
 
 .admin-book-action-icon { min-width: 34px; min-height: 32px; justify-content: center; }
 .admin-book-action-icon svg { display: block; width: 16px; height: 16px; margin: 0; }
+
+/* ========== СОГЛАСИЕ ПРИ РЕГИСТРАЦИИ ==========
+   Внутри .form-group блок наследовал оформление полей: чекбокс
+   растягивался во всю ширину как пустой инпут, подпись становилась
+   заглавной, а ссылки выглядели серыми системными кнопками. Поэтому это
+   отдельный блок, а не .form-group, и правила полей к нему не применяются. */
+.auth-consent-field { margin: 4px 0 16px; position: relative; z-index: 1; }
+.auth-consent-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+/* Общее правило input задаёт appearance: none и width: 100% — без
+   возврата нативного вида чекбокс превращался в пустую плашку. */
+.auth-consent-field input[type="checkbox"] {
+  -webkit-appearance: checkbox;
+  appearance: auto;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.auth-legal-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.auth-legal-link:hover { opacity: .85; }
+.auth-legal-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
