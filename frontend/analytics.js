@@ -9,9 +9,19 @@ function destroyAnalyticsCharts() {
   analyticsCharts = {};
 }
 
-function renderAnalytics() {
+async function renderAnalytics() {
   destroyAnalyticsCharts();
   populateAnalyticsBookSelector();
+
+  // Chart.js грузится лениво (vendor-loader.js). Без этого ожидания графики
+  // падали с «Chart is not defined» и вкладка оставалась пустой.
+  try {
+    await ensureChartLoaded();
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось загрузить библиотеку графиков');
+    return;
+  }
 
   const days = [];
   for (let i = 6; i >= 0; i--) {
@@ -116,32 +126,19 @@ function renderAnalytics() {
     });
   }
 
-  const ctx4 = document.getElementById('chartRetention')?.getContext('2d');
-  if (ctx4) {
-    analyticsCharts.retention = new Chart(ctx4, {
-      type: 'line',
-      data: {
-        labels: ['День 1', 'День 7', 'День 14', 'День 30', 'День 60', 'День 90'],
-        datasets: [{
-          label: 'Активные пользователи',
-          data: [100, 65, 48, 35, 28, 22],
-          borderColor: '#7c3aed',
-          backgroundColor: 'rgba(124,58,237,0.1)',
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#7c3aed',
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', callback: v => v + '%' } },
-          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } }
-        }
-      }
-    });
+  // Раньше здесь рисовалась кривая с захардкоженными числами (100, 65, 48…),
+  // которые выглядели как реальная статистика. Сервер удержание пока не
+  // считает, поэтому честно показываем пустое состояние.
+  const retentionCanvas = document.getElementById('chartRetention');
+  if (retentionCanvas) {
+    let note = retentionCanvas.parentElement.querySelector('.analytics-empty-note');
+    if (!note) {
+      note = document.createElement('p');
+      note.className = 'analytics-empty-note';
+      retentionCanvas.after(note);
+    }
+    note.textContent = 'Данных об удержании пока нет: сервер ещё не собирает эту статистику.';
+    retentionCanvas.hidden = true;
   }
 }
 

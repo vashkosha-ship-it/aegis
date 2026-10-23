@@ -88,8 +88,25 @@ context.navigateTo('reader');
 const stub = dom.window.document.getElementById('readerEmptyStub');
 assert.ok(stub);
 assert.match(stub.innerHTML, /navigateTo\('home'\)/);
+assert.ok(dom.window.document.getElementById('readerScreen').classList.contains('reader-empty'));
 context.hideReaderEmptyStub();
 assert.equal(stub.style.display, 'none');
+assert.ok(!dom.window.document.getElementById('readerScreen').classList.contains('reader-empty'));
+
+// После перезагрузки открытой книги нет, но начатые есть: «Читаю» открывает
+// последнюю недочитанную, а не говорит «Вы ещё не начали читать».
+const opened = [];
+context.openReader = id => opened.push(id);
+context.getResumeHidden = () => [3];
+context.state.books = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
+context.state.readingProgress = {
+  1: { started: true, currentPage: 5, totalPages: 100, lastReadAt: '2026-10-01T10:00:00Z' },
+  2: { started: true, currentPage: 9, totalPages: 50, lastReadAt: '2026-10-20T10:00:00Z' },
+  3: { started: true, currentPage: 2, totalPages: 50, lastReadAt: '2026-10-22T10:00:00Z' },
+  4: { started: true, currentPage: 80, totalPages: 80, lastReadAt: '2026-10-23T10:00:00Z' },
+};
+context.navigateTo('reader');
+assert.deepEqual(opened, [2], 'hidden (3) and finished (4) books are skipped');
 
 assert.doesNotMatch(appSource, /function navigateTo|function ensureReaderHasBook|const SCREEN_IDS/);
 assert.ok(indexSource.indexOf('navigation.js') < indexSource.indexOf('app.js'));

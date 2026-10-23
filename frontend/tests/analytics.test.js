@@ -24,6 +24,8 @@ const dom = new JSDOM(`
 dom.window.HTMLCanvasElement.prototype.getContext = () => ({});
 
 const charts = [];
+const chartLoads = [];
+const toasts = [];
 class ChartStub {
   constructor(_context, config) {
     this.config = config;
@@ -59,6 +61,8 @@ const context = {
   },
   dynamicStyleToken: () => 'test-style',
   Chart: ChartStub,
+  ensureChartLoaded: async () => { chartLoads.push(1); },
+  showToast: message => toasts.push(message),
   api: { library: { adminBookAnalytics: async () => bookAnalytics } },
   state: {
     books: [{ id: 7, title: '<Книга>', views: 10 }],
@@ -71,13 +75,26 @@ vm.createContext(context);
 vm.runInContext(source, context);
 
 (async () => {
-  context.renderAnalytics();
-  assert.equal(charts.length, 4);
+  await context.renderAnalytics();
+  // Chart.js грузится лениво: без ожидания графики падали «Chart is not defined».
+  assert.equal(chartLoads.length, 1);
+  // Удержание сервер не считает — вместо выдуманной кривой пустое состояние.
+  assert.equal(charts.length, 3);
+  assert.equal(dom.window.document.getElementById('chartRetention').hidden, true);
+  assert.match(dom.window.document.querySelector('.analytics-empty-note').textContent, /удержании пока нет/);
+  assert.doesNotMatch(source, /\[100, 65, 48/);
   assert.equal(dom.window.document.querySelectorAll('#analyticsBookSelector option').length, 2);
   assert.match(dom.window.document.getElementById('analyticsBookSelector').innerHTML, /&lt;Книга&gt;/);
 
   context.destroyAnalyticsCharts();
   assert.ok(charts.every(chart => chart.destroyed));
+
+  // Если библиотеку графиков загрузить не удалось — сообщение, а не исключение.
+  context.ensureChartLoaded = async () => { throw new Error('offline'); };
+  const before = charts.length;
+  await context.renderAnalytics();
+  assert.equal(charts.length, before);
+  assert.match(toasts.at(-1), /библиотеку графиков/);
 
   await context.openBookAnalyticsModal(7);
   const content = dom.window.document.getElementById('bookAnalyticsContent').innerHTML;

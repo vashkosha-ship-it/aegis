@@ -109,8 +109,29 @@ function navigateTo(s) {
 
 // Если пользователь зашёл в «Читаю», но ещё не открыл ни одной книги —
 // показываем заглушку с кнопкой перехода в каталог, чтобы он не застрял.
+// Последняя начатая и недочитанная книга — та же логика, что у блока
+// «Продолжить» на главной.
+function lastStartedBookId() {
+  const hidden = typeof getResumeHidden === 'function' ? getResumeHidden() : [];
+  let best = null;
+  let bestTime = -1;
+  (state.books || []).forEach(book => {
+    const progress = state.readingProgress[book.id];
+    if (!progress || !progress.started || hidden.includes(book.id)) return;
+    const total = progress.totalPages || 0;
+    if (total > 1 && (progress.currentPage || 0) >= total) return;
+    const time = progress.lastReadAt ? new Date(progress.lastReadAt).getTime() : 0;
+    if (time > bestTime) { best = book.id; bestTime = time; }
+  });
+  return best;
+}
+
 function ensureReaderHasBook() {
   if (currentBookId) return; // книга открыта — ничего не делаем
+  // После перезагрузки страницы открытой книги нет, но начатые есть —
+  // открываем последнюю вместо «Вы ещё не начали читать».
+  const resumeId = lastStartedBookId();
+  if (resumeId !== null) { openReader(resumeId); return; }
   const screen = document.getElementById('readerScreen');
   if (!screen) return;
   // убираем режим читалки, чтобы было видно меню и можно было выйти
@@ -123,6 +144,8 @@ function ensureReaderHasBook() {
     screen.appendChild(stub);
   }
   stub.style.display = 'flex';
+  // Стрелки листания и «1 / 1» поверх пустого экрана только путают.
+  screen.classList.add('reader-empty');
   replaceWithAppMarkup(stub, `
     <div data-static-style="a269">📖</div>
     <div data-static-style="a270">
@@ -137,6 +160,7 @@ function ensureReaderHasBook() {
 function hideReaderEmptyStub() {
   const stub = document.getElementById('readerEmptyStub');
   if (stub) stub.style.display = 'none';
+  document.getElementById('readerScreen')?.classList.remove('reader-empty');
 }
 
 function updateFabVisibility() {

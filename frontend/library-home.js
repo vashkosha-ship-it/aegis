@@ -27,6 +27,14 @@ function adaptBookFromApi(b) {
     popularity: b.popularity || 50,
     views: b.views || 0,
     downloads: b.downloads || 0,
+    // Без этих полей админская таблица считала каждую книгу
+    // «не индексировавшейся», хотя сервер возвращает реальный статус.
+    has_pdf: hasPdf,
+    has_epub: hasEpub,
+    indexing_status: b.indexing_status || 'not_indexed',
+    indexed_sections: b.indexed_sections || 0,
+    indexing_finished_at: b.indexing_finished_at || null,
+    indexed_at: b.indexed_at || null,
   };
 }
 
@@ -349,16 +357,17 @@ function renderBookInfo() {
     }
   }
 
-  const stage = findKillChainStageForBook(book);
-  if (stage) {
+  const schemeMatch = findSchemeStageForBook(book);
+  if (schemeMatch) {
+    const { schemeCode, schemeTitle, stage } = schemeMatch;
     const arButton = _libraryAction(
       ICONS.target,
       'Смотреть схему атаки',
-      () => openARWithScheme('killchain', stage.id),
+      () => openARWithScheme(schemeCode, stage.id),
       'btn-detail detail-action-secondary',
       'a468',
     );
-    arButton.title = `Открыть схему Cyber Kill Chain на этапе «${stage.nameRu}»`;
+    arButton.title = `Открыть схему ${schemeTitle} на этапе «${stage.nameRu}»`;
     actions.appendChild(arButton);
   }
   if (isAdmin) {

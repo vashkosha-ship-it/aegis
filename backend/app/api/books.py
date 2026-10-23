@@ -461,12 +461,21 @@ async def delete_book(
 
 @router.get("/categories/all", response_model=list[str])
 async def list_categories(db: AsyncSession = Depends(get_db)) -> list[str]:
-    """Список всех существующих категорий (для автодополнения)."""
+    """Категории, у которых есть хотя бы одна книга (для автодополнения).
+
+    После переименования тегов старые записи остаются в таблице категорий.
+    Без фильтра они продолжали всплывать в подсказках админки, и через них
+    тот же разнобой («IT Architecture» / «IT архитектура») возвращался.
+    """
     from sqlalchemy import select
 
-    from app.models.book import Category
-    
-    rows = await db.execute(select(Category.name).order_by(Category.name))
+    from app.models.book import Category, book_categories
+
+    rows = await db.execute(
+        select(Category.name)
+        .where(Category.id.in_(select(book_categories.c.category_id)))
+        .order_by(Category.name)
+    )
     return [r[0] for r in rows.all()]
 
 

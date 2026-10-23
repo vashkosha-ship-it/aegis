@@ -20,6 +20,7 @@ const dom = new JSDOM(`
 `);
 const calls = [];
 const progressCalls = [];
+const mylistCalls = [];
 const context = {
   document: dom.window.document,
   navigator: { onLine: true },
@@ -46,7 +47,10 @@ const context = {
   unhideFromResume: id => calls.push(['unhide', id]),
   hideReaderEmptyStub: () => calls.push(['hide-empty']),
   saveState: () => calls.push(['save']),
-  api: { library: { updateProgress: (...args) => { progressCalls.push(args); return Promise.resolve(); } } },
+  api: { library: {
+    updateProgress: (...args) => { progressCalls.push(args); return Promise.resolve(); },
+    setMylistStatus: (...args) => { mylistCalls.push(args); return Promise.resolve(); },
+  } },
   refreshGamificationFromApi: () => calls.push(['gamification']),
   navigateTo: screen => calls.push(['navigate', screen]),
   applyReaderTheme: theme => calls.push(['theme', theme]),
@@ -70,14 +74,20 @@ assert.equal(context.state.readingProgress[1].currentPage, 1);
 assert.equal(context.state.readingProgress[1].totalPages, 10);
 assert.equal(context.state.readingProgress[1].started, true);
 assert.equal(context.state.mylist[1], 'reading');
+// Статус «Читаю» сохраняется на сервере, а не только в памяти вкладки.
+assert.deepEqual(mylistCalls, [[1, 'reading']]);
 assert.deepEqual(progressCalls[0], [1, 1, 10]);
 assert.equal(context.state._readerReturnTo, 'home');
 assert.equal(dom.window.document.getElementById('readerBookName').textContent, 'PDF Book');
 assert.equal(dom.window.document.getElementById('readerFormatBadge').textContent, 'PDF');
 assert.deepEqual(calls.at(-1), ['pdf', 1]);
 
+// Книга уже в списке с другим статусом — открытие его не перетирает.
+context.state.mylist[2] = 'planned';
 context.state.currentScreen = 'reader';
 context.openReader(2);
+assert.equal(context.state.mylist[2], 'planned');
+assert.equal(mylistCalls.length, 1);
 assert.equal(context.state._readerReturnTo, 'home');
 assert.deepEqual(calls.at(-1), ['epub', 2]);
 assert.equal(dom.window.document.getElementById('readerFormatBadge').textContent, 'EPUB');
