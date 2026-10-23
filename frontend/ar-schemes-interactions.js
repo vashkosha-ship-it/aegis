@@ -525,6 +525,8 @@ function selectKillChainStage(stageId) {
       panel.style.borderLeft = '1px solid rgba(255,255,255,0.2)';
       panel.style.transform = 'translateX(0)';
       panel.classList.add('open');
+      // Схема сдвигается влево и не прячется под панелью.
+      document.getElementById('arSchemeRoot')?.classList.add('panel-visible');
     } else {
       // Узкий экран: нижняя шторка, СРАЗУ открыта полностью
       panel.classList.remove('open');
@@ -613,12 +615,15 @@ function applyKillChainViewMode() {
     const isSelected = s.id === arSelectedStage;
     const isStudied = isKillChainStageStudied(s);
 
-    // Содержимое узла: номер (атака) или буква метода (защита)
-    let label;
-    if (arViewMode === 'defense' && s.defenseMethod) {
-      label = s.defenseMethod.code.charAt(0);
-    } else {
-      label = String(s.id);
+    // В узле всегда номер этапа. Раньше в режиме «Защита» показывалась
+    // первая буква метода, а все методы модели 6D начинаются на «D» —
+    // на каждом этапе стояла одинаковая «D». Метод теперь в подписи.
+    const label = String(s.id);
+    const kicker = node.querySelector('.ar-stage-kicker');
+    if (kicker) {
+      kicker.textContent = arViewMode === 'defense' && s.defenseMethod
+        ? `Защита · ${s.defenseMethod.nameRu}`
+        : `Этап ${s.id} · ${s.name}`;
     }
     // Обновляем только текстовый блок (первый <div> внутри button), не ломая остальное
     const labelDiv = node.querySelector('.killchain-node-label');

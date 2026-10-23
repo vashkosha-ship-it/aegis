@@ -657,10 +657,13 @@ async function renderDetailNotes() {
     const icon = document.createElement('div');
     icon.className = 'icon';
     icon.setAttribute('data-static-style', 'a239');
-    appendTrustedIcon(icon, ICONS.bookmark);
+    appendTrustedIcon(icon, ICONS.note || ICONS.bookmark);
     const message = document.createElement('p');
     message.textContent = 'Нет заметок';
-    empty.append(icon, message);
+    const hint = document.createElement('p');
+    hint.className = 'mylist-empty-hint';
+    hint.textContent = 'Выделите текст в читалке и выберите «Заметка» или «Маркер».';
+    empty.append(icon, message, hint);
     container.replaceChildren(empty);
     return;
   }

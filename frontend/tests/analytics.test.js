@@ -25,6 +25,10 @@ dom.window.HTMLCanvasElement.prototype.getContext = () => ({});
 
 const charts = [];
 const chartLoads = [];
+let overview = {
+  activity: Array.from({ length: 7 }, (_, i) => ({ date: `2026-10-${17 + i}`, pages: i })),
+  retention: [{ day: 1, eligible: 0, retained: 0, pct: null }],
+};
 const toasts = [];
 class ChartStub {
   constructor(_context, config) {
@@ -63,7 +67,10 @@ const context = {
   Chart: ChartStub,
   ensureChartLoaded: async () => { chartLoads.push(1); },
   showToast: message => toasts.push(message),
-  api: { library: { adminBookAnalytics: async () => bookAnalytics } },
+  api: { library: {
+    adminBookAnalytics: async () => bookAnalytics,
+    adminAnalyticsOverview: async () => overview,
+  } },
   state: {
     books: [{ id: 7, title: '<Книга>', views: 10 }],
     heatmapData: [], readingProgress: {}, mylist: {},
@@ -78,11 +85,27 @@ vm.runInContext(source, context);
   await context.renderAnalytics();
   // Chart.js грузится лениво: без ожидания графики падали «Chart is not defined».
   assert.equal(chartLoads.length, 1);
-  // Удержание сервер не считает — вместо выдуманной кривой пустое состояние.
+  // Активность — по всем читателям с сервера, а не по тепловой карте админа.
+  assert.deepEqual(Array.from(charts[0].config.data.datasets[0].data), [0, 1, 2, 3, 4, 5, 6]);
+  // Данных об удержании нет — пустое состояние вместо выдуманной кривой.
   assert.equal(charts.length, 3);
   assert.equal(dom.window.document.getElementById('chartRetention').hidden, true);
-  assert.match(dom.window.document.querySelector('.analytics-empty-note').textContent, /удержании пока нет/);
+  assert.match(dom.window.document.querySelector('.analytics-empty-note').textContent, /недостаточно данных/);
   assert.doesNotMatch(source, /\[100, 65, 48/);
+
+  // Сервер посчитал удержание — рисуем его.
+  context.destroyAnalyticsCharts();
+  charts.length = 0;
+  overview = { ...overview, retention: [
+    { day: 1, eligible: 4, retained: 3, pct: 75 },
+    { day: 7, eligible: 4, retained: 2, pct: 50 },
+    { day: 90, eligible: 0, retained: 0, pct: null },
+  ] };
+  await context.renderAnalytics();
+  assert.equal(charts.length, 4);
+  assert.deepEqual(Array.from(charts[3].config.data.datasets[0].data), [75, 50]);
+  assert.equal(dom.window.document.getElementById('chartRetention').hidden, false);
+  assert.equal(dom.window.document.querySelector('.analytics-empty-note'), null);
   assert.equal(dom.window.document.querySelectorAll('#analyticsBookSelector option').length, 2);
   assert.match(dom.window.document.getElementById('analyticsBookSelector').innerHTML, /&lt;Книга&gt;/);
 

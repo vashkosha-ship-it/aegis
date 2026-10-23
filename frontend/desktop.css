@@ -1594,7 +1594,10 @@
   }
 
   /* Панель деталей этапа — крупнее */
-  #arStageDetails {
+  /* Только свёрнутая шторка центрируется. Раньше жёсткое правило
+     действовало и на открытую панель и перебивало раскладку «справа»:
+     разбор этапа сжимался в узкую колонку посередине экрана. */
+  #arStageDetails:not(.open) {
     max-width: 480px;
     left: 50% !important;
     right: auto !important;
@@ -1833,4 +1836,12 @@
   .nav-item .nav-icon { width: 24px !important; height: 24px !important; }
   .nav-item .nav-icon svg { width: 22px !important; height: 22px !important; }
   .nav-item .nav-label { font-size: 10px; font-weight: 500 !important; }
+}
+
+/* Шапка на десктопе: у главных действий видны подписи, AI-ассистент
+   остаётся в боковом меню — третья копия кнопки не нужна. */
+@media (min-width: 1024px) {
+  .header-ai-mobile { display: none; }
+  .header-icon-btn.header-labeled-btn { width: auto; padding: 0 14px; gap: 8px; }
+  .header-labeled-btn .header-btn-label { display: inline; }
 }

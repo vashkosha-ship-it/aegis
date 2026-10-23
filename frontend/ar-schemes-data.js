@@ -45,7 +45,7 @@ const AR_KILL_CHAIN = {
       ],
       relatedCategory: 'Реверс-инжиниринг и анализ вредоносного ПО',
       metaphor: 'Рука, прикрепляющая взрыватель к боеголовке',
-      defenseMethod: { code: 'Deny', nameRu: 'Уничтожение', color: '#8b5cf6' },
+      defenseMethod: { code: 'Deny', nameRu: 'Запрет доступа', color: '#8b5cf6' },
       defenseTools: ['Прямая защита невозможна — этап на стороне атакующего', 'Threat Intelligence о свежих инструментах'],
     },
     {
@@ -68,7 +68,7 @@ const AR_KILL_CHAIN = {
       ],
       relatedCategory: 'Социальная инженерия и человеческий фактор',
       metaphor: 'Летящее копьё / фишинговая стрела',
-      defenseMethod: { code: 'Disrupt', nameRu: 'Блокировка', color: '#ef4444' },
+      defenseMethod: { code: 'Disrupt', nameRu: 'Прерывание', color: '#ef4444' },
       defenseTools: ['Прокси-серверы', 'Спам-фильтры', 'Песочницы для вложений', 'Запрет USB-носителей'],
     },
     {
@@ -91,7 +91,7 @@ const AR_KILL_CHAIN = {
       ],
       relatedCategory: 'Разработка безопасного ПО (AppSec)',
       metaphor: 'Трескающаяся броня / проникновение вируса в код',
-      defenseMethod: { code: 'Degrade', nameRu: 'Предотвращение', color: '#f59e0b' },
+      defenseMethod: { code: 'Degrade', nameRu: 'Ослабление', color: '#f59e0b' },
       defenseTools: ['Патч-менеджмент', 'Антивирус / HIPS', 'EMET', 'ASLR, DEP, whitelisting'],
     },
     {
@@ -114,7 +114,7 @@ const AR_KILL_CHAIN = {
       ],
       relatedCategory: 'Цифровая криминалистика и реагирование на инциденты (DFIR)',
       metaphor: 'Червь / имплант, пускающий корни в системе',
-      defenseMethod: { code: 'Deceive', nameRu: 'Изоляция', color: '#06b6d4' },
+      defenseMethod: { code: 'Deceive', nameRu: 'Обман (ловушки)', color: '#06b6d4' },
       defenseTools: ['Минимальные привилегии', 'Контроль UAC', 'Проверка целостности файлов', 'Honeypot-ловушки'],
     },
     {

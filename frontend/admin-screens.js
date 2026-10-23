@@ -112,6 +112,7 @@ function renderAdminBookRows(tbody, books) {
     rating.appendChild(document.createTextNode(String(book.rating ?? '')));
     row.appendChild(rating);
     const actions = document.createElement('td');
+    actions.className = 'admin-book-actions';
     const analytics = document.createElement('button');
     analytics.type = 'button';
     analytics.className = 'btn-sm';
@@ -148,13 +149,27 @@ function renderAdminBooks() {
         <div id="adminBooksCount" data-static-style="a544"></div>
       </div>
       <button id="adminBulkUploadBtn" data-static-style="a545">Массовая загрузка</button>
-      <button id="adminReindexBtn" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">Индексировать поиск</button>
-      <button id="adminLogsBtn" title="Журнал действий администраторов" data-static-style="a547">Журнал</button>
-      <button id="adminStorageAuditBtn" title="Проверить файлы книг, обложек и аватаров" data-static-style="a547">Хранилище</button>
-      <button id="adminCoversBtn" title="Создать обложки для книг без обложки" data-static-style="a547">Обложки</button>
-      <button id="adminDescriptionsBtn" title="Создать ИИ-описания для книг без описания" data-static-style="a547">ИИ-описания</button>
-      <button id="adminArMatchBtn" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">Подобрать книги для AR</button>
-      <button id="adminRegenerateQuizzesBtn" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">Перегенерировать тесты</button>
+    </div>
+    <!-- Сервисные операции одним стилем и по группам: раньше девять кнопок
+         разных цветов стояли вперемешку с главным действием. -->
+    <div class="admin-tools">
+      <div class="admin-tools-group">
+        <span class="admin-tools-label">Каталог</span>
+        <button id="adminDuplicatesBtn" class="admin-tool-btn" title="Найти и удалить дубликаты книг">Дубликаты</button>
+        <button id="adminCoversBtn" class="admin-tool-btn" title="Создать обложки для книг без обложки">Обложки</button>
+        <button id="adminDescriptionsBtn" class="admin-tool-btn" title="Создать ИИ-описания для книг без описания">ИИ-описания</button>
+        <button id="adminReindexBtn" class="admin-tool-btn" title="Переиндексировать текст всех книг для поиска">Индексировать поиск</button>
+      </div>
+      <div class="admin-tools-group">
+        <span class="admin-tools-label">Обучение</span>
+        <button id="adminArMatchBtn" class="admin-tool-btn" title="ИИ подберёт книги к темам AR-схем">Книги для схем атак</button>
+        <button id="adminRegenerateQuizzesBtn" class="admin-tool-btn" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)">Перегенерировать тесты</button>
+      </div>
+      <div class="admin-tools-group">
+        <span class="admin-tools-label">Сервис</span>
+        <button id="adminStorageAuditBtn" class="admin-tool-btn" title="Проверить файлы книг, обложек и аватаров">Хранилище</button>
+        <button id="adminLogsBtn" class="admin-tool-btn" title="Журнал действий администраторов">Журнал</button>
+      </div>
     </div>
     <div class="table-wrap">
       <table>
@@ -163,6 +178,7 @@ function renderAdminBooks() {
       </table>
     </div>`);
   document.getElementById('adminBulkUploadBtn').addEventListener('click', openBulkUploadModal);
+  document.getElementById('adminDuplicatesBtn').addEventListener('click', removeDuplicatesUI);
   document.getElementById('adminReindexBtn').addEventListener('click', reindexAllBooksUI);
   document.getElementById('adminLogsBtn').addEventListener('click', openAdminLogs);
   document.getElementById('adminStorageAuditBtn').addEventListener('click', auditStorageUI);
@@ -173,6 +189,42 @@ function renderAdminBooks() {
   document.getElementById('adminBooksCount').textContent = String(state.books.length);
   renderAdminBookRows(document.getElementById('adminBooksTableBody'), state.books);
   refreshDescriptionGenerationStatus();
+}
+
+async function removeDuplicatesUI() {
+  let groups;
+  try {
+    groups = await api.books.adminDuplicates();
+  } catch (error) {
+    showToast(error && error.detail ? error.detail : 'Не удалось найти дубликаты');
+    return;
+  }
+  if (!groups.length) {
+    showToast('Дубликатов нет');
+    return;
+  }
+  const lines = groups.map(group => {
+    const removed = group.remove.map(book => `#${book.id}`).join(', ');
+    return `«${group.keep.title}» — останется #${group.keep.id}, удалится ${removed}`;
+  });
+  const total = groups.reduce((sum, group) => sum + group.remove.length, 0);
+  showConfirmModal({
+    title: `Удалить дубликаты (${total})?`,
+    message: `${lines.join('\n')}\n\nОстаётся копия, которую больше читали. Удаление необратимо.`,
+    confirmText: 'Удалить дубликаты',
+    cancelText: 'Отмена',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const result = await api.books.adminRemoveDuplicates();
+        showToast(`Удалено дубликатов: ${result.removed.length}`);
+        await loadBooksFromApi();
+        renderAdminBooks();
+      } catch (error) {
+        showToast(error && error.detail ? error.detail : 'Не удалось удалить дубликаты');
+      }
+    },
+  });
 }
 
 async function auditStorageUI() {

@@ -258,6 +258,69 @@ async def dashboard(
     )
 
 
+RETENTION_DAYS = (1, 7, 14, 30, 60, 90)
+
+
+@router.get("/analytics/overview")
+async def analytics_overview(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> dict:
+    """Чтение всей библиотеки за 7 дней и удержание читателей.
+
+    Раньше вкладка «Аналитика» рисовала активность по данным самого
+    админа, а удержание — по выдуманным числам. Здесь обе метрики
+    считаются по всем пользователям.
+
+    Удержание дня N: среди пользователей, зарегистрированных не меньше
+    N дней назад, доля тех, кто читал хоть раз на N-й день или позже.
+    """
+    from datetime import timedelta
+
+    from app.models.library import DailyPagesRead
+
+    today = datetime.now(UTC).date()
+    week_start = today - timedelta(days=6)
+    activity_rows = await db.execute(
+        select(DailyPagesRead.date, func.coalesce(func.sum(DailyPagesRead.pages), 0))
+        .where(DailyPagesRead.date >= week_start)
+        .group_by(DailyPagesRead.date)
+    )
+    pages_by_day = {day: int(pages) for day, pages in activity_rows.all()}
+    activity = [
+        {"date": (week_start + timedelta(days=i)).isoformat(),
+         "pages": pages_by_day.get(week_start + timedelta(days=i), 0)}
+        for i in range(7)
+    ]
+
+    users = (await db.execute(select(User.id, User.created_at))).all()
+    last_read = dict(
+        (await db.execute(
+            select(DailyPagesRead.user_id, func.max(DailyPagesRead.date))
+            .where(DailyPagesRead.pages > 0)
+            .group_by(DailyPagesRead.user_id)
+        )).all()
+    )
+    retention = []
+    for day in RETENTION_DAYS:
+        eligible = retained = 0
+        for user_id, created_at in users:
+            joined = created_at.date()
+            if (today - joined).days < day:
+                continue
+            eligible += 1
+            last = last_read.get(user_id)
+            if last is not None and last >= joined + timedelta(days=day):
+                retained += 1
+        retention.append({
+            "day": day,
+            "eligible": eligible,
+            "retained": retained,
+            "pct": round(100 * retained / eligible) if eligible else None,
+        })
+    return {"activity": activity, "retention": retention}
+
+
 @router.get("/users", response_model=list[AdminUserView])
 async def list_all_users(
     db: AsyncSession = Depends(get_db),

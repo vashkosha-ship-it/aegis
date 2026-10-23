@@ -296,10 +296,12 @@ function renderBookInfo() {
   info.append(
     _libraryNode('div', 'detail-title', book.title),
     _libraryNode('div', 'detail-author', book.author),
-    _libraryIconText(ICONS.star, book.rating),
+    Number(book.rating) > 0
+      ? _libraryIconText(ICONS.star, book.rating)
+      : _libraryNode('div', '', 'Нет оценок'),
     _libraryNode('div', 'detail-category', `${bookCategoriesText(book)} • ${formatLabel}`),
   );
-  info.children[2].className = 'detail-rating';
+  info.children[2].className = Number(book.rating) > 0 ? 'detail-rating' : 'detail-rating detail-rating-empty';
 
   if (isAdmin) {
     const stats = _libraryNode('div', 'admin-book-stats');

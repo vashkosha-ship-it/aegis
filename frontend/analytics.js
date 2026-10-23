@@ -23,14 +23,18 @@ async function renderAnalytics() {
     return;
   }
 
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    days.push(d.toISOString().split('T')[0]);
+  // Активность и удержание считает сервер по всем читателям. Раньше
+  // график активности строился по тепловой карте самого администратора.
+  let overview = null;
+  try {
+    overview = await api.library.adminAnalyticsOverview();
+  } catch (err) {
+    console.error('Не удалось загрузить аналитику:', err);
   }
-  const activityData = days.map(day => {
-    return state.heatmapData?.find(d => d.date === day)?.pages || 0;
-  });
+  const days = overview
+    ? overview.activity.map(item => item.date)
+    : Array.from({ length: 7 }, (_, i) => new Date(Date.now() - (6 - i) * 86400000).toISOString().split('T')[0]);
+  const activityData = overview ? overview.activity.map(item => item.pages) : days.map(() => 0);
 
   const ctx1 = document.getElementById('chartReadingActivity')?.getContext('2d');
   if (ctx1) {
@@ -126,19 +130,48 @@ async function renderAnalytics() {
     });
   }
 
-  // Раньше здесь рисовалась кривая с захардкоженными числами (100, 65, 48…),
-  // которые выглядели как реальная статистика. Сервер удержание пока не
-  // считает, поэтому честно показываем пустое состояние.
   const retentionCanvas = document.getElementById('chartRetention');
-  if (retentionCanvas) {
-    let note = retentionCanvas.parentElement.querySelector('.analytics-empty-note');
+  const retention = (overview && overview.retention || []).filter(item => item.pct !== null);
+  let note = retentionCanvas && retentionCanvas.parentElement.querySelector('.analytics-empty-note');
+  if (retentionCanvas && !retention.length) {
+    // Пока нет пользователей, зарегистрированных хотя бы день назад.
     if (!note) {
       note = document.createElement('p');
       note.className = 'analytics-empty-note';
       retentionCanvas.after(note);
     }
-    note.textContent = 'Данных об удержании пока нет: сервер ещё не собирает эту статистику.';
+    note.textContent = 'Пока недостаточно данных об удержании: нужны читатели, зарегистрированные хотя бы день назад.';
     retentionCanvas.hidden = true;
+  } else if (retentionCanvas) {
+    if (note) note.remove();
+    retentionCanvas.hidden = false;
+    analyticsCharts.retention = new Chart(retentionCanvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: retention.map(item => `День ${item.day}`),
+        datasets: [{
+          label: 'Вернулись читать, %',
+          data: retention.map(item => item.pct),
+          borderColor: '#7c3aed',
+          backgroundColor: 'rgba(124,58,237,0.1)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#7c3aed',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { afterLabel: ctx => `${retention[ctx.dataIndex].retained} из ${retention[ctx.dataIndex].eligible}` } },
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', callback: v => v + '%' } },
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } }
+        }
+      }
+    });
   }
 }
 

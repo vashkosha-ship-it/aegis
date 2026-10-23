@@ -126,6 +126,29 @@ async function loadEpub(b) {
 let _pdfLoadToken = 0;          // защита от параллельных/повторных загрузок книги
 let _pdfLoadingTask = null;     // текущая задача pdf.js, чтобы отменить прошлую
 
+// Пока pdf.js открывает файл, вместо пустого экрана показываем обложку
+// книги: она уже в кэше браузера с главной, и ожидание ощущается короче.
+function renderReaderLoadingCover(container, book, text) {
+  if (!container) return;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'reader-loading';
+  if (book && book.has_cover) {
+    const cover = document.createElement('img');
+    cover.className = 'reader-loading-cover';
+    cover.alt = '';
+    cover.src = api.books.coverUrl(book.id);
+    cover.addEventListener('error', () => cover.remove());
+    wrapper.appendChild(cover);
+  }
+  const spinner = document.createElement('div');
+  spinner.className = 'aegis-spinner';
+  const label = document.createElement('div');
+  label.className = 'reader-loading-label';
+  label.textContent = String(text || 'Загрузка книги…');
+  wrapper.append(spinner, label);
+  container.replaceChildren(wrapper);
+}
+
 async function loadPdf(b) {
   // Повторный вызов (двойной тап, перерисовка) не должен перетирать уже
   // открытую книгу — актуальность загрузки проверяем по токену.
@@ -142,7 +165,7 @@ async function loadPdf(b) {
   const pl = document.getElementById('pdfPlaceholder');
 
   pl.classList.remove('hidden');
-  renderLoadingSpinner(pl, 'Загрузка книги…');
+  renderReaderLoadingCover(pl, b, 'Загрузка книги…');
   c.classList.add('hidden');
 
   // Если загрузка затянулась (большой PDF) — обновляем подпись, чтобы человек
@@ -151,7 +174,7 @@ async function loadPdf(b) {
   window._bookLoadHintTimer = setTimeout(() => {
     const sp = document.getElementById('pdfPlaceholder');
     if (sp && sp.querySelector('.aegis-spinner')) {
-      renderLoadingSpinner(sp, 'Загружаем большую книгу, ещё несколько секунд…');
+      renderReaderLoadingCover(sp, b, 'Загружаем большую книгу, ещё несколько секунд…');
     }
   }, 3000);
 
@@ -223,7 +246,9 @@ async function loadPdf(b) {
       if (!box || box.classList.contains('hidden')) return;
       if (total && total > 0) {
         const pct = Math.min(99, Math.round(loaded / total * 100));
-        renderLoadingSpinner(box, `Загрузка книги… ${pct}%`);
+        const label = box.querySelector('.reader-loading-label');
+        if (label) label.textContent = `Загрузка книги… ${pct}%`;
+        else renderReaderLoadingCover(box, b, `Загрузка книги… ${pct}%`);
       }
     };
 
@@ -253,10 +278,8 @@ async function loadPdf(b) {
     c.classList.remove('hidden');
     updatePageIndicator();
     
-    // Ждём, пока canvas станет видимым
-    setTimeout(async () => {
-      await renderPdfPage(pdfCurrentPage);
-    }, 100);
+    // Рисуем в следующем кадре, когда canvas уже видим, — без лишних 100 мс.
+    requestAnimationFrame(() => { renderPdfPage(pdfCurrentPage); });
     
     if (fromOffline) showToast('Читаем из оффлайн-хранилища');
   } catch (err) {

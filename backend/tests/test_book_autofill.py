@@ -134,3 +134,47 @@ async def test_worker_autofill_failure_does_not_fail_indexing(monkeypatch):
     monkeypatch.setattr(worker, "autofill_book", boom)
 
     assert await worker._autofill_after_indexing(1) == []
+
+
+@pytest.mark.asyncio
+async def test_autofill_reports_duplicate_of_existing_book(db, monkeypatch):
+    db.add(Book(title="Компьютерные сети. Системный подход, 6-е издание",
+                author="Ларри Петерсон, Брюс Дэви", description="x"))
+    await db.commit()
+    book_id = await _book(db)
+    _mock_models(
+        monkeypatch,
+        {"title": "Компьютерные сети. Системный подход, 6-е издание",
+         "author": "Ларри Петерсон, Брюс Дэви", "categories": []},
+    )
+
+    changed = await book_autofill.autofill_book(db, book_id)
+
+    assert len(changed) == 1 and changed[0].startswith("duplicate_of:")
+    # Карточку дубликата не трогаем — воркер её удалит.
+    assert (await _load(db, book_id)).author == "—"
+
+
+@pytest.mark.asyncio
+async def test_worker_drops_duplicate_book(db, monkeypatch):
+    from app import worker
+
+    existing = Book(title="Оригинал", author="Автор", description="")
+    db.add(existing)
+    await db.commit()
+    existing_id = existing.id
+    book_id = await _book(db)
+
+    class Storage:
+        deleted: list = []
+
+        async def delete(self, key):
+            self.deleted.append(key)
+
+    monkeypatch.setattr(worker, "get_storage", Storage)
+
+    await worker._drop_duplicate(db, book_id, existing_id)
+
+    db.expire_all()
+    assert await db.get(Book, book_id) is None
+    assert await db.get(Book, existing_id) is not None

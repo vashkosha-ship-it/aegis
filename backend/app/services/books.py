@@ -164,3 +164,149 @@ def to_public(book: Book) -> BookPublic:
         date_published=book.date_published,
         created_at=book.created_at,
     )
+
+
+# --- дубликаты ---------------------------------------------------------------
+
+AUTHOR_PLACEHOLDERS = {"", "—", "-", "автор не указан"}
+
+
+def normalize_book_text(value: str | None) -> str:
+    """Название/автор без регистра, пунктуации, «ё» и лишних пробелов.
+
+    «Компьютерные сети. Системный подход, 6-е издание» и
+    «компьютерные сети системный подход 6е издание» дают одну строку.
+    """
+    import re
+
+    text = (value or "").lower().replace("ё", "е")
+    text = re.sub(r"[^\w]+", " ", text, flags=re.UNICODE).replace("_", " ")
+    return " ".join(text.split())
+
+
+def is_placeholder_author(author: str | None) -> bool:
+    return (author or "").strip().lower() in AUTHOR_PLACEHOLDERS
+
+
+async def find_duplicate_by_metadata(
+    db: AsyncSession, title: str, author: str | None, exclude_id: int | None = None
+) -> Book | None:
+    """Книга с тем же названием и автором (или без известного автора)."""
+    norm_title = normalize_book_text(title)
+    if not norm_title:
+        return None
+    norm_author = normalize_book_text(author)
+    placeholder = is_placeholder_author(author)
+    # Предфильтр по началу названия, точное сравнение — после нормализации.
+    prefix = norm_title.split(" ")[0]
+    stmt = select(Book).where(sqlfunc.lower(Book.title).contains(prefix))
+    if exclude_id is not None:
+        stmt = stmt.where(Book.id != exclude_id)
+    for candidate in (await db.scalars(stmt)).all():
+        if normalize_book_text(candidate.title) != norm_title:
+            continue
+        if placeholder or is_placeholder_author(candidate.author):
+            return candidate
+        if normalize_book_text(candidate.author) == norm_author:
+            return candidate
+    return None
+
+
+async def find_duplicate_by_hash(
+    db: AsyncSession, sha256: str, exclude_id: int | None = None
+) -> Book | None:
+    stmt = select(Book).where(Book.file_sha256 == sha256)
+    if exclude_id is not None:
+        stmt = stmt.where(Book.id != exclude_id)
+    return (await db.scalars(stmt.limit(1))).first()
+
+
+class HashingStream:
+    """Обёртка над потоком загрузки, считающая SHA-256 по ходу записи."""
+
+    def __init__(self, chunks: AsyncIterator[bytes]):
+        import hashlib
+
+        self._chunks = chunks
+        self._hash = hashlib.sha256()
+
+    def __aiter__(self):
+        return self._iterate()
+
+    async def _iterate(self):
+        async for chunk in self._chunks:
+            self._hash.update(chunk)
+            yield chunk
+
+    @property
+    def hexdigest(self) -> str:
+        return self._hash.hexdigest()
+
+
+
+async def delete_book_files(storage, keys: list[str | None], book_id: int) -> None:
+    """Удалить файлы книги из хранилища после того, как запись удалена из БД."""
+    for key in keys:
+        if not key:
+            continue
+        try:
+            await storage.delete(key)
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to delete storage object %s for book %s", key, book_id)
+
+
+def duplicate_key(book: Book) -> tuple[str, str]:
+    """Ключ группировки дубликатов: нормализованные название и автор."""
+    author = "" if is_placeholder_author(book.author) else normalize_book_text(book.author)
+    return normalize_book_text(book.title), author
+
+
+async def find_duplicate_groups(db: AsyncSession) -> list[list[Book]]:
+    """Группы книг-дубликатов; в каждой первой идёт та, что остаётся.
+
+    Дубликатом считается тот же файл (SHA-256) или то же название с тем же
+    автором. Остаётся книга, которую больше читали, при равенстве — более
+    ранняя: так не теряются прогресс и отзывы читателей.
+    """
+    books = list((await db.scalars(select(Book).order_by(Book.id))).all())
+    parent = {b.id: b.id for b in books}
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[max(ra, rb)] = min(ra, rb)
+
+    by_hash: dict[str, int] = {}
+    by_title: dict[str, list[Book]] = {}
+    for book in books:
+        if book.file_sha256:
+            if book.file_sha256 in by_hash:
+                union(by_hash[book.file_sha256], book.id)
+            else:
+                by_hash[book.file_sha256] = book.id
+        title, _ = duplicate_key(book)
+        if title:
+            by_title.setdefault(title, []).append(book)
+    for same_title in by_title.values():
+        for i, a in enumerate(same_title):
+            for b in same_title[i + 1:]:
+                _, author_a = duplicate_key(a)
+                _, author_b = duplicate_key(b)
+                if not author_a or not author_b or author_a == author_b:
+                    union(a.id, b.id)
+
+    groups: dict[int, list[Book]] = {}
+    for book in books:
+        groups.setdefault(find(book.id), []).append(book)
+    result = []
+    for group in groups.values():
+        if len(group) > 1:
+            group.sort(key=lambda b: (-(b.views or 0), b.id))
+            result.append(group)
+    return result

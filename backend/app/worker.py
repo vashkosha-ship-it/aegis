@@ -9,6 +9,8 @@
 """
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -33,6 +35,7 @@ from app.services.book_descriptions import (
     generate_book_description,
     load_book_content_excerpt,
 )
+from app.services.books import delete_book_files
 from app.services.search_index import (
     IndexingError,
     index_book_from_path,
@@ -88,6 +91,14 @@ async def _measure_job(ctx: dict, job_name: str):
                 logger.exception("Не удалось записать метрики задачи %s", job_name)
 
 
+def _sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 async def _index_one(book_id: int) -> int:
     """Скачать активный файл книги и построить полнотекстовый индекс."""
     storage = get_storage()
@@ -123,6 +134,11 @@ async def _index_one(book_id: int) -> int:
 
             path = await spool_to_tempfile(chunks, suffix=suffix)
             try:
+                # Книги, загруженные до появления хешей, получают его при
+                # индексации — по нему ловятся повторные загрузки того же файла.
+                if not book.file_sha256:
+                    book.file_sha256 = await asyncio.to_thread(_sha256_file, path)
+                    await db.commit()
                 sections = await indexer(db, book_id, path)
             finally:
                 try:
@@ -162,12 +178,44 @@ async def _autofill_after_indexing(book_id: int) -> list[str]:
     try:
         async with AsyncSessionLocal() as db:
             changed = await autofill_book(db, book_id)
+            duplicate_of = next(
+                (int(item.split(":", 1)[1]) for item in changed if item.startswith("duplicate_of:")),
+                None,
+            )
+            if duplicate_of is not None:
+                await _drop_duplicate(db, book_id, duplicate_of)
+                return changed
     except Exception:  # noqa: BLE001 — автозаполнение не должно ронять задачу
         logger.exception("Автозаполнение карточки книги %s не удалось", book_id)
         return []
     if changed:
         logger.info("Карточка книги %s заполнена автоматически: %s", book_id, ", ".join(changed))
     return changed
+
+
+async def _drop_duplicate(db, book_id: int, existing_id: int) -> None:
+    """Новая книга оказалась той, что уже есть в каталоге, — убрать её.
+
+    Срабатывает, когда по титулу выяснилось, что это другая копия
+    (другой скан) уже добавленной книги: одинаковые файлы отсекаются ещё
+    при загрузке по SHA-256.
+    """
+    book = await db.get(Book, book_id)
+    if book is None:
+        return
+    keys = [book.pdf_storage_key, book.epub_storage_key, book.cover_storage_key]
+    title = book.title
+    db.add(AdminLog(
+        admin_id=None,
+        admin_username="worker",
+        action="book_delete",
+        target=f"book:{book_id}",
+        detail=f"Удалён дубликат «{title}»: книга уже есть в каталоге (id {existing_id})",
+    ))
+    await db.delete(book)
+    await db.commit()
+    await delete_book_files(get_storage(), keys, book_id)
+    logger.info("Книга %s удалена как дубликат книги %s", book_id, existing_id)
 
 
 async def index_book(ctx: dict, book_id: int) -> dict:

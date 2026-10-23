@@ -7,7 +7,7 @@
   isolation: isolate;
 }
 #arSchemeRoot::before { opacity:.38; animation:none !important; background-size:44px 44px !important; mask-image:linear-gradient(to bottom,black,transparent 82%); }
-#killChainScrollContainer { padding:92px 16px 138px !important; scrollbar-width:thin; scrollbar-color:rgba(34,211,238,.42) transparent; }
+#killChainScrollContainer { padding:112px var(--ar-pad-r,16px) 138px var(--ar-pad-l,16px) !important; scrollbar-width:thin; scrollbar-color:rgba(34,211,238,.42) transparent; }
 #killChainNodes { width:min(100%,520px); margin-inline:auto; }
 
 .ar-stage-control { position:relative; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
@@ -21,7 +21,7 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
 .ar-stage-control.is-selected { border-color:#e0f2fe !important; box-shadow:0 0 0 2px rgba(34,211,238,.46),0 18px 42px rgba(8,145,178,.24) !important; filter:brightness(1.18); }
 .ar-stage-control.is-studied::before { content:'✓ изучено'; position:absolute; top:8px; right:12px; color:#6ee7b7; font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
 
-.ar-stage-item { display:grid !important; grid-template-columns:58px minmax(0,1fr) 20px; align-items:center; gap:14px; width:min(100%,460px) !important; min-height:84px; padding:11px 16px 11px 11px !important; border:1px solid color-mix(in srgb,var(--ar-stage-accent,var(--ar-cyan)) 50%,transparent) !important; border-radius:20px; color:#f8fafc; text-align:left; background:linear-gradient(110deg,color-mix(in srgb,var(--ar-stage-accent,var(--ar-cyan)) 12%,transparent),transparent 52%),rgba(9,16,30,.9) !important; box-shadow:0 15px 34px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.07); cursor:pointer; backdrop-filter:blur(18px); }
+.ar-stage-item { display:grid !important; grid-template-columns:58px minmax(0,1fr) 20px; align-items:center; gap:14px; width:min(100%,var(--ar-stage-w,460px)) !important; min-height:84px; padding:11px 16px 11px 11px !important; border:1px solid color-mix(in srgb,var(--ar-stage-accent,var(--ar-cyan)) 50%,transparent) !important; border-radius:20px; color:#f8fafc; text-align:left; background:linear-gradient(110deg,color-mix(in srgb,var(--ar-stage-accent,var(--ar-cyan)) 12%,transparent),transparent 52%),rgba(9,16,30,.9) !important; box-shadow:0 15px 34px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.07); cursor:pointer; backdrop-filter:blur(18px); }
 .ar-stage-item::after { content:'›'; color:color-mix(in srgb,var(--ar-stage-accent,var(--ar-cyan)) 76%,white); font-size:27px; }
 .ar-killchain-node { display:flex; position:relative; width:54px !important; height:54px !important; align-items:center; justify-content:center; border:2px solid var(--ar-stage-accent,var(--ar-cyan)); border-radius:17px; color:#fff; background:linear-gradient(145deg,rgba(30,41,59,.94),rgba(8,14,25,.98)); box-shadow:inset 0 1px rgba(255,255,255,.12),0 0 20px color-mix(in srgb,var(--ar-stage-accent,var(--ar-cyan)) 22%,transparent); }
 .ar-stage-copy { display:grid; min-width:0; gap:3px; }
@@ -41,6 +41,29 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
 #arSchemeRoot svg text { pointer-events:none; }
 #arStageHint { padding:9px 15px !important; border:1px solid rgba(148,163,184,.2); border-radius:999px !important; color:rgba(226,232,240,.84) !important; background:rgba(6,11,20,.84) !important; box-shadow:0 10px 25px rgba(0,0,0,.25); backdrop-filter:blur(14px); }
 
-@media (min-width:768px) { #killChainScrollContainer { padding-inline:28px !important; } .ar-stage-item { grid-template-columns:64px minmax(0,1fr) 22px; min-height:92px; } .ar-killchain-node { width:60px !important; height:60px !important; } .ar-stage-name { font-size:15px !important; } }
-@media (max-width:480px) { #killChainScrollContainer { padding-inline:10px !important; } .ar-stage-item { width:100% !important; grid-template-columns:50px minmax(0,1fr) 16px; gap:10px; padding:9px 11px 9px 9px !important; } .ar-killchain-node { width:48px !important; height:48px !important; border-radius:14px; } .ar-stage-action { display:none; } .ar-stage-control--mitre { width:142px !important; } }
+@media (min-width:768px) { #killChainScrollContainer { --ar-pad-l:28px; --ar-pad-r:28px; } .ar-stage-item { grid-template-columns:64px minmax(0,1fr) 22px; min-height:92px; } .ar-killchain-node { width:60px !important; height:60px !important; } .ar-stage-name { font-size:15px !important; } }
+@media (max-width:480px) { #killChainScrollContainer { --ar-pad-l:10px; --ar-pad-r:10px; } .ar-stage-item { width:100% !important; grid-template-columns:50px minmax(0,1fr) 16px; gap:10px; padding:9px 11px 9px 9px !important; } .ar-killchain-node { width:48px !important; height:48px !important; border-radius:14px; } .ar-stage-action { display:none; } .ar-stage-control--mitre { width:142px !important; } }
 @media (prefers-reduced-motion:reduce) { #arSchemeRoot *,#arSchemeRoot *::before,#arSchemeRoot *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
+
+
+/* Панель разбора открыта — переключатель «Атака / Защита» убираем: у панели
+   свои вкладки, а на телефоне переключатель наезжал на её содержимое. */
+@media (max-width: 899px) {
+  #arModal:has(#arStageDetails[style*="display: block"]) #arViewModeToggle { display: none; }
+}
+
+/* Десктоп: этапы Kill Chain в две колонки на всю ширину, а не узкая лента
+   по центру; при открытой панели разбора схема уходит левее неё. */
+@media (min-width: 900px) {
+  #killChainNodes.ar-killchain-list {
+    --ar-stage-w: 100%;
+    width: min(100%, 980px);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 18px;
+    align-items: stretch;
+  }
+  #killChainNodes.ar-killchain-list .ar-chain-link { display: none; }
+  #arSchemeRoot.panel-visible #killChainScrollContainer { --ar-pad-r: calc(min(420px, 42vw) + 24px); }
+  #arSchemeRoot.panel-visible #killChainNodes.ar-killchain-list { grid-template-columns: minmax(0, 1fr); width: min(100%, 520px); }
+}

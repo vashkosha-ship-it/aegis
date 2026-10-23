@@ -374,6 +374,16 @@
       },
       get(id) { return request('/books/' + id); },
       categories() { return request('/books/categories/all'); },
+      // Дубликаты: проверка до загрузки, список найденных и удаление.
+      duplicateCheck({ sha256, title, author } = {}) {
+        const params = new URLSearchParams();
+        if (sha256) params.set('sha256', sha256);
+        if (title) params.set('title', title);
+        if (author) params.set('author', author);
+        return request('/books/duplicate-check?' + params.toString());
+      },
+      adminDuplicates() { return request('/books/admin/duplicates'); },
+      adminRemoveDuplicates() { return request('/books/admin/duplicates/remove', { method: 'POST' }); },
       create(payload) { return request('/books', { method: 'POST', body: payload }); },
       update(id, payload) { return request('/books/' + id, { method: 'PATCH', body: payload }); },
       generateDescription(id) { return request('/books/' + id + '/generate-description', { method: 'POST' }); },
@@ -546,6 +556,7 @@
         return request('/admin/books/' + bookId + '/analytics');
       },
 
+      adminAnalyticsOverview() { return request('/admin/analytics/overview'); },
       adminStorageAudit(graceHours = 24) {
         return request('/admin/storage/audit?grace_hours=' + encodeURIComponent(graceHours));
       },

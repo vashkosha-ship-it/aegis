@@ -732,6 +732,8 @@ function renderKillChainScheme() {
     console.error('arSchemeContainer не найден');
     return;
   }
+  // Класс включает десктопную сетку в две колонки (ar-schemes.css).
+  nodes.classList.add('ar-killchain-list');
 
   stages.forEach((stage, index) => {
     if (index > 0) {
@@ -764,7 +766,7 @@ function renderKillChainScheme() {
     }, [
       marker,
       _arDetailNode('span', { className: 'ar-stage-copy' }, [
-        _arDetailNode('span', { className: 'ar-stage-kicker', text: `Этап ${stage.id} · ${stage.code}` }),
+        _arDetailNode('span', { className: 'ar-stage-kicker', text: `Этап ${stage.id} · ${stage.name}` }),
         _arDetailNode('span', { className: 'ar-stage-name', staticStyle: 'a072', text: stage.nameRu }),
         _arDetailNode('span', { className: 'ar-stage-action', text: 'Открыть разбор' }),
       ]),

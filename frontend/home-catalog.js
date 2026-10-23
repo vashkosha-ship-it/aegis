@@ -66,6 +66,11 @@ function extractBookYear(datePublished) {
   return match ? match[0] : null;
 }
 
+// Пока у книги нет ни одной оценки, «0.00» выглядит как плохая оценка.
+function hasRating(book) {
+  return Number(book && book.rating) > 0;
+}
+
 function cardHTML(b, query, options) {
   const opts = options || {};
   const p = state.readingProgress[b.id];
@@ -83,7 +88,7 @@ function cardHTML(b, query, options) {
     <button type="button" class="book-card-open" data-onclick="openBookDetail(${b.id})" aria-label="Открыть книгу: ${eh(b.title)}">
     <div class="cover-area">
       ${coverInner}
-      <div class="rating-badge">${ICONS.star}${b.rating}</div>
+      ${hasRating(b) ? `<div class="rating-badge">${ICONS.star}${b.rating}</div>` : ''}
       ${offlineBookIds.has(b.id) ? `<div class="offline-badge" title="Доступна оффлайн">${ICONS.cloudCheck}</div>` : ''}
       ${pct ? `<div class="progress-badge">${pct}%</div><div class="progress-indicator" data-dynamic-style="${dynamicStyleToken`width:${pct}%`}"></div>` : ''}
     </div>

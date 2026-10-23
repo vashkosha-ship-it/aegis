@@ -49,6 +49,21 @@ async function readPdfMetadata(file) {
   }
 }
 
+// SHA-256 файла в браузере — тот же хеш считает сервер при загрузке.
+async function sha256OfFile(file) {
+  try {
+    if (!crypto || !crypto.subtle) return '';
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    return '';
+  }
+}
+
+function isDuplicateError(error) {
+  return Boolean(error && error.status === 409 && error.rawDetail && error.rawDetail.code === 'duplicate_book');
+}
+
 // Рендер первой страницы PDF в JPEG-обложку (клиентская генерация)
 async function generateCoverFromPdf(file) {
   try { await ensurePdfLoaded(); } catch (e) { console.warn('pdf.js не загружен:', e); return null; }
@@ -155,12 +170,13 @@ function renderBulkUploadList() {
   catPanel.style.display = 'block';
   actionsEl.style.display = 'flex';
 
-  const statusIcon = { pending: '⏸', uploading: '⏳', done: '✓', error: '✕' };
+  const statusIcon = { pending: '⏸', uploading: '⏳', done: '✓', error: '✕', skipped: '↷' };
   const statusColor = {
     pending: 'var(--text-muted)',
     uploading: 'var(--accent)',
     done: '#22c55e',
     error: '#ef4444',
+    skipped: 'var(--text-muted)',
   };
   const fragment = document.createDocumentFragment();
   bulkUploadQueue.forEach(item => {
@@ -212,11 +228,25 @@ async function startBulkUpload() {
     item.message = 'Создаётся...';
     renderBulkUploadList();
 
+    let createdId = null;
     try {
       const ext = item.file.name.split('.').pop().toLowerCase();
       const format = (ext === 'epub') ? 'epub' : 'pdf';
       const meta = format === 'pdf' ? await readPdfMetadata(item.file) : {};
       const title = meta.title || titleFromFilename(item.file.name);
+
+      // 0. Дубликат уже добавленной книги не загружаем: тот же файл или то
+      //    же название с тем же автором.
+      item.message = 'Проверка на дубликат...';
+      renderBulkUploadList();
+      const sha256 = await sha256OfFile(item.file);
+      const check = await api.books.duplicateCheck({ sha256, title, author: meta.author || '' });
+      if (check && check.duplicate) {
+        item.status = 'skipped';
+        item.message = `Уже есть в каталоге: «${check.existing_title}»`;
+        renderBulkUploadList();
+        continue;
+      }
 
       // 1. Создаём книгу
       const created = await api.books.create({
@@ -227,6 +257,7 @@ async function startBulkUpload() {
         icon: '📘',
         file_format: format,
       });
+      createdId = created.id;
 
       // 2. Загружаем файл
       item.message = 'Загрузка файла...';
@@ -256,9 +287,19 @@ async function startBulkUpload() {
         ? 'Создана · описание появится после индексации'
         : 'Создана · карточка заполнится после индексации';
     } catch (e) {
-      item.status = 'error';
-      item.message = 'Ошибка: ' + String(e.detail || e.message || 'Неизвестная ошибка').slice(0, 120);
-      console.error('Bulk upload error:', e);
+      if (isDuplicateError(e)) {
+        // Сервер нашёл дубликат уже после создания карточки (например, файл
+        // загрузили параллельно). Убираем пустую карточку, созданную выше.
+        if (createdId) {
+          try { await api.books.delete(createdId); } catch (_) { /* карточку можно удалить вручную */ }
+        }
+        item.status = 'skipped';
+        item.message = `Уже есть в каталоге: «${e.rawDetail.existing_title}»`;
+      } else {
+        item.status = 'error';
+        item.message = 'Ошибка: ' + String(e.detail || e.message || 'Неизвестная ошибка').slice(0, 120);
+        console.error('Bulk upload error:', e);
+      }
     }
     renderBulkUploadList();
   }
@@ -269,7 +310,10 @@ async function startBulkUpload() {
 
   const done = bulkUploadQueue.filter(i => i.status === 'done').length;
   const errors = bulkUploadQueue.filter(i => i.status === 'error').length;
-  showToast(`Создано книг: ${done}` + (errors ? ` · Ошибок: ${errors}` : ''));
+  const skippedDuplicates = bulkUploadQueue.filter(i => i.status === 'skipped').length;
+  showToast(`Создано книг: ${done}`
+    + (skippedDuplicates ? ` · Дубликатов пропущено: ${skippedDuplicates}` : '')
+    + (errors ? ` · Ошибок: ${errors}` : ''));
 
   // Обновляем каталог
   await loadBooksFromApi();

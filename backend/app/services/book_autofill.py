@@ -29,7 +29,7 @@ from app.services.book_descriptions import (
     generate_book_description,
     load_book_content_excerpt,
 )
-from app.services.books import get_or_create_categories
+from app.services.books import find_duplicate_by_metadata, get_or_create_categories
 from app.services.deepseek_client import chat_completion
 
 logger = logging.getLogger(__name__)
@@ -161,6 +161,14 @@ async def autofill_book(db: AsyncSession, book_id: int) -> list[str]:
         # перечитываем и проверяем условия заново.
         await db.refresh(book, attribute_names=["title", "author", "description", "categories"])
         if needs_title_and_author(book):
+            # Та же книга уже в каталоге (другой скан или файл) — не
+            # дозаполняем, а сообщаем воркеру, что это дубликат.
+            if meta["title"] and meta["author"]:
+                duplicate = await find_duplicate_by_metadata(
+                    db, meta["title"], meta["author"], exclude_id=book.id
+                )
+                if duplicate is not None and duplicate.id < book.id:
+                    return [f"duplicate_of:{duplicate.id}"]
             if meta["title"]:
                 book.title = meta["title"]
                 changed.append("title")
