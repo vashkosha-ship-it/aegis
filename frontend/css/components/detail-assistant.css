@@ -33,3 +33,40 @@
   #assistantScreen #assistantInputBar { width: 100%; }
 }
 @media (min-width: 2000px) { #detailScreen .detail-content { max-width: 1200px; } }
+
+/* ---------- Экран AI-ассистента ----------
+   Экран — это окно чата на всю высоту: страница под ним не прокручивается,
+   прокручиваются только сообщения. Раньше экран лежал вне #app, документ
+   получался в два экрана высотой, и сверху можно было «вытянуть» пустоту. */
+body:has(#assistantScreen.active) { padding-bottom: 0; overflow: hidden; }
+#assistantScreen.active {
+  height: calc(100dvh - var(--bottom-nav-h) - 12px - var(--safe-area-inset-bottom));
+  min-height: 0;
+}
+#assistantScreen .top-header { border-bottom: 1px solid var(--border); }
+.assistant-title { display: none; }
+#assistantScreen .static-style-135 { border-radius: 6px; }
+#assistantScreen .static-style-135:hover { color: var(--accent); background: rgba(var(--accent-rgb), .08); }
+
+/* Фокус — на всей панели ввода, а не двойная рамка вокруг поля внутри. */
+#assistantScreen #assistantInput:focus,
+#assistantScreen #assistantInput:focus-visible { outline: none; box-shadow: none; border-color: transparent; }
+#assistantScreen #assistantInputBar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .15);
+}
+#assistantScreen .assistant-quick-chips { margin-bottom: 8px; }
+
+@media (min-width: 1024px) {
+  #assistantScreen.active { height: 100dvh; }
+  #assistantScreen .header-left { display: flex; align-items: center; gap: 12px; }
+  .assistant-title {
+    display: block; margin: 0;
+    font-family: var(--font-display, inherit); font-size: 18px; font-weight: 700;
+    color: var(--text-primary);
+  }
+  #assistantScreen .top-header { justify-content: space-between; }
+  /* Общий для экранов псевдо-заголовок из data-title растягивался на всю
+     ширину и выталкивал кнопку «назад» и заголовок вправо. */
+  #assistantScreen .top-header::before { display: none; }
+}

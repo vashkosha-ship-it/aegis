@@ -756,6 +756,45 @@
     </div>
   </div>
 
+  <!-- ======================== AI АССИСТЕНТ ======================== -->
+  <div id="assistantScreen" class="screen">
+    <div class="top-header">
+      <div class="header-left">
+        <button class="btn-back" data-onclick="navigateTo('home')">←</button>
+        <div class="logo-name">AI-ассистент</div>
+        <h1 class="assistant-title">AI-ассистент</h1>
+      </div>
+      <div class="static-style-134">
+        <button class="static-style-135" id="btnNewChat" data-onclick="startNewChat()" title="Новый диалог" aria-label="Новый диалог">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        </button>
+        <button class="static-style-135" id="btnChatHistory" data-onclick="openChatHistory()" title="История диалогов" aria-label="История диалогов">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        </button>
+        <button class="static-style-135" id="btnClearAssistant" data-onclick="clearAssistantChat()" title="Очистить" aria-label="Очистить диалог">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="assistant-body static-style-136">
+      <div class="static-style-137" id="assistantMessages"></div>
+
+      <div class="assistant-quick-chips">
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('summary')">Саммари</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('quiz')">Тест</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('recommend')">Рекомендации</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('vacation')">В отпуск</button>
+        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('exam')">К экзамену</button>
+      </div>
+
+      <div class="static-style-138" id="assistantInputBar">
+        <textarea class="static-style-139" id="assistantInput" placeholder="Спроси что-нибудь..." maxlength="4000" rows="1"></textarea>
+        <button class="static-style-140" id="assistantSendBtn" data-onclick="sendAssistantMessage()"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- ======================== ПОМОДОРО ТАЙМЕР ======================== -->
   <div class="pomodoro-container" id="pomodoroContainer">
     <div class="pomodoro-timer" id="pomodoroTimer">25:00</div>
@@ -1163,44 +1202,6 @@
           <button class="static-style-132" data-onclick="clearBulkUploadList()" id="bulkUploadClearBtn">Очистить</button>
           <button class="static-style-133" data-onclick="startBulkUpload()" data-nonce="${sensitiveNonce()}" id="bulkUploadStartBtn">Загрузить</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======================== AI АССИСТЕНТ ======================== -->
-  <div id="assistantScreen" class="screen">
-    <div class="top-header">
-      <div class="header-left">
-        <button class="btn-back" data-onclick="navigateTo('home')">←</button>
-        <div class="logo-name">AI-ассистент</div>
-      </div>
-      <div class="static-style-134">
-        <button class="static-style-135" id="btnNewChat" data-onclick="startNewChat()" title="Новый диалог">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-        </button>
-        <button class="static-style-135" id="btnChatHistory" data-onclick="openChatHistory()" title="История диалогов">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-        </button>
-        <button class="static-style-135" id="btnClearAssistant" data-onclick="clearAssistantChat()" title="Очистить">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="assistant-body static-style-136">
-      <div class="static-style-137" id="assistantMessages"></div>
-
-      <div class="assistant-quick-chips">
-        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('summary')">Саммари</button>
-        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('quiz')">Тест</button>
-        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('recommend')">Рекомендации</button>
-        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('vacation')">В отпуск</button>
-        <button type="button" class="ai-quick-chip" data-onclick="assistantQuick('exam')">К экзамену</button>
-      </div>
-
-      <div class="static-style-138" id="assistantInputBar">
-        <textarea class="static-style-139" id="assistantInput" placeholder="Спроси что-нибудь..." maxlength="4000" rows="1"></textarea>
-        <button class="static-style-140" id="assistantSendBtn" data-onclick="sendAssistantMessage()"></button>
       </div>
     </div>
   </div>
