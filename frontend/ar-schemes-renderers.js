@@ -639,6 +639,48 @@ function renderMitreScheme() {
     });
   }, 60);
 }
+// Какую схему открывать для книги. Раньше кнопка «Смотреть схему атаки»
+// всегда вела в Cyber Kill Chain — даже для «Компьютерных сетей», где
+// уместна модель OSI. Порядок категорий книги задаёт приоритет.
+const SCHEME_FOR_CATEGORY = {
+  'Компьютерные сети': 'osi',
+  'Сетевая архитектура и защита периметра (Defensive Blue Team)': 'osi',
+  'Веб-безопасность': 'owasp',
+  'Разработка безопасного ПО (AppSec)': 'owasp',
+  'Цифровая криминалистика и реагирование на инциденты (DFIR)': 'ir',
+  'Управление, риски и соответствие (GRC)': 'nist',
+  'Управление безопасностью данных': 'nist',
+  'Технический оффенсив': 'killchain',
+  'Социальная инженерия и человеческий фактор': 'killchain',
+  'Реверс-инжиниринг и анализ вредоносного ПО': 'mitre',
+  'Криптография': 'owasp',
+};
+
+const SCHEME_TITLES = {
+  killchain: 'Cyber Kill Chain',
+  owasp: 'OWASP Top 10',
+  osi: 'Модель OSI',
+  mitre: 'MITRE ATT&CK',
+  nist: 'NIST CSF',
+  ir: 'Реагирование на инциденты',
+  did: 'Эшелонированная защита',
+  stride: 'STRIDE',
+};
+
+function findSchemeStageForBook(book) {
+  const cats = (book && book.categories) || [];
+  for (const cat of cats) {
+    const code = SCHEME_FOR_CATEGORY[cat];
+    const scheme = code && AR_SCHEMES[code];
+    if (!scheme) continue;
+    // Этап, привязанный к одной из категорий книги; если такого нет —
+    // начинаем схему с первого этапа.
+    const stage = scheme.stages.find(s => cats.includes(s.relatedCategory)) || scheme.stages[0];
+    return { schemeCode: code, schemeTitle: SCHEME_TITLES[code] || code, stage };
+  }
+  return null;
+}
+
 function findKillChainStageForBook(book) {
   // Ищем первую категорию книги, которая привязана к этапу Kill Chain
   const cats = (book && book.categories) || [];

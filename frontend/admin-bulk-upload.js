@@ -3,6 +3,52 @@
 let bulkUploadQueue = []; // [{file, status: 'pending'|'uploading'|'done'|'error', message}]
 let bulkUploadInProgress = false;
 
+// Название из имени файла. Файлы из сети часто называются вроде
+// «Packt_Building_Software_A_developer_39_s_guide_libgen.li_CKba2sE.pdf»:
+// подчёркивания вместо пробелов, &#39; превращённый в «39», служебные
+// префиксы и хвосты. Без чистки всё это попадало в каталог как есть.
+function titleFromFilename(filename) {
+  let name = String(filename || '').replace(/\.(pdf|epub)$/i, '');
+  name = name
+    .replace(/&#0*39;|&apos;/gi, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/[_\s]39[_\s]s(?=[_\s]|$)/g, "'s")
+    .replace(/[_]+/g, ' ')
+    // «Java-Beginners-To-Advance»: если пробелов нет совсем, дефисы — разделители.
+    // В обычных названиях дефис оставляем («Объектно-ориентированный»).
+    .replace(/-/g, match => (/\s/.test(name.replace(/_/g, ' ')) ? match : ' '))
+    .replace(/(^|\s)-+(?=\s|$)/g, ' ')
+    .replace(/\blibgen\.?\s*(li|rs|is)\b/gi, ' ')
+    .replace(/^\s*(media\s+books|codelibs\s+ru)\s+/i, '')
+    .replace(/\s+[A-Za-z0-9]{7}\s*$/, match => (/\d/.test(match) && /[a-z]/.test(match) && /[A-Z]/.test(match) ? '' : match))
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return (name || 'Без названия').slice(0, 255);
+}
+
+// Метаданные PDF (Title/Author из свойств документа) обычно точнее имени
+// файла. Пустые или явно служебные значения игнорируем.
+async function readPdfMetadata(file) {
+  try {
+    await ensurePdfLoaded();
+    if (typeof pdfjsLib === 'undefined') return {};
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const { info } = await pdf.getMetadata();
+    try { pdf.destroy(); } catch (_) { /* документ уже закрыт */ }
+    const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
+    const looksReal = value => value.length >= 3 && !/^(untitled|microsoft word|document\d*|\.?pdf)$/i.test(value)
+      && !/\.(docx?|pdf|indd|tex)$/i.test(value);
+    const title = clean(info && info.Title);
+    const author = clean(info && info.Author);
+    return {
+      title: looksReal(title) ? title.slice(0, 255) : '',
+      author: looksReal(author) ? author.slice(0, 255) : '',
+    };
+  } catch (e) {
+    return {};
+  }
+}
+
 // Рендер первой страницы PDF в JPEG-обложку (клиентская генерация)
 async function generateCoverFromPdf(file) {
   try { await ensurePdfLoaded(); } catch (e) { console.warn('pdf.js не загружен:', e); return null; }
@@ -169,12 +215,13 @@ async function startBulkUpload() {
     try {
       const ext = item.file.name.split('.').pop().toLowerCase();
       const format = (ext === 'epub') ? 'epub' : 'pdf';
-      const title = (item.file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_-]/g, ' ').trim() || 'Без названия').slice(0, 255);
+      const meta = format === 'pdf' ? await readPdfMetadata(item.file) : {};
+      const title = meta.title || titleFromFilename(item.file.name);
 
       // 1. Создаём книгу
       const created = await api.books.create({
         title: title,
-        author: '—',
+        author: meta.author || '—',
         categories: categories,
         description: '',
         icon: '📘',
@@ -204,7 +251,10 @@ async function startBulkUpload() {
       }
 
       item.status = 'done';
-      item.message = 'Создана';
+      // Название, автор, темы и описание дозаполняет воркер после индексации.
+      item.message = meta.title && meta.author
+        ? 'Создана · описание появится после индексации'
+        : 'Создана · карточка заполнится после индексации';
     } catch (e) {
       item.status = 'error';
       item.message = 'Ошибка: ' + String(e.detail || e.message || 'Неизвестная ошибка').slice(0, 120);

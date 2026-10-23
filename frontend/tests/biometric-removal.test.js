@@ -38,7 +38,9 @@ assert.match(
 assert.match(ownSource, /localStorage\.removeItem\(key\)/);
 assert.match(
   appSource,
-  /tryAutoLogin\(\)\.then\(ok => \{\s*navigateTo\(ok \? 'home' : 'auth'\);\s*\}\);/,
+  // Старт без биометрического экрана: сразу навигация по результату входа.
+  // После navigateTo допускается остальная обработка (тост «Сессия завершена»).
+  /tryAutoLogin\(\)\.then\(ok => \{\s*navigateTo\(ok \? 'home' : 'auth'\);/,
 );
 assert.match(workerSource, /aegis-cache-v[0-9]+/);
 

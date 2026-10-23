@@ -48,7 +48,7 @@ const context = {
   },
   appendTrustedIcon: container => container.appendChild(dom.window.document.createElement('svg')),
   bookCategoriesText: item => item.categories.join(', '),
-  findKillChainStageForBook: () => ({ id: 2, nameRu: '<img onerror=alert(1)>' }),
+  findSchemeStageForBook: () => ({ schemeCode: 'killchain', schemeTitle: 'Cyber Kill Chain', stage: { id: 2, nameRu: '<img onerror=alert(1)>' } }),
   loadAlsoRead: () => {},
   updateAvatar: () => {},
   updateFabVisibility: () => {},

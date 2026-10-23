@@ -73,7 +73,11 @@
 #detailScreen .detail-title {
   font-size: clamp(19px, 4.8vw, 25px);
   line-height: 1.18;
-  overflow-wrap: anywhere;
+  /* anywhere рвал обычные слова посреди («Систем-ный под-ход»). Переносим
+     только по пробелам, а длинное слово без пробелов — лишь если не влезает. */
+  overflow-wrap: break-word;
+  hyphens: manual;
+  text-wrap: balance;
 }
 #detailScreen .detail-author { font-size: 13px; line-height: 1.4; }
 #detailScreen .detail-category { max-width: 100%; line-height: 1.45; }

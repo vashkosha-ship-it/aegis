@@ -10,7 +10,13 @@ function openReader(id) {
   hideReaderEmptyStub();
   if (!state.readingProgress[id]) state.readingProgress[id] = { currentPage: 1, totalPages: 10, started: false };
   state.readingProgress[id].started = true;
-  if (!state.mylist[id]) state.mylist[id] = 'reading';
+  if (!state.mylist[id]) {
+    state.mylist[id] = 'reading';
+    // Раньше статус «Читаю» ставился только в памяти вкладки. После
+    // перезагрузки книга с прогрессом оказывалась «Не в списке», а «Мой
+    // список → Читаю» показывал 0. Сохраняем статус на сервере.
+    api.library.setMylistStatus(id, 'reading').catch(e => console.error('mylist on open failed:', e));
+  }
 
   saveState();
   api.library.updateProgress(id, state.readingProgress[id].currentPage, state.readingProgress[id].totalPages).catch(e => console.error('progress on open failed:', e));
