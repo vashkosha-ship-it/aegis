@@ -19,6 +19,7 @@ const dom = new JSDOM(`
 `);
 const calls = [];
 const context = {
+  hasRating: book => Number(book && book.rating) > 0,
   document: dom.window.document,
   console,
   ICONS: {

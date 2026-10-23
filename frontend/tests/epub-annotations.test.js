@@ -63,7 +63,7 @@ vm.runInContext(source, context);
   await context.saveEpubAnnotation('note', 'цитата', 'epubcfi(/6/4)', 'заметка');
   assert.equal(createdNotes.length, 1);
   assert.equal(createdNotes[0][2], 'заметка');
-  assert.match(highlights[1][4].fill, /0, 212, 255/);
+  assert.match(highlights[1][4].fill, /255, 92, 31/);
 
   await context.loadAndApplyEpubHighlights();
   assert.equal(highlights.length, 4);

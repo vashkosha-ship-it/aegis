@@ -27,7 +27,7 @@ function renderRecommendations() {
       </div>
       <div>
         <div data-static-style="a311">${eh(b.title)}</div>
-        <div data-static-style="a192">${eh(b.author)} • ${b.rating}</div>
+        <div data-static-style="a192">${eh(b.author)}${hasRating(b) ? ` • ${b.rating}` : ''}</div>
       </div>
     </button>
   `).join(''));

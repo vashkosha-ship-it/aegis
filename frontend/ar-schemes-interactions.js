@@ -318,14 +318,14 @@ function showZoomIndicator(percent) {
     transform: translate(-50%, -50%);
     background: rgba(0,0,0,0.85);
     backdrop-filter: blur(12px);
-    color: #00d4ff;
+    color: #ff5c1f;
     font-size: 16px; font-weight: 700;
     padding: 10px 20px;
     border-radius: 48px;
     z-index: 100; pointer-events: none;
     font-family: 'JetBrains Mono', monospace;
     display: inline-flex; align-items: center;
-    border: 1px solid rgba(0,212,255,0.3);
+    border: 1px solid rgba(255,92,31,0.3);
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     animation: zoomFadeOut 0.8s forwards;
   `;
@@ -613,12 +613,15 @@ function applyKillChainViewMode() {
     const isSelected = s.id === arSelectedStage;
     const isStudied = isKillChainStageStudied(s);
 
-    // Содержимое узла: номер (атака) или буква метода (защита)
-    let label;
-    if (arViewMode === 'defense' && s.defenseMethod) {
-      label = s.defenseMethod.code.charAt(0);
-    } else {
-      label = String(s.id);
+    // В узле всегда номер этапа. Раньше в режиме «Защита» туда ставилась
+    // первая буква метода, и у четырёх этапов подряд выходило одинаковое «D»
+    // (Detect, Deny, Disrupt, Degrade). Метод защиты теперь написан словами.
+    const label = String(s.id);
+    const action = node.querySelector('.ar-stage-action');
+    if (action) {
+      action.textContent = arViewMode === 'defense' && s.defenseMethod
+        ? `Защита: ${s.defenseMethod.nameRu} (${s.defenseMethod.code})`
+        : 'Открыть разбор';
     }
     // Обновляем только текстовый блок (первый <div> внутри button), не ломая остальное
     const labelDiv = node.querySelector('.killchain-node-label');

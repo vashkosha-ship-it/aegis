@@ -11,10 +11,17 @@ test.describe('PWA offline shell', () => {
     if (launchUrl.protocol === 'http:') launchUrl.hostname = 'localhost';
     await page.goto(launchUrl.href, { waitUntil: 'networkidle' });
     await page.evaluate(() => navigator.serviceWorker.ready);
-    if (!await page.evaluate(() => Boolean(navigator.serviceWorker.controller))) {
-      await page.reload({ waitUntil: 'networkidle' });
-    }
-    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    // Когда SW берёт управление (clients.claim), inline-boot.js один раз
+    // перезагружает страницу. Пока идёт эта перезагрузка, evaluate падает с
+    // «Execution context was destroyed» — поэтому опрашиваем терпеливо.
+    await expect.poll(async () => {
+      try {
+        return await page.evaluate(() => Boolean(navigator.serviceWorker.controller));
+      } catch {
+        return false;
+      }
+    }, { timeout: 20000 }).toBe(true);
+    await page.waitForLoadState('networkidle');
 
     await context.setOffline(true);
     await page.reload({ waitUntil: 'domcontentloaded' });

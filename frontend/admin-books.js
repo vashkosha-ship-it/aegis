@@ -756,6 +756,13 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
   btn.textContent = 'Создание...';
 
   try {
+    // Дубликаты не добавляем: тот же файл или то же название уже в каталоге.
+    btn.textContent = 'Проверка на дубликат...';
+    const existing = await findExistingBook(bookFile ? await sha256OfFile(bookFile) : null, t);
+    if (existing) {
+      showToast(duplicateMessage(existing) + ' — книга не добавлена');
+      return;
+    }
     const format = detectFileFormat(bookFile);
     const created = await api.books.create({
       title: t,
@@ -776,6 +783,12 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
           await api.books.uploadPdf(newId, bookFile);
         }
       } catch (err) {
+        if (err && err.status === 409) {
+          // Такой файл уже есть у другой книги — пустую карточку убираем.
+          try { await api.books.delete(newId); } catch (_) { /* не критично */ }
+          showToast(String(err.detail || 'Такая книга уже есть') + ' — книга не добавлена');
+          return;
+        }
         showToast('Не удалось загрузить файл: ' + (err.detail || err.message));
       }
     }

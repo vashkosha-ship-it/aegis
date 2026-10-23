@@ -41,11 +41,11 @@ async function renderAnalytics() {
         datasets: [{
           label: 'Страниц прочитано',
           data: activityData,
-          borderColor: '#00d4ff',
-          backgroundColor: 'rgba(0,212,255,0.1)',
+          borderColor: '#ff5c1f',
+          backgroundColor: 'rgba(255,92,31,0.1)',
           fill: true,
           tension: 0.4,
-          pointBackgroundColor: '#00d4ff',
+          pointBackgroundColor: '#ff5c1f',
         }]
       },
       options: {
@@ -72,9 +72,9 @@ async function renderAnalytics() {
           data: topBooks.map(b => b.views || 0),
           backgroundColor: topBooks.map((_, i) => {
             const alphas = [0.8, 0.65, 0.5, 0.35, 0.2];
-            return `rgba(0,212,255,${alphas[i] || 0.15})`;
+            return `rgba(255,92,31,${alphas[i] || 0.15})`;
           }),
-          borderColor: '#00d4ff',
+          borderColor: '#ff5c1f',
           borderWidth: 1,
         }]
       },
@@ -105,12 +105,12 @@ async function renderAnalytics() {
         datasets: [{
           data: [totalViews, totalOpens, totalReadings, totalCompletions],
           backgroundColor: [
-            'rgba(0,212,255,0.8)',
-            'rgba(0,212,255,0.6)',
-            'rgba(0,212,255,0.4)',
+            'rgba(255,92,31,0.8)',
+            'rgba(255,92,31,0.6)',
+            'rgba(255,92,31,0.4)',
             'rgba(34,197,94,0.6)',
           ],
-          borderColor: ['#00d4ff', '#00d4ff', '#00d4ff', '#22c55e'],
+          borderColor: ['#ff5c1f', '#ff5c1f', '#ff5c1f', '#22c55e'],
           borderWidth: 1,
         }]
       },

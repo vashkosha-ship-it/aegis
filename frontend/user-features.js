@@ -375,7 +375,7 @@ function renderCertQuestion() {
   const q = ex.questions[ex.index];
   const total = ex.questions.length;
   const opts = q.options.map((o, i) => `
-    <button data-onclick="answerCertQuestion(${i})" data-dynamic-style="${dynamicStyleToken`display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 14px;border-radius:8px;border:1px solid ${ex.answers[ex.index] === i ? 'var(--accent)' : 'var(--border)'};background:${ex.answers[ex.index] === i ? 'rgba(0,212,255,0.12)' : 'var(--bg-card)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;`}">${eh(o)}</button>`).join('');
+    <button data-onclick="answerCertQuestion(${i})" data-dynamic-style="${dynamicStyleToken`display:block;width:100%;text-align:left;margin-bottom:8px;padding:11px 14px;border-radius:8px;border:1px solid ${ex.answers[ex.index] === i ? 'var(--accent)' : 'var(--border)'};background:${ex.answers[ex.index] === i ? 'rgba(255,92,31,0.12)' : 'var(--bg-card)'};color:var(--text-primary);cursor:pointer;font-family:inherit;font-size:13px;`}">${eh(o)}</button>`).join('');
   const answered = ex.answers.filter(a => a >= 0).length;
   certModalShell(`
     <div data-static-style="a156">
@@ -657,9 +657,9 @@ async function renderDetailNotes() {
     const icon = document.createElement('div');
     icon.className = 'icon';
     icon.setAttribute('data-static-style', 'a239');
-    appendTrustedIcon(icon, ICONS.bookmark);
+    appendTrustedIcon(icon, ICONS.note);
     const message = document.createElement('p');
-    message.textContent = 'Нет заметок';
+    message.textContent = 'Заметок пока нет. Выделите текст в читалке и нажмите «Заметка».';
     empty.append(icon, message);
     container.replaceChildren(empty);
     return;
@@ -698,7 +698,7 @@ async function renderDetailNotes() {
     .forEach(annotation => {
       const isNote = annotation.type === 'note';
       const stripColor = isNote ? 'var(--accent)' : '#fbbf24';
-      const background = isNote ? 'rgba(0,212,255,0.04)' : 'rgba(251,191,36,0.04)';
+      const background = isNote ? 'rgba(255,92,31,0.04)' : 'rgba(251,191,36,0.04)';
       const cfi = annotation.position?.cfi;
       const item = document.createElement('div');
       item.setAttribute(

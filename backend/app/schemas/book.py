@@ -165,3 +165,28 @@ class MatchArTopicsRequest(BaseModel):
     """Список тем AR-схем, к которым AI подбирает книги."""
 
     topics: list[str]
+
+
+class DuplicateCheckRequest(BaseModel):
+    """Проверка перед загрузкой: есть ли уже такая книга."""
+
+    sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    title: str | None = Field(default=None, max_length=255)
+
+
+class DuplicateBookRef(BaseModel):
+    id: int
+    title: str
+    author: str
+
+
+class DuplicateCheckResult(BaseModel):
+    duplicate: bool
+    reason: Literal["file", "title"] | None = None
+    book: DuplicateBookRef | None = None
+
+
+class DuplicateGroup(BaseModel):
+    """Группа одинаковых книг. Первая — оригинал, остальные — копии."""
+
+    books: list[DuplicateBookRef]

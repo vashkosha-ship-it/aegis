@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v319';
+const CACHE_NAME = 'aegis-cache-v320';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -24,6 +24,23 @@ const PRECACHE_URLS = [
   '/css/components/reader-toolbar.css',
   '/css/components/detail-assistant.css',
   '/css/components/responsive-shell.css',
+  '/css/components/theme-ember.css',
+  '/fonts/jetbrains-mono-cyrillic-400-normal.woff2',
+  '/fonts/jetbrains-mono-cyrillic-500-normal.woff2',
+  '/fonts/jetbrains-mono-latin-400-normal.woff2',
+  '/fonts/jetbrains-mono-latin-500-normal.woff2',
+  '/fonts/manrope-cyrillic-400-normal.woff2',
+  '/fonts/manrope-cyrillic-500-normal.woff2',
+  '/fonts/manrope-cyrillic-600-normal.woff2',
+  '/fonts/manrope-cyrillic-700-normal.woff2',
+  '/fonts/manrope-latin-400-normal.woff2',
+  '/fonts/manrope-latin-500-normal.woff2',
+  '/fonts/manrope-latin-600-normal.woff2',
+  '/fonts/manrope-latin-700-normal.woff2',
+  '/fonts/unbounded-cyrillic-500-normal.woff2',
+  '/fonts/unbounded-cyrillic-700-normal.woff2',
+  '/fonts/unbounded-latin-500-normal.woff2',
+  '/fonts/unbounded-latin-700-normal.woff2',
   '/print-notes.css',
   '/dynamic-styles.js',
   '/handler-allowlist.js',

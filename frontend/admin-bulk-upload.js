@@ -1,6 +1,6 @@
 // Administrative bulk upload and review moderation UI.
 
-let bulkUploadQueue = []; // [{file, status: 'pending'|'uploading'|'done'|'error', message}]
+let bulkUploadQueue = []; // [{file, status: 'pending'|'uploading'|'done'|'error'|'skipped', message}]
 let bulkUploadInProgress = false;
 
 // Название из имени файла. Файлы из сети часто называются вроде
@@ -49,6 +49,40 @@ async function readPdfMetadata(file) {
   }
 }
 
+function normalizeTitleKey(title) {
+  return String(title || '').toLowerCase().replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+// SHA-256 файла в браузере — тот же, что считает сервер. Нужен, чтобы
+// спросить о дубликате ДО создания карточки и не плодить пустые записи.
+async function sha256OfFile(file) {
+  try {
+    if (!globalThis.crypto || !crypto.subtle) return null;
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    return null;
+  }
+}
+
+// Есть ли такая книга в библиотеке (тот же файл или то же название)?
+async function findExistingBook(sha256, title) {
+  try {
+    const result = await api.books.checkDuplicate({ sha256: sha256 || undefined, title: title || undefined });
+    return result && result.duplicate ? result : null;
+  } catch (e) {
+    // Проверка не должна блокировать загрузку: сервер всё равно отклонит
+    // одинаковый файл на этапе загрузки.
+    return null;
+  }
+}
+
+function duplicateMessage(found) {
+  const reason = found.reason === 'file' ? 'тот же файл' : 'то же название';
+  return `Уже есть (${reason}): «${found.book.title}»`;
+}
+
 // Рендер первой страницы PDF в JPEG-обложку (клиентская генерация)
 async function generateCoverFromPdf(file) {
   try { await ensurePdfLoaded(); } catch (e) { console.warn('pdf.js не загружен:', e); return null; }
@@ -94,7 +128,7 @@ function openBulkUploadModal() {
     zone.addEventListener('dragover', (e) => {
       e.preventDefault();
       zone.style.borderColor = 'var(--accent)';
-      zone.style.background = 'rgba(0,212,255,0.08)';
+      zone.style.background = 'rgba(255,92,31,0.08)';
     });
     zone.addEventListener('dragleave', () => {
       zone.style.borderColor = 'var(--border)';
@@ -155,12 +189,13 @@ function renderBulkUploadList() {
   catPanel.style.display = 'block';
   actionsEl.style.display = 'flex';
 
-  const statusIcon = { pending: '⏸', uploading: '⏳', done: '✓', error: '✕' };
+  const statusIcon = { pending: '⏸', uploading: '⏳', done: '✓', error: '✕', skipped: '⤼' };
   const statusColor = {
     pending: 'var(--text-muted)',
     uploading: 'var(--accent)',
     done: '#22c55e',
     error: '#ef4444',
+    skipped: '#f59e0b',
   };
   const fragment = document.createDocumentFragment();
   bulkUploadQueue.forEach(item => {
@@ -218,6 +253,29 @@ async function startBulkUpload() {
       const meta = format === 'pdf' ? await readPdfMetadata(item.file) : {};
       const title = meta.title || titleFromFilename(item.file.name);
 
+      // 0. Дубликаты не добавляем: ни тот же файл, ни ту же книгу под другим
+      // именем файла, ни повтор внутри одной пачки.
+      item.message = 'Проверка на дубликат...';
+      renderBulkUploadList();
+      const sha256 = await sha256OfFile(item.file);
+      const sameInBatch = bulkUploadQueue.find(other => other !== item && other.status === 'done'
+        && ((sha256 && other.sha256 === sha256) || other.titleKey === normalizeTitleKey(title)));
+      if (sameInBatch) {
+        item.status = 'skipped';
+        item.message = 'Пропущена: повтор файла «' + sameInBatch.file.name + '» в этой загрузке';
+        renderBulkUploadList();
+        continue;
+      }
+      const existing = await findExistingBook(sha256, title);
+      if (existing) {
+        item.status = 'skipped';
+        item.message = 'Пропущена. ' + duplicateMessage(existing);
+        renderBulkUploadList();
+        continue;
+      }
+      item.sha256 = sha256;
+      item.titleKey = normalizeTitleKey(title);
+
       // 1. Создаём книгу
       const created = await api.books.create({
         title: title,
@@ -232,10 +290,22 @@ async function startBulkUpload() {
       item.message = 'Загрузка файла...';
       renderBulkUploadList();
 
-      if (format === 'epub') {
-        await api.books.uploadEpub(created.id, item.file);
-      } else {
-        await api.books.uploadPdf(created.id, item.file);
+      try {
+        if (format === 'epub') await api.books.uploadEpub(created.id, item.file);
+        else await api.books.uploadPdf(created.id, item.file);
+      } catch (uploadErr) {
+        // Сервер нашёл такой же файл у другой книги — убираем только что
+        // созданную пустую карточку, чтобы дубликат не остался в каталоге.
+        if (uploadErr && uploadErr.status === 409) {
+          try { await api.books.delete(created.id); } catch (_) { /* карточка без файла — не критично */ }
+          item.status = 'skipped';
+          item.message = 'Пропущена. ' + String(uploadErr.detail || 'Такая книга уже есть');
+          renderBulkUploadList();
+          continue;
+        }
+        throw uploadErr;
+      }
+      if (format !== 'epub') {
         // Автообложка из первой страницы PDF
         item.message = 'Создание обложки...';
         renderBulkUploadList();
@@ -269,7 +339,10 @@ async function startBulkUpload() {
 
   const done = bulkUploadQueue.filter(i => i.status === 'done').length;
   const errors = bulkUploadQueue.filter(i => i.status === 'error').length;
-  showToast(`Создано книг: ${done}` + (errors ? ` · Ошибок: ${errors}` : ''));
+  const skipped = bulkUploadQueue.filter(i => i.status === 'skipped').length;
+  showToast(`Создано книг: ${done}`
+    + (skipped ? ` · Дубликатов пропущено: ${skipped}` : '')
+    + (errors ? ` · Ошибок: ${errors}` : ''));
 
   // Обновляем каталог
   await loadBooksFromApi();

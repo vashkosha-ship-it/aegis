@@ -136,7 +136,8 @@ async function renderReviews() {
     </div>
   ` : '<div data-static-style="a227">Войдите, чтобы оставить отзыв</div>';
 
-  replaceWithAppMarkup(container, reviewsHtml + formHtml);
+  // Форма сверху — так же, как во вкладке «Обсуждение».
+  replaceWithAppMarkup(container, formHtml + reviewsHtml);
 
   if (myReview) reviewRating = myReview.rating;
   else reviewRating = 0;

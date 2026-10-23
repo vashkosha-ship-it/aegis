@@ -61,7 +61,7 @@ assert.doesNotMatch(readerSource, /\.innerHTML\s*=\s*loadingSpinnerHTML/);
     document: userDom.window.document,
     currentBookId: 7,
     getAnnotations: async () => [{ id: 1 }],
-    ICONS: { bookmark: '<svg viewBox="0 0 1 1"></svg>' },
+    ICONS: { bookmark: '<svg viewBox="0 0 1 1"></svg>', note: '<svg viewBox="0 0 1 1"></svg>' },
     appendTrustedIcon: container => container.appendChild(userDom.window.document.createElementNS('http://www.w3.org/2000/svg', 'svg')),
     showListSkeleton: () => {},
     console,
@@ -78,7 +78,7 @@ assert.doesNotMatch(readerSource, /\.innerHTML\s*=\s*loadingSpinnerHTML/);
   userContext.getAnnotations = async () => [];
   await userContext.renderDetailNotes();
   const empty = userDom.window.document.querySelector('#detailTabNotes .mylist-empty');
-  assert.equal(empty.textContent, 'Нет заметок');
+  assert.match(empty.textContent, /^Заметок пока нет/);
   assert.equal(empty.querySelector('svg').localName, 'svg');
   assert.doesNotMatch(userSource, /m\.innerHTML\s*=\s*`<div data-static-style="a234"/);
   console.log('Static UI DOM tests passed');

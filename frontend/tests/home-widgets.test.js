@@ -39,6 +39,7 @@ const state = {
   readingProgress: {},
 };
 const context = {
+  hasRating: book => Number(book && book.rating) > 0,
   replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   dynamicStyleToken: captureDynamicStyle,

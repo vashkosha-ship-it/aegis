@@ -132,8 +132,8 @@
 
   .sidebar-item.active {
     color: var(--accent);
-    background: rgba(0, 212, 255, 0.08);
-    border-color: rgba(0, 212, 255, 0.2);
+    background: rgba(var(--accent-rgb), 0.08);
+    border-color: rgba(var(--accent-rgb), 0.2);
   }
 
   .sidebar-item .item-label {
@@ -878,7 +878,7 @@
 
   .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 19px rgba(0, 212, 255, 0.4);
+    box-shadow: 0 5px 19px rgba(var(--accent-rgb), 0.4);
   }
 }
 
@@ -1282,7 +1282,7 @@
   .sidebar-logo-text { font-size: 16px !important; }
 
   /* Хедер-иконки */
-  .header-icon-btn { width: 32px !important; height: 32px !important; }
+  .header-icon-btn { min-width: 32px !important; height: 32px !important; }
   .header-icon-btn svg { width: 16px !important; height: 16px !important; }
   .header-avatar { width: 32px !important; height: 32px !important; font-size: 12px !important; }
 }
@@ -1354,7 +1354,7 @@
   body:has(#onboardingScreen.active) #app { margin-left: 0 !important; }
 
   /* Хедер */
-  .header-icon-btn { width: 35px !important; height: 35px !important; border-radius: 9px !important; }
+  .header-icon-btn { min-width: 35px !important; height: 35px !important; border-radius: 9px !important; }
   .header-icon-btn svg { width: 17px !important; height: 17px !important; }
   .header-avatar { width: 35px !important; height: 35px !important; font-size: 13px !important; }
   #badgeHome { font-size: 9px !important; padding: 4px 8px !important; }
@@ -1399,8 +1399,8 @@
 /* Фон контейнера схемы — глубокий, с виньеткой и сеткой */
 #arSchemeRoot {
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.10), transparent 55%),
-    radial-gradient(ellipse at 50% 100%, rgba(124,58,237,0.12), transparent 55%),
+    radial-gradient(ellipse at 50% 0%, rgba(var(--accent-rgb),0.10), transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(var(--accent-deep-rgb),0.12), transparent 55%),
     rgba(5,8,15,0.55) !important;
 }
 
@@ -1410,8 +1410,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,212,255,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,255,0.05) 1px, transparent 1px);
+    linear-gradient(rgba(var(--accent-rgb),0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb),0.05) 1px, transparent 1px);
   background-size: 44px 44px;
   pointer-events: none;
   z-index: 0;
@@ -1431,8 +1431,8 @@
   box-shadow:
     0 8px 28px rgba(0,0,0,0.5),
     inset 0 1px 0 rgba(255,255,255,0.12),
-    0 0 0 1px rgba(0,212,255,0.1),
-    0 0 24px rgba(0,212,255,0.18) !important;
+    0 0 0 1px rgba(var(--accent-rgb),0.1),
+    0 0 24px rgba(var(--accent-rgb),0.18) !important;
   backdrop-filter: blur(14px) !important;
 }
 
@@ -1441,7 +1441,7 @@
   position: absolute;
   inset: -2px;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent, rgba(0,212,255,0.6), transparent 40%);
+  background: conic-gradient(from 0deg, transparent, rgba(var(--accent-rgb),0.6), transparent 40%);
   opacity: 0;
   transition: opacity 0.3s;
   animation: arRingSpin 3s linear infinite;
@@ -1457,7 +1457,7 @@
   box-shadow:
     0 12px 40px rgba(0,0,0,0.6),
     inset 0 1px 0 rgba(255,255,255,0.2),
-    0 0 40px rgba(0,212,255,0.5) !important;
+    0 0 40px rgba(var(--accent-rgb),0.5) !important;
   border-color: var(--accent) !important;
   z-index: 10 !important;
 }
@@ -1468,25 +1468,25 @@
 
 /* Цифра в ноде — градиентная */
 .ar-killchain-node > div:first-child {
-  background: linear-gradient(135deg, #5ce0ff, #a855f7);
+  background: linear-gradient(135deg, var(--accent-light), #a855f7);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 20px rgba(0,212,255,0.4);
+  text-shadow: 0 0 20px rgba(var(--accent-rgb),0.4);
 }
 
 /* ── Соединительные линии — анимированный «поток энергии» ── */
 .ar-flow-line {
   position: relative;
   overflow: visible;
-  background: linear-gradient(90deg, rgba(0,212,255,0.25), rgba(124,58,237,0.25)) !important;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb),0.25), rgba(var(--accent-deep-rgb),0.25)) !important;
 }
 
 .ar-flow-line::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
   background-size: 200% 100%;
   animation: arFlowPulse 1.8s linear infinite;
 }
@@ -1497,7 +1497,7 @@
 
 /* Вертикальный вариант потока */
 .ar-flow-line.vertical::after {
-  background: linear-gradient(180deg, transparent, #00d4ff, transparent);
+  background: linear-gradient(180deg, transparent, var(--accent), transparent);
   background-size: 100% 200%;
   animation: arFlowPulseV 1.8s linear infinite;
 }
@@ -1528,7 +1528,7 @@
 
 #arSchemeRoot button[id^="arNode"]:hover {
   transform: translateY(-4px) scale(1.02) !important;
-  box-shadow: 0 14px 40px rgba(0,0,0,0.55), 0 0 30px rgba(0,212,255,0.2) !important;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.55), 0 0 30px rgba(var(--accent-rgb),0.2) !important;
   z-index: 5 !important;
 }
 
@@ -1537,13 +1537,13 @@
 /* Контролы зума — стильнее */
 #arSchemeRoot button[onclick^="zoomARScheme"],
 #arSchemeRoot button[onclick^="resetARSchemeZoom"] {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 20px rgba(0,212,255,0.15) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 20px rgba(var(--accent-rgb),0.15) !important;
   transition: transform 0.2s, box-shadow 0.2s !important;
 }
 #arSchemeRoot button[onclick^="zoomARScheme"]:hover,
 #arSchemeRoot button[onclick^="resetARSchemeZoom"]:hover {
   transform: scale(1.12) !important;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 0 30px rgba(0,212,255,0.35) !important;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 0 30px rgba(var(--accent-rgb),0.35) !important;
 }
 
 /* На ПК все AR-элементы крупнее */

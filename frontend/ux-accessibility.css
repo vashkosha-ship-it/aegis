@@ -1,8 +1,8 @@
 /* Shared interaction hierarchy and readable minimums. Loaded after legacy CSS. */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: 3px solid #67e8f9;
+  outline: 3px solid var(--accent-light);
   outline-offset: 3px;
-  box-shadow: 0 0 0 5px rgba(34, 211, 238, .2);
+  box-shadow: 0 0 0 5px rgba(var(--accent-rgb), .2);
 }
 
 :where(button, .btn, [role="button"]) {
@@ -14,7 +14,7 @@
   color: #fff;
   border: 0;
   background: var(--accent-gradient);
-  box-shadow: 0 8px 22px rgba(0, 212, 255, .2);
+  box-shadow: 0 8px 22px rgba(var(--accent-rgb), .2);
 }
 .btn-secondary,
 .button-secondary {

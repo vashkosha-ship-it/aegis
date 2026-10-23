@@ -132,7 +132,7 @@ async function renderSkillsRadar() {
   if (_skillsRadarChart) { _skillsRadarChart.destroy(); _skillsRadarChart = null; }
 
   const styles = getComputedStyle(document.documentElement);
-  const accent = (styles.getPropertyValue('--accent') || '#00d4ff').trim();
+  const accent = (styles.getPropertyValue('--accent') || '#ff5c1f').trim();
   const textMuted = (styles.getPropertyValue('--text-muted') || '#8a93a6').trim();
   const border = (styles.getPropertyValue('--border') || 'rgba(255,255,255,0.1)').trim();
 
@@ -144,7 +144,7 @@ async function renderSkillsRadar() {
         label: 'Уровень знаний',
         data,
         fill: true,
-        backgroundColor: 'rgba(0,212,255,0.18)',
+        backgroundColor: 'rgba(255,92,31,0.18)',
         borderColor: accent,
         borderWidth: 2,
         pointBackgroundColor: accent,
