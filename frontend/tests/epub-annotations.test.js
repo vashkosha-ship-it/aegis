@@ -22,6 +22,7 @@ const openedBooks = [];
 const timers = [];
 const state = { currentBook: { id: 5 } };
 const context = {
+  accentRgba: (alpha = 1) => `rgba(255, 92, 31, ${alpha})`,
   window: dom.window,
   document: dom.window.document,
   state,

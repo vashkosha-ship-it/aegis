@@ -25,6 +25,10 @@ const sheet = {
 };
 Object.defineProperty(dom.window.document, 'styleSheets', { value: [sheet] });
 const context = {
+  accentRgba: (alpha = 1) => `rgba(255, 92, 31, ${alpha})`,
+  getAppAccent: () => 'orange',
+  setAppAccent: accent => { context.__accent = accent; },
+  APP_ACCENTS: [{ id: 'orange', label: 'Оранжевый', swatch: '#ff5c1f' }, { id: 'blue', label: 'Синий', swatch: '#2f7bff' }],
   document: dom.window.document,
   Node: dom.window.Node,
   URL,
@@ -57,7 +61,13 @@ assert.equal(content.querySelectorAll('.bg-count-btn').length, 5);
 assert.equal(content.querySelectorAll('.bg-period-btn').length, 3);
 assert.equal(content.querySelectorAll('[data-onclick], [data-args]').length, 0);
 assert.ok(content.querySelectorAll('[data-dynamic-style]').length >= 20);
-assert.equal(content.querySelectorAll('button').length, 23);
+// 23 прежних кнопки + по одной на каждый цвет акцента (в тесте их два).
+assert.equal(content.querySelectorAll('button').length, 25);
+const accentButtons = content.querySelectorAll('.accent-choice');
+assert.equal(accentButtons.length, 2);
+assert.equal(accentButtons[0].getAttribute('aria-checked'), 'true');
+accentButtons[1].click();
+assert.equal(context.__accent, 'blue');
 assert.ok(rules.length >= 10);
 
 const fragment = source.slice(

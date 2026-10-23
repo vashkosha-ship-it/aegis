@@ -120,7 +120,7 @@ function applyEpubHighlight(cfiRange, isNote = false) {
   // Используем встроенный механизм аннотаций epubjs
   if (!epubRendition) return;
   try {
-    const color = isNote ? 'rgba(255, 92, 31, 0.35)' : 'rgba(251, 191, 36, 0.35)';
+    const color = isNote ? accentRgba(0.35) : 'rgba(251, 191, 36, 0.35)';
     epubRendition.annotations.highlight(
       cfiRange,
       {},

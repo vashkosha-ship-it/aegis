@@ -128,7 +128,7 @@ function openBulkUploadModal() {
     zone.addEventListener('dragover', (e) => {
       e.preventDefault();
       zone.style.borderColor = 'var(--accent)';
-      zone.style.background = 'rgba(255,92,31,0.08)';
+      zone.style.background = 'rgba(var(--accent-rgb),0.08)';
     });
     zone.addEventListener('dragleave', () => {
       zone.style.borderColor = 'var(--border)';

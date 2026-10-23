@@ -34,6 +34,7 @@ function createContext() {
   };
   const selectedStages = [];
   const context = {
+    accentRgba: (alpha = 1) => `rgba(255, 92, 31, ${alpha})`,
     document: dom.window.document,
     AR_IR: { stages: [stage] },
     AR_OWASP: { stages: [stage] },
