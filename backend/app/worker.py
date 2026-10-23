@@ -28,6 +28,7 @@ from app.models.description_job import DescriptionGenerationJob
 from app.models.exam_session import ExamSession
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
+from app.services.book_autofill import autofill_book
 from app.services.book_descriptions import (
     generate_book_description,
     load_book_content_excerpt,
@@ -152,13 +153,31 @@ async def _index_one(book_id: int) -> int:
             raise
 
 
+async def _autofill_after_indexing(book_id: int) -> list[str]:
+    """Дозаполнить название, автора, темы и описание по тексту книги.
+
+    Сбой модели не делает индексацию неуспешной: текст уже в индексе, а
+    карточку админ может поправить вручную.
+    """
+    try:
+        async with AsyncSessionLocal() as db:
+            changed = await autofill_book(db, book_id)
+    except Exception:  # noqa: BLE001 — автозаполнение не должно ронять задачу
+        logger.exception("Автозаполнение карточки книги %s не удалось", book_id)
+        return []
+    if changed:
+        logger.info("Карточка книги %s заполнена автоматически: %s", book_id, ", ".join(changed))
+    return changed
+
+
 async def index_book(ctx: dict, book_id: int) -> dict:
-    """Задача: проиндексировать одну книгу."""
+    """Задача: проиндексировать одну книгу и дозаполнить её карточку."""
     async with _measure_job(ctx, "index_book"):
         logger.info("Индексация книги %s — старт", book_id)
         sections = await _index_one(book_id)
         logger.info("Индексация книги %s — готово, секций: %d", book_id, sections)
-        return {"book_id": book_id, "indexed_pages": sections}
+        autofilled = await _autofill_after_indexing(book_id) if sections else []
+        return {"book_id": book_id, "indexed_pages": sections, "autofilled": autofilled}
 
 
 async def index_all_books(ctx: dict) -> dict:

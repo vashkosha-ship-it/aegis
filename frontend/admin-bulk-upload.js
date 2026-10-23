@@ -251,7 +251,10 @@ async function startBulkUpload() {
       }
 
       item.status = 'done';
-      item.message = 'Создана';
+      // Название, автор, темы и описание дозаполняет воркер после индексации.
+      item.message = meta.title && meta.author
+        ? 'Создана · описание появится после индексации'
+        : 'Создана · карточка заполнится после индексации';
     } catch (e) {
       item.status = 'error';
       item.message = 'Ошибка: ' + String(e.detail || e.message || 'Неизвестная ошибка').slice(0, 120);
