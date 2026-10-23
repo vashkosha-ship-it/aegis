@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Aegis — центр знаний кибербезопасности</title>
   <meta name="description" content="Aegis — библиотека кибербезопасности. Читай, обучайся, проходи тесты и защищай цифровые рубежи.">
-  <meta name="theme-color" content="#0a0e17">
+  <meta name="theme-color" content="#0b0b0c">
   <link rel="icon" type="image/png" href="/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
@@ -55,8 +55,8 @@
         <span class="item-label">Главная</span>
       </button>
       <button type="button" class="sidebar-item" data-screen="mylist" data-onclick="navigateTo('mylist')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
-        <span class="item-label">Закладки</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><polyline points="3 6 4.5 7.5 7 5"/><polyline points="3 12 4.5 13.5 7 11"/><polyline points="3 18 4.5 19.5 7 17"/></svg>
+        <span class="item-label">Мой список</span>
       </button>
       <button type="button" class="sidebar-item" data-screen="training" data-onclick="navigateTo('training')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10L12 3L2 10L12 17L22 10Z"/><path d="M6 12V17C6 18.5 8.7 20 12 20C15.3 20 18 18.5 18 17V12"/></svg>
@@ -185,17 +185,21 @@
       <div class="header-actions">
         <span class="hidden static-style-005" id="badgeHome">ADMIN</span>
         <div class="header-buttons-group">
-          <button class="header-icon-btn static-style-006" id="btnOpenAssistant" data-onclick="navigateTo('assistant')" title="AI-ассистент">
+          <button class="header-icon-btn header-btn-ai" id="btnOpenAssistant" data-onclick="navigateTo('assistant')" title="AI-ассистент" aria-label="AI-ассистент">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+            <span class="header-btn-label">Ассистент</span>
           </button>
-          <button class="header-icon-btn btn-shortcuts-icon" data-onclick="openShortcutsModal()" title="Горячие клавиши">
+          <button class="header-icon-btn btn-shortcuts-icon" data-onclick="openShortcutsModal()" title="Горячие клавиши" aria-label="Горячие клавиши">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7H17A2 2 0 0 1 19 9V17A2 2 0 0 1 17 19H7A2 2 0 0 1 5 17V9A2 2 0 0 1 7 7H9"/><rect x="10" y="2" width="4" height="6" rx="2"/><line x1="12" y1="13" x2="12" y2="16"/></svg>
+            <span class="header-btn-label">Клавиши</span>
           </button>
-          <button class="header-icon-btn btn-admin-icon hidden" id="btnAdminGo" data-onclick="navigateTo('admin')">
+          <button class="header-icon-btn btn-admin-icon hidden" id="btnAdminGo" data-onclick="navigateTo('admin')" title="Админ-панель" aria-label="Админ-панель">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
+            <span class="header-btn-label">Админка</span>
           </button>
-          <button class="header-icon-btn btn-ar-icon" data-onclick="openARSchemeMenu()">
+          <button class="header-icon-btn btn-ar-icon" data-onclick="openARSchemeMenu()" title="Схемы атак" aria-label="Схемы атак">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2A14 14 0 0 0 12 22"/><path d="M2 12H22"/></svg>
+            <span class="header-btn-label">Схемы атак</span>
           </button>
         </div>
       </div>
@@ -812,9 +816,9 @@
     </button>
     <button type="button" class="nav-item" data-screen="mylist" data-onclick="navigateTo('mylist')">
       <span class="nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><polyline points="3 6 4.5 7.5 7 5"/><polyline points="3 12 4.5 13.5 7 11"/><polyline points="3 18 4.5 19.5 7 17"/></svg>
       </span>
-      <span class="nav-label">Закладки</span>
+      <span class="nav-label">Список</span>
     </button>
     <button type="button" class="nav-item" data-screen="training" data-onclick="navigateTo('training')">
       <span class="nav-icon">

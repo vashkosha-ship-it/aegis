@@ -108,10 +108,15 @@ function renderAdminBookRows(tbody, books) {
     appendAdminCell(row, String(book.file_format || 'pdf').toUpperCase());
     appendAdminIndexStatusCell(row, book);
     const rating = document.createElement('td');
-    appendTrustedIcon(rating, ICONS.star);
-    rating.appendChild(document.createTextNode(String(book.rating ?? '')));
+    if (hasRating(book)) {
+      appendTrustedIcon(rating, ICONS.star);
+      rating.appendChild(document.createTextNode(String(book.rating)));
+    } else {
+      rating.textContent = '—';
+    }
     row.appendChild(rating);
     const actions = document.createElement('td');
+    actions.className = 'admin-book-actions';
     const analytics = document.createElement('button');
     analytics.type = 'button';
     analytics.className = 'btn-sm';
@@ -147,14 +152,15 @@ function renderAdminBooks() {
         <div data-static-style="a543">Всего книг:</div>
         <div id="adminBooksCount" data-static-style="a544"></div>
       </div>
-      <button id="adminBulkUploadBtn" data-static-style="a545">Массовая загрузка</button>
-      <button id="adminReindexBtn" title="Переиндексировать текст всех книг для поиска" data-static-style="a546">Индексировать поиск</button>
-      <button id="adminLogsBtn" title="Журнал действий администраторов" data-static-style="a547">Журнал</button>
-      <button id="adminStorageAuditBtn" title="Проверить файлы книг, обложек и аватаров" data-static-style="a547">Хранилище</button>
-      <button id="adminCoversBtn" title="Создать обложки для книг без обложки" data-static-style="a547">Обложки</button>
-      <button id="adminDescriptionsBtn" title="Создать ИИ-описания для книг без описания" data-static-style="a547">ИИ-описания</button>
-      <button id="adminArMatchBtn" title="ИИ подберёт книги к темам AR-схем" data-static-style="a548">Подобрать книги для AR</button>
-      <button id="adminRegenerateQuizzesBtn" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)" data-static-style="a549">Перегенерировать тесты</button>
+      <button id="adminBulkUploadBtn" class="admin-tool admin-tool--primary">Массовая загрузка</button>
+      <button id="adminDuplicatesBtn" class="admin-tool" title="Найти одинаковые книги (тот же файл или название) и удалить копии">Дубликаты</button>
+      <button id="adminReindexBtn" class="admin-tool" title="Переиндексировать текст всех книг для поиска">Индексировать поиск</button>
+      <button id="adminCoversBtn" class="admin-tool" title="Создать обложки для книг без обложки">Обложки</button>
+      <button id="adminDescriptionsBtn" class="admin-tool" title="Создать ИИ-описания для книг без описания">ИИ-описания</button>
+      <button id="adminArMatchBtn" class="admin-tool" title="ИИ подберёт книги к темам схем атак">Книги для схем</button>
+      <button id="adminRegenerateQuizzesBtn" class="admin-tool" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)">Перегенерировать тесты</button>
+      <button id="adminStorageAuditBtn" class="admin-tool admin-tool--quiet" title="Проверить файлы книг, обложек и аватаров">Хранилище</button>
+      <button id="adminLogsBtn" class="admin-tool admin-tool--quiet" title="Журнал действий администраторов">Журнал</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -163,6 +169,7 @@ function renderAdminBooks() {
       </table>
     </div>`);
   document.getElementById('adminBulkUploadBtn').addEventListener('click', openBulkUploadModal);
+  document.getElementById('adminDuplicatesBtn').addEventListener('click', openDuplicatesDialog);
   document.getElementById('adminReindexBtn').addEventListener('click', reindexAllBooksUI);
   document.getElementById('adminLogsBtn').addEventListener('click', openAdminLogs);
   document.getElementById('adminStorageAuditBtn').addEventListener('click', auditStorageUI);
@@ -207,9 +214,75 @@ async function auditStorageUI() {
     showToast(error && error.detail ? error.detail : 'Не удалось проверить хранилище');
   }
 }
+// ========== ДУБЛИКАТЫ ==========
+// Оригинал — самая ранняя книга группы, остальные предлагаем удалить.
+// Удаление необратимо, поэтому каждое — отдельным подтверждением.
+async function openDuplicatesDialog() {
+  let groups;
+  try {
+    groups = await api.books.duplicates();
+  } catch (error) {
+    showToast(error && error.detail ? error.detail : 'Не удалось найти дубликаты');
+    return;
+  }
+  if (!groups.length) {
+    showToast('Дубликатов нет');
+    return;
+  }
+  const { overlay, panel } = createDialogShell('duplicatesModal', `Дубликаты: ${groups.length}`);
+  const close = () => overlay.remove();
+  bindDialogClose(overlay, close);
+
+  const hint = document.createElement('p');
+  hint.className = 'app-dialog-message';
+  hint.textContent = 'Одинаковый файл или название. Первая книга в группе — оригинал, копии можно удалить.';
+  panel.appendChild(hint);
+
+  const list = document.createElement('div');
+  list.className = 'duplicates-list';
+  groups.forEach(group => {
+    const box = document.createElement('div');
+    box.className = 'duplicates-group';
+    group.books.forEach((book, index) => {
+      const row = document.createElement('div');
+      row.className = 'duplicates-row';
+      const label = document.createElement('div');
+      label.className = 'duplicates-title';
+      label.textContent = `#${book.id} · ${book.title} — ${book.author}`;
+      row.appendChild(label);
+      if (index === 0) {
+        const tag = document.createElement('span');
+        tag.className = 'duplicates-tag';
+        tag.textContent = 'оригинал';
+        row.appendChild(tag);
+      } else {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'admin-tool admin-tool--danger';
+        remove.textContent = 'Удалить копию';
+        remove.addEventListener('click', () => {
+          close();
+          deleteBook(book.id, { afterDelete: openDuplicatesDialog });
+        });
+        row.appendChild(remove);
+      }
+      box.appendChild(row);
+    });
+    list.appendChild(box);
+  });
+  panel.appendChild(list);
+
+  const actions = document.createElement('div');
+  actions.className = 'app-dialog-actions';
+  const closeButton = createDialogButton('duplicatesCloseBtn', 'Закрыть', 'app-dialog-button app-dialog-button--cancel');
+  closeButton.addEventListener('click', close);
+  actions.appendChild(closeButton);
+  panel.appendChild(actions);
+}
+
 // ========== МАССОВАЯ ЗАГРУЗКА КНИГ ==========
 
-async function deleteBook(id) {
+async function deleteBook(id, { afterDelete } = {}) {
   const book = state.books.find(b => b.id === id);
   const title = book ? book.title : `книгу #${id}`;
   if (!confirm(`Удалить «${title}»? Это действие необратимо.`)) return;
@@ -220,6 +293,7 @@ async function deleteBook(id) {
     renderAdminPanel();
     renderHome();
     showToast('Книга удалена');
+    if (typeof afterDelete === 'function') afterDelete();
   } catch (err) {
     showToast('Ошибка при удалении книги');
     console.error(err);

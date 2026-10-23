@@ -144,13 +144,13 @@ function renderNistScheme() {
   }, { staticStyle: 'a032' });
   svg.appendChild(_arSvgElement('circle', {
     cx, cy, r: rInner - 6,
-    fill: 'rgba(0,212,255,0.06)',
-    stroke: 'rgba(0,212,255,0.4)',
+    fill: 'rgba(255,92,31,0.06)',
+    stroke: 'rgba(255,92,31,0.4)',
     'stroke-width': 1.5,
   }));
   svg.appendChild(_arSvgElement('text', {
     x: cx, y: cy - 6, 'text-anchor': 'middle',
-    fill: '#00d4ff', 'font-size': 20, 'font-weight': 800,
+    fill: '#ff5c1f', 'font-size': 20, 'font-weight': 800,
   }, { staticStyle: 'a033', text: 'NIST' }));
   svg.appendChild(_arSvgElement('text', {
     x: cx, y: cy + 14, 'text-anchor': 'middle',
@@ -164,7 +164,7 @@ function renderNistScheme() {
     const rotation = end * 180 / Math.PI + 90;
     arrows.appendChild(_arSvgElement('text', {
       x, y, 'text-anchor': 'middle',
-      fill: 'rgba(0,212,255,0.6)', 'font-size': 12,
+      fill: 'rgba(255,92,31,0.6)', 'font-size': 12,
       transform: `rotate(${rotation} ${x} ${y})`,
     }, { staticStyle: 'a027', text: '▶' }));
   });
@@ -737,12 +737,12 @@ function renderKillChainScheme() {
     if (index > 0) {
       nodes.appendChild(_arDetailNode('div', {
         className: 'ar-chain-link' + (isVertical ? ' vertical' : ''),
-        dynamicStyle: dynamicStyleToken`width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(0,212,255,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(0,212,255,0.2),inset 0 0 4px rgba(0,0,0,0.4);`,
+        dynamicStyle: dynamicStyleToken`width:${isVertical ? '16px' : '28px'};height:${isVertical ? '28px' : '16px'};border:3px solid rgba(255,92,31,0.45);border-radius:50%;flex-shrink:0;margin:${isVertical ? '-6px 0' : '0 -6px'};box-shadow:0 0 8px rgba(255,92,31,0.2),inset 0 0 4px rgba(0,0,0,0.4);`,
       }));
     }
 
     const studied = isKillChainStageStudied(stage);
-    const borderColor = studied ? '#10b981' : 'rgba(0,212,255,0.5)';
+    const borderColor = studied ? '#10b981' : 'rgba(255,92,31,0.5)';
     const label = _arDetailNode('span', {
       className: 'killchain-node-label',
       dynamicStyle: dynamicStyleToken`font-size:${isVertical ? '26px' : '20px'};font-weight:800;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.6);`,
@@ -764,7 +764,7 @@ function renderKillChainScheme() {
     }, [
       marker,
       _arDetailNode('span', { className: 'ar-stage-copy' }, [
-        _arDetailNode('span', { className: 'ar-stage-kicker', text: `Этап ${stage.id} · ${stage.code}` }),
+        _arDetailNode('span', { className: 'ar-stage-kicker', text: `Этап ${stage.id} · ${stage.name}` }),
         _arDetailNode('span', { className: 'ar-stage-name', staticStyle: 'a072', text: stage.nameRu }),
         _arDetailNode('span', { className: 'ar-stage-action', text: 'Открыть разбор' }),
       ]),

@@ -1,6 +1,7 @@
 """Book endpoints: catalog, files (PDF/EPUB/cover) and indexing."""
 
 import asyncio
+import hashlib
 import logging
 from datetime import UTC, datetime
 from typing import Literal
@@ -47,6 +48,10 @@ from app.schemas.book import (
     BookListResponse,
     BookPublic,
     BookUpdate,
+    DuplicateBookRef,
+    DuplicateCheckRequest,
+    DuplicateCheckResult,
+    DuplicateGroup,
 )
 from app.services import books as books_service
 from app.services.admin_audit import log_admin_action
@@ -480,6 +485,72 @@ async def list_categories(db: AsyncSession = Depends(get_db)) -> list[str]:
 
 
 # ============================================================================
+# Дубликаты
+# ============================================================================
+
+
+async def _reject_duplicate_file(
+    db: AsyncSession,
+    storage: StorageBackend,
+    book: Book,
+    new_key: str,
+    file_sha256: str,
+) -> None:
+    """409, если точно такой же файл уже прикреплён к другой книге.
+
+    Только что записанный файл удаляем: книга остаётся без изменений.
+    """
+    duplicate = await books_service.find_book_by_hash(db, file_sha256, exclude_id=book.id)
+    if duplicate is None:
+        return
+    try:
+        await storage.delete(new_key)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to delete duplicate upload %s", new_key)
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=f"Эта книга уже есть в библиотеке: «{duplicate.title}» (#{duplicate.id})",
+        headers={"X-Duplicate-Of": str(duplicate.id)},
+    )
+
+
+def _duplicate_ref(book: Book) -> DuplicateBookRef:
+    return DuplicateBookRef(id=book.id, title=book.title, author=book.author)
+
+
+@router.post("/duplicates/check", response_model=DuplicateCheckResult)
+async def check_duplicate(
+    payload: DuplicateCheckRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> DuplicateCheckResult:
+    """Admin only: есть ли уже книга с таким файлом или названием.
+
+    Массовая загрузка спрашивает до создания карточки, чтобы не плодить
+    пустые записи.
+    """
+    if payload.sha256:
+        book = await books_service.find_book_by_hash(db, payload.sha256)
+        if book:
+            return DuplicateCheckResult(duplicate=True, reason="file", book=_duplicate_ref(book))
+    if payload.title:
+        book = await books_service.find_book_by_title(db, payload.title)
+        if book:
+            return DuplicateCheckResult(duplicate=True, reason="title", book=_duplicate_ref(book))
+    return DuplicateCheckResult(duplicate=False)
+
+
+@router.get("/duplicates/all", response_model=list[DuplicateGroup])
+async def list_duplicates(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> list[DuplicateGroup]:
+    """Admin only: группы уже загруженных дубликатов (по файлу или названию)."""
+    groups = await books_service.find_duplicate_groups(db)
+    return [DuplicateGroup(books=[_duplicate_ref(b) for b in group]) for group in groups]
+
+
+# ============================================================================
 # Этап 2: PDF
 # ============================================================================
 
@@ -512,18 +583,24 @@ async def upload_book_pdf(
     old_epub_key = book.epub_storage_key
     new_key = StorageBackend.make_key("books/pdf", ".pdf")
 
-    # 3) Пишем стримом с лимитом по размеру.
+    # 3) Пишем стримом с лимитом по размеру, попутно считая SHA-256.
+    hasher = hashlib.sha256()
     try:
         size = await storage.save_stream(
             new_key,
-            books_service.stream_upload_remainder(file, head),
+            books_service.hash_stream(
+                books_service.stream_upload_remainder(file, head), hasher
+            ),
             max_bytes=settings.MAX_PDF_SIZE_BYTES,
         )
     except StorageError as e:
         # Сюда попадаем при превышении лимита; save_stream уже подчистил .part-файл.
         raise HTTPException(status_code=413, detail=str(e)) from None
+    file_sha256 = hasher.hexdigest()
+    await _reject_duplicate_file(db, storage, book, new_key, file_sha256)
 
     # 4) Обновляем запись в БД.
+    book.file_sha256 = file_sha256
     book.pdf_storage_key = new_key
     book.epub_storage_key = None
     book.file_format = "pdf"
@@ -593,15 +670,21 @@ async def upload_book_epub(
     old_pdf_key = book.pdf_storage_key
     old_epub_key = book.epub_storage_key
     new_key = StorageBackend.make_key("books/epub", ".epub")
+    hasher = hashlib.sha256()
     try:
         size = await storage.save_stream(
             new_key,
-            books_service.stream_upload_remainder(file, b""),
+            books_service.hash_stream(
+                books_service.stream_upload_remainder(file, b""), hasher
+            ),
             max_bytes=settings.MAX_EPUB_SIZE_BYTES,
         )
     except StorageError as exc:
         raise HTTPException(status_code=413, detail=str(exc)) from None
+    file_sha256 = hasher.hexdigest()
+    await _reject_duplicate_file(db, storage, book, new_key, file_sha256)
 
+    book.file_sha256 = file_sha256
     book.pdf_storage_key = None
     book.epub_storage_key = new_key
     book.file_format = "epub"

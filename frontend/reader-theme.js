@@ -33,7 +33,7 @@ function applyReaderTheme(theme) {
           'color': '#e0e0e0 !important',
         },
         'a': {
-          'color': '#00d4ff !important',
+          'color': '#ff5c1f !important',
         },
       });
       epubRendition.themes.register('aegis-light', {

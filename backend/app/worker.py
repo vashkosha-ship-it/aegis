@@ -9,6 +9,8 @@
 """
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -88,6 +90,19 @@ async def _measure_job(ctx: dict, job_name: str):
                 logger.exception("Не удалось записать метрики задачи %s", job_name)
 
 
+def _sha256_of_file(path: str) -> str | None:
+    """SHA-256 файла; None, если прочитать не удалось (индексации не мешает)."""
+    digest = hashlib.sha256()
+    try:
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError:
+        logger.warning("Не удалось посчитать хеш файла %s", path)
+        return None
+    return digest.hexdigest()
+
+
 async def _index_one(book_id: int) -> int:
     """Скачать активный файл книги и построить полнотекстовый индекс."""
     storage = get_storage()
@@ -123,6 +138,9 @@ async def _index_one(book_id: int) -> int:
 
             path = await spool_to_tempfile(chunks, suffix=suffix)
             try:
+                # Книги, загруженные до появления проверки дубликатов, получают
+                # хеш при первой же индексации — так их находит «Дубликаты».
+                file_sha256 = await asyncio.to_thread(_sha256_of_file, path)
                 sections = await indexer(db, book_id, path)
             finally:
                 try:
@@ -138,6 +156,8 @@ async def _index_one(book_id: int) -> int:
                 book.indexing_finished_at = finished_at
                 book.indexed_at = finished_at
                 book.indexed_sections = sections
+                if file_sha256 and not getattr(book, "file_sha256", None):
+                    book.file_sha256 = file_sha256
                 await db.commit()
             return sections
         except Exception as exc:

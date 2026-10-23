@@ -1,6 +1,12 @@
 // Book adaptation, library loading, home screen and book details.
 // Loaded as a classic script before app.js; public handlers intentionally remain global.
 
+// Пока у книги нет ни одной оценки, рейтинг «0.0» выглядит как плохая
+// оценка. Показываем его только если он есть.
+function hasRating(book) {
+  return Number(book && book.rating) > 0;
+}
+
 function adaptBookFromApi(b) {
   // Определяем наличие файла по всем возможным полям
   const hasPdf = b.has_pdf === true || b.has_pdf === 'true' || b.has_pdf === 1;
@@ -293,13 +299,16 @@ function renderBookInfo() {
   }
 
   const info = _libraryNode('div', 'detail-info');
+  const rating = hasRating(book)
+    ? _libraryIconText(ICONS.star, book.rating)
+    : _libraryNode('div', '', 'Оценок пока нет');
+  rating.className = 'detail-rating';
   info.append(
     _libraryNode('div', 'detail-title', book.title),
     _libraryNode('div', 'detail-author', book.author),
-    _libraryIconText(ICONS.star, book.rating),
+    rating,
     _libraryNode('div', 'detail-category', `${bookCategoriesText(book)} • ${formatLabel}`),
   );
-  info.children[2].className = 'detail-rating';
 
   if (isAdmin) {
     const stats = _libraryNode('div', 'admin-book-stats');

@@ -5,15 +5,15 @@
 
 /* Затемнённый фон с лёгким блюром */
 #arSchemeMenuModal {
-  background: radial-gradient(ellipse at top, rgba(124,58,237,0.18), rgba(0,0,0,0.92)) !important;
+  background: radial-gradient(ellipse at top, rgba(var(--accent-deep-rgb),0.18), rgba(0,0,0,0.92)) !important;
   backdrop-filter: blur(8px);
 }
 
 /* Контейнер меню */
 #arSchemeMenuModal > div {
   background: linear-gradient(160deg, #161b28, #0f1320) !important;
-  border: 1px solid rgba(124,58,237,0.25) !important;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(0,212,255,0.08) !important;
+  border: 1px solid rgba(var(--accent-deep-rgb),0.25) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(var(--accent-rgb),0.08) !important;
   max-width: 560px !important;
 }
 
@@ -45,16 +45,16 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at left center, rgba(0,212,255,0.12), transparent 60%);
+  background: radial-gradient(circle at left center, rgba(var(--accent-rgb),0.12), transparent 60%);
   opacity: 0;
   transition: opacity 0.3s;
   pointer-events: none;
 }
 
 .ar-menu-btn:hover {
-  border-color: rgba(0,212,255,0.4) !important;
+  border-color: rgba(var(--accent-rgb),0.4) !important;
   transform: translateY(-3px) scale(1.01);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 24px rgba(0,212,255,0.12) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 24px rgba(var(--accent-rgb),0.12) !important;
 }
 
 .ar-menu-btn:hover::before { width: 6px; }
@@ -111,8 +111,8 @@
 
 /* Подсказка снизу */
 #arSchemeMenuModal > div > div:last-child {
-  background: linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.06)) !important;
-  border: 1px solid rgba(124,58,237,0.15);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb),0.06), rgba(var(--accent-deep-rgb),0.06)) !important;
+  border: 1px solid rgba(var(--accent-deep-rgb),0.15);
   border-radius: 14px !important;
   font-size: 12.5px !important;
 }

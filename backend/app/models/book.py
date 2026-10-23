@@ -83,6 +83,10 @@ class Book(Base):
         String(8), default="pdf", nullable=False, server_default="pdf"
     )
     cover_storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # SHA-256 активного файла книги. По нему не даём загрузить ту же книгу
+    # второй раз. Не unique: в старых данных дубликаты уже есть, их удаляет
+    # администратор через «Дубликаты» в админке.
+    file_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     total_pages: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Постоянное состояние полнотекстового индекса. ARQ хранит результат задачи

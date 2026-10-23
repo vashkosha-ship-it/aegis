@@ -66,4 +66,13 @@ for (const category of used) {
 assert.ok(!used.has('Управление безопасности данных'));
 assert.ok(!used.has('Практический менеджмент и GRC (Управление, риск, соответствие)'));
 
+// Дубликаты в пачке массовой загрузки сравниваются по нормализованному названию.
+const keyContext = {};
+vm.createContext(keyContext);
+vm.runInContext(extract(bulk, /function normalizeTitleKey[\s\S]*?\n}\n/), keyContext);
+assert.equal(keyContext.normalizeTitleKey('  Ёжик, в тумане! '), 'ежик в тумане');
+assert.equal(keyContext.normalizeTitleKey('SQL — Курс'), keyContext.normalizeTitleKey('sql курс'));
+assert.match(bulk, /item\.status = 'skipped'/);
+assert.match(bulk, /uploadErr\.status === 409/);
+
 console.log('Book metadata helper tests passed');
