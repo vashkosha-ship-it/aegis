@@ -318,14 +318,14 @@ function showZoomIndicator(percent) {
     transform: translate(-50%, -50%);
     background: rgba(0,0,0,0.85);
     backdrop-filter: blur(12px);
-    color: #ff5c1f;
+    color: var(--accent);
     font-size: 16px; font-weight: 700;
     padding: 10px 20px;
     border-radius: 48px;
     z-index: 100; pointer-events: none;
     font-family: 'JetBrains Mono', monospace;
     display: inline-flex; align-items: center;
-    border: 1px solid rgba(255,92,31,0.3);
+    border: 1px solid rgba(var(--accent-rgb),0.3);
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     animation: zoomFadeOut 0.8s forwards;
   `;

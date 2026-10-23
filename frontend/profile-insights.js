@@ -144,7 +144,7 @@ async function renderSkillsRadar() {
         label: 'Уровень знаний',
         data,
         fill: true,
-        backgroundColor: 'rgba(255,92,31,0.18)',
+        backgroundColor: accentRgba(0.18),
         borderColor: accent,
         borderWidth: 2,
         pointBackgroundColor: accent,

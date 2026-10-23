@@ -37,6 +37,7 @@ const state = {
   heatmapData: null,
 };
 const context = {
+  accentRgba: (alpha = 1) => `rgba(255, 92, 31, ${alpha})`,
   replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
   document: dom.window.document,
   appendTrustedIcon: (container, markup) => {

@@ -18,6 +18,7 @@ const selected = [];
 const toasts = [];
 const warnings = [];
 const context = {
+  accentRgba: (alpha = 1) => `rgba(255, 92, 31, ${alpha})`,
   document: dom.window.document,
   localStorage: dom.window.localStorage,
   ICONS: { theme: '<svg id="theme-icon"></svg>' },

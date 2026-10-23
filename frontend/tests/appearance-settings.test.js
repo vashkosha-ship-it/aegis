@@ -14,6 +14,7 @@ const swSource = fs.readFileSync(path.join(frontendDir, 'sw.js'), 'utf8');
 const stored = new Map([
   ['aegis_app_theme', 'light'],
   ['aegis_grid_size', '4'],
+  ['aegis_app_accent', 'violet'],
 ]);
 const cssProperties = new Map();
 const attributes = new Map();
@@ -55,6 +56,15 @@ vm.runInContext(source, context);
 
 assert.equal(cssProperties.get('--books-grid-columns'), '4');
 assert.equal(attributes.get('data-theme'), 'light');
+// Сохранённый цвет акцента применяется при запуске, неизвестный — сбрасывается на оранжевый.
+assert.equal(attributes.get('data-accent'), 'violet');
+context.applyAppAccent('pink');
+assert.equal(attributes.get('data-accent'), 'orange');
+assert.equal(stored.get('aegis_app_accent'), 'orange');
+context.setAppAccent('green');
+assert.equal(attributes.get('data-accent'), 'green');
+assert.match(toasts.pop(), /зелёный/);
+assert.equal(context.accentRgba(0.5), 'rgba(255, 92, 31, 0.5)');
 assert.equal(lightButton.classList.contains('active'), true);
 assert.equal(darkButton.classList.contains('active'), false);
 

@@ -58,6 +58,28 @@ function renderSettingsPersonalizationTab(c) {
     themeChoices.appendChild(button);
   });
 
+  const currentAccent = getAppAccent();
+  const accentChoices = document.createElement('div');
+  accentChoices.className = 'accent-choices';
+  accentChoices.setAttribute('role', 'radiogroup');
+  accentChoices.setAttribute('aria-label', 'Цвет акцента');
+  APP_ACCENTS.forEach(accent => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'accent-choice' + (currentAccent === accent.id ? ' active' : '');
+    button.setAttribute('role', 'radio');
+    button.setAttribute('aria-checked', String(currentAccent === accent.id));
+    const swatch = document.createElement('span');
+    swatch.className = 'accent-swatch';
+    swatch.setAttribute('data-dynamic-style', dynamicStyleToken`background:${accent.swatch};`);
+    button.append(swatch, document.createTextNode(accent.label));
+    button.addEventListener('click', () => {
+      setAppAccent(accent.id);
+      renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
+    });
+    accentChoices.appendChild(button);
+  });
+
   const gridChoices = _accountNode('div', 'a407');
   [2, 3, 4].forEach(count => {
     gridChoices.appendChild(
@@ -177,6 +199,7 @@ function renderSettingsPersonalizationTab(c) {
   c.replaceChildren(
     _accountNode('h3', 'a350', 'Персонализация'),
     createRow('Тема приложения', themeChoices),
+    createRow('Цвет акцента', accentChoices, 'Кнопки, подписи и подсветка во всём приложении'),
     createRow('Карточек книг в ряд', gridChoices),
     createRow('Предпросмотр', preview, 'Изменения применяются ко всему каталогу'),
     createRow('Цель чтения (страниц в день)', readingGoalChoices, 'Цель отображается в профиле и тепловой карте'),
