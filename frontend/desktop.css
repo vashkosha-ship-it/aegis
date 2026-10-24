@@ -350,8 +350,8 @@
   }
 
   #detailScreen .detail-header .btn-back {
-    width: 31px !important;
-    height: 31px !important;
+    width: var(--touch-target, 31px) !important;
+    height: var(--touch-target, 31px) !important;
     font-size: 15px !important;
   }
 
@@ -1094,8 +1094,8 @@
   /* Кнопки действий в тулбаре — крупные */
   .reader-toolbar-actions .btn-nav-page:not(.reader-toolbar-secondary *),
   .reader-toolbar-actions .header-icon-btn {
-    width: 31px !important;
-    height: 31px !important;
+    width: var(--touch-target, 31px) !important;
+    height: var(--touch-target, 31px) !important;
     border-radius: 8px !important;
   }
 
@@ -1150,8 +1150,8 @@
   .reader-toolbar .btn-back,
   .reader-toolbar-actions .btn-nav-page:not(.reader-toolbar-secondary *),
   .reader-toolbar-actions .header-icon-btn {
-    width: 35px !important;
-    height: 35px !important;
+    width: var(--touch-target, 35px) !important;
+    height: var(--touch-target, 35px) !important;
   }
   .reader-toolbar-actions .btn-nav-page:not(.reader-toolbar-secondary *) svg,
   .reader-toolbar-actions .header-icon-btn svg {
@@ -1282,7 +1282,7 @@
   .sidebar-logo-text { font-size: 16px !important; }
 
   /* Хедер-иконки */
-  .header-icon-btn { min-width: 32px !important; height: 32px !important; }
+  .header-icon-btn { min-width: var(--touch-target, 32px) !important; height: var(--touch-target, 32px) !important; }
   .header-icon-btn svg { width: 16px !important; height: 16px !important; }
   .header-avatar { width: 32px !important; height: 32px !important; font-size: 12px !important; }
 }
@@ -1354,7 +1354,7 @@
   body:has(#onboardingScreen.active) #app { margin-left: 0 !important; }
 
   /* Хедер */
-  .header-icon-btn { min-width: 35px !important; height: 35px !important; border-radius: 9px !important; }
+  .header-icon-btn { min-width: var(--touch-target, 35px) !important; height: var(--touch-target, 35px) !important; border-radius: 9px !important; }
   .header-icon-btn svg { width: 17px !important; height: 17px !important; }
   .header-avatar { width: 35px !important; height: 35px !important; font-size: 13px !important; }
   #badgeHome { font-size: 9px !important; padding: 4px 8px !important; }

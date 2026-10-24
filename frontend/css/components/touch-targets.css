@@ -1,0 +1,17 @@
+/* Сенсорные экраны (телефон, планшет): кнопки не меньше 44px — минимум,
+   который рекомендуют Apple и WCAG для пальца. Размеры на десктопе заданы
+   форсированными правилами; они читают --touch-target, так что здесь
+   достаточно поменять переменную, а мышь продолжает видеть компактный вид. */
+@media (pointer: coarse) {
+  :root { --touch-target: 44px; }
+  .header-buttons-group .header-icon-btn { width: var(--touch-target); height: var(--touch-target); }
+  .book-card-remove { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+  .static-style-007 { width: 38px; height: 38px; right: 4px; }
+}
+
+/* На телефоне в шапке пять кнопок по 44px не помещаются рядом с бейджем
+   ADMIN — бейдж видит только администратор, на узком экране он лишний. */
+@media (max-width: 599.98px) {
+  #badgeHome { display: none; }
+  .header-buttons-group { gap: 6px; }
+}

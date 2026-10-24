@@ -386,6 +386,9 @@ async function submitVerifyCode() {
       topic_scores: user.topic_scores, level_assessed_at: user.level_assessed_at,
       department: user.department || null,
       is_approved: user.is_approved !== false,
+      ui_theme: user.ui_theme || null,
+      ui_accent: user.ui_accent || null,
+      appearance_onboarded: user.appearance_onboarded !== false,
     };
     await loadBooksFromApi();
     await loadMyListFromApi();
@@ -424,6 +427,9 @@ async function finishAuthenticatedLogin(password, username) {
     level_assessed_at: user.level_assessed_at,
     department: user.department || null,
     is_approved: user.is_approved !== false,
+    ui_theme: user.ui_theme || null,
+    ui_accent: user.ui_accent || null,
+    appearance_onboarded: user.appearance_onboarded !== false,
   };
   await loadBooksFromApi();
   await loadMyListFromApi();
@@ -577,6 +583,9 @@ async function tryAutoLogin() {
       profile_visibility: user.profile_visibility || 'public',
       department: user.department || null,
       is_approved: user.is_approved !== false,
+      ui_theme: user.ui_theme || null,
+      ui_accent: user.ui_accent || null,
+      appearance_onboarded: user.appearance_onboarded !== false,
     };
 
     await loadBooksFromApi();

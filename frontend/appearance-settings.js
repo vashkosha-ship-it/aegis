@@ -58,6 +58,7 @@ function applyAppAccent(accent) {
 
 function setAppAccent(accent) {
   applyAppAccent(accent);
+  if (typeof saveAccountAppearance === 'function') saveAccountAppearance();
   const item = APP_ACCENTS.find(entry => entry.id === accent);
   showToast(`Цвет: ${item ? item.label.toLowerCase() : 'оранжевый'}`);
 }
@@ -75,6 +76,7 @@ function accentRgba(alpha = 1) {
 
 function setAppTheme(theme) {
   applyAppTheme(theme);
+  if (typeof saveAccountAppearance === 'function') saveAccountAppearance();
   showToast(theme === 'light' ? 'Светлая тема' : 'Тёмная тема');
 }
 

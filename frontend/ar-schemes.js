@@ -50,11 +50,22 @@ async function openARWithScheme(schemeCode, initialStageId = null) {
   }
 }
 
+// Кнопка внизу AR: пока камера не работает — «Включить камеру» (нажатие —
+// это жест пользователя, после которого браузер честно покажет запрос
+// доступа), когда работает — «Сменить камеру».
+function updateARCameraButton() {
+  const label = document.getElementById('arCameraBtnLabel');
+  if (label) label.textContent = arActive ? 'Сменить камеру' : 'Включить камеру';
+  document.getElementById('arModal')?.classList.toggle('ar-camera-live', arActive);
+}
+
 async function startARCamera() {
   // Проверяем, поддерживается ли getUserMedia
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     console.warn('getUserMedia не поддерживается');
     showToast('Ваш браузер не поддерживает камеру, схема отображается на фоне');
+    showARCameraHelp('unsupported');
+    updateARCameraButton();
     return;
   }
 
@@ -75,8 +86,12 @@ async function startARCamera() {
       v.srcObject = arStream;
       await v.play();
       arActive = true;
+      document.getElementById('arModal')?.querySelector('.ar-camera-help')?.remove();
     }
+    updateARCameraButton();
   } catch (e) {
+    arActive = false;
+    updateARCameraButton();
     console.error('Ошибка доступа к камере:', e);
     let errorMsg = 'Нет доступа к камере. ';
     if (e.name === 'NotAllowedError') {
@@ -87,22 +102,33 @@ async function startARCamera() {
       errorMsg += 'Схема будет показана на тёмном фоне.';
     }
     showToast(errorMsg);
-    showARCameraHelp(e.name === 'NotAllowedError');
+    showARCameraHelp(e.name === 'NotAllowedError' ? 'denied' : (e.name === 'NotFoundError' ? 'missing' : 'failed'));
     // Не падаем — схема всё равно рендерится поверх чёрного фона
   }
 }
 
-function showARCameraHelp(permissionDenied) {
+const AR_CAMERA_HELP = {
+  denied: ['Доступ к камере запрещён', 'Разрешите камеру для этого сайта: нажмите на значок слева от адреса (или «аА» в Safari) → «Разрешения» / «Камера» → «Разрешить», затем нажмите «Включить камеру» внизу. На iPhone и iPad проверьте также Настройки → Safari → Камера. Схема работает и без камеры.'],
+  missing: ['Камера не найдена', 'На устройстве нет доступной камеры. Схема работает и без неё.'],
+  unsupported: ['Камера недоступна в этом браузере', 'Откройте сайт в Safari или Chrome по адресу https://. Схема работает и без камеры.'],
+  failed: ['Не удалось включить камеру', 'Возможно, камера занята другим приложением. Закройте его и нажмите «Включить камеру» внизу.'],
+};
+
+function showARCameraHelp(reason) {
   const modal = document.getElementById('arModal');
   if (!modal) return;
   modal.querySelector('.ar-camera-help')?.remove();
+  const [title, text] = AR_CAMERA_HELP[reason] || AR_CAMERA_HELP.failed;
   const help = document.createElement('div');
   help.className = 'ar-camera-help';
   help.setAttribute('role', 'status');
   help.append(
-    Object.assign(document.createElement('strong'), { textContent: permissionDenied ? 'Камера недоступна' : 'Камера не подключена' }),
-    Object.assign(document.createElement('span'), { textContent: permissionDenied ? 'Откройте Aegis в обычном браузере и разрешите камеру в настройках сайта. Схему можно продолжить смотреть без камеры.' : 'Схема продолжает работать без видеоподложки.' }),
+    Object.assign(document.createElement('strong'), { textContent: title }),
+    Object.assign(document.createElement('span'), { textContent: text }),
   );
+  // Карточка не должна навсегда закрывать схему: касание её убирает.
+  help.title = 'Нажмите, чтобы скрыть';
+  help.addEventListener('click', () => help.remove());
   modal.querySelector('.ar-container')?.appendChild(help);
 }
 function closeAR() {
@@ -118,6 +144,7 @@ function closeAR() {
   }
   
   arActive = false;
+  updateARCameraButton();
   arCurrentScheme = null;
   arSelectedStage = null;
   
@@ -165,6 +192,11 @@ function closeAR() {
 }
 
 async function switchARCamera() {
+  // Камера ещё не включена (не дали доступ, занята) — кнопка её включает.
+  if (!arActive) {
+    await startARCamera();
+    return;
+  }
   arFacingMode = arFacingMode === 'environment' ? 'user' : 'environment';
   // Останавливаем текущий поток
   if (arStream) {

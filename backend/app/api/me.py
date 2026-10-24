@@ -86,6 +86,13 @@ async def update_me(
     if payload.profile_visibility is not None:
         current.profile_visibility = payload.profile_visibility
 
+    if payload.ui_theme is not None:
+        current.ui_theme = payload.ui_theme
+    if payload.ui_accent is not None:
+        current.ui_accent = payload.ui_accent
+    if payload.appearance_onboarded:
+        current.appearance_onboarded = True
+
     await db.commit()
     await db.refresh(current)
     return UserPublic.model_validate(current)

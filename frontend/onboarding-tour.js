@@ -51,7 +51,12 @@ function maybeStartOnboardingTour() {
     return;
   }
   if (state.currentScreen !== 'home') return;
-  setTimeout(startOnboardingTour, 700);
+  // Сначала экран выбора оформления; тур запустится после его закрытия.
+  if (typeof isAppearanceOnboardingPending === 'function' && isAppearanceOnboardingPending()) return;
+  setTimeout(() => {
+    if (document.getElementById('appearanceOnboarding')) return;
+    startOnboardingTour();
+  }, 700);
 }
 
 function startOnboardingTour() {
