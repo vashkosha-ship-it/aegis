@@ -1630,7 +1630,7 @@
   }
 
   /* Контейнеры схем шире */
-  #killChainNodes { max-width: 467px !important; }
+  #killChainNodes { max-width: var(--ar-nodes-width, 467px) !important; }
 }
 
 @media (min-width: 1600px) {
