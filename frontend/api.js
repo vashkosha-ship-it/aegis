@@ -95,7 +95,7 @@
   }
 
   // --- базовый fetch с авторизацией и автообновлением токена ---------------
-  async function request(path, { method = 'GET', body, headers = {}, auth = true, raw = false } = {}) {
+  async function request(path, { method = 'GET', body, headers = {}, auth = true, raw = false, keepalive = false } = {}) {
     const url = path.startsWith('http') ? path : BASE + path;
     if (auth && path !== '/auth/refresh' && accessTokenNeedsRefresh(tokens.access)) {
       const refreshed = await tryRefresh();
@@ -104,7 +104,9 @@
       }
     }
     // credentials: cookie с refresh-токеном должна уходить на /auth/*
+    // keepalive — чтобы запрос дошёл, даже если вкладку закрывают.
     const opts = { method, headers: { ...headers }, credentials: 'include' };
+    if (keepalive) opts.keepalive = true;
 
     if (auth && tokens.access) {
       opts.headers['Authorization'] = 'Bearer ' + tokens.access;
@@ -542,6 +544,18 @@
 
       adminDashboard() {
         return request('/admin/dashboard');
+      },
+
+      adminAnalytics() {
+        return request('/admin/analytics');
+      },
+
+      adminUsage(days = 30) {
+        return request('/admin/usage?days=' + encodeURIComponent(days));
+      },
+
+      reportUsage(payload, { keepalive = false } = {}) {
+        return request('/me/usage', { method: 'POST', body: payload, keepalive });
       },
 
       adminBookAnalytics(bookId) {

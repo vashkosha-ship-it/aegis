@@ -432,7 +432,7 @@
 
   <!-- ======================== МОЙ СПИСОК ======================== -->
   <div id="mylistScreen" class="screen">
-    <div class="top-header">
+    <div class="top-header" data-title="Мой список">
       <div class="header-left">
         <div class="logo-sm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 21L12 16L5 21V5A2 2 0 0 1 7 3H17A2 2 0 0 1 19 5Z"/></svg>
@@ -456,7 +456,7 @@
 
   <!-- ======================== ОБУЧЕНИЕ ======================== -->
   <div id="trainingScreen" class="screen">
-    <div class="top-header">
+    <div class="top-header" data-title="Тестирование">
       <div class="header-left">
         <div class="logo-sm">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 10L12 3L2 10L12 17L22 10Z"/><path d="M6 12V17C6 18.5 8.7 20 12 20C15.3 20 18 18.5 18 17V12"/></svg>
@@ -613,20 +613,23 @@
       <div class="admin-tab-btn" data-atab="users">Пользователи</div>
       <div class="admin-tab-btn" data-atab="reviews">Отзывы</div>
       <div class="admin-tab-btn" data-atab="analytics">Аналитика</div>
+      <div class="admin-tab-btn" data-atab="usage">Использование</div>
       <div class="admin-tab-btn" data-atab="leaderboard">Лидеры</div>
     </div>
     <div id="adDashboard" class="admin-panel-section show"></div>
     <div id="adBooks" class="admin-panel-section"></div>
     <div id="adUsers" class="admin-panel-section"></div>
     <div id="adReviews" class="admin-panel-section"></div>
+    <div id="adUsage" class="admin-panel-section"></div>
     <div id="adAnalytics" class="admin-panel-section">
+      <p class="analytics-scope-note">Данные по всем читателям, без учёта администраторов.</p>
       <div class="analytics-charts">
         <div class="analytics-card">
-          <h4>Активность чтения (7 дней)</h4>
+          <h4>Активность чтения, страниц в день (7 дней)</h4>
           <canvas id="chartReadingActivity" width="400" height="200"></canvas>
         </div>
         <div class="analytics-card">
-          <h4>Топ книг по чтениям</h4>
+          <h4>Топ книг по числу читателей</h4>
           <canvas id="chartTopBooks" width="400" height="200"></canvas>
         </div>
         <div class="analytics-card">
@@ -1091,6 +1094,7 @@
 <script defer src="inline-handlers.js"></script>
 <script defer src="offline-storage.js"></script>
 <script defer src="api.js"></script>
+<script defer src="usage-tracker.js"></script>
 <script defer src="notes-crypto.js"></script>
 <script defer src="annotations-core.js"></script>
 <script defer src="annotations-ui.js"></script>

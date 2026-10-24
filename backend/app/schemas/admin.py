@@ -3,7 +3,7 @@
 Вынесено из app/api/admin.py: роутер отвечает за HTTP, схемы — за контракт
 данных. Так их видно из одного места и можно переиспользовать в сервисах.
 """
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -23,6 +23,37 @@ class DashboardStats(BaseModel):
     total_quiz_attempts: int
     total_views: int
     total_downloads: int
+
+
+class DailyActivityPoint(BaseModel):
+    date: date
+    pages: int
+
+
+class TopBookPoint(BaseModel):
+    book_id: int
+    title: str
+    readers: int
+
+
+class ReadingFunnel(BaseModel):
+    views: int
+    opened: int
+    reading: int
+    completed: int
+
+
+class LibraryAnalytics(BaseModel):
+    """Сводка по всем читателям, без администраторов.
+
+    Просмотры книг и раньше не учитывали администраторов (их заходы не
+    увеличивают Book.views), поэтому и остальные показатели считаются так же —
+    иначе шаги воронки несопоставимы.
+    """
+
+    activity: list[DailyActivityPoint]
+    top_books: list[TopBookPoint]
+    funnel: ReadingFunnel
 
 
 # ---------------------------------------------------------------------------

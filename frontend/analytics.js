@@ -9,6 +9,24 @@ function destroyAnalyticsCharts() {
   analyticsCharts = {};
 }
 
+// Пустой график без единой точки выглядит как сломанный — пишем словами.
+function markAnalyticsEmpty(canvasId, isEmpty, text) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  let note = canvas.parentElement.querySelector('.analytics-empty-note');
+  if (isEmpty) {
+    if (!note) {
+      note = document.createElement('p');
+      note.className = 'analytics-empty-note';
+      canvas.after(note);
+    }
+    note.textContent = text;
+  } else if (note) {
+    note.remove();
+  }
+  canvas.hidden = isEmpty;
+}
+
 async function renderAnalytics() {
   destroyAnalyticsCharts();
   populateAnalyticsBookSelector();
@@ -23,14 +41,26 @@ async function renderAnalytics() {
     return;
   }
 
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    days.push(d.toISOString().split('T')[0]);
+  // Данные по всем читателям считает сервер. Раньше графики строились из
+  // state текущего администратора: «активность» была его личной тепловой
+  // картой, а в воронке «открытия» превышали «просмотры».
+  let data;
+  try {
+    data = await api.library.adminAnalytics();
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось загрузить аналитику');
+    return;
   }
-  const activityData = days.map(day => {
-    return state.heatmapData?.find(d => d.date === day)?.pages || 0;
-  });
+  const days = data.activity.map(point => point.date);
+  const activityData = data.activity.map(point => point.pages);
+  const topBooks = data.top_books;
+  const { views: totalViews, opened: totalOpens, reading: totalReadings, completed: totalCompletions } = data.funnel;
+
+  markAnalyticsEmpty('chartReadingActivity', activityData.every(value => !value),
+    'За последнюю неделю читатели ещё не листали книги.');
+  markAnalyticsEmpty('chartTopBooks', topBooks.length === 0, 'Книги пока никто не начал читать.');
+  markAnalyticsEmpty('chartFunnel', !totalViews && !totalOpens, 'Пока нет просмотров и открытий книг.');
 
   const ctx1 = document.getElementById('chartReadingActivity')?.getContext('2d');
   if (ctx1) {
@@ -60,16 +90,15 @@ async function renderAnalytics() {
     });
   }
 
-  const topBooks = [...state.books].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
   const ctx2 = document.getElementById('chartTopBooks')?.getContext('2d');
   if (ctx2) {
     analyticsCharts.topBooks = new Chart(ctx2, {
       type: 'bar',
       data: {
-        labels: topBooks.map(b => b.title.substring(0, 20)),
+        labels: topBooks.map(b => b.title.length > 28 ? b.title.slice(0, 27) + '…' : b.title),
         datasets: [{
-          label: 'Просмотры',
-          data: topBooks.map(b => b.views || 0),
+          label: 'Читателей',
+          data: topBooks.map(b => b.readers),
           backgroundColor: topBooks.map((_, i) => {
             const alphas = [0.8, 0.65, 0.5, 0.35, 0.2];
             return accentRgba(alphas[i] || 0.15);
@@ -90,11 +119,6 @@ async function renderAnalytics() {
       }
     });
   }
-
-  const totalViews = state.books.reduce((s, b) => s + (b.views || 0), 0);
-  const totalOpens = Object.values(state.readingProgress).filter(p => p.started).length;
-  const totalReadings = Object.values(state.readingProgress).filter(p => p.started && p.currentPage > 5).length;
-  const totalCompletions = Object.values(state.mylist).filter(s => s === 'completed').length;
 
   const ctx3 = document.getElementById('chartFunnel')?.getContext('2d');
   if (ctx3) {
@@ -279,4 +303,146 @@ function onAnalyticsBookSelected() {
   if (!bookId) return;
   openBookAnalyticsModal(parseInt(bookId));
   sel.value = '';  // сброс, чтобы можно было открыть ту же книгу повторно
+}
+
+// ========== АДМИН: ИСПОЛЬЗОВАНИЕ ИНТЕРФЕЙСА ==========
+// Обезличенные счётчики: какие экраны открывают, что нажимают, какой цвет и
+// тему выбирают. Имена приходят идентификаторами из кода — переводим их.
+const USAGE_SCREEN_LABELS = {
+  home: 'Главная', mylist: 'Мой список', training: 'Тестирование', reader: 'Читалка',
+  profile: 'Профиль', settings: 'Настройки', admin: 'Админка', detail: 'Страница книги',
+  assistant: 'AI-ассистент', auth: 'Вход', onboarding: 'Тест уровня',
+};
+const USAGE_ACTION_LABELS = {
+  openBookDetail: 'Открыть книгу', openReader: 'Читать', toggleCatalogPanel: 'Каталог',
+  runFullTextSearch: 'Поиск по тексту книг', toggleAIPanel: 'ИИ в читалке',
+  sendAIMessage: 'Вопрос ИИ в читалке', sendAssistantMessage: 'Вопрос AI-ассистенту',
+  assistantQuick: 'Быстрые запросы ассистента', summarizeCurrentChapter: 'Краткое содержание главы',
+  togglePomodoro: 'Pomodoro', openTOC: 'Оглавление', toggleReaderSearch: 'Поиск в книге',
+  togglePageBookmark: 'Закладка на странице', openBookmarksList: 'Список закладок',
+  exportNotes: 'Экспорт заметок', toggleReaderTheme: 'Тема читалки',
+  startQuizFromTraining: 'Тест из списка', retakeQuiz: 'Пройти тест заново',
+  submitReview: 'Отзыв', submitComment: 'Комментарий в обсуждении',
+  openARSchemeMenu: 'Меню схем атак', openCertificationModal: 'Аттестация',
+  openCyberLevelModal: 'Уровень кибербезопасности', openShortcutsModal: 'Горячие клавиши',
+  removeBookOffline: 'Удалить офлайн-копию', setHomeBooksTab: 'Вкладки «Популярное / Все книги»',
+  resetFilters: 'Сброс фильтров', startNewChat: 'Новый диалог', openChatHistory: 'История диалогов',
+  'scheme:killchain': 'Схема: Cyber Kill Chain', 'scheme:owasp': 'Схема: OWASP Top 10',
+  'scheme:osi': 'Схема: модель OSI', 'scheme:mitre': 'Схема: MITRE ATT&CK',
+  'scheme:nist': 'Схема: NIST CSF', 'scheme:ir': 'Схема: реагирование на инциденты',
+  'scheme:did': 'Схема: эшелонированная защита', 'scheme:stride': 'Схема: STRIDE',
+};
+const USAGE_ACCENTS = {
+  orange: ['Оранжевый', '#ff5c1f'], blue: ['Синий', '#2f7bff'],
+  green: ['Зелёный', '#22c55e'], violet: ['Фиолетовый', '#8b5cf6'],
+};
+const USAGE_THEMES = { dark: ['Тёмная', '#3f3f46'], light: ['Светлая', '#e4e4e7'] };
+let usageCharts = {};
+let usageDays = 30;
+
+function _usageCard(title, canvasId) {
+  const card = document.createElement('div');
+  card.className = 'analytics-card';
+  const heading = document.createElement('h4');
+  heading.textContent = title;
+  const canvas = document.createElement('canvas');
+  canvas.id = canvasId;
+  canvas.width = 400;
+  canvas.height = 220;
+  card.append(heading, canvas);
+  return card;
+}
+
+function _usageBarChart(canvasId, labels, values, colors, horizontal) {
+  const ctx = document.getElementById(canvasId)?.getContext('2d');
+  if (!ctx) return null;
+  return new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: horizontal ? 'y' : 'x',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', precision: 0 } },
+        y: { beginAtZero: true, grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 11 }, precision: 0 } },
+      },
+    },
+  });
+}
+
+async function renderUsageStats(days = usageDays) {
+  usageDays = days;
+  const container = document.getElementById('adUsage');
+  if (!container) return;
+  Object.values(usageCharts).forEach(chart => { try { chart.destroy(); } catch (e) { /* уже удалён */ } });
+  usageCharts = {};
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'usage-toolbar';
+  const note = document.createElement('p');
+  note.className = 'analytics-scope-note';
+  note.textContent = 'Счётчики обезличены: видно, что нажимали, но не кто. Цвет и тема — по читателям без администраторов.';
+  const periods = document.createElement('div');
+  periods.className = 'usage-periods';
+  [[7, '7 дней'], [30, '30 дней'], [90, '90 дней']].forEach(([value, label]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'admin-tool' + (value === days ? ' admin-tool--primary' : '');
+    button.textContent = label;
+    button.addEventListener('click', () => renderUsageStats(value));
+    periods.appendChild(button);
+  });
+  toolbar.append(periods, note);
+
+  const grid = document.createElement('div');
+  grid.className = 'analytics-charts';
+  grid.append(
+    _usageCard('Экраны', 'chartUsageScreens'),
+    _usageCard('Кнопки и функции', 'chartUsageActions'),
+    _usageCard('Цвет оформления', 'chartUsageAccents'),
+    _usageCard('Тема', 'chartUsageThemes'),
+  );
+  container.replaceChildren(toolbar, grid);
+
+  let data;
+  try {
+    [data] = await Promise.all([api.library.adminUsage(days), ensureChartLoaded()]);
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось загрузить статистику использования');
+    return;
+  }
+
+  const accent = accentRgba(0.85);
+  const screens = data.screens;
+  const actions = data.actions;
+  markAnalyticsEmpty('chartUsageScreens', !screens.length, 'Пока нет данных: статистика начнёт копиться после выкладки.');
+  markAnalyticsEmpty('chartUsageActions', !actions.length, 'Пока нет данных о нажатиях.');
+  markAnalyticsEmpty('chartUsageAccents', !data.accents.length, 'Читатели ещё не заходили после выкладки.');
+  markAnalyticsEmpty('chartUsageThemes', !data.themes.length, 'Читатели ещё не заходили после выкладки.');
+
+  if (screens.length) {
+    usageCharts.screens = _usageBarChart('chartUsageScreens',
+      screens.map(item => USAGE_SCREEN_LABELS[item.name] || item.name),
+      screens.map(item => item.count), accent, true);
+  }
+  if (actions.length) {
+    usageCharts.actions = _usageBarChart('chartUsageActions',
+      actions.map(item => USAGE_ACTION_LABELS[item.name] || item.name),
+      actions.map(item => item.count), accent, true);
+  }
+  if (data.accents.length) {
+    usageCharts.accents = _usageBarChart('chartUsageAccents',
+      data.accents.map(item => (USAGE_ACCENTS[item.name] || [item.name])[0]),
+      data.accents.map(item => item.count),
+      data.accents.map(item => (USAGE_ACCENTS[item.name] || [null, accent])[1]), false);
+  }
+  if (data.themes.length) {
+    usageCharts.themes = _usageBarChart('chartUsageThemes',
+      data.themes.map(item => (USAGE_THEMES[item.name] || [item.name])[0]),
+      data.themes.map(item => item.count),
+      data.themes.map(item => (USAGE_THEMES[item.name] || [null, accent])[1]), false);
+  }
 }

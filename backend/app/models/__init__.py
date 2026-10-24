@@ -21,6 +21,7 @@ from app.models.library import (
 from app.models.quiz import QuizAttempt, QuizQuestion
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
+from app.models.usage import UsageCounter
 from app.models.user import User, UserRole
 
 __all__ = [
@@ -46,6 +47,7 @@ __all__ = [
     "QuizQuestion",
     "ReadingProgress",
     "Review",
+    "UsageCounter",
     "User",
     "UserAchievement",
     "UserRole",

@@ -221,6 +221,11 @@
 
     if (el.getAttribute('data-stop')) ev.stopPropagation();
 
+    // Обезличенный счётчик нажатий: только имя обработчика из разметки.
+    if (ev && ev.type === 'click' && typeof window.trackUsage === 'function') {
+      window.trackUsage('action', name);
+    }
+
     try {
       fn.apply(el, args);
     } catch (e) {

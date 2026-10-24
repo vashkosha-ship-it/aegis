@@ -20,9 +20,13 @@ assert.ok(secondary, 'secondary reader actions must have a menu');
 assert.equal(secondary.getAttribute('role'), 'menu');
 assert.equal(secondary.querySelectorAll('[role="menuitem"]').length, 6);
 
-assert.match(css, /@media \(max-width: 599\.98px\)/);
-assert.match(css, /\.reader-toolbar-secondary\.is-open/);
-assert.match(css, /grid-template-columns: repeat\(3, 38px\)/);
+// Меню «Ещё» работает на любой ширине, а пункты подписаны текстом из title.
+assert.doesNotMatch(css, /@media/);
+assert.match(css, /\.reader-toolbar-secondary\.is-open \{ display: flex; \}/);
+assert.match(css, /content: attr\(title\)/);
+secondary.querySelectorAll('[role="menuitem"]').forEach(item => {
+  assert.ok(item.getAttribute('title'), `${item.id} needs a title for its label`);
+});
 assert.match(lifecycle, /initReaderToolbarMenu\(\)/);
 assert.match(lifecycle, /aria-expanded/);
 assert.match(lifecycle, /e\.key === 'Escape'/);

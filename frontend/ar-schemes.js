@@ -19,6 +19,7 @@ function closeARSchemeMenu() {
 
 // Открытие AR-экрана с конкретной схемой
 async function openARWithScheme(schemeCode, initialStageId = null) {
+  if (typeof trackUsage === 'function') trackUsage('action', 'scheme:' + schemeCode);
   closeARSchemeMenu();
   arCurrentScheme = schemeCode;
   arActiveSchemeCode = AR_SCHEMES[schemeCode] ? schemeCode : 'killchain';
