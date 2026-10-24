@@ -29,3 +29,9 @@ assert.ok(
 );
 
 console.log('PWA app shell contract passed');
+
+// Собственные файлы приложения SW перепроверяет на сервере, а не берёт из
+// HTTP-кэша браузера: у CSS нет Cache-Control, и после выкладки в новый кэш
+// SW попадал старый detail-assistant.css.
+assert.match(worker, /fetch\(event\.request, \{ cache: 'no-cache' \}\)/);
+assert.match(worker, /fetch\(request, \{ cache: 'no-store' \}\)/);
