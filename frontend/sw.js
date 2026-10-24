@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v322';
+const CACHE_NAME = 'aegis-cache-v323';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -283,7 +283,11 @@ self.addEventListener('fetch', (event) => {
   // свежую версию из сети, а кэш используем только как офлайн-фолбэк.
   if (isSameOrigin) {
     event.respondWith(
-      fetch(event.request).then(async (response) => {
+      // cache: 'no-cache' — сверяемся с сервером (ETag → 304), а не берём
+      // файл из HTTP-кэша браузера. У CSS и шрифтов nginx не отдаёт
+      // Cache-Control, браузер считал их свежими «по эвристике», и после
+      // выкладки SW получал старый CSS и ещё записывал его в новый кэш.
+      fetch(event.request, { cache: 'no-cache' }).then(async (response) => {
         if (event.request.method !== 'GET') return response;
         const cache = await caches.open(CACHE_NAME);
         return cacheValidatedResponse(cache, event.request, response);
