@@ -388,11 +388,15 @@ async function submitVerifyCode() {
       is_approved: user.is_approved !== false,
     };
     await loadBooksFromApi();
-    await loadMyListFromApi();
-    await loadProgressFromApi();
-    await loadCompletedQuizzesFromApi();
-    await loadGamificationFromApi();
-    await loadOfflineBookIds();
+    // These resources are independent. Loading them in parallel removes the
+    // long serial waterfall visible on a cold start of the mobile app.
+    await Promise.allSettled([
+      loadMyListFromApi(),
+      loadProgressFromApi(),
+      loadCompletedQuizzesFromApi(),
+      loadGamificationFromApi(),
+      loadOfflineBookIds(),
+    ]);
     const ov = document.getElementById('verifyEmailOverlay');
     if (ov) ov.remove();
     pendingVerifyEmail = null;
@@ -426,11 +430,13 @@ async function finishAuthenticatedLogin(password, username) {
     is_approved: user.is_approved !== false,
   };
   await loadBooksFromApi();
-  await loadMyListFromApi();
-  await loadProgressFromApi();
-  await loadCompletedQuizzesFromApi();
-  await loadGamificationFromApi();
-  await loadOfflineBookIds();
+  await Promise.allSettled([
+    loadMyListFromApi(),
+    loadProgressFromApi(),
+    loadCompletedQuizzesFromApi(),
+    loadGamificationFromApi(),
+    loadOfflineBookIds(),
+  ]);
   maybeAutoPreload();
   saveState();
   document.getElementById('authForm').reset();
@@ -580,11 +586,13 @@ async function tryAutoLogin() {
     };
 
     await loadBooksFromApi();
-    await loadMyListFromApi();
-    await loadProgressFromApi();
-    await loadCompletedQuizzesFromApi();
-    await loadGamificationFromApi();
-    await loadOfflineBookIds();
+    await Promise.allSettled([
+      loadMyListFromApi(),
+      loadProgressFromApi(),
+      loadCompletedQuizzesFromApi(),
+      loadGamificationFromApi(),
+      loadOfflineBookIds(),
+    ]);
       maybeAutoPreload();
 
     saveState();
