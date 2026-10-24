@@ -422,9 +422,9 @@
 
       <!-- Низ: кнопка смены камеры -->
       <div class="static-style-035">
-        <button class="static-style-036" data-onclick="switchARCamera()">
+        <button class="static-style-036" data-onclick="switchARCamera()" id="arCameraBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4 23 10 17 10"/><path d="M1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          <span>Сменить камеру</span>
+          <span id="arCameraBtnLabel">Включить камеру</span>
         </button>
       </div>
     </div>
@@ -1122,6 +1122,7 @@
 <script defer src="keyboard-shortcuts.js"></script>
 <script defer src="pwa-install.js"></script>
 <script defer src="onboarding-tour.js"></script>
+<script defer src="appearance-onboarding.js"></script>
 <script defer src="analytics.js"></script>
 <script defer src="profile-insights.js"></script>
 <script defer src="profile-screen.js"></script>

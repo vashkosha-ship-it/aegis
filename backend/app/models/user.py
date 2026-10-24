@@ -29,6 +29,10 @@ class User(Base):
     # Оформление, выбранное в настройках (для статистики в админке).
     ui_theme: Mapped[str | None] = mapped_column(String(8), nullable=True)
     ui_accent: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # Экран выбора оформления при первом входе показан (выбрал или пропустил).
+    appearance_onboarded: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
 
     # Профиль (бывший userProfiles)
     full_name: Mapped[str | None] = mapped_column(String(128), nullable=True)

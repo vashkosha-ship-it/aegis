@@ -1,0 +1,180 @@
+/* Экран выбора оформления при первом входе (appearance-onboarding.js).
+   Цвета берутся из переменных темы, поэтому предпросмотр выбора живой:
+   нажали «Светлая» или «Синий» — весь экран тут же перекрасился. */
+.appearance-onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-critical);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(var(--accent-rgb), .18), transparent 45%),
+    var(--bg-primary);
+}
+.appearance-onboarding-panel {
+  width: min(100%, 520px);
+  margin: auto;
+  padding: 28px 24px 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+}
+.appearance-onboarding-kicker {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.appearance-onboarding-title {
+  margin: 8px 0 8px;
+  font-family: var(--font-display, inherit);
+  font-size: 26px;
+  line-height: 1.15;
+}
+.appearance-onboarding-lead {
+  margin: 0 0 22px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.appearance-onboarding-label {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.appearance-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.appearance-theme-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.appearance-theme-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .22);
+}
+.appearance-theme-preview {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  height: 78px;
+  padding: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.appearance-theme-preview--dark { background: #0b0b0c; border: 1px solid #262320; }
+.appearance-theme-preview--light { background: #f5f3f0; border: 1px solid #ddd6ce; }
+.appearance-preview-bar { width: 45%; height: 8px; border-radius: 4px; background: var(--accent); }
+.appearance-preview-line { width: 85%; height: 6px; border-radius: 3px; }
+.appearance-preview-line--short { width: 60%; }
+.appearance-theme-preview--dark .appearance-preview-line { background: #34302c; }
+.appearance-theme-preview--light .appearance-preview-line { background: #d9d2c9; }
+.appearance-preview-accent {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--accent-gradient, var(--accent));
+}
+.appearance-theme-copy { display: grid; gap: 2px; }
+.appearance-theme-copy strong { font-size: 15px; }
+.appearance-theme-copy span { color: var(--text-secondary); font-size: 12px; }
+
+.appearance-accent-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 26px;
+}
+.appearance-accent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 4px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.appearance-accent[aria-checked="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .22);
+}
+.appearance-accent-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .25);
+}
+.appearance-accent-name { font-size: 12px; }
+
+.appearance-onboarding-actions {
+  display: flex;
+  gap: 10px;
+}
+.appearance-onboarding-skip,
+.appearance-onboarding-done {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.appearance-onboarding-skip {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+}
+.appearance-onboarding-done {
+  flex: 1.4;
+  border: 0;
+  background: var(--accent-gradient, var(--accent));
+  color: #fff;
+}
+.appearance-theme-card:focus-visible,
+.appearance-accent:focus-visible,
+.appearance-onboarding-skip:focus-visible,
+.appearance-onboarding-done:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 599.98px) {
+  .appearance-onboarding { align-items: flex-start; }
+  .appearance-onboarding-panel { padding: 22px 16px 18px; }
+  .appearance-onboarding-title { font-size: 23px; }
+  .appearance-accent-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .appearance-accent { flex-direction: row; justify-content: flex-start; padding: 10px 12px; }
+  .appearance-accent-swatch { width: 24px; height: 24px; }
+}

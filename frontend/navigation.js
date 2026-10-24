@@ -106,6 +106,7 @@ function navigateTo(s) {
   if (s === 'reader') { ensureReaderHasBook(); }
   updateFabVisibility();
   _scheduleScreenScroll(s);
+  if (typeof onAppScreenShown === 'function') onAppScreenShown();
 }
 
 // Если пользователь зашёл в «Читаю», но ещё не открыл ни одной книги —

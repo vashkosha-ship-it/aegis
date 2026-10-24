@@ -74,6 +74,9 @@ class UserPublic(BaseModel):
     department: str | None = None
     profile_visibility: str = "public"
     is_approved: bool = True
+    ui_theme: str | None = None
+    ui_accent: str | None = None
+    appearance_onboarded: bool = True
 
     @classmethod
     def model_validate(cls, obj, *, strict=None, from_attributes=None, context=None):
@@ -94,6 +97,11 @@ class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
     profile_visibility: Literal["public", "private"] | None = None
+    # Оформление аккаунта: выбирается на экране первого входа и в настройках,
+    # применяется на всех устройствах пользователя.
+    ui_theme: Literal["dark", "light"] | None = None
+    ui_accent: Literal["orange", "blue", "green", "violet"] | None = None
+    appearance_onboarded: Literal[True] | None = None
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
