@@ -226,3 +226,17 @@ input, select, textarea { border-radius: 6px; }
 .accent-choice:hover { color: var(--text-primary); border-color: var(--text-muted); }
 .accent-choice.active { color: var(--text-primary); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .accent-swatch { width: 14px; height: 14px; border-radius: 3px; flex: 0 0 auto; }
+
+/* Заголовок экрана на десктопе (data-title у .top-header) — тем же шрифтом,
+   что и остальные заголовки. */
+.top-header::before { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+
+/* Список тестов: карточки — кнопки, текст в них по умолчанию по центру. */
+/* Карточка — <button> с иконкой, а глобальное button:has(svg) делает её
+   inline-flex по центру. Колонка с выравниванием по левому краю обходит это
+   без форсирования. */
+.training-card {
+  flex-direction: column; align-items: flex-start; gap: 6px;
+  width: 100%; text-align: left;
+}
+.training-card > * { align-self: flex-start; }

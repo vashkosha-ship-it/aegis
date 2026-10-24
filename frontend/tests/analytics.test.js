@@ -42,6 +42,12 @@ const bookAnalytics = {
   readers_started: 1, readers_completed: 0, avg_progress_pct: 25,
   readers: [], quiz_attempts: 0, quiz_passed: 0, quiz_avg_percentage: 0,
 };
+const libraryAnalytics = {
+  activity: ['2026-10-18', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24']
+    .map((date, index) => ({ date, pages: index === 6 ? 15 : 0 })),
+  top_books: [{ book_id: 7, title: '<Книга>', readers: 2 }],
+  funnel: { views: 12, opened: 3, reading: 2, completed: 1 },
+};
 const context = {
   accentRgba: (alpha = 1) => `rgba(255, 92, 31, ${alpha})`,
   replaceWithAppMarkup(target, markup) { target.innerHTML = markup; },
@@ -64,7 +70,10 @@ const context = {
   Chart: ChartStub,
   ensureChartLoaded: async () => { chartLoads.push(1); },
   showToast: message => toasts.push(message),
-  api: { library: { adminBookAnalytics: async () => bookAnalytics } },
+  api: { library: {
+    adminBookAnalytics: async () => bookAnalytics,
+    adminAnalytics: async () => libraryAnalytics,
+  } },
   state: {
     books: [{ id: 7, title: '<Книга>', views: 10 }],
     heatmapData: [], readingProgress: {}, mylist: {},
@@ -81,6 +90,11 @@ vm.runInContext(source, context);
   assert.equal(chartLoads.length, 1);
   // Удержание сервер не считает — вместо выдуманной кривой пустое состояние.
   assert.equal(charts.length, 3);
+  // Графики строятся из серверной сводки по всем читателям.
+  assert.deepEqual([...charts[0].config.data.datasets[0].data], [0, 0, 0, 0, 0, 0, 15]);
+  assert.deepEqual([...charts[1].config.data.datasets[0].data], [2]);
+  assert.deepEqual([...charts[2].config.data.datasets[0].data], [12, 3, 2, 1]);
+  assert.doesNotMatch(source, /state\.heatmapData|state\.readingProgress/);
   assert.equal(dom.window.document.getElementById('chartRetention').hidden, true);
   assert.match(dom.window.document.querySelector('.analytics-empty-note').textContent, /удержании пока нет/);
   assert.doesNotMatch(source, /\[100, 65, 48/);

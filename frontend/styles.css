@@ -489,6 +489,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   padding: 8px 12px;
   margin: 8px 0;
   background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236b7280' stroke-width='1.5'/%3E%3C/svg%3E");
+  /* Без этого в светлой теме стрелка повторялась по всему полю «зигзагом»:
+     правило [data-theme="light"] select задаёт фон шорткатом и сбрасывает
+     повтор и позицию. */
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
 }
 .detail-category { display: inline-block; padding: 3px 10px; border-radius: 12px; background: rgba(var(--accent-rgb),0.08); color: var(--accent); font-size: 10px; margin-bottom: 8px; border: 1px solid rgba(var(--accent-rgb),0.15); }
 .detail-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin: 8px 0; }
@@ -2101,6 +2107,10 @@ select[multiple] option:hover {
 /* Стрелка селекта — тёмная вместо серой для контраста */
 [data-theme="light"] select {
   background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23475569' stroke-width='1.5'/%3E%3C/svg%3E");
+  /* Шорткат background выше сбрасывает повтор — без этого стрелка
+     размножалась по всему полю «зигзагом». */
+  background-repeat: no-repeat;
+  background-position: right 12px center;
 }
 
 /* Заметки/тултипы и всплывашки на тёмном фоне внутри светлой темы оставляем
@@ -2253,7 +2263,7 @@ select[multiple] option:hover {
   .shortcuts-modal { max-width: 560px; }
 
   /* Тулбар читалки крупнее для тача */
-  .reader-toolbar .btn-nav-page,
+  .reader-toolbar .btn-nav-page:not(.reader-toolbar-secondary *),
   .reader-toolbar .header-icon-btn { width: 34px !important; height: 34px !important; }
   .reader-toolbar .book-name { font-size: 15px; }
 }
@@ -2550,9 +2560,9 @@ select[multiple] option:hover {
   .reader-toolbar .book-format-badge { font-size: 8px !important; padding: 4px 7px !important; }
   .reader-toolbar .page-indicator-top { font-size: 10px !important; }
   .reader-toolbar-actions { gap: 6px !important; }
-  .reader-toolbar-actions .btn-nav-page,
+  .reader-toolbar-actions .btn-nav-page:not(.reader-toolbar-secondary *),
   .reader-toolbar-actions .header-icon-btn { width: 27px !important; height: 27px !important; border-radius: 7px !important; }
-  .reader-toolbar-actions .btn-nav-page svg,
+  .reader-toolbar-actions .btn-nav-page:not(.reader-toolbar-secondary *) svg,
   .reader-toolbar-actions .header-icon-btn svg { width: 14px !important; height: 14px !important; }
   .reader-toolbar .book-name { font-size: 10px !important; }
   /* PDF: занимает почти всю доступную ширину, центрирован */
@@ -3905,3 +3915,6 @@ textarea.app-dialog-input {
 /* Ссылки внутри строки согласия — не крупные кнопки: без минимальной
    высоты для касания, иначе строки расползаются. */
 .auth-consent-field .auth-legal-link { min-height: 0; min-width: 0; line-height: inherit; vertical-align: baseline; }
+.analytics-scope-note { font-size: 12px; color: var(--text-muted); margin: 0 0 12px; }
+.usage-toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.usage-periods { display: flex; gap: 8px; flex-wrap: wrap; }

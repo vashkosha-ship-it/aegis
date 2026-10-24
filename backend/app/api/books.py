@@ -874,6 +874,9 @@ class MatchArTopicsRequest(_BaseModel):
     topics: list[str]
 
 
+AR_MATCH_MAX_TOPICS = 2
+
+
 @router.post("/ai-match-ar-topics")
 async def ai_match_ar_topics(
     request: Request,
@@ -920,15 +923,24 @@ async def ai_match_ar_topics(
             f"{topics_list}\n\n"
             "И список книг:\n"
             f"{books_block}\n\n"
-            "Для каждой книги определи, к каким из перечисленных тем она относится "
-            "(0, 1 или несколько — только из списка тем, точные формулировки). "
+            "Для каждой книги определи, к каким из перечисленных тем она относится. "
+            "Ставь тему, ТОЛЬКО если книга целиком или в значительной части "
+            "посвящена именно этой теме безопасности: атакам, защите, уязвимостям, "
+            "расследованию инцидентов, управлению рисками. Книги по языкам "
+            "программирования, фреймворкам, базам данных, DevOps, ML, математике, "
+            "гейм-дизайну и т. п. к темам безопасности НЕ относятся, даже если там "
+            "есть глава про безопасный код. Если сомневаешься — темы не ставь. "
+            "Используй только точные формулировки из списка тем.\n"
             "Верни СТРОГО JSON без markdown:\n"
-            '{"matches":[{"id":123,"topics":["Тема1","Тема2"]}]}'
+            '{"matches":[{"id":123,"topics":["Тема1"]}]}'
         )
         try:
             raw = await chat_completion(
                 [{"role": "user", "content": prompt}],
-                system_prompt="Ты классифицируешь книги по темам. Отвечаешь строго JSON.",
+                system_prompt=(
+                    "Ты строгий библиограф по кибербезопасности. Отмечаешь тему "
+                    "только у профильных книг. Отвечаешь строго JSON."
+                ),
                 max_tokens=2000,
                 timeout=120.0,
             )
@@ -957,7 +969,9 @@ async def ai_match_ar_topics(
             except (KeyError, TypeError, ValueError):
                 continue
             # оставляем только валидные темы из списка
-            matched_topics = [t for t in matched_topics if t in topics]
+            # Не больше двух тем на книгу: «всё про всё» — признак того, что
+            # модель отметила темы наугад.
+            matched_topics = [t for t in matched_topics if t in topics][:AR_MATCH_MAX_TOPICS]
             if not matched_topics:
                 continue
             book = by_id.get(bid)

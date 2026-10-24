@@ -35,6 +35,7 @@ from app.schemas.me import (
     PasswordChangeRequest,
     PublicProfile,
 )
+from app.schemas.usage import UsageReport
 from app.services.storage_integrity import commit_with_storage_cleanup
 
 logger = logging.getLogger(__name__)
@@ -488,3 +489,31 @@ async def get_public_profile(
         books_count=books_count,
         quizzes_passed=quizzes_passed,
     )
+
+
+# ============================================================================
+# POST /api/me/usage — обезличенная статистика использования интерфейса
+# ============================================================================
+
+
+@router.post("/me/usage", status_code=status.HTTP_204_NO_CONTENT)
+async def report_usage(
+    payload: UsageReport,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> None:
+    """Принять пачку счётчиков из браузера.
+
+    В базе остаются только суммы за день по имени экрана или действия —
+    без пользователя. Тема и цвет сохраняются в профиль: по ним в админке
+    строится распределение «сколько людей выбрали синий».
+    """
+    from app.services.usage import record_usage
+
+    await record_usage(db, payload.events)
+    if payload.prefs is not None:
+        if payload.prefs.theme is not None:
+            current.ui_theme = payload.prefs.theme
+        if payload.prefs.accent is not None:
+            current.ui_accent = payload.prefs.accent
+    await db.commit()

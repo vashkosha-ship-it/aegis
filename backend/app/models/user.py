@@ -26,6 +26,10 @@ class User(Base):
         SAEnum(UserRole, name="user_role"), default=UserRole.READER, nullable=False
     )
 
+    # Оформление, выбранное в настройках (для статистики в админке).
+    ui_theme: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    ui_accent: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
     # Профиль (бывший userProfiles)
     full_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)

@@ -63,6 +63,7 @@ function navigateTo(s) {
     return;
   }
   const previousScreen = state.currentScreen;
+  if (s !== previousScreen && typeof trackUsage === 'function') trackUsage('screen', s);
   if (SCREENS_WITH_RESTORED_SCROLL.has(previousScreen)) {
     _screenScrollPositions[previousScreen] = _currentPageScroll();
   }

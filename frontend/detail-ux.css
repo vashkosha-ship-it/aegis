@@ -9,7 +9,7 @@
   z-index: var(--z-sticky);
   min-height: 54px;
   padding: calc(10px + var(--safe-area-inset-top)) 0 10px;
-  background: linear-gradient(to bottom, var(--bg-primary) 76%, rgba(7, 11, 20, .92));
+  background: linear-gradient(to bottom, var(--bg-primary) 76%, color-mix(in srgb, var(--bg-primary) 92%, transparent));
   backdrop-filter: blur(18px);
 }
 

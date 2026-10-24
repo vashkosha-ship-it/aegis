@@ -1,7 +1,7 @@
 """Admin endpoints: dashboard stats, user management, book analytics."""
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -15,7 +15,13 @@ from app.core.storage import StorageBackend, StorageError, get_storage
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.description_job import DescriptionGenerationJob
-from app.models.library import MyListEntry, MyListStatus, ReadingProgress, Review
+from app.models.library import (
+    DailyPagesRead,
+    MyListEntry,
+    MyListStatus,
+    ReadingProgress,
+    Review,
+)
 from app.models.quiz import QuizAttempt
 from app.models.user import User, UserRole
 from app.schemas.admin import (
@@ -26,11 +32,13 @@ from app.schemas.admin import (
     DashboardStats,
     DescriptionGenerationJobView,
     DescriptionGenerationStart,
+    LibraryAnalytics,
     MyListBreakdown,
     PendingUserView,
     StorageAuditView,
     StorageCleanupView,
 )
+from app.schemas.usage import UsageStats
 from app.services import excel_export
 from app.services.admin_audit import log_admin_action
 from app.services.storage_integrity import audit_storage, delete_orphaned_storage
@@ -256,6 +264,91 @@ async def dashboard(
         total_views=total_views,
         total_downloads=total_downloads,
     )
+
+
+# Сколько страниц нужно перелистнуть, чтобы книга считалась «читаемой», а не
+# просто открытой. То же значение раньше использовал фронтенд.
+READING_PAGES_THRESHOLD = 5
+
+
+@router.get("/analytics", response_model=LibraryAnalytics)
+async def library_analytics(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> LibraryAnalytics:
+    """Графики вкладки «Аналитика» по всем читателям.
+
+    Раньше фронтенд рисовал их из состояния текущего администратора:
+    «активность» была его личной тепловой картой, а в воронке «открытия»
+    (его прогресс) превышали «просмотры» (все читатели).
+    """
+    readers = select(User.id).where(User.role != UserRole.ADMIN)
+
+    today = datetime.now(UTC).date()
+    start = today - timedelta(days=6)
+    rows = await db.execute(
+        select(DailyPagesRead.date, func.coalesce(func.sum(DailyPagesRead.pages), 0))
+        .where(DailyPagesRead.date >= start, DailyPagesRead.user_id.in_(readers))
+        .group_by(DailyPagesRead.date)
+    )
+    by_day = {day: int(pages) for day, pages in rows.all()}
+    activity = [
+        {"date": start + timedelta(days=offset), "pages": by_day.get(start + timedelta(days=offset), 0)}
+        for offset in range(7)
+    ]
+
+    started = and_(ReadingProgress.started.is_(True), ReadingProgress.user_id.in_(readers))
+    top_rows = await db.execute(
+        select(Book.id, Book.title, func.count(ReadingProgress.id).label("readers"))
+        .join(ReadingProgress, ReadingProgress.book_id == Book.id)
+        .where(started)
+        .group_by(Book.id, Book.title)
+        .order_by(func.count(ReadingProgress.id).desc(), Book.title)
+        .limit(5)
+    )
+    top_books = [
+        {"book_id": book_id, "title": title, "readers": int(count)}
+        for book_id, title, count in top_rows.all()
+    ]
+
+    views = (await db.scalar(select(func.coalesce(func.sum(Book.views), 0)))) or 0
+    opened = (await db.scalar(select(func.count(ReadingProgress.id)).where(started))) or 0
+    reading = (
+        await db.scalar(
+            select(func.count(ReadingProgress.id)).where(
+                started, ReadingProgress.current_page > READING_PAGES_THRESHOLD
+            )
+        )
+    ) or 0
+    completed = (
+        await db.scalar(
+            select(func.count(MyListEntry.id)).where(
+                MyListEntry.status == MyListStatus.COMPLETED,
+                MyListEntry.user_id.in_(readers),
+            )
+        )
+    ) or 0
+
+    return LibraryAnalytics(
+        activity=activity,
+        top_books=top_books,
+        funnel={"views": int(views), "opened": int(opened), "reading": int(reading), "completed": int(completed)},
+    )
+
+
+@router.get("/usage", response_model=UsageStats)
+async def usage(
+    days: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> UsageStats:
+    """Какие экраны открывают и что нажимают; какой цвет и тему выбирают.
+
+    Счётчики обезличены; распределение цветов и тем — без администраторов.
+    """
+    from app.services.usage import usage_stats
+
+    return UsageStats(**(await usage_stats(db, days)))
 
 
 @router.get("/users", response_model=list[AdminUserView])

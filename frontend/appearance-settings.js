@@ -30,6 +30,7 @@ function getAppTheme() {
 function applyAppTheme(theme) {
   if (theme !== 'light') theme = 'dark';
   document.documentElement.setAttribute('data-theme', theme);
+  if (typeof markUiPrefsChanged === 'function') markUiPrefsChanged();
   localStorage.setItem(APP_THEME_KEY, theme);
 
   const btnDark = document.getElementById('appThemeBtnDark');
@@ -49,6 +50,7 @@ function getAppAccent() {
 function applyAppAccent(accent) {
   if (!APP_ACCENTS.some(item => item.id === accent)) accent = 'orange';
   document.documentElement.setAttribute('data-accent', accent);
+  if (typeof markUiPrefsChanged === 'function') markUiPrefsChanged();
   try { localStorage.setItem(APP_ACCENT_KEY, accent); } catch (_) { /* хранилище недоступно */ }
   const meta = document.querySelector && document.querySelector('meta[name="theme-color"]');
   if (meta && getAppTheme() === 'dark') meta.setAttribute('content', '#0b0b0c');
