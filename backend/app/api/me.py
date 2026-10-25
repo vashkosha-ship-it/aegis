@@ -1,10 +1,9 @@
 """User self-service endpoints: edit own profile, manage avatar."""
 import logging
-from collections.abc import AsyncIterator
 from datetime import UTC
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -12,20 +11,16 @@ from app.api.deps import (
     get_current_user_any,
     get_current_user_optional,
 )
-from app.core.file_validation import (
-    FileValidationError,
-    detect_cover_ext,
-)
+from app.core.avatars import preset_path
 from app.core.rate_limit import email_send_limiter, otp_attempt_limiter
 from app.core.security import hash_new_password, hash_otp, verify_otp, verify_password
 from app.core.storage import (
     StorageBackend,
-    StorageError,
     StorageNotFound,
     get_storage,
 )
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.auth import UserPublic, UserUpdate
 from app.schemas.me import (
     AccountDeleteRequest,
@@ -36,28 +31,9 @@ from app.schemas.me import (
     PublicProfile,
 )
 from app.schemas.usage import UsageReport
-from app.services.storage_integrity import commit_with_storage_cleanup
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["me"])
-
-# Лимит для аватара. Аватары — небольшие, 2 МБ за глаза.
-_MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
-_MAGIC_HEAD_BYTES = 16
-
-
-async def _stream_remainder(
-    file: UploadFile, head: bytes, chunk_size: int = 1024 * 1024
-) -> AsyncIterator[bytes]:
-    """Отдать сначала уже прочитанный head, потом дочитать поток до конца."""
-    if head:
-        yield head
-    while True:
-        chunk = await file.read(chunk_size)
-        if not chunk:
-            break
-        yield chunk
-
 
 # ============================================================================
 # PATCH /api/me — изменение полей профиля
@@ -69,6 +45,7 @@ async def update_me(
     payload: UserUpdate,
     current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
 ) -> UserPublic:
     """Изменить отображаемое имя и подразделение в профиле.
 
@@ -93,8 +70,19 @@ async def update_me(
     if payload.appearance_onboarded:
         current.appearance_onboarded = True
 
+    # Выбор аватара из набора заменяет ранее загруженное фото.
+    old_upload = None
+    if payload.avatar_preset is not None:
+        current.avatar_preset = payload.avatar_preset
+        old_upload, current.avatar_url = current.avatar_url, None
+
     await db.commit()
     await db.refresh(current)
+    if old_upload:
+        try:
+            await storage.delete(old_upload)
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to delete old avatar %s for user %s", old_upload, current.id)
     return UserPublic.model_validate(current)
 
 # ============================================================================
@@ -248,6 +236,13 @@ async def delete_my_account(
     Все связанные данные (списки, прогресс, заметки, попытки тестов,
     достижения, коллекции) удаляются каскадно через ondelete=CASCADE.
     """
+    if current.role == UserRole.ADMIN:
+        # Иначе можно случайно остаться без единого администратора.
+        raise HTTPException(
+            status_code=400,
+            detail="Администратор не может удалить свой аккаунт. Сначала передайте права другому.",
+        )
+
     if not verify_password(payload.password, current.password_hash):
         raise HTTPException(status_code=401, detail="Неверный пароль")
 
@@ -275,66 +270,27 @@ async def delete_my_account(
 # ============================================================================
 
 
-@router.post("/me/avatar", response_model=UserPublic, status_code=status.HTTP_200_OK)
-async def upload_my_avatar(
-    file: UploadFile = File(..., description="Аватар (JPEG/PNG/WEBP, до 2 МБ)"),
-    current: User = Depends(get_current_user_any),
-    db: AsyncSession = Depends(get_db),
-    storage: StorageBackend = Depends(get_storage),
-) -> UserPublic:
-    """Загрузить новый аватар. Старый удаляется."""
-    head = await file.read(_MAGIC_HEAD_BYTES)
-    try:
-        ext = detect_cover_ext(head, declared_mime=file.content_type)
-    except FileValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
-
-    old_key = current.avatar_url
-    new_key = StorageBackend.make_key("avatars", ext)
-
-    try:
-        await storage.save_stream(
-            new_key,
-            _stream_remainder(file, head),
-            max_bytes=_MAX_AVATAR_SIZE_BYTES,
-        )
-    except StorageError as e:
-        raise HTTPException(status_code=413, detail=str(e)) from None
-
-    current.avatar_url = new_key
-    await commit_with_storage_cleanup(db, storage, new_key)
-    await db.refresh(current)
-
-    # Удаляем старый файл уже после коммита, чтобы не убить аватар при ошибке БД
-    if old_key:
-        try:
-            await storage.delete(old_key)
-        except Exception:  # noqa: BLE001
-            logger.exception("Failed to delete old avatar %s for user %s", old_key, current.id)
-
-    logger.info("User %s uploaded avatar (key=%s)", current.id, new_key)
-    return UserPublic.model_validate(current)
-
-
 @router.delete("/me/avatar", response_model=UserPublic)
 async def delete_my_avatar(
     current: User = Depends(get_current_user_any),
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> UserPublic:
-    """Удалить свой аватар. Идемпотентно."""
-    if not current.avatar_url:
+    """Убрать аватар — вместо него показывается первая буква имени. Идемпотентно."""
+    key = current.avatar_url
+    if not key and not current.avatar_preset:
         return UserPublic.model_validate(current)
 
-    key = current.avatar_url
     current.avatar_url = None
+    current.avatar_preset = None
     await db.commit()
     await db.refresh(current)
 
-    try:
-        await storage.delete(key)
-    except Exception:  # noqa: BLE001
-        logger.exception("Failed to delete avatar %s for user %s", key, current.id)
+    if key:
+        try:
+            await storage.delete(key)
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to delete avatar %s for user %s", key, current.id)
 
     logger.info("User %s deleted own avatar", current.id)
     return UserPublic.model_validate(current)
@@ -348,21 +304,31 @@ async def delete_my_avatar(
 users_router = APIRouter(prefix="/users", tags=["users"])
 
 
-@users_router.get("/{user_id}/avatar")
+@users_router.get("/{user_id}/avatar", response_model=None)
 async def download_user_avatar(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current: User | None = Depends(get_current_user_optional),
     storage: StorageBackend = Depends(get_storage),
-) -> StreamingResponse:
+) -> StreamingResponse | FileResponse:
     """Получить аватар пользователя с учётом видимости профиля."""
     user = await db.get(User, user_id)
-    if not user or not user.avatar_url:
+    if not user or not (user.avatar_url or user.avatar_preset):
         raise HTTPException(status_code=404, detail="Avatar not found")
     if user.profile_visibility == "private" and (
         current is None or current.id != user.id
     ):
         raise HTTPException(status_code=403, detail="Профиль скрыт настройками приватности")
+
+    if user.avatar_preset:
+        path = preset_path(user.avatar_preset)
+        if path is None:
+            raise HTTPException(status_code=404, detail="Avatar not found")
+        return FileResponse(
+            path,
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "private, max-age=300"},
+        )
 
     key = user.avatar_url
     try:
@@ -490,7 +456,7 @@ async def get_public_profile(
         cyber_level=user.cyber_level,
         xp=user.xp,
         streak_count=user.streak_count,
-        has_avatar=bool(user.avatar_url),
+        has_avatar=bool(user.avatar_url or user.avatar_preset),
         # маскированный email показываем только если профиль публичный
         email_masked=_mask_email(user.email) if user.profile_visibility == "public" else None,
         books_count=books_count,

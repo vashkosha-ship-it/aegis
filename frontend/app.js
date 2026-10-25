@@ -129,7 +129,6 @@ window.openARSchemeMenu = openARSchemeMenu;
 window.closeARSchemeMenu = closeARSchemeMenu;
 window.openARWithScheme = openARWithScheme;
 window.closeAR = closeAR;
-window.switchARCamera = switchARCamera;
 window.selectKillChainStage = selectKillChainStage;
 window.closeKillChainStage = closeKillChainStage;
 window.prevKillChainStage = prevKillChainStage;

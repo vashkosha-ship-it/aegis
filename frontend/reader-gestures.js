@@ -17,6 +17,7 @@ function initReaderGestures() {
   zone.addEventListener('touchstart', handleTouchStart, { passive: true });
   zone.addEventListener('touchend', handleTouchEnd, { passive: true });
   zone.addEventListener('touchmove', handleTouchMove, { passive: true });
+  initPdfPinchZoom();
 
   const tapLeft = document.getElementById('tapZoneLeft');
   const tapRight = document.getElementById('tapZoneRight');
@@ -40,6 +41,9 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd() {
+  // Страница увеличена или только что был щипок — палец двигает страницу,
+  // а не листает её.
+  if (!isEpubMode && (pdfZoom > 1 || pdfPinch.recent)) return;
   // Если пользователь выделяет текст — не листаем (иначе выделение срывается)
   const sel = window.getSelection();
   if (sel && sel.toString().trim().length > 0) {
@@ -98,4 +102,88 @@ function updatePageIndicator() {
 
   flashPageIndicator();
   try { maybeShowFinishReviewPrompt(); } catch (_) {}
+}
+
+// ========== УВЕЛИЧЕНИЕ PDF ЩИПКОМ ==========
+// Масштаб браузера в приложении выключен (иначе ломается интерфейс), поэтому
+// страницу PDF увеличиваем сами: во время жеста — быстрым CSS-масштабом,
+// после — перерисовкой в чёткости под новый размер.
+const PDF_ZOOM_MIN = 1;
+const PDF_ZOOM_MAX = 3;
+const pdfPinch = { active: false, startDist: 0, startZoom: 1, ratio: 1, originX: 0, originY: 0, recent: false };
+
+function _pinchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+function initPdfPinchZoom() {
+  const viewport = document.getElementById('pdfViewport');
+  if (!viewport || viewport.dataset.pinchReady) return;
+  viewport.dataset.pinchReady = '1';
+
+  viewport.addEventListener('touchstart', e => {
+    if (isEpubMode || e.touches.length !== 2) return;
+    const canvas = document.getElementById('pdfCanvas');
+    const rect = canvas.getBoundingClientRect();
+    pdfPinch.active = true;
+    pdfPinch.recent = true;
+    pdfPinch.startDist = _pinchDistance(e.touches) || 1;
+    pdfPinch.startZoom = pdfZoom;
+    pdfPinch.ratio = 1;
+    pdfPinch.originX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+    pdfPinch.originY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+    canvas.style.transformOrigin = `${pdfPinch.originX}px ${pdfPinch.originY}px`;
+  }, { passive: true });
+
+  viewport.addEventListener('touchmove', e => {
+    if (!pdfPinch.active || e.touches.length !== 2) return;
+    e.preventDefault();
+    const target = Math.min(PDF_ZOOM_MAX, Math.max(PDF_ZOOM_MIN, pdfPinch.startZoom * _pinchDistance(e.touches) / pdfPinch.startDist));
+    pdfPinch.ratio = target / pdfPinch.startZoom;
+    document.getElementById('pdfCanvas').style.transform = `scale(${pdfPinch.ratio})`;
+    const textLayer = document.getElementById('pdfTextLayer');
+    if (textLayer) textLayer.style.visibility = 'hidden';
+  }, { passive: false });
+
+  const finish = async () => {
+    if (!pdfPinch.active) return;
+    pdfPinch.active = false;
+    setTimeout(() => { pdfPinch.recent = false; }, 350);
+    const canvas = document.getElementById('pdfCanvas');
+    const newZoom = Math.round(pdfPinch.startZoom * pdfPinch.ratio * 100) / 100;
+    const zoom = newZoom < 1.08 ? 1 : Math.min(PDF_ZOOM_MAX, newZoom);
+    // Точка под пальцами остаётся на месте после перерисовки.
+    const factor = zoom / pdfPinch.startZoom;
+    const anchorX = pdfPinch.originX * factor;
+    const anchorY = pdfPinch.originY * factor;
+    const viewportRect = viewport.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const screenX = canvasRect.left - viewportRect.left + pdfPinch.originX * pdfPinch.ratio;
+    const screenY = canvasRect.top - viewportRect.top + pdfPinch.originY * pdfPinch.ratio;
+    pdfZoom = zoom;
+    await renderPdfPage(pdfCurrentPage);
+    canvas.style.transform = '';
+    const textLayer = document.getElementById('pdfTextLayer');
+    if (textLayer) textLayer.style.visibility = '';
+    viewport.scrollLeft = Math.max(0, canvas.offsetLeft + anchorX - screenX);
+    viewport.scrollTop = Math.max(0, canvas.offsetTop + anchorY - screenY);
+  };
+  viewport.addEventListener('touchend', e => { if (e.touches.length < 2) finish(); }, { passive: true });
+  viewport.addEventListener('touchcancel', finish, { passive: true });
+
+  // Двойное касание: увеличить вдвое / вернуть по ширине экрана.
+  let lastTap = 0;
+  viewport.addEventListener('touchend', e => {
+    if (isEpubMode || e.touches.length || e.changedTouches.length !== 1) return;
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      lastTap = 0;
+      pdfZoom = pdfZoom > 1 ? 1 : 2;
+      renderPdfPage(pdfCurrentPage);
+    } else {
+      lastTap = now;
+    }
+  }, { passive: true });
 }

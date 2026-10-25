@@ -65,6 +65,7 @@ class UserPublic(BaseModel):
     role: UserRole
     full_name: str | None
     avatar_url: str | None
+    avatar_preset: str | None = None
     has_avatar: bool = False
     xp: int
     streak_count: int
@@ -84,7 +85,7 @@ class UserPublic(BaseModel):
             obj, strict=strict, from_attributes=from_attributes, context=context
         )
         if hasattr(obj, 'avatar_url'):
-            data.has_avatar = bool(obj.avatar_url)
+            data.has_avatar = bool(obj.avatar_url or getattr(obj, 'avatar_preset', None))
         return data
 
     model_config = ConfigDict(from_attributes=True)
@@ -102,6 +103,12 @@ class UserUpdate(BaseModel):
     ui_theme: Literal["dark", "light"] | None = None
     ui_accent: Literal["orange", "blue", "green", "violet"] | None = None
     appearance_onboarded: Literal[True] | None = None
+    # Аватар из набора: a01…a15. Убрать аватар (показывать букву) —
+    # DELETE /me/avatar.
+    avatar_preset: Literal[
+        "a01", "a02", "a03", "a04", "a05", "a06", "a07", "a08",
+        "a09", "a10", "a11", "a12", "a13", "a14", "a15",
+    ] | None = None
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

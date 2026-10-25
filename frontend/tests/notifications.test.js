@@ -23,6 +23,7 @@ const context = vm.createContext({
     timers.push({ callback, delay });
     return timers.length;
   },
+  clearTimeout: () => {},
 });
 vm.runInContext(source, context);
 
@@ -30,6 +31,12 @@ const banner = dom.window.document.getElementById('offlineBanner');
 assert.ok(banner);
 assert.ok(banner.classList.contains('is-visible'));
 assert.equal(banner.getAttribute('role'), 'status');
+// Плашка «нет интернета» сама прячется через несколько секунд.
+const bannerTimer = timers.shift();
+assert.equal(bannerTimer.delay, 5000);
+bannerTimer.callback();
+assert.equal(banner.classList.contains('is-visible'), false);
+assert.ok(dom.window.document.body.classList.contains('is-offline'));
 
 network.onLine = true;
 dom.window.dispatchEvent(new dom.window.Event('online'));

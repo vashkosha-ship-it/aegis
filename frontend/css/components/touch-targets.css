@@ -15,3 +15,15 @@
   #badgeHome { display: none; }
   .header-buttons-group { gap: 6px; }
 }
+
+/* Случайный «потянуть вниз» в мобильном Chrome перезагружал страницу —
+   без сети это выбрасывало из приложения. Жест обновления отключаем. */
+@media (pointer: coarse) {
+  html, body { overscroll-behavior-y: none; }
+}
+
+/* Горячие клавиши нужны только с клавиатурой и мышью. На телефоне и
+   планшете без трекпада кнопку не показываем. */
+@media (hover: none) and (pointer: coarse) {
+  .header-buttons-group .btn-shortcuts-icon { display: none; }
+}

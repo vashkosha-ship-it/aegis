@@ -98,22 +98,15 @@ function renderProfile() {
   // Аватар: с сервера, если has_avatar; иначе буква
   const at = document.getElementById('profileAvatarText');
   const ai = document.getElementById('profileAvatarImg');
-  if (u.has_avatar) {
+  ai.onerror = () => {
+    // Fallback — если файл по какой-то причине пропал
+    at.style.display = 'block';
+    ai.style.display = 'none';
+    at.textContent = displayName.charAt(0).toUpperCase();
+  };
+  if (applyUserAvatarImage(ai, u)) {
     at.style.display = 'none';
     ai.style.display = 'block';
-    ai.onerror = () => {
-      // Fallback — если файл по какой-то причине пропал
-      at.style.display = 'block';
-      ai.style.display = 'none';
-      at.textContent = displayName.charAt(0).toUpperCase();
-    };
-    // Владелец видит аватар закрытого профиля: запрос отправляет Bearer,
-    // а URL самого файла не становится публичным.
-    if (api.users.loadAvatar) {
-      api.users.loadAvatar(ai, u.id).catch(() => ai.onerror());
-    } else {
-      ai.src = api.users.avatarUrl(u.id) + '?t=' + Date.now();
-    }
   } else {
     at.style.display = 'block';
     ai.style.display = 'none';

@@ -56,7 +56,7 @@ assert.equal(overlay.querySelector('.tour-title').textContent, 'Библиоте
 assert.equal(overlay.querySelectorAll('.tour-dot').length, 4);
 assert.equal(overlay.querySelectorAll('script, img').length, 0);
 
-const expectedTitles = ['Тестирование', 'AI-ассистент', 'Профиль и AR-схемы'];
+const expectedTitles = ['Тестирование', 'AI-ассистент', 'Профиль и схемы'];
 for (const title of expectedTitles) {
   overlay.querySelector('.tour-button--next').click();
   overlay = dom.window.document.getElementById('tourOverlay');

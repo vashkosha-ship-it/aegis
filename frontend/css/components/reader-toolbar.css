@@ -31,3 +31,30 @@
   margin-right: auto;
 }
 .reader-toolbar-secondary .btn-nav-page:hover { background: rgba(var(--accent-rgb), .08); }
+
+/* Индикатор загрузки страницы PDF: показывается, только если страница
+   рисуется дольше четверти секунды; предыдущая страница остаётся видна. */
+.pdf-viewport { position: relative; }
+.pdf-page-loading {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  border: 3px solid rgba(var(--accent-rgb), .25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+  animation: pdfPageSpin .8s linear infinite;
+}
+.pdf-page-loading.is-visible { opacity: 1; }
+.pdf-viewport.is-page-loading canvas { opacity: .55; transition: opacity .2s; }
+@keyframes pdfPageSpin { to { transform: rotate(360deg); } }
+
+/* Увеличенная щипком страница шире экрана: прижимаем к левому краю, иначе
+   центрирование flex-контейнера прячет левую часть страницы за край. */
+.pdf-viewport.is-zoomed { justify-content: flex-start; touch-action: pan-x pan-y; }
+.pdf-viewport.is-zoomed canvas { margin: 0; flex: 0 0 auto; max-width: none; }

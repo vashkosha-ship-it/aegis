@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Замок">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+<radialGradient id="h" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+<rect width="128" height="128" fill="url(#g)"/><rect width="128" height="128" fill="url(#h)"/>
+<g fill="none" stroke="#fff8f0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><rect x="38" y="58" width="52" height="40" rx="8"/><path d="M48 58V46a16 16 0 0 1 32 0v12"/><path d="M64 74v8"/></g>
+</svg>
