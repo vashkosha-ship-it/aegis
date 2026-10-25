@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v326';
+const CACHE_NAME = 'aegis-cache-v327';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -101,6 +101,7 @@ const PRECACHE_URLS = [
   '/onboarding-tour.js',
   '/appearance-onboarding.js',
   '/avatar-picker.js',
+  '/desktop-mode-hint.js',
   '/avatars/a01.svg',
   '/avatars/a02.svg',
   '/avatars/a03.svg',

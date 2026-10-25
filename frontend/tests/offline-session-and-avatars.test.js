@@ -68,6 +68,6 @@ assert.match(reader, /matchMedia\('\(pointer: coarse\)'\)/);
 assert.match(gestures, /function initPdfPinchZoom\(\)/);
 
 // --- Горячие клавиши только с клавиатурой ----------------------------------
-assert.match(touch, /@media \(hover: none\) and \(pointer: coarse\)[\s\S]*btn-shortcuts-icon \{ display: none; \}/);
+assert.match(read('desktop-mode-hint.js'), /querySelectorAll\('\.btn-shortcuts-icon'\)\.forEach\(button => button\.remove\(\)\)/);
 
 console.log('Offline session, avatars, schemes and reader tests passed');
