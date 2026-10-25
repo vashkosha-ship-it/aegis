@@ -132,26 +132,17 @@ function renderSettingsInfoTab(c) {
   const user = state.currentUser;
 
   const avatarSection = _accountNode('div', 'a428');
-  const avatar = _accountNode('div', 'a429');
+  const avatar = _accountNode('button', 'a429');
+  avatar.type = 'button';
   avatar.className = 'profile-avatar-lg';
-  const avatarText = _accountNode('span', null, 'U');
-  avatarText.id = 'settingsAvatarText';
-  const avatarImage = _accountNode('img', 'a279');
-  avatarImage.id = 'settingsAvatarImg';
-  avatar.append(avatarText, avatarImage);
-
-  const avatarUpload = _accountNode('input', 'a279');
-  avatarUpload.id = 'settingsAvatarUpload';
-  avatarUpload.type = 'file';
-  avatarUpload.accept = 'image/*';
-  avatar.addEventListener('click', () => avatarUpload.click());
-  avatarUpload.addEventListener('change', uploadAvatar);
-  const avatarHint = _accountNode(
-    'div',
-    'a430',
-    'Кликни на аватар чтобы загрузить новое фото\n(JPEG/PNG/WEBP, до 2 МБ)',
-  );
-  avatarSection.append(avatar, avatarUpload, avatarHint);
+  avatar.id = 'settingsAvatar';
+  avatar.setAttribute('aria-label', 'Выбрать аватар');
+  avatar.addEventListener('click', openAvatarPicker);
+  const changeAvatar = _accountNode('button', null, 'Выбрать аватар');
+  changeAvatar.type = 'button';
+  changeAvatar.className = 'avatar-change-btn';
+  changeAvatar.addEventListener('click', openAvatarPicker);
+  avatarSection.append(avatar, changeAvatar);
 
   const username = _accountFormInput('text', 'setUsername', '', null);
   username.value = user.name || '';
@@ -192,14 +183,7 @@ function renderSettingsInfoTab(c) {
     _accountSaveButton('Сохранить изменения', saveSettingsInfo),
   );
 
-  updateAvatar('settingsAvatarImg');
-  if (avatarText) {
-    avatarText.textContent = (user.name || 'U').charAt(0).toUpperCase();
-    const image = document.getElementById('settingsAvatarImg');
-    if (image && image.src && !image.src.endsWith('undefined') && image.style.display !== 'none') {
-      avatarText.style.display = 'none';
-    }
-  }
+  renderSettingsAvatarPreview();
 
   const knownDepartments = ['ЦКЗ', 'ДПМ', 'УБД', 'УКИИ', 'УКАИ', 'УМК', 'УЭК', 'ЦКГ', 'ЦУПКБ', 'ЦВВ'];
   if (user.department) {
@@ -320,34 +304,6 @@ async function deleteCurrentAvatar() {
     btn.textContent = 'Удалить аватар';
   }
 }
-async function uploadAvatar(e) {
-  const f = e.target.files[0];
-  if (!f) return;
-  if (f.size > 2 * 1024 * 1024) {
-    showToast('Файл слишком большой (макс 2 МБ)');
-    e.target.value = '';
-    return;
-  }
-  showToast('Загружаем аватар...');
-  try {
-    const updated = await api.uploadAvatar(f);
-    state.currentUser.has_avatar = updated.has_avatar;
-    renderProfile();
-    updateAvatar('avatarHome');
-    updateAvatar('avatarMylist');
-    updateAvatar('avatarTraining');
-    showToast('Аватар обновлён');
-  } catch (err) {
-    if (err instanceof api.ApiError) {
-      showToast('Ошибка: ' + (err.detail || err.status));
-    } else {
-      showToast('Сервер недоступен');
-    }
-  } finally {
-    e.target.value = '';
-  }
-}
-
 async function showMyStatsModal() {
   const ex = document.getElementById('myStatsModal');
   if (ex) ex.remove();
@@ -508,18 +464,20 @@ function updateAvatar(id) {
   if (!el || !state.currentUser) return;
   const u = state.currentUser;
   const displayName = u.full_name || u.name;
-  if (u.has_avatar) {
-    const img = document.createElement('img');
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-    img.onerror = () => { el.textContent = displayName.charAt(0).toUpperCase(); };
-    if (api.users.loadAvatar) {
-      api.users.loadAvatar(img, u.id).catch(() => img.onerror());
-    } else {
-      img.src = api.users.avatarUrl(u.id) + '?t=' + Date.now();
-    }
-    el.replaceChildren();
-    el.appendChild(img);
+  const img = document.createElement('img');
+  img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+  img.alt = '';
+  img.onerror = () => { el.textContent = displayName.charAt(0).toUpperCase(); };
+  if (applyUserAvatarImage(img, u)) {
+    el.replaceChildren(img);
   } else {
     el.textContent = displayName.charAt(0).toUpperCase();
   }
+}
+
+// Аватар в настройках профиля (вкладка «Информация»).
+function renderSettingsAvatarPreview() {
+  const box = document.getElementById('settingsAvatar');
+  if (!box || !state.currentUser) return;
+  updateAvatar('settingsAvatar');
 }

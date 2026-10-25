@@ -156,6 +156,11 @@
 /* Book detail actions: one primary action and compact secondary controls. */
 #detailScreen .detail-actions {
   display: flex;
+  /* Строкой с переносом: старое правило styles.css ставило столбик на
+     ширине до 767px, и flex-basis 180px превращался в высоту — на раскрытом
+     складном телефоне кнопка «Читать» становилась огромным блоком. */
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   gap: 9px;
 }
@@ -206,3 +211,9 @@
   #detailScreen .detail-action-secondary { flex: 1 1 calc(100% - 51px); }
   #detailScreen .detail-action-admin { flex: 1 1 100%; margin-left: 0; }
 }
+
+/* Карточка рекомендации — <button> с иконкой, а глобальное правило для
+   таких кнопок центрирует содержимое: карточки с коротким названием
+   оказывались по центру, с длинным — у левого края. Текст занимает всё
+   оставшееся место и выравнивается влево. */
+.recommendation-card > div:last-child { flex: 1 1 auto; min-width: 0; text-align: left; }

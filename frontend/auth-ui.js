@@ -389,6 +389,7 @@ async function submitVerifyCode() {
       ui_theme: user.ui_theme || null,
       ui_accent: user.ui_accent || null,
       appearance_onboarded: user.appearance_onboarded !== false,
+      avatar_preset: user.avatar_preset || null,
     };
     await loadBooksFromApi();
     await loadMyListFromApi();
@@ -430,6 +431,7 @@ async function finishAuthenticatedLogin(password, username) {
     ui_theme: user.ui_theme || null,
     ui_accent: user.ui_accent || null,
     appearance_onboarded: user.appearance_onboarded !== false,
+    avatar_preset: user.avatar_preset || null,
   };
   await loadBooksFromApi();
   await loadMyListFromApi();
@@ -514,6 +516,17 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       } catch (_) {
         showToast('Подтвердите email перед входом');
       }
+    } else if (api.isNetworkError(err)) {
+      // Без сети пароль проверить негде. Если этот аккаунт уже входил на
+      // устройстве (и не выходил) — открываем сохранённые книги.
+      const cached = getCachedUser();
+      const typed = document.getElementById('authName').value.trim().toLowerCase();
+      if (cached && cached.name && cached.name.toLowerCase() === typed) {
+        await enterOfflineSession(cached);
+        navigateTo('home');
+      } else {
+        showToast('Нет интернета. Без сети можно открыть только аккаунт, который уже входил на этом устройстве');
+      }
     } else {
       showToast(formatApiError(err));
       if (!(err instanceof api.ApiError)) console.error(err);
@@ -561,12 +574,61 @@ function logout() {
   });
 }
 
+// Вход без интернета: если на этом устройстве уже входили, открываем
+// приложение по сохранённому профилю и показываем скачанные книги.
+// Сессия на сервере не трогается — как только появится сеть, она продлится.
+async function enterOfflineSession(cached) {
+  state.currentUser = cached;
+  state.offlineSession = true;
+  await loadOfflineBookIds();
+  await loadBooksFromOffline();
+  document.body.classList.add('offline-session');
+  showToast(state.books.length
+    ? 'Нет интернета: доступны сохранённые книги'
+    : 'Нет интернета. Сохранённых книг на этом устройстве пока нет');
+  return true;
+}
+
+// Сеть вернулась — продлеваем сессию и подгружаем библиотеку целиком.
+async function resumeOnlineSession() {
+  if (!state.offlineSession) return;
+  const restored = api.isAuthenticated() || await api.restoreSession();
+  if (!restored) {
+    if (api.lastRefreshWasOffline()) return;
+    // Сервер ответил, что сессия недействительна: просим войти заново,
+    // скачанные книги остаются на устройстве.
+    state.offlineSession = false;
+    document.body.classList.remove('offline-session');
+    state.currentUser = null;
+    navigateTo('auth');
+    showToast('Сессия завершена. Войдите снова — сохранённые книги никуда не делись');
+    return;
+  }
+  try {
+    await loadBooksFromApi();
+    await loadMyListFromApi();
+    await loadProgressFromApi();
+    state.offlineSession = false;
+    document.body.classList.remove('offline-session');
+    if (state.currentScreen === 'home') navigateTo('home');
+    showToast('Снова онлайн: вся библиотека доступна');
+  } catch (_) {
+    // Сеть ещё нестабильна — попробуем при следующем событии online.
+  }
+}
+if (typeof window !== 'undefined') window.addEventListener('online', () => { resumeOnlineSession(); });
+
 async function tryAutoLogin() {
   // Access-токен живёт в памяти и после перезагрузки страницы пуст. Пробуем
   // получить новый по httpOnly-cookie: если её нет или она протухла — гость.
   if (!api.isAuthenticated()) {
     const restored = await api.restoreSession();
-    if (!restored) return false;
+    if (!restored) {
+      // Нет сети — это не «сессия закончилась». Пускаем по сохранённому профилю.
+      const cached = getCachedUser();
+      if (api.lastRefreshWasOffline() && cached) return enterOfflineSession(cached);
+      return false;
+    }
   }
   try {
     const user = await api.me();
@@ -586,6 +648,7 @@ async function tryAutoLogin() {
       ui_theme: user.ui_theme || null,
       ui_accent: user.ui_accent || null,
       appearance_onboarded: user.appearance_onboarded !== false,
+      avatar_preset: user.avatar_preset || null,
     };
 
     await loadBooksFromApi();
@@ -603,16 +666,10 @@ async function tryAutoLogin() {
     // 401 → токен недействителен, разлогиниваем как раньше.
     // Сетевая ошибка/офлайн + есть кэш пользователя → НЕ разлогиниваем,
     // восстанавливаем сессию из кэша и показываем скачанные книги.
-    const isAuthError = (err instanceof api.ApiError) && err.status === 401;
+    const isNetworkError = api.isNetworkError(err) || (err && err.status >= 500)
+      || (typeof navigator !== 'undefined' && navigator.onLine === false);
     const cached = getCachedUser();
-    if (!isAuthError && cached && api.isAuthenticated()) {
-      state.currentUser = cached;
-      await loadOfflineBookIds();
-      await loadBooksFromOffline();
-      try { loadProgressFromApi(); } catch (_) {}  // прогресс берётся локально, сетевой вызов молча упадёт
-      showToast('Офлайн-режим: вход по сохранённой сессии');
-      return true;
-    }
+    if (isNetworkError && cached) return enterOfflineSession(cached);
     try { await api.logout(); } catch (_) { api.tokens.clear(); }
     clearNoteKey(); stopSyncPolling();
     clearCachedUser();

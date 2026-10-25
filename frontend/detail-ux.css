@@ -178,8 +178,6 @@
 
 #arSchemeMenuModal h3 { color: #f8fafc; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
 #arSchemeMenuModal h3 + div { color: #cbd5e1; }
-.ar-camera-help { cursor:pointer; position:absolute; left:50%; bottom:72px; z-index:var(--z-modal); transform:translateX(-50%); display:grid; gap:5px; width:min(92vw,430px); padding:12px 14px; border:1px solid rgba(var(--accent-rgb),.45); border-radius:14px; background:rgba(5,12,24,.94); color:#f8fafc; box-shadow:0 12px 30px rgba(0,0,0,.35); font-size:12px; line-height:1.45; }
-.ar-camera-help strong { color:var(--accent-light); font-size:13px; }
 
 /* Foldables report a wide CSS viewport while still being a phone. Keep the
    detail actions compact instead of allowing the primary action to become a

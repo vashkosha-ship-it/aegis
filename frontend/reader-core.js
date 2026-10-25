@@ -247,6 +247,7 @@ async function loadPdf(b) {
       }
     }
     pdfCurrentPage = Math.min(state.readingProgress[b.id].currentPage || 1, pdfTotalPages);
+    pdfZoom = 1;
 
     if (window._bookLoadHintTimer) { clearTimeout(window._bookLoadHintTimer); window._bookLoadHintTimer = null; }
     pl.classList.add('hidden');
@@ -282,6 +283,105 @@ function generateDemoPdf(b) {
   renderAnnotations();
 }
 
+// ---------- Кэш отрисованных страниц PDF ----------
+// Ключ — номер страницы и размер; держим несколько последних страниц.
+const PDF_PAGE_CACHE_LIMIT = 3;
+let _pdfPageCache = { doc: null, items: new Map() };
+
+function _pdfCacheFor(doc) {
+  if (_pdfPageCache.doc !== doc) _pdfPageCache = { doc, items: new Map() };
+  return _pdfPageCache.items;
+}
+
+async function getRenderedPdfPage(pn, page, viewport, dpr, targetWidth) {
+  const cache = _pdfCacheFor(pdfDoc);
+  const key = pn + '@' + targetWidth + 'x' + dpr;
+  const cached = cache.get(key);
+  if (cached) {
+    try {
+      const ready = await cached;
+      cache.delete(key);
+      cache.set(key, Promise.resolve(ready));
+      return ready;
+    } catch (_) {
+      // Предыдущую отрисовку этой страницы отменили — рисуем заново.
+      cache.delete(key);
+    }
+  }
+  const work = renderPdfPageOffscreen(page, viewport, dpr, true);
+  cache.set(key, work);
+  try {
+    return await work;
+  } catch (err) {
+    cache.delete(key);
+    throw err;
+  } finally {
+    while (cache.size > PDF_PAGE_CACHE_LIMIT) cache.delete(cache.keys().next().value);
+  }
+}
+
+async function renderPdfPageOffscreen(page, viewport, dpr, cancellable) {
+  const off = document.createElement('canvas');
+  off.width = Math.floor(viewport.width * dpr);
+  off.height = Math.floor(viewport.height * dpr);
+  const ctx = off.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, off.width, off.height);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const task = page.render({ canvasContext: ctx, viewport });
+  if (cancellable) {
+    if (_pdfRenderTask) { try { _pdfRenderTask.cancel(); } catch (_) { /* уже завершён */ } }
+    _pdfRenderTask = task;
+  }
+  try {
+    await task.promise;
+  } finally {
+    if (cancellable && _pdfRenderTask === task) _pdfRenderTask = null;
+  }
+  return off;
+}
+
+function schedulePdfNeighbourPrerender(pn, dpr, targetWidth, token) {
+  const doc = pdfDoc;
+  const run = async () => {
+    for (const next of [pn + 1, pn - 1]) {
+      if (token !== _pdfRenderToken || doc !== pdfDoc) return;
+      if (next < 1 || next > pdfTotalPages) continue;
+      const cache = _pdfCacheFor(doc);
+      const key = next + '@' + targetWidth + 'x' + dpr;
+      if (cache.has(key)) continue;
+      try {
+        const page = await doc.getPage(next);
+        const viewport = page.getViewport({ scale: targetWidth / page.getViewport({ scale: 1 }).width });
+        const work = renderPdfPageOffscreen(page, viewport, dpr, false);
+        cache.set(key, work);
+        await work;
+        while (cache.size > PDF_PAGE_CACHE_LIMIT) cache.delete(cache.keys().next().value);
+      } catch (_) {
+        _pdfCacheFor(doc).delete(key);
+      }
+    }
+  };
+  const idle = window.requestIdleCallback || (cb => setTimeout(cb, 120));
+  idle(() => { run(); });
+}
+
+function showPdfPageLoading(visible) {
+  const viewportEl = document.getElementById('pdfViewport');
+  if (!viewportEl) return;
+  let spinner = document.getElementById('pdfPageLoading');
+  if (!spinner && visible) {
+    spinner = document.createElement('div');
+    spinner.id = 'pdfPageLoading';
+    spinner.className = 'pdf-page-loading';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-label', 'Страница загружается');
+    viewportEl.appendChild(spinner);
+  }
+  if (spinner) spinner.classList.toggle('is-visible', Boolean(visible));
+  viewportEl.classList.toggle('is-page-loading', Boolean(visible));
+}
+
 async function renderPdfPage(pn) {
   if (!pdfDoc) return;
 
@@ -311,8 +411,10 @@ async function renderPdfPage(pn) {
   if (!containerWidth || containerWidth < 200) {
     containerWidth = Math.min(window.innerWidth - 32, 1100);
   }
-  const isMobile = window.innerWidth < 700;
-  // На ПК страница ~в 2 раза меньше прежнего (масштаб браузера 100%).
+  // Телефон, планшет, складной телефон: страница во всю ширину — так текст
+  // крупнее всего. На ПК с мышью — колонка удобной ширины, как раньше.
+  const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const isMobile = isTouch || window.innerWidth < 700;
   let maxWidth;
   if (isMobile) {
     maxWidth = containerWidth;
@@ -326,44 +428,50 @@ async function renderPdfPage(pn) {
   let targetWidth = Math.min(containerWidth - (isMobile ? 0 : 24), maxWidth);
   // Множитель размера шрифта из настроек (90–130%)
   const fontScale = (parseInt(localStorage.getItem('aegis_reader_font') || '100', 10)) / 100;
-  targetWidth = Math.min(targetWidth * fontScale, containerWidth - (isMobile ? 0 : 12));
+  targetWidth = Math.floor(Math.min(targetWidth * fontScale, containerWidth - (isMobile ? 0 : 12)));
+  // Увеличение щипком: страница шире экрана, по ней можно водить пальцем.
+  if (pdfZoom > 1) targetWidth = Math.floor(targetWidth * pdfZoom);
+  container.classList.toggle('is-zoomed', pdfZoom > 1);
 
-  const dpr = window.devicePixelRatio || 1;
+  // Плотность выше 2 на глаз не отличается, а память на телефоне съедает
+  // втрое (страница в кэше при 3x — около 60 МБ).
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const scale = targetWidth / viewport1.width;
   const viewport = page.getViewport({ scale });
 
-  // Рендерим canvas
-  const canvas = document.getElementById('pdfCanvas');
-  canvas.width = viewport.width * dpr;
-  canvas.height = viewport.height * dpr;
-  canvas.style.width = targetWidth + 'px';
-  canvas.style.height = 'auto';
-  canvas.style.display = 'block';
-  canvas.style.margin = '0 auto';
-  // Первая страница (обложка) не инвертируется в тёмной теме
-  if (pn === 1) canvas.classList.add('no-invert');
-  else canvas.classList.remove('no-invert');
-
-  const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  // Запускаем рендер как отменяемую задачу. Если во время рендера пользователь
-  // пролистнёт дальше — задача будет отменена (cancel выше), и мы выйдем.
-  const renderTask = page.render({
-    canvasContext: ctx,
-    viewport: viewport,
-  });
-  _pdfRenderTask = renderTask;
+  // Страница рисуется во внеэкранный холст, а на экране до этого остаётся
+  // предыдущая. Раньше видимый холст очищался сразу, и пока тяжёлая страница
+  // рисовалась, читатель видел пустой белый лист.
+  const loadingTimer = setTimeout(() => showPdfPageLoading(true), 250);
+  let rendered;
   try {
-    await renderTask.promise;
+    rendered = await getRenderedPdfPage(pn, page, viewport, dpr, targetWidth);
   } catch (err) {
-    // RenderingCancelledException — это нормально (пользователь пролистнул дальше)
+    clearTimeout(loadingTimer);
+    showPdfPageLoading(false);
     if (err && err.name === 'RenderingCancelledException') return;
     throw err;
   }
-  if (_pdfRenderTask === renderTask) _pdfRenderTask = null;
-  // Наш рендер устарел (пролистали дальше) — не трогаем text layer
+  clearTimeout(loadingTimer);
   if (myToken !== _pdfRenderToken) return;
+  showPdfPageLoading(false);
+
+  const canvas = document.getElementById('pdfCanvas');
+  canvas.width = rendered.width;
+  canvas.height = rendered.height;
+  canvas.style.width = targetWidth + 'px';
+  canvas.style.height = 'auto';
+  canvas.style.display = 'block';
+  canvas.style.margin = pdfZoom > 1 ? '0' : '0 auto';
+  // Первая страница (обложка) не инвертируется в тёмной теме
+  if (pn === 1) canvas.classList.add('no-invert');
+  else canvas.classList.remove('no-invert');
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(rendered, 0, 0);
+
+  // Соседние страницы готовим заранее — листание становится мгновенным.
+  schedulePdfNeighbourPrerender(pn, dpr, targetWidth, myToken);
 
   // Text layer для выделения (правильный API для PDF.js 3.x)
   const textLayerDiv = document.getElementById('pdfTextLayer');

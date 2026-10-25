@@ -16,8 +16,14 @@ function ensureOfflineBanner() {
   return banner;
 }
 
+let offlineBannerTimer = null;
 function updateOnlineStatus() {
-  ensureOfflineBanner().classList.toggle('is-visible', !navigator.onLine);
+  const banner = ensureOfflineBanner();
+  const offline = !navigator.onLine;
+  document.body.classList.toggle('is-offline', offline);
+  banner.classList.toggle('is-visible', offline);
+  clearTimeout(offlineBannerTimer);
+  if (offline) offlineBannerTimer = setTimeout(() => banner.classList.remove('is-visible'), 5000);
 }
 
 window.addEventListener('online', updateOnlineStatus);

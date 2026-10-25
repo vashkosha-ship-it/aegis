@@ -37,6 +37,8 @@ class User(Base):
     # Профиль (бывший userProfiles)
     full_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Аватар из готового набора (a01…a15). Загрузка своих фото отключена.
+    avatar_preset: Mapped[str | None] = mapped_column(String(8), nullable=True)
     # Подразделение (выбирается при регистрации)
     department: Mapped[str | None] = mapped_column(String(64), nullable=True)
     profile_visibility: Mapped[str] = mapped_column(

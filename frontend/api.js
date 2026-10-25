@@ -25,6 +25,9 @@
   // /auth/refresh (cookie отправится сама).
   let _accessToken = null;
   let _refreshPromise = null;
+  // Последняя попытка продлить сессию упала из-за сети (а не потому, что
+  // сессия недействительна) — тогда приложение открывается офлайн.
+  let _lastRefreshOffline = false;
   let _authBootstrapPending = true;
 
   // Разовая уборка: до перехода на cookie токены лежали в localStorage.
@@ -163,8 +166,10 @@
           auth: false,
         });
         tokens.set(data.access_token);
+        _lastRefreshOffline = false;
         return true;
       } catch (e) {
+        _lastRefreshOffline = e instanceof ApiError && e.isNetworkError;
         tokens.clear();
         return false;
       } finally {
@@ -183,6 +188,7 @@
     // Восстановить сессию после перезагрузки страницы: access-токен в памяти
     // потерян, но refresh-cookie осталась.
     restoreSession: () => tryRefresh(),
+    lastRefreshWasOffline: () => _lastRefreshOffline,
     baseUrl: BASE,
     tokens,
     ApiError,
@@ -329,12 +335,6 @@
       return request('/me/email/confirm', { method: 'POST', body: { code } });
     },
 
-    uploadAvatar(file) {
-      const fd = new FormData();
-      fd.append('file', file);
-      return request('/me/avatar', { method: 'POST', body: fd });
-    },
-
     deleteAvatar() {
       return request('/me/avatar', { method: 'DELETE' });
     },
@@ -377,7 +377,6 @@
       get(id) { return request('/books/' + id); },
       categories() { return request('/books/categories/all'); },
       checkDuplicate(payload) { return request('/books/duplicates/check', { method: 'POST', body: payload }); },
-      duplicates() { return request('/books/duplicates/all'); },
       create(payload) { return request('/books', { method: 'POST', body: payload }); },
       update(id, payload) { return request('/books/' + id, { method: 'PATCH', body: payload }); },
       generateDescription(id) { return request('/books/' + id + '/generate-description', { method: 'POST' }); },

@@ -3,12 +3,10 @@
   --ar-cyan: var(--accent-light);
   --ar-violet: var(--accent-deep);
   --ar-surface: rgba(18, 17, 16, 0.9);
-  background: radial-gradient(circle at 16% 12%, rgba(var(--accent-rgb),.14), transparent 34%), radial-gradient(circle at 84% 24%, rgba(var(--accent-deep-rgb),.14), transparent 38%), linear-gradient(155deg,rgba(11,11,12,.42) 0%,rgba(18,16,17,.3) 54%,rgba(11,11,12,.42) 100%) !important;
+  background: radial-gradient(circle at 16% 12%, rgba(var(--accent-rgb),.14), transparent 34%), radial-gradient(circle at 84% 24%, rgba(var(--accent-deep-rgb),.14), transparent 38%), linear-gradient(155deg,#0b0b0c 0%,#121011 54%,#0b0b0c 100%) !important;
   isolation: isolate;
 }
-/* Подложка полупрозрачная: под схемой должно быть видно камеру. Раньше
-   непрозрачный градиент закрывал видео, и казалось, что камеры нет. Без
-   камеры под схемой чёрный .ar-container, так что читаемость не страдает. */
+
 #arSchemeRoot::before { opacity:.38; animation:none !important; background-size:44px 44px !important; mask-image:linear-gradient(to bottom,black,transparent 82%); }
 #killChainScrollContainer { padding:124px 16px 138px !important; scrollbar-width:thin; scrollbar-color:rgba(var(--accent-rgb),.42) transparent; }
 #killChainNodes { width:min(100%,var(--ar-nodes-width,520px)); margin-inline:auto; }
@@ -60,16 +58,12 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
 }
 
 /* Телефон и узкий планшет: внизу живёт выдвижная панель этапа (88px),
-   поэтому кнопку камеры поднимаем над ней, дублирующую подсказку прячем
+   поэтому дублирующую подсказку прячем
    (тот же текст уже в заголовке панели), а заголовок панели сдвигаем, чтобы
    его не перекрывала кнопка-стрелка. Кнопки масштаба выстраиваем в ряд под
    шапкой — столбиком они закрывали первую карточку схемы. */
 @media (max-width:767.98px) {
-  #arModal .static-style-035 { bottom:calc(104px + env(safe-area-inset-bottom, 0px)); }
-  #arModal #arCameraBtn { padding:12px 18px; font-size:13px; }
-  #arModal.ar-camera-live #arCameraBtn { background:rgba(0,0,0,.45); }
   #arSchemeRoot #arStageHint { display:none; }
   #arSchemeRoot #arStageDetailTitle { padding-left:44px; }
   #arSchemeRoot > [data-static-style="a009"] { top:62px; flex-direction:row; }
-  #arModal .ar-camera-help { bottom:calc(160px + env(safe-area-inset-bottom, 0px)); }
 }

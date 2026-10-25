@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Aegis">
   <meta property="og:title" content="Aegis — библиотека кибербезопасности">
-  <meta property="og:description" content="Центр знаний по защите информации. Книги, тесты, AI-ассистент и AR-режим.">
+  <meta property="og:description" content="Центр знаний по защите информации. Книги, тесты, AI-ассистент и интерактивные схемы.">
   <meta property="og:type" content="website">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css" data-dynamic-stylesheet>
@@ -197,9 +197,9 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
             <span class="header-btn-label">Админка</span>
           </button>
-          <button class="header-icon-btn btn-ar-icon" data-onclick="openARSchemeMenu()" title="Схемы атак" aria-label="Схемы атак">
+          <button class="header-icon-btn btn-ar-icon" data-onclick="openARSchemeMenu()" title="Схемы" aria-label="Схемы">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2A14 14 0 0 0 12 22"/><path d="M2 12H22"/></svg>
-            <span class="header-btn-label">Схемы атак</span>
+            <span class="header-btn-label">Схемы</span>
           </button>
         </div>
       </div>
@@ -290,8 +290,8 @@
     <div class="static-style-014">
       <div class="static-style-015">
         <div>
-          <h3 class="static-style-016">Интерактивные схемы атак</h3>
-          <div class="static-style-017">Изучай этапы атак в дополненной реальности</div>
+          <h3 class="static-style-016">Схемы</h3>
+          <div class="static-style-017">Этапы атак, модели угроз и стандарты — интерактивно</div>
         </div>
         <button class="btn-back static-style-018" data-onclick="closeARSchemeMenu()">✕</button>
       </div>
@@ -388,16 +388,12 @@
         <div class="ar-menu-arrow">→</div>
       </button>
 
-      <div class="static-style-027">
-        Откроется камера устройства. Схема накладывается поверх видео.
-      </div>
     </div>
   </div>
 
   <!-- ======================== AR МОДАЛЬНОЕ ОКНО ======================== -->
   <div class="ar-modal-overlay" id="arModal">
     <div class="ar-container">
-      <video class="ar-video" id="arVideo" autoplay playsinline muted></video>
       
       <!-- Контейнер для интерактивной схемы (заполняется JS) -->
       <div class="static-style-028" id="arSchemeContainer"></div>
@@ -420,13 +416,6 @@
         </button>
       </div>
 
-      <!-- Низ: кнопка смены камеры -->
-      <div class="static-style-035">
-        <button class="static-style-036" data-onclick="switchARCamera()" id="arCameraBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4 23 10 17 10"/><path d="M1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          <span id="arCameraBtnLabel">Включить камеру</span>
-        </button>
-      </div>
     </div>
   </div>
 
@@ -493,11 +482,10 @@
     </div>
     <div class="profile-header-card">
       <div class="profile-identity">
-        <button type="button" class="profile-avatar-lg" data-onclick="clickElement('avatarUpload')" aria-label="Изменить фотографию профиля">
+        <button type="button" class="profile-avatar-lg" data-onclick="openAvatarPicker()" aria-label="Выбрать аватар">
           <span id="profileAvatarText">U</span>
           <img class="static-style-009" id="profileAvatarImg">
         </button>
-        <input class="static-style-009" type="file" id="avatarUpload" accept="image/*" data-onchange="uploadAvatar()" data-args="event">
         <div class="profile-identity-names">
           <h2 id="profileDisplayName">Пользователь</h2>
         </div>
@@ -598,6 +586,7 @@
         <span class="static-style-056" id="logoutIcon"></span>
         <span>Выйти из аккаунта</span>
       </button>
+      <button class="btn-delete-account" type="button" data-onclick="confirmDeleteAccount()" data-nonce="${sensitiveNonce()}">Удалить аккаунт</button>
     </div>
   </div>
 
@@ -1123,6 +1112,7 @@
 <script defer src="pwa-install.js"></script>
 <script defer src="onboarding-tour.js"></script>
 <script defer src="appearance-onboarding.js"></script>
+<script defer src="avatar-picker.js"></script>
 <script defer src="analytics.js"></script>
 <script defer src="profile-insights.js"></script>
 <script defer src="profile-screen.js"></script>

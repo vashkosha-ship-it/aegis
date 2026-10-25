@@ -27,6 +27,7 @@ const context = {
   document: dom.window.document,
   window: { getSelection: () => ({ toString: () => selectedText }) },
   isEpubMode: false,
+  pdfZoom: 1,
   epubCurrentPage: 1,
   epubTotalPages: 1,
   pdfCurrentPage: 2,

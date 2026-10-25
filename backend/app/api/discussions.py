@@ -28,7 +28,7 @@ def _author(u: User, current: User) -> CommentAuthor:
         id=0 if hidden else u.id,
         username="Скрытый пользователь" if hidden else u.username,
         full_name=None if hidden else u.full_name,
-        has_avatar=False if hidden else bool(u.avatar_url),
+        has_avatar=False if hidden else bool(u.avatar_url or u.avatar_preset),
     )
 
 

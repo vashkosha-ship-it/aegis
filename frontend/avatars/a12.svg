@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Молния">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eab308"/><stop offset="1" stop-color="#713f12"/></linearGradient>
+<radialGradient id="h" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+<rect width="128" height="128" fill="url(#g)"/><rect width="128" height="128" fill="url(#h)"/>
+<g fill="none" stroke="#fff8f0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M70 22 40 70h24l-6 36 30-48H64z"/></g>
+</svg>

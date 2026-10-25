@@ -20,6 +20,7 @@ let pdfDoc = null, pdfCurrentPage = 1, pdfTotalPages = 0, currentBookId = null, 
 // получается перевёрнутой/искажённой (race condition).
 let _pdfRenderTask = null;     // текущая задача pdf.js render()
 let _pdfRenderToken = 0;       // токен последнего запроса рендера
+let pdfZoom = 1;               // увеличение страницы щипком (1–3), только PDF
 let readerCurrentPageText = '';  // текст текущей страницы для AI-ассистента
 let epubCurrentPage = 1, epubTotalPages = 0;
 let currentQuiz = { bookId: null, questions: [], currentIndex: 0, score: 0, answers: [] };

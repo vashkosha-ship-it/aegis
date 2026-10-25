@@ -51,6 +51,7 @@ const context = {
     iconFlame: '<svg data-icon="flame"></svg>',
   },
   api: { users: { avatarUrl: id => `/users/${id}/avatar` } },
+  applyUserAvatarImage: (img, user) => { if (!user.has_avatar) return false; img.src = `/users/${user.id}/avatar?t=123`; return true; },
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
   getCyberLevelInfo: () => ({ icon: 'shield', name: '<Advanced>' }),
   openCyberLevelModal: () => calls.push('level-modal'),

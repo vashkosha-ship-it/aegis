@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Книга">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#78350f"/></linearGradient>
+<radialGradient id="h" cx=".3" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+<rect width="128" height="128" fill="url(#g)"/><rect width="128" height="128" fill="url(#h)"/>
+<g fill="none" stroke="#fff8f0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M30 38c12-4 24-2 34 6 10-8 22-10 34-6v54c-12-4-24-2-34 6-10-8-22-10-34-6z"/><path d="M64 44v54"/></g>
+</svg>
