@@ -22,8 +22,38 @@
   html, body { overscroll-behavior-y: none; }
 }
 
-/* Горячие клавиши нужны только с клавиатурой и мышью. На телефоне и
-   планшете без трекпада кнопку не показываем. */
-@media (hover: none) and (pointer: coarse) {
-  .header-buttons-group .btn-shortcuts-icon { display: none; }
+
+/* Подсказка про режим «Версия для ПК» (desktop-mode-hint.js). Страница в
+   этом режиме уменьшена браузером, поэтому размеры умножаются на --hint-scale. */
+.desktop-mode-hint {
+  --hint-scale: 1;
+  position: fixed;
+  left: calc(12px * var(--hint-scale));
+  right: calc(12px * var(--hint-scale));
+  bottom: calc(12px * var(--hint-scale));
+  z-index: var(--z-critical);
+  display: grid;
+  gap: calc(8px * var(--hint-scale));
+  padding: calc(16px * var(--hint-scale));
+  border: 1px solid rgba(var(--accent-rgb), .5);
+  border-radius: calc(14px * var(--hint-scale));
+  background: var(--bg-elevated, #161412);
+  color: var(--text-primary);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+  font-size: calc(14px * var(--hint-scale));
+  line-height: 1.45;
+}
+.desktop-mode-hint strong { font-size: calc(16px * var(--hint-scale)); }
+.desktop-mode-hint p { margin: 0; color: var(--text-secondary); }
+.desktop-mode-hint button {
+  justify-self: end;
+  min-height: calc(44px * var(--hint-scale));
+  padding: 0 calc(20px * var(--hint-scale));
+  border: 0;
+  border-radius: calc(10px * var(--hint-scale));
+  background: var(--accent-gradient, var(--accent));
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
