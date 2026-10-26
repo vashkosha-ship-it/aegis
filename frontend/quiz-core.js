@@ -105,7 +105,7 @@ function renderQuizPreparing(bookId) {
   title.textContent = 'Тест по этой книге готовится';
   const hint = document.createElement('p');
   hint.className = 'quiz-preparing-hint';
-  hint.textContent = 'Вопросы составляются по тексту книги. Обычно это занимает до получаса — загляните позже.';
+  hint.textContent = 'Вопросы составляются по тексту книги в фоновом режиме. Загляните чуть позже.';
   const retry = document.createElement('button');
   retry.type = 'button';
   retry.className = 'btn-quiz';
