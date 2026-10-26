@@ -10,6 +10,7 @@ import asyncio
 import io
 import os
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 from reportlab.pdfgen import canvas
@@ -17,6 +18,7 @@ from sqlalchemy import delete
 from sqlalchemy.engine import make_url
 
 from app.core.config import settings
+from app.core.legal import LEGAL_VERSION
 from app.core.security import hash_new_password
 from app.db.session import AsyncSessionLocal
 from app.models.book import Book
@@ -127,6 +129,15 @@ async def seed() -> None:
     pdf_key = _write_fixture(Path("books/pdf/e2e-smoke.pdf"), _pdf_bytes())
     epub_key = _write_fixture(Path("books/epub/e2e-smoke.epub"), _epub_bytes())
 
+    # Тестовые учётки считаются принявшими текущую редакцию документов:
+    # иначе после перезагрузки страницы тесты упираются в окно согласия.
+    consented_at = datetime.now(UTC)
+    consent = {
+        "terms_accepted_at": consented_at,
+        "pd_consent_at": consented_at,
+        "legal_version": LEGAL_VERSION,
+    }
+
     async with AsyncSessionLocal() as db:
         await db.execute(delete(User).where(User.username.in_(E2E_USERNAMES)))
         await db.execute(delete(Book).where(Book.title.in_(E2E_TITLES)))
@@ -142,6 +153,7 @@ async def seed() -> None:
                     role=UserRole.READER,
                     is_verified=True,
                     is_approved=True,
+                    **consent,
                 ),
                 User(
                     username="e2e_account",
@@ -151,6 +163,7 @@ async def seed() -> None:
                     role=UserRole.READER,
                     is_verified=True,
                     is_approved=True,
+                    **consent,
                 ),
                 User(
                     username="e2e_admin",
@@ -160,6 +173,7 @@ async def seed() -> None:
                     role=UserRole.ADMIN,
                     is_verified=True,
                     is_approved=True,
+                    **consent,
                 ),
             ]
         )

@@ -89,7 +89,10 @@ async function runReaderAi(prompt, title, loading) {
     if (el) replaceWithAppMarkup(el, (typeof mdAssistant === 'function') ? mdAssistant(text) : eh(text).replace(/\n/g, '<br>'));
   } catch (err) {
     const el = document.getElementById('readerAiContent');
-    if (el) replaceWithAppMarkup(el, `<div data-static-style="a454">Не удалось получить ответ. ${err && err.status ? '(' + err.status + ')' : ''}</div>`);
+    const reason = err && err.status === 403
+      ? eh(err.detail || 'ИИ-ассистент отключён администратором.')
+      : `Не удалось получить ответ. ${err && err.status ? '(' + err.status + ')' : ''}`;
+    if (el) replaceWithAppMarkup(el, `<div data-static-style="a454">${reason}</div>`);
   }
 }
 

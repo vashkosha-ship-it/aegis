@@ -56,7 +56,62 @@ async function renderDashboard() {
   } catch (err) {
     console.error('Ошибка загрузки дашборда:', err);
     replaceWithStaticText(container, 'Не удалось загрузить статистику', 'a150');
+    return;
   }
+  await renderAssistantSetting(container);
+}
+
+// Выключатель ИИ-ассистента для читателей. В DeepSeek уходит то, что пишут
+// сами пользователи, поэтому администратор должен иметь возможность это
+// прекратить одним действием, не трогая сервер.
+async function renderAssistantSetting(container) {
+  const card = document.createElement('div');
+  card.className = 'admin-setting-card';
+  const text = document.createElement('div');
+  text.className = 'admin-setting-text';
+  const title = document.createElement('div');
+  title.className = 'admin-setting-title';
+  title.textContent = 'ИИ-ассистент для читателей';
+  const hint = document.createElement('div');
+  hint.className = 'admin-setting-hint';
+  hint.textContent = 'Чат и «Объяснить» в читалке. Сообщения читателей передаются в DeepSeek. Тесты и описания книг от настройки не зависят.';
+  text.append(title, hint);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'admin-tool';
+  button.disabled = true;
+  button.textContent = 'Загрузка…';
+  card.append(text, button);
+  container.appendChild(card);
+
+  let enabled = null;
+  const show = () => {
+    button.disabled = enabled === null;
+    button.textContent = enabled ? 'Выключить' : 'Включить';
+    button.classList.toggle('admin-tool--danger', enabled === true);
+    title.textContent = `ИИ-ассистент для читателей: ${enabled ? 'включён' : 'выключен'}`;
+  };
+  try {
+    enabled = (await api.settings()).assistant_enabled === true;
+    show();
+  } catch (err) {
+    console.error('Не удалось загрузить настройки:', err);
+    button.textContent = 'Недоступно';
+    return;
+  }
+  button.addEventListener('click', async () => {
+    const next = !enabled;
+    if (!next && !confirm('Выключить ИИ-ассистента для всех читателей?')) return;
+    button.disabled = true;
+    try {
+      enabled = (await api.updateSettings({ assistant_enabled: next })).assistant_enabled === true;
+      showToast(enabled ? 'ИИ-ассистент включён' : 'ИИ-ассистент выключен');
+    } catch (err) {
+      console.error('Не удалось изменить настройку:', err);
+      showToast('Не удалось изменить настройку');
+    }
+    show();
+  });
 }
 
 function appendAdminCell(row, value) {

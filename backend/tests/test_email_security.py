@@ -62,6 +62,8 @@ async def test_registration_reports_delivery_failure(client, db, monkeypatch):
             "username": "mailfailure",
             "password": "TestPass123!",
             "email": "mailfailure@example.com",
+            "accept_terms": True,
+            "pd_consent": True,
         },
     )
 

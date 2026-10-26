@@ -15,6 +15,9 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   // «Вход», а required у чекбокса не давал отправить форму входа.
   document.getElementById('registerConsentField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerConsent').required = isRegister;
+  // Согласие на обработку персональных данных — отдельной отметкой (152-ФЗ).
+  const pdConsent = document.getElementById('registerPdConsent');
+  if (pdConsent) pdConsent.required = isRegister;
   document.getElementById('authPass').required = !isRegister;
   // Обновляем текст кнопки и заголовка формы
   const submitText = document.getElementById('authSubmitText');
@@ -389,6 +392,7 @@ async function submitVerifyCode() {
       ui_theme: user.ui_theme || null,
       ui_accent: user.ui_accent || null,
       appearance_onboarded: user.appearance_onboarded !== false,
+      legal_consent_required: user.legal_consent_required === true,
       avatar_preset: user.avatar_preset || null,
     };
     await loadBooksFromApi();
@@ -431,6 +435,7 @@ async function finishAuthenticatedLogin(password, username) {
     ui_theme: user.ui_theme || null,
     ui_accent: user.ui_accent || null,
     appearance_onboarded: user.appearance_onboarded !== false,
+    legal_consent_required: user.legal_consent_required === true,
     avatar_preset: user.avatar_preset || null,
   };
   await loadBooksFromApi();
@@ -462,6 +467,12 @@ document.getElementById('authForm').addEventListener('submit', async e => {
     if (p.length < 8) return showToast('Пароль: минимум 8 символов');
     if (!email) return showToast('Email обязателен — на него придёт код подтверждения');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast('Введите корректный email (например, name@example.com)');
+    if (!document.getElementById('registerConsent')?.checked) {
+      return showToast('Примите Пользовательское соглашение и Политику конфиденциальности');
+    }
+    if (!document.getElementById('registerPdConsent')?.checked) {
+      return showToast('Дайте согласие на обработку персональных данных');
+    }
   }
 
   const submitBtn = document.getElementById('authSubmitBtn');
@@ -487,7 +498,10 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       } else if (depSelect) {
         department = depSelect;
       }
-      await api.register(n, p, email, fullName, department);
+      await api.register(n, p, email, fullName, department, {
+        accept_terms: Boolean(document.getElementById('registerConsent')?.checked),
+        pd_consent: Boolean(document.getElementById('registerPdConsent')?.checked),
+      });
       // Регистрация создаёт неподтверждённый аккаунт — показываем экран ввода кода
       pendingVerifyEmail = email;
       pendingVerifyCreds = { username: n, password: p };
@@ -648,6 +662,7 @@ async function tryAutoLogin() {
       ui_theme: user.ui_theme || null,
       ui_accent: user.ui_accent || null,
       appearance_onboarded: user.appearance_onboarded !== false,
+      legal_consent_required: user.legal_consent_required === true,
       avatar_preset: user.avatar_preset || null,
     };
 

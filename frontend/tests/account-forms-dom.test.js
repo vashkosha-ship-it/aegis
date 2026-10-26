@@ -63,6 +63,49 @@ assert.equal(modal.querySelectorAll('[data-onclick]').length, 0);
 modal.querySelector('button').click();
 assert.equal(dom.window.document.getElementById('legalDocModal'), null);
 
+(async () => {
+// Текст документа загружается с постоянной страницы, без навигации и скриптов.
+context.fetch = async url => ({
+  ok: true,
+  text: async () => `<main id="legalDocument"><nav>меню</nav><h1>Политика</h1><p>Текст ${url}</p><script>bad()</script></main>`,
+});
+context.openPrivacyPolicy();
+await new Promise(resolve => setImmediate(resolve));
+await new Promise(resolve => setImmediate(resolve));
+modal = dom.window.document.getElementById('legalDocModal');
+assert.match(modal.textContent, /Текст \/legal\/privacy\.html/);
+assert.doesNotMatch(modal.textContent, /меню/);
+assert.equal(modal.querySelector('script'), null);
+assert.equal(modal.querySelector('a.legal-page-link').getAttribute('href'), '/legal/privacy.html');
+modal.querySelector('button').click();
+
+// Повторное согласие: окно блокирует, пока не отмечены обе галочки.
+const accepted = [];
+context.api = { acceptLegalDocuments: async () => { accepted.push(1); return { legal_consent_required: false }; } };
+context.showToast = () => {};
+context.onAppScreenShown = () => calls.push('screen-shown');
+context.state.currentScreen = 'home';
+context.state.currentUser.id = 5;
+context.state.currentUser.legal_consent_required = true;
+assert.equal(context.maybeShowLegalConsent(), true);
+const prompt = dom.window.document.getElementById('legalConsentPrompt');
+const accept = [...prompt.querySelectorAll('button')].find(b => b.textContent === 'Принять и продолжить');
+assert.equal(accept.disabled, true);
+const terms = prompt.querySelector('#legalConsentTerms');
+terms.checked = true;
+terms.dispatchEvent(new dom.window.Event('change'));
+assert.equal(accept.disabled, true);
+const pd = prompt.querySelector('#legalConsentPd');
+pd.checked = true;
+pd.dispatchEvent(new dom.window.Event('change'));
+assert.equal(accept.disabled, false);
+accept.click();
+await new Promise(resolve => setImmediate(resolve));
+assert.deepEqual(accepted, [1]);
+assert.equal(dom.window.document.getElementById('legalConsentPrompt'), null);
+assert.equal(context.state.currentUser.legal_consent_required, false);
+assert.equal(context.maybeShowLegalConsent(), false);
+
 for (const [start, end] of [
   ['function _openLegalModal', 'function openUserAgreement'],
   ['function renderSettingsPrivacyTab', 'function confirmDeleteAccount'],
@@ -73,3 +116,7 @@ for (const [start, end] of [
   assert.doesNotMatch(fragment, /innerHTML/);
 }
 console.log('Account forms and legal documents DOM tests passed');
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
