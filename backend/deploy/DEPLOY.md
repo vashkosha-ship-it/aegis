@@ -136,19 +136,50 @@ backend: скачивание всего bucket на системный диск
 ## Обычный деплой
 
 ```bash
-cd /opt/aegis && git pull
-cd backend && .venv/bin/alembic upgrade head
-systemctl restart aegis aegis-worker
+cd /opt/aegis && ./deploy.sh
 ```
 
-Фронт подхватывается сам через симлинк. При изменении `sw.js` поднимите версию
-`CACHE_NAME`, иначе Service Worker продолжит отдавать старую версию.
+Скрипт отказывается выкатывать коммит с незелёной сборкой, ставит зависимости,
+применяет миграции, обновляет фронт и nginx-заголовки, перезапускает `aegis` и
+`aegis-worker` и проверяет `/ready`. Откат: `./deploy.sh --rollback`.
+
+При изменении `sw.js` поднимите версию `CACHE_NAME` (и её копии в
+`frontend/tests/application-modules.test.js` и `backend/tests/test_deploy_config.py`).
+
+### Что делает воркер при старте
+
+После каждого перезапуска `aegis-worker` сам:
+
+- закрывает индексации и задачи описаний, прерванные перезапуском;
+- убирает из старых временных тестов вопросы не по теме книги (идемпотентно —
+  после первого прохода находить нечего).
+
+Каждые 10 минут он берёт до 5 книг без AI-теста и составляет его через
+DeepSeek. Неудачная попытка по книге повторяется не раньше чем через 6 часов.
+
+### Необязательные переменные окружения
+
+| Переменная | Зачем |
+| --- | --- |
+| `ERROR_REPORTING_DSN` | DSN проекта Sentry или GlitchTip. Пусто — ошибки сервера, воркера и браузеров только в журнале (`journalctl -u aegis \| grep aegis.errors`). |
+| `ERROR_REPORTING_ENVIRONMENT` | Имя окружения в сервисе ошибок, по умолчанию `production`. |
+| `ERROR_REPORTING_RELEASE` | Версия выкладки (например, git SHA) для группировки ошибок. |
+
+### Правовые документы
+
+Тексты — `frontend/legal/*.html`, редакция — `LEGAL_VERSION` в
+`backend/app/core/legal.py`. При новой редакции поменяйте дату и там, и на
+страницах: все пользователи после входа увидят окно согласия заново.
+
+ИИ-ассистента для читателей можно выключить без выкладки: админка → Дашборд.
 
 ## Проверка после деплоя
 
 ```bash
+python3 /opt/aegis/tools/verify_deployment.py https://aegis-sec-library.ru
 systemctl is-active aegis aegis-worker redis-server
 journalctl -u aegis -n 30 --no-pager | grep -i error
+journalctl -u aegis-worker -n 50 --no-pager | grep -iE "тест|quiz"
 curl -sI https://aegis-sec-library.ru/ | grep -i content-security-policy
 bash /opt/aegis/backend/deploy/healthcheck.sh
 ```

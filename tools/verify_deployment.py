@@ -198,6 +198,17 @@ def main(base: str) -> int:
         "иначе список пуст и интерфейс не реагирует на нажатия",
     )
 
+    print("\nПравовые документы")
+    # Страницы должны отдаваться как есть, а не подменяться index.html
+    # (try_files отдаёт главную на любой несуществующий путь с кодом 200).
+    for page in ("terms", "privacy", "consent"):
+        code, _, body = fetch(f"{base}/legal/{page}.html")
+        check(
+            f"/legal/{page}.html опубликована",
+            code == 200 and b'id="legalDocument"' in body,
+            f"код {code}" if code != 200 else "вместо документа отдана другая страница",
+        )
+
     print("\nAPI")
     # Путь зависит от того, под каким префиксом смонтировано приложение:
     # /health объявлен на корне FastAPI, а nginx проксирует /api/. Пробуем
@@ -246,6 +257,12 @@ def main(base: str) -> int:
         "отзывы не доступны анонимно",
         reviews_code in {401, 403},
         f"ожидался 401/403, получен код {reviews_code}",
+    )
+    settings_code, _, _ = fetch(base + "/api/settings")
+    check(
+        "настройки сервиса (выключатель ИИ) развёрнуты и требуют вход",
+        settings_code in {401, 403},
+        f"ожидался 401/403, получен код {settings_code}",
     )
     storage_audit_code, _, _ = fetch(base + "/api/admin/storage/audit")
     check(
