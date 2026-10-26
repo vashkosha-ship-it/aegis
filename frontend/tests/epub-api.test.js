@@ -14,10 +14,22 @@ assert.match(api, /uploadEpub\(id, file\)/);
 assert.match(api, /'\/books\/' \+ id \+ '\/epub'/);
 assert.match(reader, /api\.request\('\/books\/' \+ b\.id \+ '\/epub'/);
 assert.match(reader, /allowScriptedContent:\s*false/);
-assert.match(reader, /await epubBook\.ready/);
-assert.match(reader, /epubBook\.locations\.length\(\)/);
-assert.match(reader, /epubBook\.locations\.cfiFromLocation\(epubCurrentPage - 1\)/);
-assert.match(reader, /typeof initialCfi === 'string'/);
+assert.match(reader, /await book\.ready/);
+assert.match(reader, /book\.locations\.length\(\)/);
+assert.match(reader, /book\.locations\.cfiFromLocation\(epubCurrentPage - 1\)/);
+// Книга показывается до подсчёта страниц: подсчёт по всему тексту занимает
+// десятки секунд, и раньше всё это время был пустой экран.
+assert.doesNotMatch(reader, /await (?:epubBook|book)\.locations\.generate/);
+assert.ok(
+  reader.indexOf('await rendition.display(startCfi)')
+    < reader.indexOf('generateEpubLocationsInBackground(b, book'),
+);
+// Готовая нумерация берётся из кэша, место чтения — по CFI устройства.
+assert.match(reader, /readBookFromCache\(b, 'locations'\)/);
+assert.match(reader, /offlineStorage\.cachePut\(\s*userId, b\.id, 'locations'/);
+// locationFromCfi принимает строку CFI, а не объект loc.start.
+assert.match(reader, /locationFromCfi\(loc\.start\.cfi\)/);
+assert.doesNotMatch(reader, /locationFromCfi\(loc\.start\)/);
 assert.doesNotMatch(reader, /epubTotalPages\s*=\s*location\.total/);
 assert.match(admin, /await api\.books\.uploadEpub\(adminBookModalCurrentId, file\)/);
 assert.doesNotMatch(admin, /typeof api\.books\.uploadEpub/);

@@ -6,24 +6,72 @@
 // именно в него, не доезжая до экрана.
 
 const RESUME_HIDDEN_KEY = 'aegis_resume_hidden';
+// Локальный список однажды перенесён в аккаунт (на этом устройстве).
+const RESUME_HIDDEN_SYNCED_KEY = 'aegis_resume_hidden_synced';
 
+// Список убранных книг хранится в аккаунте (resume_hidden), а на устройстве
+// лежит его копия — для мгновенной отрисовки и работы без сети. Раньше он
+// жил только в localStorage: убранная книга возвращалась на другом
+// устройстве, в приложении с экрана «Домой» (у него своё хранилище) и после
+// очистки данных браузера.
 function getResumeHidden() {
-  try { return JSON.parse(lsGet(RESUME_HIDDEN_KEY) || '[]'); } catch (_) { return []; }
+  try {
+    const list = JSON.parse(lsGet(RESUME_HIDDEN_KEY) || '[]');
+    return Array.isArray(list) ? list.map(Number).filter(id => Number.isInteger(id) && id > 0) : [];
+  } catch (_) { return []; }
+}
+
+function _saveResumeHidden(list, syncToAccount = true) {
+  lsSet(RESUME_HIDDEN_KEY, JSON.stringify(list));
+  if (state.currentUser) state.currentUser.resume_hidden = list.slice();
+  if (!syncToAccount || typeof api === 'undefined' || !api.updateMe || !state.currentUser) return;
+  api.updateMe({ resume_hidden: list }).catch(error => {
+    // Без сети список останется на устройстве и уйдёт в аккаунт при
+    // следующем входе (см. syncResumeHiddenFromAccount).
+    lsSet(RESUME_HIDDEN_SYNCED_KEY, '');
+    console.info('Список «Продолжить» не сохранился в аккаунт:', error && error.message);
+  });
+}
+
+// Вызывается после входа, когда пришёл профиль. Аккаунт — источник истины;
+// локальные скрытия, которых в аккаунте ещё нет, переносим туда один раз
+// (старые версии хранили их только на устройстве).
+function syncResumeHiddenFromAccount() {
+  const user = state.currentUser;
+  if (!user) return;
+  const server = Array.isArray(user.resume_hidden) ? user.resume_hidden.map(Number) : null;
+  const local = getResumeHidden();
+  const synced = lsGet(RESUME_HIDDEN_SYNCED_KEY) === '1';
+  if (server && synced) {
+    lsSet(RESUME_HIDDEN_KEY, JSON.stringify(server));
+    return;
+  }
+  const merged = Array.from(new Set([...(server || []), ...local]));
+  const changed = !server || merged.length !== server.length;
+  lsSet(RESUME_HIDDEN_KEY, JSON.stringify(merged));
+  user.resume_hidden = merged.slice();
+  if (!changed) { lsSet(RESUME_HIDDEN_SYNCED_KEY, '1'); return; }
+  if (typeof api === 'undefined' || !api.updateMe) return;
+  api.updateMe({ resume_hidden: merged })
+    .then(() => lsSet(RESUME_HIDDEN_SYNCED_KEY, '1'))
+    .catch(() => { /* Попробуем при следующем входе. */ });
 }
 
 function hideFromResume(bookId) {
   const hidden = getResumeHidden();
   if (!hidden.includes(bookId)) hidden.push(bookId);
-  lsSet(RESUME_HIDDEN_KEY, JSON.stringify(hidden));
+  _saveResumeHidden(hidden);
   if (navigator.vibrate) navigator.vibrate(10);
   // Перерисовываем главную целиком: блок «Продолжить» живёт внутри неё, и
   // отдельной точки обновления у него нет.
   renderHome();
 }
 
+// Книгу снова открыли — она опять актуальна и возвращается в «Продолжить».
 function unhideFromResume(bookId) {
-  const hidden = getResumeHidden().filter(id => id !== bookId);
-  lsSet(RESUME_HIDDEN_KEY, JSON.stringify(hidden));
+  const hidden = getResumeHidden();
+  if (!hidden.includes(bookId)) return;   // не трогаем аккаунт при каждом открытии
+  _saveResumeHidden(hidden.filter(id => id !== bookId));
 }
 
 function renderBookScroll(id, books, query) {

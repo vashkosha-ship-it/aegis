@@ -1,6 +1,8 @@
 // Офлайн-сессия и скачанные книги.
 const offlineBookIds = new Set();
 const CACHED_USER_KEY = 'aegis_cached_user';
+// Последнее место чтения EPUB на устройстве: { bookId: CFI }.
+const EPUB_CFI_KEY = 'aegis_epub_cfi';
 
 function currentOfflineUserId() {
   const id = Number(state.currentUser && state.currentUser.id);
@@ -63,6 +65,7 @@ function userScopedKeys() {
     READING_GOAL_KEY,
     BOOKS_GOAL_KEY,
     REVIEW_PROMPT_KEY,
+    EPUB_CFI_KEY,
   ];
 }
 
@@ -137,8 +140,12 @@ async function saveBookOffline(bookId, silent) {
 
   try {
     const fileType = book.file_format === 'epub' ? 'epub' : 'pdf';
-    const fileResponse = await api.request('/books/' + bookId + '/' + fileType, { raw: true });
-    const fileBlob = await fileResponse.blob();
+    // Книгу уже открывали — файл лежит в кэше, второй раз не скачиваем.
+    let fileBlob = await readBookFromCache(book, fileType);
+    if (!fileBlob) {
+      const fileResponse = await api.request('/books/' + bookId + '/' + fileType, { raw: true });
+      fileBlob = await fileResponse.blob();
+    }
 
     let coverBlob = null;
     if (book.has_cover) {
@@ -152,6 +159,11 @@ async function saveBookOffline(bookId, silent) {
 
     await offlineStorage.save(userId, book, fileBlob, fileType, coverBlob);
     offlineBookIds.add(bookId);
+    // Сохранённая офлайн книга читается из своего хранилища, копия в кэше
+    // только занимала бы место.
+    if (typeof offlineStorage.cacheRemove === 'function') {
+      offlineStorage.cacheRemove(userId, bookId).catch(() => { /* Не критично. */ });
+    }
     // Счётчик «Сохранено офлайн» в админке. Сбой отметки не должен
     // выглядеть как сбой сохранения: книга уже на устройстве.
     Promise.resolve()
@@ -188,4 +200,75 @@ async function removeBookOffline(bookId) {
     console.error('Ошибка удаления оффлайн:', error);
     showToast('Не удалось удалить');
   }
+}
+
+// ========== Кэш открытых книг ==========
+// Файл книги кладётся в IndexedDB при первом открытии. Повторное открытие
+// читает его с устройства и не обращается к хранилищу. Запись привязана
+// к file_version: если админ заменит файл, книга скачается заново.
+const bookCacheInFlight = new Map();
+
+function bookCacheKey(bookId, fileType) {
+  return bookId + ':' + fileType;
+}
+
+async function readBookFromCache(book, fileType) {
+  const userId = currentOfflineUserId();
+  if (!userId || !book || typeof offlineStorage === 'undefined' || !offlineStorage.cacheGet) return null;
+  try {
+    return await offlineStorage.cacheGet(userId, book.id, fileType, book.file_version || null);
+  } catch (error) {
+    console.warn('Не удалось прочитать книгу из кэша:', error);
+    return null;
+  }
+}
+
+async function writeBookToCache(book, fileType, data) {
+  const userId = currentOfflineUserId();
+  if (!userId || !book || !data || typeof offlineStorage === 'undefined' || !offlineStorage.cachePut) return false;
+  if (offlineBookIds.has(book.id)) return false;
+  try {
+    const blob = data instanceof Blob
+      ? data
+      : new Blob([data], { type: fileType === 'epub' ? 'application/epub+zip' : 'application/pdf' });
+    return await offlineStorage.cachePut(userId, book.id, fileType, blob, book.file_version || null);
+  } catch (error) {
+    // Нет места или IndexedDB недоступна — книга просто не закэшируется.
+    console.warn('Не удалось положить книгу в кэш:', error);
+    return false;
+  }
+}
+
+function dropBookFromCache(book) {
+  const userId = currentOfflineUserId();
+  if (!userId || !book || typeof offlineStorage === 'undefined' || !offlineStorage.cacheRemove) return;
+  offlineStorage.cacheRemove(userId, book.id)
+    .catch(error => console.warn('Не удалось убрать книгу из кэша:', error));
+}
+
+// Скачать файл целиком в фоне и положить в кэш. Нужен для PDF: читалка
+// грузит его кусками по Range, полного файла у неё нет. Одна загрузка на
+// книгу за раз; на мобильной сети при «Только по Wi-Fi» не качаем.
+function cacheBookInBackground(book, fileType) {
+  if (!book || !book.has_file || offlineBookIds.has(book.id)) return null;
+  if (!currentOfflineUserId()) return null;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
+  if (typeof isWifiOnlyEnabled === 'function' && isWifiOnlyEnabled()
+      && typeof isOnWifi === 'function' && !isOnWifi()) return null;
+  const key = bookCacheKey(book.id, fileType);
+  if (bookCacheInFlight.has(key)) return bookCacheInFlight.get(key);
+
+  const task = (async () => {
+    if (await readBookFromCache(book, fileType)) return true;
+    const response = await api.request('/books/' + book.id + '/' + fileType, { raw: true });
+    const blob = await response.blob();
+    return writeBookToCache(book, fileType, blob);
+  })()
+    .catch(error => {
+      console.warn('Фоновое кэширование книги не удалось:', error);
+      return false;
+    })
+    .finally(() => bookCacheInFlight.delete(key));
+  bookCacheInFlight.set(key, task);
+  return task;
 }

@@ -4,6 +4,13 @@ function goToPage(pn) {
   const target = Math.max(1, Math.min(pn, total));
   if (navigator.vibrate) navigator.vibrate(8);
 
+  if (isEpubMode && !epubLocationsReady) {
+    // Нумерация ещё считается: перейти на страницу по номеру нельзя,
+    // соседние страницы листаются через goToNextPage/goToPrevPage.
+    showToast('Страницы ещё считаются, переход по номеру будет доступен через несколько секунд');
+    return;
+  }
+
   if (isEpubMode) {
     epubCurrentPage = target;
     if (epubRendition) {

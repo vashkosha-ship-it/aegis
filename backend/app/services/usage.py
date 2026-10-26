@@ -12,7 +12,7 @@ from app.models.usage import UsageCounter
 from app.models.user import User, UserRole
 from app.schemas.usage import UsageEvent
 
-DEFAULT_ACCENT = "orange"
+DEFAULT_ACCENT = "blue"
 DEFAULT_THEME = "dark"
 
 

@@ -67,15 +67,22 @@ test.describe('@critical чтение PDF и EPUB', () => {
       await loadProgressFromApi(false);
       openReader(bookId);
     }, epub.id);
+    // Книга открывается до подсчёта страниц; номер страницы настоящий только
+    // после него (epubLocationsReady). Пока epub.js перерисовывает страницу,
+    // currentLocation() бросает исключение — это промежуточное состояние.
     await page.waitForFunction(() => {
-      if (!epubBook || !epubRendition?.manager || epubCurrentPage < 2) return false;
-      const cfi = epubRendition?.currentLocation()?.start?.cfi;
-      return cfi?.startsWith('epubcfi(');
+      if (!epubBook || !epubRendition?.manager || !epubLocationsReady || epubCurrentPage < 2) return false;
+      try {
+        const cfi = epubRendition.currentLocation()?.start?.cfi;
+        return Boolean(cfi?.startsWith('epubcfi('));
+      } catch (_) {
+        return false;
+      }
     });
-    const location = await page.evaluate(() => {
-      const current = epubRendition.currentLocation();
-      return { page: epubCurrentPage, cfi: current?.start?.cfi || '' };
-    });
+    const location = await page.evaluate(() => ({
+      page: epubCurrentPage,
+      cfi: currentEpubCfi(epubRendition) || '',
+    }));
     expect(location.page).toBeGreaterThanOrEqual(2);
     expect(location.cfi).toMatch(/^epubcfi\(/);
   });

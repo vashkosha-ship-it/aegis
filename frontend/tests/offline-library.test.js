@@ -10,6 +10,7 @@ const source = fs.readFileSync(path.join(FRONTEND, 'offline-library.js'), 'utf8'
 const appSource = fs.readFileSync(path.join(FRONTEND, 'app.js'), 'utf8');
 const indexSource = fs.readFileSync(path.join(FRONTEND, 'index.html'), 'utf8');
 const workerSource = fs.readFileSync(path.join(FRONTEND, 'sw.js'), 'utf8');
+const readerSource = fs.readFileSync(path.join(FRONTEND, 'reader-core.js'), 'utf8');
 
 const storage = new Map([['legacy', 'old-value']]);
 const removed = [];
@@ -30,7 +31,7 @@ const state = {
   reviews: {},
   completedQuizzes: {},
 };
-const fileBlob = { size: 2 * 1024 * 1024 };
+const fileBlob = new Blob([new Uint8Array(2 * 1024 * 1024)], { type: 'application/pdf' });
 const offlineStorage = {
   listAll: async userId => {
     listedFor.push(['all', userId]);
@@ -43,7 +44,25 @@ const offlineStorage = {
   save: async (...args) => saved.push(args),
   remove: async (...args) => removed.push(args),
   clearUser: async userId => cleared.push(userId),
+  cacheGet: async (...args) => {
+    cacheReads.push(args);
+    const entry = cacheEntries.get(args[1] + ':' + args[2]);
+    if (!entry) return null;
+    // Как в настоящем хранилище: устаревшая версия файла — промах кэша.
+    if (args[3] && entry.version && entry.version !== args[3]) return null;
+    return entry.blob;
+  },
+  cachePut: async (userId, bookId, type, blob, version) => {
+    cacheWrites.push([userId, bookId, type, blob, version]);
+    cacheEntries.set(bookId + ':' + type, { blob, version });
+    return true;
+  },
+  cacheRemove: async (...args) => cacheRemoved.push(args),
 };
+const cacheEntries = new Map();
+const cacheReads = [];
+const cacheWrites = [];
+const cacheRemoved = [];
 const api = {
   request: async url => {
     requestedUrls.push(url);
@@ -78,8 +97,13 @@ const context = {
   READING_GOAL_KEY: 'reading-goal',
   BOOKS_GOAL_KEY: 'books-goal',
   REVIEW_PROMPT_KEY: 'review-prompt',
+  Blob,
+  navigator: { onLine: true },
+  isWifiOnlyEnabled: () => wifiOnly,
+  isOnWifi: () => false,
   console,
 };
+let wifiOnly = false;
 vm.createContext(context);
 vm.runInContext(source, context);
 
@@ -114,6 +138,51 @@ vm.runInContext(source, context);
   // Сохранение офлайн отмечается на сервере для счётчика в админке.
   assert.deepEqual(markedOffline, [3, 4]);
 
+  // Сохранённая офлайн книга убирается из кэша открытых книг.
+  assert.deepEqual(cacheRemoved, [[17, 3], [17, 4]]);
+
+  // ---- Кэш открытых книг ----
+  const cachedBook = { id: 5, title: 'Cached', file_format: 'pdf', has_file: true, file_version: 'v1' };
+  state.books.push(cachedBook);
+  assert.equal(await context.readBookFromCache(cachedBook, 'pdf'), null);
+  assert.deepEqual(cacheReads.at(-1), [17, 5, 'pdf', 'v1']);
+
+  // Фоновая докачка: одна загрузка на книгу, файл с версией ложится в кэш.
+  const first = context.cacheBookInBackground(cachedBook, 'pdf');
+  const second = context.cacheBookInBackground(cachedBook, 'pdf');
+  assert.equal(first, second);
+  assert.equal(await first, true);
+  assert.equal(requestedUrls.filter(url => url === '/books/5/pdf').length, 1);
+  assert.equal(cacheWrites.at(-1)[1], 5);
+  assert.equal(cacheWrites.at(-1)[4], 'v1');
+
+  // Повторное открытие — файл с устройства, без запроса к серверу.
+  const requestsBefore = requestedUrls.length;
+  assert.equal(await context.readBookFromCache(cachedBook, 'pdf'), fileBlob);
+  assert.equal(await context.cacheBookInBackground(cachedBook, 'pdf'), true);
+  assert.equal(requestedUrls.length, requestsBefore);
+
+  // Админ заменил файл — версия сменилась, кэш не используется.
+  assert.equal(await context.readBookFromCache({ ...cachedBook, file_version: 'v2' }, 'pdf'), null);
+
+  // Сохранение офлайн берёт файл из кэша, а не скачивает заново.
+  await context.saveBookOffline(5, true);
+  assert.equal(requestedUrls.length, requestsBefore);
+  assert.equal(saved.at(-1)[2], fileBlob);
+
+  // Офлайн-книги в кэш не дублируются.
+  assert.equal(await context.writeBookToCache(cachedBook, 'pdf', fileBlob), false);
+
+  // «Только по Wi-Fi» на мобильной сети — фоном не качаем.
+  wifiOnly = true;
+  assert.equal(context.cacheBookInBackground({ id: 6, has_file: true }, 'pdf'), null);
+  wifiOnly = false;
+
+  // Из EPUB-байтов кэш собирает Blob сам.
+  const epubBook = { id: 7, has_file: true, file_version: 'e1' };
+  assert.equal(await context.writeBookToCache(epubBook, 'epub', new ArrayBuffer(4)), true);
+  assert.equal(cacheWrites.at(-1)[3].type, 'application/epub+zip');
+
   await context.removeBookOffline(3);
   assert.deepEqual(removed, [[17, 3]]);
   assert.equal(vm.runInContext('offlineBookIds.has(3)', context), false);
@@ -128,6 +197,12 @@ vm.runInContext(source, context);
   assert.match(workerSource, /aegis-cache-v[0-9]+/);
   assert.match(source, /offlineStorage\.listAll\(userId\)/);
   assert.match(source, /offlineStorage\.clearUser\(userId\)/);
+  // Читалка сначала смотрит в кэш и только потом идёт в сеть.
+  assert.match(readerSource, /readBookFromCache\(b, 'epub'\)/);
+  assert.match(readerSource, /readBookFromCache\(b, 'pdf'\)/);
+  assert.match(readerSource, /writeBookToCache\(b, 'epub'/);
+  assert.match(readerSource, /cacheBookInBackground\(b, 'pdf'\)/);
+  assert.ok(readerSource.indexOf("readBookFromCache(b, 'pdf')") < readerSource.indexOf('pdfStreamConfig'));
   console.log('Offline library tests passed');
 })().catch(error => {
   console.error(error);

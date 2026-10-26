@@ -70,6 +70,9 @@ async def update_me(
         current.ui_accent = payload.ui_accent
     if payload.appearance_onboarded:
         current.appearance_onboarded = True
+    if payload.resume_hidden is not None:
+        # Без повторов, порядок сохраняем.
+        current.resume_hidden = list(dict.fromkeys(payload.resume_hidden))
 
     # Выбор аватара из набора заменяет ранее загруженное фото.
     old_upload = None

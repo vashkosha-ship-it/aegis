@@ -1,6 +1,6 @@
 """Pydantic schemas for authentication endpoints."""
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -90,6 +90,9 @@ class UserPublic(BaseModel):
     ui_theme: str | None = None
     ui_accent: str | None = None
     appearance_onboarded: bool = True
+    # Книги, убранные из блока «Продолжить» (id). None — сервер ещё не знает
+    # (до первого сохранения), клиент тогда опирается на свою копию.
+    resume_hidden: list[int] | None = None
     # Человек не принимал текущую редакцию документов — интерфейс покажет окно
     # согласия. По умолчанию False: старый клиент без поля ничего не ломает.
     legal_consent_required: bool = False
@@ -124,6 +127,8 @@ class UserUpdate(BaseModel):
     ui_theme: Literal["dark", "light"] | None = None
     ui_accent: Literal["orange", "blue", "green", "violet"] | None = None
     appearance_onboarded: Literal[True] | None = None
+    # Полный список книг, убранных из «Продолжить» (заменяет прежний).
+    resume_hidden: list[Annotated[int, Field(gt=0)]] | None = Field(default=None, max_length=1000)
     # Аватар из набора: a01…a15. Убрать аватар (показывать букву) —
     # DELETE /me/avatar.
     avatar_preset: Literal[

@@ -52,6 +52,11 @@ class User(Base):
     # Онбординг (определение уровня кибербезопасности при первом входе)
     cyber_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
     topic_scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Книги, которые человек убрал крестиком из блока «Продолжить». Хранится
+    # в аккаунте, а не на устройстве: иначе убранная книга возвращалась на
+    # другом устройстве, в приложении с экрана «Домой» или после очистки
+    # данных браузера.
+    resume_hidden: Mapped[list | None] = mapped_column(JSON, nullable=True)
     level_assessed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Смена email с подтверждением (G/SMTP)

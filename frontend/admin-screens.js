@@ -105,6 +105,8 @@ async function renderAssistantSetting(container) {
     button.disabled = true;
     try {
       enabled = (await api.updateSettings({ assistant_enabled: next })).assistant_enabled === true;
+      // Администратор видит изменение сразу, как и все читатели.
+      if (typeof applyAssistantAvailability === 'function') applyAssistantAvailability(enabled);
       showToast(enabled ? 'ИИ-ассистент включён' : 'ИИ-ассистент выключен');
     } catch (err) {
       console.error('Не удалось изменить настройку:', err);

@@ -23,6 +23,9 @@ let _pdfRenderToken = 0;       // токен последнего запроса
 let pdfZoom = 1;               // увеличение страницы щипком (1–3), только PDF
 let readerCurrentPageText = '';  // текст текущей страницы для AI-ассистента
 let epubCurrentPage = 1, epubTotalPages = 0;
+// Нумерация страниц EPUB (epub.js locations) готова. Пока она считается,
+// листаем через rendition.next()/prev(), а переходы по номеру ждут.
+let epubLocationsReady = false;
 let currentQuiz = { bookId: null, questions: [], currentIndex: 0, score: 0, answers: [] };
 
 function saveState() {

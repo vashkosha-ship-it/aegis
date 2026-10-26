@@ -96,6 +96,9 @@ class BookPublic(BookBase):
     has_epub: bool = False
     has_file: bool = False
     has_cover: bool = False
+    # Отпечаток текущего файла книги. Меняется при загрузке нового файла:
+    # по нему клиент понимает, что копия книги в кэше устройства устарела.
+    file_version: str | None = None
     indexing_status: Literal[
         "not_indexed", "queued", "running", "succeeded", "failed"
     ] = "not_indexed"

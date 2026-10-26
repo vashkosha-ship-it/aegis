@@ -144,6 +144,10 @@
     }
 
     if (!response.ok) {
+      // Ассистента выключил администратор: интерфейс прячет входы в ИИ.
+      if (response.status === 403 && path.startsWith('/me/assistant') && typeof window !== 'undefined') {
+        try { window.dispatchEvent(new Event('aegis:assistant-disabled')); } catch (_) { /* без DOM */ }
+      }
       let detail = null, errBody = null;
       try { errBody = await response.json(); detail = errBody.detail; } catch (_) { /* not JSON */ }
       throw new ApiError(response.status, detail, errBody);

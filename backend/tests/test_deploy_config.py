@@ -137,6 +137,24 @@ class TestContentSecurityPolicy:
                 f"'unsafe-inline' появился в {name}"
             )
 
+    def test_epub_reader_styles_allowed(self, conf_lines):
+        """epub.js подключает CSS и шрифты книги как blob: и создаёт пустой
+        <style>, который наполняет через CSSOM. Без этого EPUB открывается без
+        оформления, а консоль полна ошибок CSP."""
+        csp = _header_value(conf_lines, "Content-Security-Policy")
+        directives = {
+            d.strip().split()[0]: d.strip().split()[1:]
+            for d in csp.split(";")
+            if d.strip()
+        }
+        empty_style_hash = "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='"
+        assert "blob:" in directives["style-src"]
+        assert empty_style_hash in directives["style-src"]
+        assert "blob:" in directives["font-src"]
+        # Разрешён только пустой <style>: других хешей и nonce нет.
+        hashes = [v for v in directives["style-src"] if v.startswith("'sha")]
+        assert hashes == [empty_style_hash]
+
     @pytest.mark.parametrize(
         ("directive", "expected"),
         [
@@ -495,7 +513,7 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v328" in service_worker
+        assert "aegis-cache-v329" in service_worker
 
     def test_deploy_requires_frontend_ci(self):
         deploy_script = DEPLOY_SCRIPT.read_text(encoding="utf-8")

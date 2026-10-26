@@ -230,6 +230,7 @@ function renderFullTextResults(res) {
       const askAi = document.createElement('button');
       askAi.type = 'button';
       askAi.setAttribute('data-static-style', 'a124');
+      askAi.setAttribute('data-ai-entry', '');
       askAi.textContent = '✨ Спросить AI про этот фрагмент';
       askAi.addEventListener('click', event => {
         event.stopPropagation();

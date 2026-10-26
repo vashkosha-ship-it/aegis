@@ -18,6 +18,7 @@ async function loadEpub(b) {
     return;
   }
 
+  let epubFromCache = false;
   try {
     let epubData = null;
     let fromOffline = false;
@@ -35,7 +36,16 @@ async function loadEpub(b) {
       }
     }
 
-    // 2. Если в IndexedDB нет — пробуем API
+    // 2. Книгу уже открывали на этом устройстве — берём файл из кэша.
+    if (!epubData) {
+      const cached = await readBookFromCache(b, 'epub');
+      if (cached) {
+        epubData = await cached.arrayBuffer();
+        epubFromCache = true;
+      }
+    }
+
+    // 3. Нигде нет — скачиваем и кладём в кэш для следующих открытий.
     if (!epubData) {
       if (!b.has_file) {
         showToast('EPUB-файл не найден');
@@ -45,6 +55,7 @@ async function loadEpub(b) {
       try {
         const resp = await api.request('/books/' + b.id + '/epub', { raw: true });
         epubData = await resp.arrayBuffer();
+        writeBookToCache(b, 'epub', epubData.slice(0));
       } catch (err) {
         showToast('Нет связи. Сохраните книгу оффлайн заранее.');
         closeReader();
@@ -52,48 +63,88 @@ async function loadEpub(b) {
       }
     }
 
-    // 3. Рендерим EPUB
+    // 4. Рендерим EPUB
     if (typeof ePub === 'undefined') {
       showToast('EPUB-движок не загрузился. Проверьте интернет/доступ к CDN.');
       closeReader();
       return;
     }
-    epubBook = ePub(epubData);
+    const book = ePub(epubData);
+    epubBook = book;
+    epubLocationsReady = false;
     // Убираем спиннер до renderTo: очистка после renderTo удаляет созданный
     // epub.js iframe и оставляет rendition в неконсистентном состоянии.
     container.replaceChildren();
-    epubRendition = epubBook.renderTo(container, {
+    epubRendition = book.renderTo(container, {
       width: '100%',
       height: '100%',
       flow: 'paginated',
       allowScriptedContent: false,
     });
+    const rendition = epubRendition;
     // Применяем тему после создания rendition
-  setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
+    setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
 
     // До book.ready spine ещё может быть пустым: locations.generate() тогда
     // молча создаёт ноль CFI и восстановить сохранённую позицию невозможно.
-    await epubBook.ready;
-    await epubBook.locations.generate(1000);
+    await book.ready;
+    if (book !== epubBook) return;   // пока готовились, читалку закрыли или открыли другую книгу
 
-    // epub.js возвращает из generate() массив CFI, а не объект с полем total.
-    // Из-за чтения location.total число страниц всегда становилось равным 1,
-    // и сохранённая позиция любой EPUB-книги сбрасывалась на начало.
-    epubTotalPages = Math.max(1, Number(epubBook.locations.length()) || 1);
-    epubCurrentPage = Math.min(state.readingProgress[b.id]?.currentPage || 1, epubTotalPages);
+    // Нумерация страниц (locations) у epub.js считается по всему тексту книги:
+    // на большой книге это десятки секунд, а на телефоне — минута. Раньше
+    // книга показывалась только после подсчёта, и всё это время читатель
+    // видел пустой экран — «EPUB не открывается». Теперь нумерация берётся
+    // из кэша, а если её там нет, книга открывается сразу, а страницы
+    // досчитываются фоном.
+    const savedPage = state.readingProgress[b.id]?.currentPage || 1;
+    const savedTotal = state.readingProgress[b.id]?.totalPages || 0;
+    const restored = await restoreEpubLocations(b, book);
+    if (book !== epubBook) return;
 
-    if (!state.readingProgress[b.id]) {
-      state.readingProgress[b.id] = { currentPage: 1, totalPages: epubTotalPages, started: false };
+    let startCfi;
+    if (restored) {
+      applyEpubLocations(b, book, savedPage);
+      // Место на этом устройстве (CFI) точнее номера страницы: страница —
+      // это кусок в 1000 знаков, и открытие по номеру сдвигало читателя на
+      // начало экрана. Берём CFI, если он о том же месте, что и прогресс на
+      // сервере; иначе читали на другом устройстве — открываем по номеру.
+      const localCfi = getSavedEpubCfi(b.id);
+      const localPage = localCfi ? book.locations.locationFromCfi(localCfi) + 1 : 0;
+      if (localCfi && localPage > 0 && Math.abs(localPage - epubCurrentPage) <= 2) {
+        startCfi = localCfi;
+      } else {
+        const cfi = book.locations.cfiFromLocation(epubCurrentPage - 1);
+        startCfi = typeof cfi === 'string' ? cfi : undefined;
+      }
     } else {
-      state.readingProgress[b.id].totalPages = epubTotalPages;
+      // Пока нумерации нет, место чтения на этом устройстве восстанавливаем
+      // по CFI, а номер страницы показываем последний известный.
+      startCfi = getSavedEpubCfi(b.id) || undefined;
+      epubTotalPages = Math.max(savedTotal, savedPage, 1);
+      epubCurrentPage = savedPage;
+    }
+    if (!state.readingProgress[b.id]) {
+      state.readingProgress[b.id] = { currentPage: epubCurrentPage, totalPages: epubTotalPages, started: false };
     }
 
     updatePageIndicator();
-    const initialCfi = epubBook.locations.cfiFromLocation(epubCurrentPage - 1);
-    await epubRendition.display(typeof initialCfi === 'string' ? initialCfi : undefined);
 
-    epubRendition.on('relocated', (loc) => {
-      const current = epubBook.locations.locationFromCfi(loc.start);
+    rendition.on('relocated', (loc) => {
+      if (!loc || !loc.start || !loc.start.cfi) return;
+      saveEpubCfi(b.id, loc.start.cfi);
+      if (!epubLocationsReady || book !== epubBook) return;
+      // Нужна строка CFI: объект loc.start epub.js не принимает и падает
+      // внутри сравнения CFI, из-за чего номер страницы не обновлялся.
+      const startLocation = book.locations.locationFromCfi(loc.start.cfi);
+      const endLocation = loc.end && loc.end.cfi ? book.locations.locationFromCfi(loc.end.cfi) : startLocation;
+      // Страница — кусок в 1000 знаков, а на экране их помещается несколько.
+      // Если нужная страница (после перехода по номеру) уже на экране,
+      // оставляем её номер, иначе он съезжал бы на начало экрана.
+      const shown = epubCurrentPage - 1;
+      const current = Number.isInteger(startLocation) && startLocation >= 0
+        && Number.isInteger(endLocation) && shown >= startLocation && shown <= endLocation
+        ? shown
+        : startLocation;
       // epub.js возвращает -1 для CFI до первой сгенерированной локации.
       // Такой результат нельзя превращать в current_page=0: API его отвергает.
       if (Number.isInteger(current) && current >= 0) {
@@ -105,6 +156,12 @@ async function loadEpub(b) {
         updatePageIndicator();
       }
     });
+
+    await rendition.display(startCfi);
+    if (book !== epubBook) return;
+
+    if (!restored) generateEpubLocationsInBackground(b, book, rendition, savedPage, !!startCfi);
+
 // === Выделение текста в EPUB ===
     epubRendition.on('selected', (cfiRange, contents) => {
       handleEpubSelection(cfiRange, contents);
@@ -116,10 +173,116 @@ async function loadEpub(b) {
     saveState();
     if (fromOffline) showToast('Читаем из оффлайн-хранилища');
   } catch (err) {
+    // Испорченная копия в кэше не должна ломать книгу при каждом открытии.
+    if (epubFromCache) dropBookFromCache(b);
     console.error('Ошибка загрузки EPUB:', err);
     showToast('Не удалось загрузить EPUB');
     closeReader();
   }
+}
+
+// ---------- Нумерация страниц EPUB ----------
+const EPUB_LOCATION_CHARS = 1000;
+
+async function restoreEpubLocations(b, book) {
+  try {
+    const blob = await readBookFromCache(b, 'locations');
+    if (!blob) return false;
+    book.locations.load(await blob.text());
+    return Number(book.locations.length()) > 0;
+  } catch (error) {
+    console.warn('Нумерация EPUB из кэша не подошла:', error);
+    return false;
+  }
+}
+
+// Нумерация готова: выставляем число страниц и текущую страницу.
+function applyEpubLocations(b, book, page) {
+  // epub.js возвращает из generate() массив CFI, а не объект с полем total.
+  // Из-за чтения location.total число страниц всегда становилось равным 1,
+  // и сохранённая позиция любой EPUB-книги сбрасывалась на начало.
+  epubTotalPages = Math.max(1, Number(book.locations.length()) || 1);
+  epubCurrentPage = Math.min(Math.max(1, page || 1), epubTotalPages);
+  epubLocationsReady = true;
+  if (state.readingProgress[b.id]) state.readingProgress[b.id].totalPages = epubTotalPages;
+}
+
+function generateEpubLocationsInBackground(b, book, rendition, savedPage, positionedByCfi) {
+  const indicator = document.getElementById('pageIndicatorTop');
+  if (indicator && book === epubBook) indicator.textContent = 'Считаем страницы…';
+  book.locations.generate(EPUB_LOCATION_CHARS)
+    .then(() => {
+      // Нумерацию сохраняем, даже если книгу уже закрыли: следующее открытие
+      // будет мгновенным.
+      saveEpubLocations(b, book);
+      if (book !== epubBook) return;
+
+      // Номер страницы берём из того места, где читатель сейчас: пока шёл
+      // подсчёт, он мог уже полистать.
+      const cfi = currentEpubCfi(rendition);
+      const location = cfi ? book.locations.locationFromCfi(cfi) : -1;
+      const current = Number.isInteger(location) && location >= 0 ? location + 1 : 1;
+      applyEpubLocations(b, book, current);
+      updatePageIndicator();
+
+      // Прогресс с другого устройства известен только номером страницы:
+      // переходим к нему, если читатель ещё не листал сам.
+      if (!positionedByCfi && savedPage > 1 && current <= 1) {
+        goToPage(savedPage);
+      } else if (state.readingProgress[b.id] && state.readingProgress[b.id].currentPage !== current) {
+        state.readingProgress[b.id].currentPage = current;
+        scheduleProgressSave(b.id);
+      }
+    })
+    .catch(error => {
+      if (book === epubBook) console.warn('Не удалось посчитать страницы EPUB:', error);
+    });
+}
+
+// Пока epub.js перерисовывает страницу (читатель листает), currentLocation()
+// бросает исключение изнутри библиотеки. Это не ошибка — места просто ещё нет.
+function currentEpubCfi(rendition) {
+  try {
+    const cfi = rendition.currentLocation()?.start?.cfi;
+    return typeof cfi === 'string' ? cfi : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveEpubLocations(b, book) {
+  try {
+    const json = book.locations.save();
+    if (!json) return;
+    const userId = currentOfflineUserId();
+    if (!userId || typeof offlineStorage === 'undefined' || !offlineStorage.cachePut) return;
+    offlineStorage.cachePut(
+      userId, b.id, 'locations',
+      new Blob([json], { type: 'application/json' }),
+      b.file_version || null,
+    ).catch(error => console.warn('Не удалось сохранить нумерацию EPUB:', error));
+  } catch (error) {
+    console.warn('Не удалось сохранить нумерацию EPUB:', error);
+  }
+}
+
+// Последнее место чтения EPUB на этом устройстве (CFI) — чтобы открыть книгу
+// на нужной странице, не дожидаясь нумерации.
+function _readEpubCfiMap() {
+  try { return JSON.parse(lsGet(EPUB_CFI_KEY) || '{}') || {}; }
+  catch (_) { return {}; }
+}
+
+function getSavedEpubCfi(bookId) {
+  const cfi = _readEpubCfiMap()[bookId];
+  return typeof cfi === 'string' && cfi.startsWith('epubcfi(') ? cfi : null;
+}
+
+function saveEpubCfi(bookId, cfi) {
+  const map = _readEpubCfiMap();
+  if (map[bookId] === cfi) return;
+  map[bookId] = cfi;
+  lsSet(EPUB_CFI_KEY, JSON.stringify(map));
 }
 
 // ========== PDF READER ==========
@@ -178,16 +341,27 @@ async function loadPdf(b) {
     }
   }
 
+  // Книгу уже открывали на этом устройстве — читаем из кэша без сети.
+  let fromCache = false;
+  if (!bytes) {
+    const cached = await readBookFromCache(b, 'pdf');
+    if (myToken !== _pdfLoadToken) return;   // пока читали кэш, открыли другую книгу
+    if (cached) {
+      bytes = await cached.arrayBuffer();
+      fromCache = true;
+    }
+  }
+
   if (typeof pdfjsLib === 'undefined') {
     showToast('PDF-движок не загрузился. Проверьте интернет/доступ к CDN.');
     return;
   }
 
-  // Если не оффлайн — грузим ПРОГРЕССИВНО по URL (pdf.js тянет страницы по частям,
+  // Если не оффлайн и не в кэше — грузим ПРОГРЕССИВНО по URL (pdf.js тянет страницы по частям,
   // первая страница появляется почти сразу, не дожидаясь всего файла).
   try {
     let loadingTask;
-    if (fromOffline && bytes) {
+    if ((fromOffline || fromCache) && bytes) {
       loadingTask = pdfjsLib.getDocument({ data: bytes });
     } else {
       if (!b.has_file) {
@@ -258,9 +432,17 @@ async function loadPdf(b) {
     setTimeout(async () => {
       await renderPdfPage(pdfCurrentPage);
     }, 100);
-    
+
+    // Читалка тянет PDF кусками и целого файла не держит. Чтобы следующее
+    // открытие шло с устройства, докачиваем файл в кэш фоном — с паузой,
+    // чтобы не мешать первым страницам.
+    if (!fromOffline && !fromCache) {
+      setTimeout(() => cacheBookInBackground(b, 'pdf'), 3000);
+    }
+
     if (fromOffline) showToast('Читаем из оффлайн-хранилища');
   } catch (err) {
+    if (fromCache) dropBookFromCache(b);
     console.error('Ошибка рендеринга PDF:', err);
     showToast('Ошибка: ' + err.message);
     generateDemoPdf(b);

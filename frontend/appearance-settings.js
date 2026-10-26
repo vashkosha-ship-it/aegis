@@ -5,6 +5,8 @@ const APP_ACCENT_KEY = 'aegis_app_accent';
 
 // Цвет акцента. Сами палитры — в css/components/theme-ember.css
 // (атрибут data-accent на <html>); здесь только выбор и хранение.
+// По умолчанию — синий: его видит каждый, кто цвет не выбирал.
+const DEFAULT_APP_ACCENT = 'blue';
 const APP_ACCENTS = Object.freeze([
   { id: 'orange', label: 'Оранжевый', swatch: '#ff5c1f' },
   { id: 'blue', label: 'Синий', swatch: '#2f7bff' },
@@ -44,11 +46,11 @@ function applyAppTheme(theme) {
 function getAppAccent() {
   let value = null;
   try { value = localStorage.getItem(APP_ACCENT_KEY); } catch (_) { /* хранилище недоступно */ }
-  return APP_ACCENTS.some(accent => accent.id === value) ? value : 'orange';
+  return APP_ACCENTS.some(accent => accent.id === value) ? value : DEFAULT_APP_ACCENT;
 }
 
 function applyAppAccent(accent) {
-  if (!APP_ACCENTS.some(item => item.id === accent)) accent = 'orange';
+  if (!APP_ACCENTS.some(item => item.id === accent)) accent = DEFAULT_APP_ACCENT;
   document.documentElement.setAttribute('data-accent', accent);
   if (typeof markUiPrefsChanged === 'function') markUiPrefsChanged();
   try { localStorage.setItem(APP_ACCENT_KEY, accent); } catch (_) { /* хранилище недоступно */ }
@@ -60,7 +62,7 @@ function setAppAccent(accent) {
   applyAppAccent(accent);
   if (typeof saveAccountAppearance === 'function') saveAccountAppearance();
   const item = APP_ACCENTS.find(entry => entry.id === accent);
-  showToast(`Цвет: ${item ? item.label.toLowerCase() : 'оранжевый'}`);
+  showToast(`Цвет: ${item ? item.label.toLowerCase() : 'синий'}`);
 }
 
 // Цвет акцента для мест, где CSS-переменная недоступна: графики на canvas,
@@ -70,7 +72,7 @@ function accentRgba(alpha = 1) {
   try {
     rgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim();
   } catch (_) { /* нет DOM — например, в тестах */ }
-  if (!rgb) rgb = '255, 92, 31';
+  if (!rgb) rgb = '47, 123, 255';
   return `rgba(${rgb}, ${alpha})`;
 }
 
@@ -80,7 +82,21 @@ function setAppTheme(theme) {
   showToast(theme === 'light' ? 'Светлая тема' : 'Тёмная тема');
 }
 
+// Раньше по умолчанию был оранжевый, и он сохранялся на устройстве при
+// каждом запуске, даже если человек цвет не выбирал. Один раз сбрасываем
+// такой оранжевый, чтобы применился новый цвет по умолчанию. Выбранный
+// после этого оранжевый уже не трогаем.
+const ACCENT_DEFAULT_MIGRATED_KEY = 'aegis_accent_default_blue';
+function migrateLegacyDefaultAccent() {
+  try {
+    if (localStorage.getItem(ACCENT_DEFAULT_MIGRATED_KEY)) return;
+    if (localStorage.getItem(APP_ACCENT_KEY) === 'orange') localStorage.removeItem(APP_ACCENT_KEY);
+    localStorage.setItem(ACCENT_DEFAULT_MIGRATED_KEY, '1');
+  } catch (_) { /* хранилище недоступно */ }
+}
+
 // Применяем сохранённые настройки до запуска основной логики приложения.
+migrateLegacyDefaultAccent();
 applyGridSize(getGridSize());
 applyAppTheme(getAppTheme());
 applyAppAccent(getAppAccent());

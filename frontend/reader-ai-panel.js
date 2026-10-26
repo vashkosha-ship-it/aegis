@@ -3,6 +3,10 @@ let readerAiMessages = [];
 let readerAiBusy = false;
 
 function toggleAIPanel() {
+  if (!state.aiOpen && typeof isAssistantEnabled === 'function' && !isAssistantEnabled()) {
+    showAssistantDisabledToast();
+    return;
+  }
   state.aiOpen = !state.aiOpen;
   document.getElementById('aiPanel').classList.toggle('show', state.aiOpen);
   document.getElementById('aiOverlay').classList.toggle('show', state.aiOpen);

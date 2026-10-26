@@ -27,6 +27,9 @@ function adaptBookFromApi(b) {
     has_file,
     has_cover: !!(b.has_cover || b.cover_url),
     file_format: b.file_format || 'pdf',
+    // Отпечаток файла книги: меняется, когда админ загружает новый файл.
+    // По нему кэш на устройстве понимает, что копия устарела.
+    file_version: b.file_version || null,
     total_pages: b.total_pages || 0,
     dateAdded: (b.created_at || '').split('T')[0],
     datePublished: b.date_published || null,

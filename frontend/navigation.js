@@ -54,7 +54,80 @@ function _scheduleScreenScroll(screenName) {
   else setTimeout(apply, 0);
 }
 
+// ========== ДОСТУПНОСТЬ ИИ-АССИСТЕНТА ==========
+// Администратор может выключить ассистента для всех. Тогда сервер отвечает
+// на запросы к нему 403, а интерфейс прячет все входы в ИИ: пункт меню,
+// кнопку в шапке, ИИ в читалке, «Объяснить»/«Словарь» у выделения.
+// Прятанием занимается CSS: html.ai-off [data-ai-entry] { display: none }.
+const ASSISTANT_ENABLED_KEY = 'aegis_assistant_enabled';
+const ASSISTANT_REFRESH_MS = 60 * 1000;
+let _assistantCheckedAt = 0;
+// Своя переменная, а не state: navigation.js подключается раньше app-state.js,
+// а состояние нужно уже при загрузке страницы.
+let _assistantEnabled = true;
+
+function isAssistantEnabled() {
+  return _assistantEnabled;
+}
+
+function applyAssistantAvailability(enabled) {
+  const on = enabled !== false;
+  _assistantEnabled = on;
+  document.documentElement.classList.toggle('ai-off', !on);
+  // Запоминаем, чтобы после перезагрузки кнопка не мелькала до ответа сервера.
+  try { localStorage.setItem(ASSISTANT_ENABLED_KEY, on ? '1' : '0'); } catch (_) { /* хранилище недоступно */ }
+  if (on || typeof state === 'undefined') return;
+  if (state.aiOpen && typeof closeAIPanel === 'function') closeAIPanel();
+  document.getElementById('readerAiPopup')?.remove();
+  if (state.currentScreen === 'assistant') navigateTo('home');
+}
+
+// force — сразу после входа; иначе не чаще раза в минуту (при переходах
+// по экранам и возвращении во вкладку), чтобы выключение доезжало до
+// открытого приложения без перезагрузки.
+async function refreshAssistantAvailability(force = false) {
+  if (typeof state === 'undefined' || !state.currentUser || state.offlineSession) return;
+  if (typeof api === 'undefined' || !api.settings) return;
+  if (!force && Date.now() - _assistantCheckedAt < ASSISTANT_REFRESH_MS) return;
+  _assistantCheckedAt = Date.now();
+  try {
+    const settings = await api.settings();
+    applyAssistantAvailability(settings && settings.assistant_enabled === true);
+  } catch (_) {
+    // Нет сети или сервер недоступен — оставляем последнее известное состояние.
+  }
+}
+
+function showAssistantDisabledToast() {
+  showToast('ИИ-ассистент отключён администратором');
+}
+
+(function initAssistantAvailability() {
+  let saved = null;
+  try { saved = localStorage.getItem(ASSISTANT_ENABLED_KEY); } catch (_) { /* хранилище недоступно */ }
+  if (saved === '0') applyAssistantAvailability(false);
+  // Сервер ответил 403 на запрос к ассистенту — значит, его выключили.
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('aegis:assistant-disabled', () => {
+      if (isAssistantEnabled()) {
+        applyAssistantAvailability(false);
+        showAssistantDisabledToast();
+      }
+    });
+  }
+  if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshAssistantAvailability();
+    });
+  }
+})();
+
 function navigateTo(s) {
+  if (s === 'assistant' && !isAssistantEnabled()) {
+    showAssistantDisabledToast();
+    return;
+  }
+  if (s !== 'auth') refreshAssistantAvailability();
   // Привратник: неодобрённый пользователь не попадает в библиотеку.
   // Разрешены только онбординг (тест уровня) и экран авторизации.
   if (state.currentUser && state.currentUser.is_approved === false

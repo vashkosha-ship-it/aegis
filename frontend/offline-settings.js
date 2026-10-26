@@ -70,10 +70,26 @@ async function getStorageStats() {
     } catch (_) {}
   }
 
+  // Кэш открытых книг (IndexedDB): книги, которые открывали на устройстве.
+  const userId = typeof currentOfflineUserId === 'function' ? currentOfflineUserId() : null;
+  if (userId && typeof offlineStorage !== 'undefined' && offlineStorage.cacheStats) {
+    try {
+      const books = await offlineStorage.cacheStats(userId);
+      cacheSize += books.size;
+      cacheCount += books.count;
+    } catch (_) { /* Без IndexedDB считаем только Cache Storage. */ }
+  }
+
   return { used, quota, cacheSize, cacheCount };
 }
 
 async function clearAllAppCache() {
+  // Кэш открытых книг текущего аккаунта. Сохранённые офлайн книги остаются:
+  // их удаляют отдельно, из профиля.
+  const userId = typeof currentOfflineUserId === 'function' ? currentOfflineUserId() : null;
+  if (userId && typeof offlineStorage !== 'undefined' && offlineStorage.cacheClear) {
+    await offlineStorage.cacheClear(userId);
+  }
   if (!('caches' in window)) return;
   const names = await caches.keys();
   for (const name of names) {

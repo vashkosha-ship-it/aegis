@@ -11,6 +11,8 @@ const context = {
   isEpubMode: false,
   epubTotalPages: 8,
   epubCurrentPage: 1,
+  epubLocationsReady: true,
+  showToast: message => calls.push(['toast', message]),
   epubBook: { locations: { cfiFromLocation: page => `epubcfi(/6/${page + 2})` } },
   epubRendition: { display: page => calls.push(['epub', page]) },
   pdfTotalPages: 10,
@@ -36,6 +38,16 @@ context.isEpubMode = true;
 context.goToPage(3);
 assert.strictEqual(context.epubCurrentPage, 3);
 assert.ok(calls.some(call => call[0] === 'epub' && call[1] === 'epubcfi(/6/4)'));
+
+// Пока нумерация EPUB считается, переход по номеру не уводит в начало книги.
+context.epubLocationsReady = false;
+const displaysBefore = calls.filter(call => call[0] === 'epub').length;
+context.goToPage(6);
+assert.strictEqual(context.epubCurrentPage, 3);
+assert.strictEqual(calls.filter(call => call[0] === 'epub').length, displaysBefore);
+assert.ok(calls.some(call => call[0] === 'toast'));
+context.epubLocationsReady = true;
+
 const before = calls.filter(call => call[0] === 'indicator').length;
 context.updateSlider();
 assert.strictEqual(calls.filter(call => call[0] === 'indicator').length, before + 1);
