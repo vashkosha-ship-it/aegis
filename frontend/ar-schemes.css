@@ -29,7 +29,7 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
 .ar-stage-kicker { color:var(--accent-light); font-size:9px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
 .ar-stage-name { color:#f8fafc !important; font-size:14px !important; font-weight:750 !important; line-height:1.25 !important; text-align:left !important; }
 .ar-stage-action { color:rgba(203,213,225,.66); font-size:10px; }
-.ar-stage-item.is-selected .ar-killchain-node { background:linear-gradient(145deg,#0891b2,var(--accent-deep)); border-color:white; transform:rotate(-3deg) scale(1.04); }
+.ar-stage-item.is-selected .ar-killchain-node { background:linear-gradient(145deg,var(--accent),var(--accent-deep)); border-color:white; transform:rotate(-3deg) scale(1.04); }
 #arSchemeRoot[data-view-mode="attack"] .ar-stage-kicker { color:#fda4af; }
 #arSchemeRoot[data-view-mode="defense"] .ar-stage-kicker { color:#6ee7b7; }
 .ar-chain-link.vertical { width:2px !important; height:20px !important; margin:-5px 0 !important; border:0 !important; border-radius:2px !important; background:linear-gradient(var(--ar-cyan),var(--ar-violet)) !important; box-shadow:0 0 12px rgba(var(--accent-rgb),.34) !important; }

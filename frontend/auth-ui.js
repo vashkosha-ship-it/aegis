@@ -394,6 +394,7 @@ async function submitVerifyCode() {
       appearance_onboarded: user.appearance_onboarded !== false,
       legal_consent_required: user.legal_consent_required === true,
       avatar_preset: user.avatar_preset || null,
+      resume_hidden: Array.isArray(user.resume_hidden) ? user.resume_hidden : null,
     };
     await loadBooksFromApi();
     await loadMyListFromApi();
@@ -401,6 +402,9 @@ async function submitVerifyCode() {
     await loadCompletedQuizzesFromApi();
     await loadGamificationFromApi();
     await loadOfflineBookIds();
+    // Аккаунт — источник истины для блока «Продолжить» и доступности ИИ.
+    if (typeof syncResumeHiddenFromAccount === 'function') syncResumeHiddenFromAccount();
+    if (typeof refreshAssistantAvailability === 'function') refreshAssistantAvailability(true);
     const ov = document.getElementById('verifyEmailOverlay');
     if (ov) ov.remove();
     pendingVerifyEmail = null;
@@ -437,6 +441,7 @@ async function finishAuthenticatedLogin(password, username) {
     appearance_onboarded: user.appearance_onboarded !== false,
     legal_consent_required: user.legal_consent_required === true,
     avatar_preset: user.avatar_preset || null,
+      resume_hidden: Array.isArray(user.resume_hidden) ? user.resume_hidden : null,
   };
   await loadBooksFromApi();
   await loadMyListFromApi();
@@ -444,6 +449,9 @@ async function finishAuthenticatedLogin(password, username) {
   await loadCompletedQuizzesFromApi();
   await loadGamificationFromApi();
   await loadOfflineBookIds();
+  // Аккаунт — источник истины для блока «Продолжить» и доступности ИИ.
+  if (typeof syncResumeHiddenFromAccount === 'function') syncResumeHiddenFromAccount();
+  if (typeof refreshAssistantAvailability === 'function') refreshAssistantAvailability(true);
   maybeAutoPreload();
   saveState();
   document.getElementById('authForm').reset();
@@ -664,6 +672,7 @@ async function tryAutoLogin() {
       appearance_onboarded: user.appearance_onboarded !== false,
       legal_consent_required: user.legal_consent_required === true,
       avatar_preset: user.avatar_preset || null,
+      resume_hidden: Array.isArray(user.resume_hidden) ? user.resume_hidden : null,
     };
 
     await loadBooksFromApi();
@@ -672,6 +681,9 @@ async function tryAutoLogin() {
     await loadCompletedQuizzesFromApi();
     await loadGamificationFromApi();
     await loadOfflineBookIds();
+    // Аккаунт — источник истины для блока «Продолжить» и доступности ИИ.
+    if (typeof syncResumeHiddenFromAccount === 'function') syncResumeHiddenFromAccount();
+    if (typeof refreshAssistantAvailability === 'function') refreshAssistantAvailability(true);
       maybeAutoPreload();
 
     saveState();

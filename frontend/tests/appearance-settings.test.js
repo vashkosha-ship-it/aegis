@@ -38,6 +38,7 @@ const context = vm.createContext({
   localStorage: {
     getItem(key) { return stored.get(key) ?? null; },
     setItem(key, value) { stored.set(key, value); },
+    removeItem(key) { stored.delete(key); },
   },
   document: {
     documentElement: {
@@ -56,15 +57,15 @@ vm.runInContext(source, context);
 
 assert.equal(cssProperties.get('--books-grid-columns'), '4');
 assert.equal(attributes.get('data-theme'), 'light');
-// Сохранённый цвет акцента применяется при запуске, неизвестный — сбрасывается на оранжевый.
+// Сохранённый цвет акцента применяется при запуске, неизвестный — сбрасывается на синий.
 assert.equal(attributes.get('data-accent'), 'violet');
 context.applyAppAccent('pink');
-assert.equal(attributes.get('data-accent'), 'orange');
-assert.equal(stored.get('aegis_app_accent'), 'orange');
+assert.equal(attributes.get('data-accent'), 'blue');
+assert.equal(stored.get('aegis_app_accent'), 'blue');
 context.setAppAccent('green');
 assert.equal(attributes.get('data-accent'), 'green');
 assert.match(toasts.pop(), /зелёный/);
-assert.equal(context.accentRgba(0.5), 'rgba(255, 92, 31, 0.5)');
+assert.equal(context.accentRgba(0.5), 'rgba(47, 123, 255, 0.5)');
 assert.equal(lightButton.classList.contains('active'), true);
 assert.equal(darkButton.classList.contains('active'), false);
 
@@ -80,5 +81,34 @@ assert.ok(
 );
 assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
 assert.match(swSource, /'\/appearance-settings\.js'/);
+
+// Оранжевый, сохранённый прежним умолчанием, один раз сбрасывается на синий;
+// выбранный после этого оранжевый остаётся.
+function runWith(entries) {
+  const store = new Map(entries);
+  const attrs = new Map();
+  vm.runInContext(source, vm.createContext({
+    showToast() {},
+    localStorage: {
+      getItem: key => (store.has(key) ? store.get(key) : null),
+      setItem: (key, value) => store.set(key, value),
+      removeItem: key => store.delete(key),
+    },
+    document: {
+      documentElement: { style: { setProperty() {} }, setAttribute: (n, v) => attrs.set(n, v) },
+      getElementById: () => null,
+    },
+  }));
+  return { accent: attrs.get('data-accent'), store };
+}
+let run = runWith([['aegis_app_accent', 'orange']]);
+assert.equal(run.accent, 'blue');
+assert.equal(run.store.get('aegis_accent_default_blue'), '1');
+run = runWith([['aegis_app_accent', 'orange'], ['aegis_accent_default_blue', '1']]);
+assert.equal(run.accent, 'orange');
+run = runWith([['aegis_app_accent', 'green']]);
+assert.equal(run.accent, 'green');
+assert.equal(runWith([]).accent, 'blue');
+assert.match(indexSource, /<html lang="ru" data-accent="blue">/);
 
 console.log('Appearance settings tests passed');

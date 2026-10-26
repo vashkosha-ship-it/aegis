@@ -77,6 +77,10 @@ function showReaderAiPopup(title, loadingText) {
 }
 
 async function runReaderAi(prompt, title, loading) {
+  if (typeof isAssistantEnabled === 'function' && !isAssistantEnabled()) {
+    showAssistantDisabledToast();
+    return;
+  }
   if (navigator.vibrate) navigator.vibrate(10);
   const tb = document.getElementById('selectionToolbar');
   if (tb) tb.style.display = 'none';
