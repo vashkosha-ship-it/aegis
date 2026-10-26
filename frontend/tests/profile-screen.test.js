@@ -36,7 +36,7 @@ const state = {
     has_avatar: false,
   },
   books: [{ id: 1 }, { id: 2 }],
-  mylist: { 1: 'reading' },
+  mylist: { 1: 'reading', 2: 'completed', 3: 'completed' },
   gamification: { achievementsOwned: ['first'] },
 };
 const calls = [];
@@ -77,7 +77,7 @@ assert.equal(dom.window.document.getElementById('profileDepartmentLine').textCon
 assert.equal(dom.window.document.getElementById('profileRoleTag').textContent, 'Читатель');
 assert.match(dom.window.document.getElementById('profileTakeQuizBtn').textContent, /Пройти тест уровня/);
 assert.equal(dom.window.document.getElementById('statBooks').textContent, '2');
-assert.equal(dom.window.document.getElementById('statBookmarks').textContent, '1');
+assert.equal(dom.window.document.getElementById('statBookmarks').textContent, '3');
 assert.equal(dom.window.document.getElementById('statAchievements').textContent, '1');
 assert.match(dom.window.document.getElementById('statStreak').textContent, /12/);
 assert.equal(dom.window.document.getElementById('profileAvatarText').textContent, 'R');

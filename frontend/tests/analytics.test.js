@@ -47,6 +47,11 @@ const libraryAnalytics = {
     .map((date, index) => ({ date, pages: index === 6 ? 15 : 0 })),
   top_books: [{ book_id: 7, title: '<Книга>', readers: 2 }],
   funnel: { views: 12, opened: 3, reading: 2, completed: 1 },
+  retention: [
+    { day: 1, eligible: 4, retained: 3 },
+    { day: 7, eligible: 2, retained: 1 },
+    { day: 30, eligible: 0, retained: 0 },
+  ],
 };
 const context = {
   accentRgba: (alpha = 1) => `rgba(255, 92, 31, ${alpha})`,
@@ -88,15 +93,21 @@ vm.runInContext(source, context);
   await context.renderAnalytics();
   // Chart.js грузится лениво: без ожидания графики падали «Chart is not defined».
   assert.equal(chartLoads.length, 1);
-  // Удержание сервер не считает — вместо выдуманной кривой пустое состояние.
-  assert.equal(charts.length, 3);
+  assert.equal(charts.length, 4);
   // Графики строятся из серверной сводки по всем читателям.
   assert.deepEqual([...charts[0].config.data.datasets[0].data], [0, 0, 0, 0, 0, 0, 15]);
   assert.deepEqual([...charts[1].config.data.datasets[0].data], [2]);
-  assert.deepEqual([...charts[2].config.data.datasets[0].data], [12, 3, 2, 1]);
+  // Воронка — без «Просмотров»: шаги в парах «читатель — книга».
+  assert.deepEqual([...charts[2].config.data.datasets[0].data], [3, 2, 1]);
+  assert.match(dom.window.document.querySelector('.analytics-caption').textContent, /Просмотров карточек книг: 12/);
+  // Шкалы счётчиков целочисленные.
+  assert.equal(charts[1].config.options.scales.x.ticks.precision, 0);
+  assert.equal(charts[2].config.options.scales.y.ticks.precision, 0);
+  // Удержание: сроки без подходящих читателей не показываются.
+  assert.deepEqual([...charts[3].config.data.labels], ['Через 1 день', 'Через 7 дней']);
+  assert.deepEqual([...charts[3].config.data.datasets[0].data], [75, 50]);
+  assert.equal(dom.window.document.getElementById('chartRetention').hidden, false);
   assert.doesNotMatch(source, /state\.heatmapData|state\.readingProgress/);
-  assert.equal(dom.window.document.getElementById('chartRetention').hidden, true);
-  assert.match(dom.window.document.querySelector('.analytics-empty-note').textContent, /удержании пока нет/);
   assert.doesNotMatch(source, /\[100, 65, 48/);
   assert.equal(dom.window.document.querySelectorAll('#analyticsBookSelector option').length, 2);
   assert.match(dom.window.document.getElementById('analyticsBookSelector').innerHTML, /&lt;Книга&gt;/);

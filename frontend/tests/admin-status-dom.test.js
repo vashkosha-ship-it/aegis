@@ -44,7 +44,7 @@ assert.equal(dashboard.querySelector('.stat-value').textContent, payload);
 assert.equal(dashboard.querySelector('img'), null);
 assert.deepEqual(
   Array.from(dashboard.querySelectorAll('.stat-label'), node => node.textContent),
-  ['Книг в каталоге', 'Пользователей', 'Просмотров', 'Скачиваний', 'Отзывов', 'Попыток тестов'],
+  ['Книг в каталоге', 'Пользователей', 'Просмотров', 'Сохранено офлайн', 'Отзывов', 'Попыток тестов'],
 );
 
 const progress = dom.window.document.getElementById('progress');

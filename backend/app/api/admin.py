@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import Date, and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin
@@ -311,20 +311,35 @@ async def library_analytics(
         for book_id, title, count in top_rows.all()
     ]
 
+    # Воронка — в парах «читатель — книга», каждый шаг внутри предыдущего.
+    # Раньше «Просмотры» (счётчик заходов на карточку, с повторами) стояли
+    # первым шагом, а «Открытия» (пары) — вторым, и второй шаг выходил больше
+    # первого. «Дочитали» считались по всему списку «Прочитано», в том числе
+    # по книгам, которые человек не открывал в читалке.
     views = (await db.scalar(select(func.coalesce(func.sum(Book.views), 0)))) or 0
     opened = (await db.scalar(select(func.count(ReadingProgress.id)).where(started))) or 0
+    is_reading = or_(
+        ReadingProgress.current_page > READING_PAGES_THRESHOLD,
+        ReadingProgress.finished_at.isnot(None),
+    )
     reading = (
-        await db.scalar(
-            select(func.count(ReadingProgress.id)).where(
-                started, ReadingProgress.current_page > READING_PAGES_THRESHOLD
-            )
-        )
+        await db.scalar(select(func.count(ReadingProgress.id)).where(started, is_reading))
     ) or 0
+    marked_completed = (
+        select(MyListEntry.id)
+        .where(
+            MyListEntry.user_id == ReadingProgress.user_id,
+            MyListEntry.book_id == ReadingProgress.book_id,
+            MyListEntry.status == MyListStatus.COMPLETED,
+        )
+        .exists()
+    )
     completed = (
         await db.scalar(
-            select(func.count(MyListEntry.id)).where(
-                MyListEntry.status == MyListStatus.COMPLETED,
-                MyListEntry.user_id.in_(readers),
+            select(func.count(ReadingProgress.id)).where(
+                started,
+                is_reading,
+                or_(ReadingProgress.finished_at.isnot(None), marked_completed),
             )
         )
     ) or 0
@@ -333,7 +348,52 @@ async def library_analytics(
         activity=activity,
         top_books=top_books,
         funnel={"views": int(views), "opened": int(opened), "reading": int(reading), "completed": int(completed)},
+        retention=await _reader_retention(db, today),
     )
+
+
+# Через сколько дней после регистрации проверяем, вернулся ли читатель.
+RETENTION_DAYS = (1, 7, 30)
+
+
+async def _reader_retention(db: AsyncSession, today) -> list[dict]:
+    """Доля читателей, вернувшихся через N дней после регистрации.
+
+    «Вернулся» — листал книгу (учёт страниц по дням) или сдавал тест в N-й
+    день после регистрации или позже. Читатели, зарегистрированные меньше N
+    дней назад, в расчёт за этот срок не входят: им ещё рано возвращаться.
+    """
+    registered_on = cast(User.created_at, Date)
+    points = []
+    for day in RETENTION_DAYS:
+        eligible_filter = and_(User.role != UserRole.ADMIN, registered_on <= today - timedelta(days=day))
+        read_later = (
+            select(DailyPagesRead.id)
+            .where(
+                DailyPagesRead.user_id == User.id,
+                DailyPagesRead.date >= registered_on + day,
+                DailyPagesRead.pages > 0,
+            )
+            .exists()
+        )
+        quiz_later = (
+            select(QuizAttempt.id)
+            .where(
+                QuizAttempt.user_id == User.id,
+                QuizAttempt.completed_at >= User.created_at + timedelta(days=day),
+            )
+            .exists()
+        )
+        eligible = (
+            await db.scalar(select(func.count(User.id)).where(eligible_filter))
+        ) or 0
+        retained = (
+            await db.scalar(
+                select(func.count(User.id)).where(eligible_filter, or_(read_later, quiz_later))
+            )
+        ) or 0
+        points.append({"day": day, "eligible": int(eligible), "retained": int(retained)})
+    return points
 
 
 @router.get("/usage", response_model=UsageStats)

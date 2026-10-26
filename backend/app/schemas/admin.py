@@ -37,10 +37,30 @@ class TopBookPoint(BaseModel):
 
 
 class ReadingFunnel(BaseModel):
+    """Воронка чтения в парах «читатель — книга».
+
+    ``opened`` ⊇ ``reading`` ⊇ ``completed``: каждый следующий шаг считается
+    только среди пар предыдущего. ``views`` — счётчик просмотров карточек
+    (с повторами), в шаги воронки он не входит: единица у него другая.
+    """
+
     views: int
     opened: int
     reading: int
     completed: int
+
+
+class RetentionPoint(BaseModel):
+    """Сколько читателей вернулись через ``day`` дней после регистрации.
+
+    ``eligible`` — читатели, с регистрации которых прошло не меньше ``day``
+    дней; ``retained`` — те из них, кто читал или проходил тест на ``day``-й
+    день или позже.
+    """
+
+    day: int
+    eligible: int
+    retained: int
 
 
 class LibraryAnalytics(BaseModel):
@@ -54,6 +74,7 @@ class LibraryAnalytics(BaseModel):
     activity: list[DailyActivityPoint]
     top_books: list[TopBookPoint]
     funnel: ReadingFunnel
+    retention: list[RetentionPoint] = []
 
 
 # ---------------------------------------------------------------------------

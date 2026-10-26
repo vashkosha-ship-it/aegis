@@ -1121,11 +1121,8 @@ async def download_book_pdf(
     except StorageNotFound:
         raise HTTPException(status_code=404, detail="PDF file is missing") from None
 
-    # Счётчик скачиваний инкрементим только на полной отдаче (не на каждый range-кусок).
-    if current.role.value != "admin":
-        book.downloads += 1
-        await db.commit()
-
+    # Счётчик сохранений офлайн ведёт POST /books/{id}/offline-saved: полная
+    # отдача файла бывает и без сохранения, а через nginx сюда не доходит.
     headers = {
         "Content-Length": str(size),
         "Accept-Ranges": "bytes",
@@ -1214,10 +1211,29 @@ async def download_book_epub(
     except StorageNotFound:
         raise HTTPException(status_code=404, detail="EPUB file is missing") from None
 
-    if current.role.value != "admin":
-        book.downloads += 1
-        await db.commit()
     return StreamingResponse(chunks, media_type="application/epub+zip", headers=headers)
+
+
+@router.post("/{book_id}/offline-saved", status_code=status.HTTP_204_NO_CONTENT)
+async def mark_book_saved_offline(
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_approved_user),
+) -> Response:
+    """Отметить, что читатель сохранил книгу для чтения без сети.
+
+    Раньше счётчик «Скачиваний» рос внутри отдачи файла, но на сервере файлы
+    отдаёт nginx (X-Accel-Redirect), и до счётчика код не доходил — в
+    админке всегда был ноль. Теперь клиент сообщает о сохранении явно.
+    Администраторов не считаем, как и в просмотрах.
+    """
+    await _get_book_or_404(db, book_id)
+    if current.role.value != "admin":
+        await db.execute(
+            sa_update(Book).where(Book.id == book_id).values(downloads=Book.downloads + 1)
+        )
+        await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.delete("/{book_id}/epub", status_code=status.HTTP_204_NO_CONTENT)

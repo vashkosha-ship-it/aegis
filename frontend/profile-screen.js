@@ -86,7 +86,10 @@ function renderProfile() {
     takeQuizBtn.style.display = 'none';
   }
 
-  document.getElementById('statBooks').textContent = state.books.length;
+  // Прочитанные книги пользователя. Раньше здесь стоял размер каталога
+  // (state.books), и у всех было одно и то же число — все 89 книг.
+  document.getElementById('statBooks').textContent =
+    Object.values(state.mylist || {}).filter(status => status === 'completed').length;
   document.getElementById('statBookmarks').textContent = Object.keys(state.mylist).length;
   document.getElementById('statAchievements').textContent = (state.gamification.achievementsOwned || []).length;
   const streak = document.getElementById('statStreak');

@@ -60,7 +60,7 @@ async function renderAnalytics() {
   markAnalyticsEmpty('chartReadingActivity', activityData.every(value => !value),
     'За последнюю неделю читатели ещё не листали книги.');
   markAnalyticsEmpty('chartTopBooks', topBooks.length === 0, 'Книги пока никто не начал читать.');
-  markAnalyticsEmpty('chartFunnel', !totalViews && !totalOpens, 'Пока нет просмотров и открытий книг.');
+  markAnalyticsEmpty('chartFunnel', !totalOpens, 'Книги пока никто не открывал в читалке.');
 
   const ctx1 = document.getElementById('chartReadingActivity')?.getContext('2d');
   if (ctx1) {
@@ -83,7 +83,7 @@ async function renderAnalytics() {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: INTEGER_TICKS },
           x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } }
         }
       }
@@ -113,28 +113,29 @@ async function renderAnalytics() {
         indexAxis: 'y',
         plugins: { legend: { display: false } },
         scales: {
-          x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+          x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: INTEGER_TICKS },
           y: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } }
         }
       }
     });
   }
 
+  // Воронка — в парах «читатель — книга»: каждый шаг внутри предыдущего.
+  // «Просмотры» карточек считаются с повторами, это другая единица, поэтому
+  // они подписаны отдельно, а не стоят первым столбцом.
   const ctx3 = document.getElementById('chartFunnel')?.getContext('2d');
+  setAnalyticsCaption('chartFunnel', totalViews
+    ? `Просмотров карточек книг: ${totalViews}. Ниже — пары «читатель — книга».`
+    : 'Ниже — пары «читатель — книга».');
   if (ctx3) {
     analyticsCharts.funnel = new Chart(ctx3, {
       type: 'bar',
       data: {
-        labels: ['Просмотры', 'Открытия', 'Читают', 'Завершили'],
+        labels: ['Открыли', `Читают (> ${FUNNEL_READING_PAGES} стр.)`, 'Дочитали'],
         datasets: [{
-          data: [totalViews, totalOpens, totalReadings, totalCompletions],
-          backgroundColor: [
-            accentRgba(0.8),
-            accentRgba(0.6),
-            accentRgba(0.4),
-            'rgba(34,197,94,0.6)',
-          ],
-          borderColor: [accentRgba(1), accentRgba(1), accentRgba(1), '#22c55e'],
+          data: [totalOpens, totalReadings, totalCompletions],
+          backgroundColor: [accentRgba(0.8), accentRgba(0.5), 'rgba(34,197,94,0.6)'],
+          borderColor: [accentRgba(1), accentRgba(1), '#22c55e'],
           borderWidth: 1,
         }]
       },
@@ -143,27 +144,84 @@ async function renderAnalytics() {
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } },
+          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: INTEGER_TICKS },
           x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } }
         }
       }
     });
   }
 
-  // Раньше здесь рисовалась кривая с захардкоженными числами (100, 65, 48…),
-  // которые выглядели как реальная статистика. Сервер удержание пока не
-  // считает, поэтому честно показываем пустое состояние.
-  const retentionCanvas = document.getElementById('chartRetention');
-  if (retentionCanvas) {
-    let note = retentionCanvas.parentElement.querySelector('.analytics-empty-note');
-    if (!note) {
-      note = document.createElement('p');
-      note.className = 'analytics-empty-note';
-      retentionCanvas.after(note);
-    }
-    note.textContent = 'Данных об удержании пока нет: сервер ещё не собирает эту статистику.';
-    retentionCanvas.hidden = true;
+  // Удержание: доля читателей, вернувшихся через N дней после регистрации.
+  // Срок, до которого ещё никто не дожил, на графике не показываем.
+  const retention = (data.retention || []).filter(point => point.eligible > 0);
+  markAnalyticsEmpty('chartRetention', retention.length === 0,
+    'Пока рано считать: с регистрации читателей прошло меньше суток.');
+  const ctx4 = document.getElementById('chartRetention')?.getContext('2d');
+  if (ctx4 && retention.length) {
+    analyticsCharts.retention = new Chart(ctx4, {
+      type: 'bar',
+      data: {
+        labels: retention.map(point => `Через ${point.day} ${pluralDays(point.day)}`),
+        datasets: [{
+          label: 'Вернулись, %',
+          data: retention.map(point => Math.round(point.retained / point.eligible * 100)),
+          backgroundColor: accentRgba(0.6),
+          borderColor: accentRgba(1),
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: item => {
+                const point = retention[item.dataIndex];
+                return `${item.raw}% — ${point.retained} из ${point.eligible}`;
+              },
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { ...INTEGER_TICKS, callback: value => `${value}%` },
+          },
+          x: { grid: { display: false }, ticks: { color: '#9ca3af', font: { size: 10 } } }
+        }
+      }
+    });
   }
+}
+
+// Счётчики людей и книг — целые: шкала 0,1 … 0,9 читателя выглядела как ошибка.
+const INTEGER_TICKS = { color: '#9ca3af', precision: 0 };
+// Тот же порог, что и на сервере (READING_PAGES_THRESHOLD).
+const FUNNEL_READING_PAGES = 5;
+
+function pluralDays(n) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'день';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
+  return 'дней';
+}
+
+// Подпись над графиком (например, число просмотров рядом с воронкой).
+function setAnalyticsCaption(canvasId, text) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  let caption = canvas.parentElement.querySelector('.analytics-caption');
+  if (!caption) {
+    caption = document.createElement('p');
+    caption.className = 'analytics-caption';
+    canvas.before(caption);
+  }
+  caption.textContent = text;
 }
 
 // ========== АДМИН: ДЕТАЛЬНАЯ АНАЛИТИКА КНИГИ ==========
@@ -194,7 +252,7 @@ function renderBookAnalytics(d) {
     </div>
     <div data-static-style="a581">
       ${statBox('Просмотры', d.views)}
-      ${statBox('Скачивания', d.downloads)}
+      ${statBox('Сохранено офлайн', d.downloads)}
       ${statBox('Рейтинг', d.rating ? d.rating.toFixed(1) : '—')}
       ${statBox('Отзывов', d.reviews_count)}
     </div>

@@ -152,6 +152,11 @@ async function saveBookOffline(bookId, silent) {
 
     await offlineStorage.save(userId, book, fileBlob, fileType, coverBlob);
     offlineBookIds.add(bookId);
+    // Счётчик «Сохранено офлайн» в админке. Сбой отметки не должен
+    // выглядеть как сбой сохранения: книга уже на устройстве.
+    Promise.resolve()
+      .then(() => api.books.markSavedOffline(bookId))
+      .catch(error => console.warn('Не удалось отметить сохранение офлайн:', error));
     const sizeMB = (fileBlob.size / 1024 / 1024).toFixed(1);
     if (!silent) showToast(`Сохранено оффлайн (${sizeMB} МБ)`);
     if (state.currentScreen === 'detail' && currentBookId === bookId) renderBookInfo();
