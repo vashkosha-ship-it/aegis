@@ -465,3 +465,46 @@ async def books_needing_ai_quiz(db: AsyncSession, limit: int) -> list[int]:
         .limit(limit)
     )
     return [row[0] for row in rows.all()]
+
+
+async def remove_offtopic_temporary_questions(db: AsyncSession, *, apply: bool = True) -> list[dict]:
+    """Убрать из временных тестов вопросы не из банка темы самой книги.
+
+    Наследие прежней логики: книга без AI-теста получала общий набор вопросов
+    «про ИБ вообще». Идемпотентно — повторный вызов ничего не находит, поэтому
+    вызывается при каждом старте воркера. AI-тесты и история прохождения не
+    затрагиваются.
+
+    Возвращает список {book_id, title, removed, left}; ``apply=False`` —
+    только посчитать.
+    """
+    from sqlalchemy.orm import selectinload
+
+    books = (
+        await db.scalars(select(Book).options(selectinload(Book.categories)).order_by(Book.id))
+    ).all()
+    report: list[dict] = []
+    for book in books:
+        rows = (
+            await db.scalars(select(QuizQuestion).where(QuizQuestion.book_id == book.id))
+        ).all()
+        if not rows or any(q.source == SOURCE_AI for q in rows):
+            continue
+        allowed = {t["question"].strip().casefold() for t in fallback_questions(book)}
+        off_topic = [
+            q.id for q in rows
+            if q.source == SOURCE_FALLBACK and q.question.strip().casefold() not in allowed
+        ]
+        if not off_topic:
+            continue
+        report.append({
+            "book_id": book.id,
+            "title": book.title,
+            "removed": len(off_topic),
+            "left": len(rows) - len(off_topic),
+        })
+        if apply:
+            await db.execute(delete(QuizQuestion).where(QuizQuestion.id.in_(off_topic)))
+    if apply and report:
+        await db.commit()
+    return report

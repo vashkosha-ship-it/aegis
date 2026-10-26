@@ -461,6 +461,33 @@ async def generate_missing_book_descriptions(
             raise
 
 
+async def on_worker_startup(ctx: dict) -> None:
+    """Действия при старте воркера (то есть после каждой выкладки)."""
+    await recover_interrupted_indexing(ctx)
+    await _clean_offtopic_quizzes()
+
+
+async def _clean_offtopic_quizzes() -> None:
+    """Убрать вопросы «про ИБ вообще» из старых временных тестов.
+
+    Идемпотентно: после первого прохода находить нечего. Сбой не мешает
+    воркеру стартовать — тесты всё равно заменит периодическая генерация.
+    """
+    from app.services.quizzes import remove_offtopic_temporary_questions
+
+    try:
+        async with AsyncSessionLocal() as db:
+            removed = await remove_offtopic_temporary_questions(db)
+    except Exception:  # noqa: BLE001
+        logger.exception("Очистка временных тестов не удалась")
+        return
+    if removed:
+        logger.info(
+            "Из временных тестов убраны вопросы не по теме: книг %d, вопросов %d",
+            len(removed), sum(item["removed"] for item in removed),
+        )
+
+
 async def recover_interrupted_indexing(_ctx: dict) -> None:
     """Закрыть состояния running, оставшиеся после перезапуска воркера.
 
@@ -578,7 +605,7 @@ class WorkerSettings:
         generate_book_quiz,
         generate_missing_quizzes,
     ]
-    on_startup = recover_interrupted_indexing
+    on_startup = on_worker_startup
 
     # Раз в сутки ночью подчищаем отработавшие записи. Отдельный systemd-таймер
     # не нужен: планировщик встроен в ARQ. Временные тесты заменяем на

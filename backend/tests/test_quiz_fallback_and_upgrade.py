@@ -219,3 +219,41 @@ def test_exam_parser_uses_the_same_quality_check():
 
     assert [q["question"] for q in questions] == ["Что такое XSS?"]
     assert correct == [2]
+
+
+# --- Очистка старых временных тестов ---------------------------------------
+
+async def test_remove_offtopic_temporary_questions(db, monkeypatch):
+    monkeypatch.setattr(quizzes, "chat_completion", AsyncMock(return_value=_ai_answer()))
+    # Книга о гейм-дизайне со старым «общим» тестом про ИБ.
+    game = await _book(db, "Гейм-дизайн", "Разработка игр и XR")
+    db.add_all([
+        QuizQuestion(book_id=game.id, question=q["question"], options=q["options"],
+                     correct_index=q["correct_index"], source="static")
+        for q in GENERIC_QUIZ[:5]
+    ])
+    # Книга по веб-безопасности: банк темы + общий вопрос.
+    web = await _book(db, "Безопасность веб-приложений", "Веб-безопасность")
+    bank = CATEGORY_QUIZZES["Веб-безопасность"]
+    generic_only = next(q for q in GENERIC_QUIZ if q["question"] not in {b["question"] for b in bank})
+    db.add_all([
+        QuizQuestion(book_id=web.id, question=q["question"], options=q["options"],
+                     correct_index=q["correct_index"], source="static")
+        for q in [*bank, generic_only]
+    ])
+    # Книга с AI-тестом — не трогается.
+    networks = await _book(db, "Компьютерные сети", "Компьютерные сети")
+    await quizzes.upgrade_quiz_for_book(db, networks)
+    await db.commit()
+
+    preview = await quizzes.remove_offtopic_temporary_questions(db, apply=False)
+    assert {item["book_id"] for item in preview} == {game.id, web.id}
+    assert len(await _questions(db, game.id)) == 5  # проверка ничего не удаляет
+
+    await quizzes.remove_offtopic_temporary_questions(db)
+
+    assert await _questions(db, game.id) == []
+    assert {q.question for q in await _questions(db, web.id)} == {q["question"] for q in bank}
+    assert len(await _questions(db, networks.id)) == 15
+    # Повторный запуск ничего не находит.
+    assert await quizzes.remove_offtopic_temporary_questions(db) == []
