@@ -15,6 +15,7 @@ from app.api import (
     books,
     certificates,
     chats,
+    client_errors,
     collections,
     discussions,
     library,
@@ -48,6 +49,9 @@ api_router.include_router(achievements.router)
 # AI
 api_router.include_router(assistant.router)
 api_router.include_router(chats.router)
+
+# Служебное
+api_router.include_router(client_errors.router)
 
 # Администрирование
 api_router.include_router(admin.router)

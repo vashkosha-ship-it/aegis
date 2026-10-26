@@ -44,6 +44,7 @@ const PRECACHE_URLS = [
   '/fonts/unbounded-latin-500-normal.woff2',
   '/fonts/unbounded-latin-700-normal.woff2',
   '/print-notes.css',
+  '/error-reporter.js',
   '/dynamic-styles.js',
   '/handler-allowlist.js',
   '/inline-handlers.js',

@@ -63,8 +63,11 @@ async def _measure_job(ctx: dict, job_name: str):
     status = "success"
     try:
         yield
-    except Exception:
+    except Exception as exc:
         status = "failed"
+        from app.services.error_reporting import report_exception
+
+        report_exception(exc, path=f"/worker/{job_name}", source="worker")
         raise
     finally:
         duration = monotonic() - started
