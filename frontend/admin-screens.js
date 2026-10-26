@@ -219,11 +219,16 @@ function renderAdminBooks() {
       <button id="adminStorageAuditBtn" class="admin-tool admin-tool--quiet" title="Проверить файлы книг, обложек и аватаров">Хранилище</button>
       <button id="adminLogsBtn" class="admin-tool admin-tool--quiet" title="Журнал действий администраторов">Журнал</button>
     </div>
+    <input id="adminBooksSearch" class="admin-books-search" type="search" placeholder="Найти книгу по названию или автору" aria-label="Поиск книги" autocomplete="off">
     <div class="table-wrap">
       <table>
         <thead><tr><th>Книга</th><th>Автор</th><th>Категория</th><th>Формат</th><th>Индекс</th><th>Рейтинг</th><th>Действия</th></tr></thead>
         <tbody id="adminBooksTableBody"></tbody>
       </table>
+    </div>
+    <div class="admin-books-footer">
+      <span id="adminBooksShown" class="admin-books-shown"></span>
+      <button id="adminBooksMoreBtn" class="admin-tool" type="button">Показать ещё</button>
     </div>`);
   document.getElementById('adminBulkUploadBtn').addEventListener('click', openBulkUploadModal);
   document.getElementById('adminReindexBtn').addEventListener('click', reindexAllBooksUI);
@@ -234,8 +239,53 @@ function renderAdminBooks() {
   document.getElementById('adminArMatchBtn').addEventListener('click', aiMatchArBooksUI);
   document.getElementById('adminRegenerateQuizzesBtn').addEventListener('click', regenerateAllQuizzesUI);
   document.getElementById('adminBooksCount').textContent = String(state.books.length);
-  renderAdminBookRows(document.getElementById('adminBooksTableBody'), state.books);
+  const search = document.getElementById('adminBooksSearch');
+  search.value = adminBooksQuery;
+  let searchTimer = null;
+  search.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      adminBooksQuery = search.value;
+      adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
+      renderAdminBooksTable();
+    }, 200);
+  });
+  document.getElementById('adminBooksMoreBtn').addEventListener('click', () => {
+    adminBooksVisible += ADMIN_BOOKS_PAGE_SIZE * 2;
+    renderAdminBooksTable();
+  });
+  renderAdminBooksTable();
   refreshDescriptionGenerationStatus();
+}
+
+// В таблице тысячи книг; строки на все сразу — секунды отрисовки на каждом
+// заходе во вкладку. Показываем порциями и даём поиск.
+const ADMIN_BOOKS_PAGE_SIZE = 50;
+let adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
+let adminBooksQuery = '';
+
+function renderAdminBooksTable() {
+  const tbody = document.getElementById('adminBooksTableBody');
+  if (!tbody) return;
+  const query = adminBooksQuery.trim().toLowerCase();
+  const books = query
+    ? (state.books || []).filter(book =>
+      `${book.title || ''} ${book.author || ''}`.toLowerCase().includes(query))
+    : (state.books || []);
+  const visible = books.slice(0, adminBooksVisible);
+  renderAdminBookRows(tbody, visible);
+  const shown = document.getElementById('adminBooksShown');
+  if (shown) {
+    shown.textContent = query
+      ? `Найдено: ${books.length}, показано ${visible.length}`
+      : `Показано ${visible.length} из ${books.length}`;
+  }
+  const more = document.getElementById('adminBooksMoreBtn');
+  if (more) {
+    const rest = books.length - visible.length;
+    more.hidden = rest <= 0;
+    more.textContent = `Показать ещё (${rest})`;
+  }
 }
 
 async function auditStorageUI() {

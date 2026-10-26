@@ -44,3 +44,15 @@ observerCallback([{ type: 'childList', addedNodes: added }]);
 assert.equal(dialogScans, 1, `проверок окон: ${dialogScans}`);
 
 console.log('Accessibility batching tests passed');
+
+// Большие списки показываются порциями: таблица книг в админке и тесты.
+const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+const adminScreens = read('admin-screens.js');
+assert.match(adminScreens, /const ADMIN_BOOKS_PAGE_SIZE = 50;/);
+assert.match(adminScreens, /books\.slice\(0, adminBooksVisible\)/);
+assert.match(adminScreens, /id="adminBooksSearch"/);
+assert.doesNotMatch(read('admin-ai-operations.js'), /renderAdminBookRows\(tbody, state\.books\)/);
+assert.match(read('training-screen.js'), /f\.slice\(0, trainingVisibleCount\)/);
+// Иконки разбираются один раз и дальше клонируются.
+assert.match(read('core-utils.js'), /_trustedIconCache/);
+console.log('Large list paging tests passed');
