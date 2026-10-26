@@ -210,7 +210,7 @@ function generateEpubLocationsInBackground(b, book, rendition, savedPage, positi
 
       // Номер страницы берём из того места, где читатель сейчас: пока шёл
       // подсчёт, он мог уже полистать.
-      const cfi = rendition.currentLocation()?.start?.cfi;
+      const cfi = currentEpubCfi(rendition);
       const location = cfi ? book.locations.locationFromCfi(cfi) : -1;
       const current = Number.isInteger(location) && location >= 0 ? location + 1 : 1;
       applyEpubLocations(b, book, current);
@@ -228,6 +228,17 @@ function generateEpubLocationsInBackground(b, book, rendition, savedPage, positi
     .catch(error => {
       if (book === epubBook) console.warn('Не удалось посчитать страницы EPUB:', error);
     });
+}
+
+// Пока epub.js перерисовывает страницу (читатель листает), currentLocation()
+// бросает исключение изнутри библиотеки. Это не ошибка — места просто ещё нет.
+function currentEpubCfi(rendition) {
+  try {
+    const cfi = rendition.currentLocation()?.start?.cfi;
+    return typeof cfi === 'string' ? cfi : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 function saveEpubLocations(b, book) {
