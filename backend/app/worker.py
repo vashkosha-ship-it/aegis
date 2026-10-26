@@ -197,7 +197,112 @@ async def index_book(ctx: dict, book_id: int) -> dict:
         sections = await _index_one(book_id)
         logger.info("Индексация книги %s — готово, секций: %d", book_id, sections)
         autofilled = await _autofill_after_indexing(book_id) if sections else []
+        if sections:
+            await _enqueue_quiz_generation(ctx, book_id)
         return {"book_id": book_id, "indexed_pages": sections, "autofilled": autofilled}
+
+
+# --- Тесты по книгам ------------------------------------------------------
+# Генерация AI-теста идёт здесь, а не в запросе пользователя: модель отвечает
+# десятки секунд. Неудачную попытку запоминаем в Redis, чтобы периодическая
+# задача не дёргала модель по одной и той же книге каждые десять минут.
+QUIZ_FAILURE_KEY = "aegis:quiz:failed:{book_id}"
+QUIZ_FAILURE_TTL_SECONDS = 6 * 3600
+QUIZ_BATCH_PER_RUN = 5
+
+
+async def _enqueue_quiz_generation(ctx: dict, book_id: int) -> None:
+    """Поставить генерацию теста; сбой очереди не роняет индексацию."""
+    redis = ctx.get("redis")
+    if redis is None:
+        return
+    try:
+        await redis.delete(QUIZ_FAILURE_KEY.format(book_id=book_id))
+        await redis.enqueue_job("generate_book_quiz", book_id, _job_id=f"quiz:{book_id}")
+    except Exception:  # noqa: BLE001
+        logger.exception("Не удалось поставить генерацию теста книги %s", book_id)
+
+
+async def _quiz_recently_failed(ctx: dict, book_id: int) -> bool:
+    redis = ctx.get("redis")
+    if redis is None:
+        return False
+    try:
+        return bool(await redis.exists(QUIZ_FAILURE_KEY.format(book_id=book_id)))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+async def _remember_quiz_failure(ctx: dict, book_id: int) -> None:
+    redis = ctx.get("redis")
+    if redis is None:
+        return
+    try:
+        await redis.set(
+            QUIZ_FAILURE_KEY.format(book_id=book_id), "1", ex=QUIZ_FAILURE_TTL_SECONDS
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("Не удалось запомнить неудачу генерации теста книги %s", book_id)
+
+
+async def _generate_quiz(ctx: dict, book_id: int) -> str:
+    """Сгенерировать AI-тест одной книги. Возвращает итог для логов."""
+    from app.services.quizzes import upgrade_quiz_for_book
+
+    async with AsyncSessionLocal() as db:
+        book = (
+            await db.scalars(
+                select(Book).options(selectinload(Book.categories)).where(Book.id == book_id)
+            )
+        ).first()
+        if not book:
+            return "missing"
+        try:
+            rows = await upgrade_quiz_for_book(db, book)
+        except Exception:  # noqa: BLE001 — одна книга не должна валить проход
+            logger.exception("Генерация теста книги %s упала", book_id)
+            await db.rollback()
+            rows = None
+    if rows:
+        return "ok"
+    await _remember_quiz_failure(ctx, book_id)
+    return "failed"
+
+
+async def generate_book_quiz(ctx: dict, book_id: int) -> dict:
+    """Задача: AI-тест для одной книги (после индексации)."""
+    async with _measure_job(ctx, "generate_book_quiz"):
+        result = await _generate_quiz(ctx, book_id)
+        logger.info("Тест книги %s: %s", book_id, result)
+        return {"book_id": book_id, "result": result}
+
+
+async def generate_missing_quizzes(ctx: dict) -> dict:
+    """Периодическая задача: заменить временные тесты на AI-тесты.
+
+    За проход берём несколько книг, чтобы не занимать воркер надолго и не
+    расходовать лимит модели разом; остальные дойдут в следующих проходах.
+    """
+    from app.services.quizzes import books_needing_ai_quiz
+
+    async with _measure_job(ctx, "generate_missing_quizzes"):
+        async with AsyncSessionLocal() as db:
+            # Запас по выборке: часть книг могла недавно не получиться.
+            candidates = await books_needing_ai_quiz(db, limit=QUIZ_BATCH_PER_RUN * 10)
+
+        results: dict[str, int] = {}
+        attempted = 0
+        for book_id in candidates:
+            if attempted >= QUIZ_BATCH_PER_RUN:
+                break
+            if await _quiz_recently_failed(ctx, book_id):
+                continue
+            attempted += 1
+            outcome = await _generate_quiz(ctx, book_id)
+            results[outcome] = results.get(outcome, 0) + 1
+        if attempted:
+            logger.info("Генерация недостающих тестов: %s", results)
+        return {"attempted": attempted, **results}
 
 
 async def index_all_books(ctx: dict) -> dict:
@@ -467,13 +572,17 @@ class WorkerSettings:
         index_all_books,
         generate_missing_book_descriptions,
         cleanup_expired_sessions,
+        generate_book_quiz,
+        generate_missing_quizzes,
     ]
     on_startup = recover_interrupted_indexing
 
     # Раз в сутки ночью подчищаем отработавшие записи. Отдельный systemd-таймер
-    # не нужен: планировщик встроен в ARQ.
+    # не нужен: планировщик встроен в ARQ. Временные тесты заменяем на
+    # AI-тесты каждые десять минут, по несколько книг за раз.
     cron_jobs = [
         cron(cleanup_expired_sessions, hour=4, minute=17),
+        cron(generate_missing_quizzes, minute={3, 13, 23, 33, 43, 53}),
     ]
     redis_settings = redis_settings()
     # Индексация упирается в диск и CPU — параллелить сильно смысла нет,

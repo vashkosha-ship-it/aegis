@@ -79,7 +79,11 @@ async def start_exam(
     batch_size = 10
     attempts = 0
     # Генерируем порциями по 10, пока не наберём 50 (или не исчерпаем попытки)
-    while len(questions) < cert_service.NUM_QUESTIONS and attempts < 8:
+    seen: set[str] = set()
+    while (
+        len(questions) < cert_service.NUM_QUESTIONS
+        and attempts < cert_service.MAX_BATCH_ATTEMPTS
+    ):
         attempts += 1
         need = min(batch_size, cert_service.NUM_QUESTIONS - len(questions))
         try:
@@ -89,10 +93,17 @@ async def start_exam(
         except DeepSeekError as e:
             logger.warning("Exam batch failed for %s: %s", payload.category, e)
             break
-        questions.extend(qs)
-        correct.extend(cs)
+        # Модель иногда повторяет вопросы из прошлых порций — дубль в
+        # экзамене даёт лишний балл за один и тот же ответ.
+        for q, c in zip(qs, cs, strict=True):
+            key = q["question"].casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            questions.append(q)
+            correct.append(c)
 
-    if len(questions) < 10:
+    if len(questions) < cert_service.MIN_QUESTIONS:
         raise HTTPException(status_code=502, detail="Не удалось сгенерировать тест, попробуйте позже")
 
     # Ограничиваем ровно cert_service.NUM_QUESTIONS (или сколько набралось)

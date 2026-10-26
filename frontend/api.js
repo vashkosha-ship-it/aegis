@@ -475,10 +475,16 @@
       // Возвращает { questions, sessionToken }. Токен сессии сервер отдаёт
       // заголовком X-Quiz-Session — он привязывает набор вопросов к попытке,
       // чтобы клиент не мог подменить состав при отправке.
+      // status: 'preparing' — теста ещё нет, его готовит фоновый воркер;
+      // 'temporary' — временный тест из шаблона темы; null — обычный AI-тест.
       async quiz(bookId) {
         const resp = await request('/books/' + bookId + '/quiz', { raw: true });
         const questions = await resp.json();
-        return { questions, sessionToken: resp.headers.get('X-Quiz-Session') || null };
+        return {
+          questions,
+          sessionToken: resp.headers.get('X-Quiz-Session') || null,
+          status: resp.headers.get('X-Quiz-Status') || null,
+        };
       },
       regenerateQuiz(bookId) { return request('/books/' + bookId + '/quiz/regenerate', { method: 'POST' }); },
       regenerateAllQuizzes() { return request('/books/quiz/regenerate-all', { method: 'POST' }); },

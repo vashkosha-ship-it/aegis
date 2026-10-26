@@ -30,8 +30,10 @@ const context = {
       ],
       quiz: async bookId => {
         apiCalls.push(['quiz', bookId]);
+        if (bookId === 99) return { sessionToken: null, status: 'preparing', questions: [] };
         return {
           sessionToken: 'session-1',
+          status: bookId === 43 ? 'temporary' : null,
           questions: [
             { id: 11, question: '<Первый?>', options: ['Да', '<Нет>'] },
             { id: 12, question: 'Второй?', options: ['A', 'B'] },
@@ -78,6 +80,22 @@ vm.runInContext(source, context);
   assert.deepEqual(Array.from(context.state.completedQuizzes.alice), [8, 42]);
   assert.equal(gamificationRefreshes, 1);
   assert.match(dom.window.document.getElementById('detailTabTraining').innerHTML, /60%/);
+
+  // Теста ещё нет: вкладка объясняет это сама, без всплывающей ошибки.
+  const toastsBefore = toasts.length;
+  await context.startQuiz(99);
+  const preparing = dom.window.document.getElementById('detailTabTraining');
+  assert.match(preparing.textContent, /Тест по этой книге готовится/);
+  assert.equal(toasts.length, toastsBefore);
+  preparing.querySelector('button').click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(apiCalls[apiCalls.length - 1], ['quiz', 99]);
+
+  // Временный тест помечен, обычный — нет.
+  await context.startQuiz(43);
+  assert.match(dom.window.document.getElementById('detailTabTraining').textContent, /Временный тест/);
+  await context.startQuiz(42);
+  assert.doesNotMatch(dom.window.document.getElementById('detailTabTraining').textContent, /Временный тест/);
 
   assert.doesNotMatch(appSource, /function renderQuizQuestion|async function startQuiz|async function finishQuiz/);
   assert.ok(indexSource.indexOf('quiz-core.js') < indexSource.indexOf('app.js'));
