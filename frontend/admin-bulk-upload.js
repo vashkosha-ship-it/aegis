@@ -115,6 +115,14 @@ async function generateCoverFromPdf(file) {
 
 function openBulkUploadModal() {
   document.getElementById('bulkUploadModal').classList.remove('hidden');
+  const limit = document.getElementById('bulkUploadLimit');
+  if (limit) {
+    const pdfMb = _bulkSizeLimitMb('pdf');
+    const epubMb = _bulkSizeLimitMb('epub');
+    limit.textContent = pdfMb === epubMb
+      ? `PDF, EPUB · до ${pdfMb} МБ каждый`
+      : `PDF до ${pdfMb} МБ, EPUB до ${epubMb} МБ`;
+  }
   bulkUploadQueue = [];
   renderBulkUploadList();
 
@@ -161,15 +169,16 @@ function closeBulkUploadModal() {
 
 function addFilesToBulkQueue(fileList) {
   const allowed = ['pdf', 'epub'];
-  const MAX_SIZE = 150 * 1024 * 1024;
   let skipped = 0;
+  let maxSkippedMb = 0;
   for (const file of fileList) {
     const ext = file.name.split('.').pop().toLowerCase();
     if (!allowed.includes(ext)) { skipped++; continue; }
-    if (file.size > MAX_SIZE) { skipped++; continue; }
+    const maxMb = _bulkSizeLimitMb(ext);
+    if (file.size > maxMb * 1024 * 1024) { skipped++; maxSkippedMb = maxMb; continue; }
     bulkUploadQueue.push({ file, status: 'pending', message: 'В очереди' });
   }
-  if (skipped > 0) showToast(`Пропущено файлов: ${skipped} (неверный формат или > 150 МБ)`);
+  if (skipped > 0) showToast(`Пропущено файлов: ${skipped} (неверный формат или > ${maxSkippedMb || _bulkSizeLimitMb('pdf')} МБ)`);
   renderBulkUploadList();
 }
 
@@ -411,4 +420,9 @@ async function loadAndRenderAdminReviews() {
   } catch (err) {
     replaceWithStaticText(container, 'Не удалось загрузить отзывы', 'a150');
   }
+}
+
+// Лимит на файл книги из настроек сервера (navigation.js); без них — 500 МБ.
+function _bulkSizeLimitMb(format) {
+  return typeof getMaxBookSizeMb === 'function' ? getMaxBookSizeMb(format) : 500;
 }

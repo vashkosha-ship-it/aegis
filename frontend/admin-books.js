@@ -579,8 +579,8 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
   if (!adminBookModalCurrentId) return;
   const file = document.getElementById('adminBookFileInput').files[0];
   if (!file) return showToast('Выберите файл книги');
-  const MAX_SIZE = 150 * 1024 * 1024;
-  if (file.size > MAX_SIZE) return showToast('Файл больше 150 МБ');
+  const maxMb = _bookSizeLimitMb(detectFileFormat(file));
+  if (file.size > maxMb * 1024 * 1024) return showToast(`Файл больше ${maxMb} МБ`);
 
   const btn = document.getElementById('adminUploadFileBtn');
   btn.disabled = true;
@@ -746,7 +746,7 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
   const coverFile = document.getElementById('newCover').files[0];
   const bookFile = document.getElementById('newBookFile').files[0];
 
-  const MAX_FILE_MB = 150, MAX_COVER_MB = 5;
+  const MAX_FILE_MB = bookFile ? _bookSizeLimitMb(detectFileFormat(bookFile)) : 0, MAX_COVER_MB = 5;
   if (bookFile && bookFile.size > MAX_FILE_MB * 1024 * 1024) return showToast(`Файл книги больше ${MAX_FILE_MB} МБ`);
   if (coverFile && coverFile.size > MAX_COVER_MB * 1024 * 1024) return showToast(`Обложка больше ${MAX_COVER_MB} МБ`);
 
@@ -848,3 +848,8 @@ document.querySelectorAll('.admin-tab-btn').forEach(t => t.addEventListener('cli
   document.getElementById('ad' + this.dataset.atab.charAt(0).toUpperCase() + this.dataset.atab.slice(1)).classList.add('show');
   renderAdminPanel();
 }));
+
+// Лимит на файл книги из настроек сервера (navigation.js); без них — 500 МБ.
+function _bookSizeLimitMb(format) {
+  return typeof getMaxBookSizeMb === 'function' ? getMaxBookSizeMb(format) : 500;
+}

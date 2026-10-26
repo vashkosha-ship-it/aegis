@@ -100,7 +100,7 @@ async def test_assistant_enabled_by_default(client, approved_user):
     r = await client.get("/settings", headers=auth_headers(approved_user))
 
     assert r.status_code == 200
-    assert r.json() == {"assistant_enabled": True}
+    assert r.json()["assistant_enabled"] is True
 
 
 async def test_only_admin_can_change_settings(client, approved_user):
@@ -128,7 +128,7 @@ async def test_disabled_assistant_does_not_call_the_model(
         "/admin/settings", json={"assistant_enabled": False}, headers=auth_headers(admin_user)
     )
     assert r.status_code == 200
-    assert r.json() == {"assistant_enabled": False}
+    assert r.json()["assistant_enabled"] is False
 
     chat = await client.post(
         "/me/assistant/chat",
@@ -145,4 +145,15 @@ async def test_disabled_assistant_does_not_call_the_model(
     r = await client.patch(
         "/admin/settings", json={"assistant_enabled": True}, headers=auth_headers(admin_user)
     )
-    assert r.json() == {"assistant_enabled": True}
+    assert r.json()["assistant_enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_settings_expose_book_size_limits(client, approved_user):
+    """Админка проверяет размер книги по тем же числам, что и сервер."""
+    from app.core.config import settings
+
+    body = (await client.get("/settings", headers=auth_headers(approved_user))).json()
+    assert body["max_pdf_size_mb"] == settings.MAX_PDF_SIZE_MB
+    assert body["max_epub_size_mb"] == settings.MAX_EPUB_SIZE_MB
+    assert settings.MAX_PDF_SIZE_MB >= 500
