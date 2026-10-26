@@ -98,6 +98,14 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = "deepseek-chat"
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
 
+    # --- Сбор ошибок (Sentry / GlitchTip) ----------------------------------
+    # DSN проекта вида https://<key>@<host>/<project_id>. Пусто — ошибки только
+    # пишутся в журнал. Сервер и браузерные ошибки уходят в один проект.
+    ERROR_REPORTING_DSN: str = ""
+    ERROR_REPORTING_ENVIRONMENT: str = "production"
+    # Версия для группировки ошибок по выкладкам (например, git SHA).
+    ERROR_REPORTING_RELEASE: str = ""
+
     # --- удобные derived-проперти -------------------------------------------
     @property
     def MAX_PDF_SIZE_BYTES(self) -> int:

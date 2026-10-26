@@ -241,6 +241,25 @@ app.add_middleware(
     max_age=600,  # кэшируем preflight-ответ на 10 минут (меньше OPTIONS-запросов)
 )
 
+@app.exception_handler(Exception)
+async def report_unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+    """Необработанная ошибка: в журнал и в сервис ошибок, клиенту — 500.
+
+    Подробности клиенту не отдаём: текст исключения может содержать SQL,
+    пути на сервере и данные. Request ID — чтобы найти запись в журнале.
+    """
+    from app.services.error_reporting import report_exception
+
+    report_exception(exc, method=request.method, path=request.url.path, source="web")
+    request_id = getattr(request.state, "request_id", None)
+    headers = {"X-Request-ID": request_id} if request_id else None
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "request_id": request_id},
+        headers=headers,
+    )
+
+
 # Все роутеры собраны в app/api/__init__.py — здесь одна точка подключения.
 app.include_router(api_router)
 

@@ -605,3 +605,9 @@ otp_attempt_limiter = SlidingWindowLimiter(
 comment_limiter = SlidingWindowLimiter(
     max_actions=5, window_seconds=60, prefix="comment"
 )
+
+# Отчёты об ошибках из браузера: принимаются без входа (ошибка может случиться
+# на экране входа), поэтому лимит по IP — иначе ими можно засыпать журнал.
+client_error_limiter = SlidingWindowLimiter(
+    max_actions=30, window_seconds=600, prefix="clienterr"
+)
