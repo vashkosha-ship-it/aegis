@@ -32,8 +32,28 @@ function replaceWithStaticText(container, text, staticStyle, tagName = 'div') {
   return node;
 }
 
+// Проверенные иконки: разметка → готовый SVG-шаблон. Разбор и проверка
+// SVG на каждой кнопке стоили заметно на таблицах в тысячи строк.
+const _trustedIconCache = new Map();
+
 function appendTrustedIcon(container, markup) {
   if (!container || !markup) return null;
+  const key = String(markup);
+  if (_trustedIconCache.has(key)) {
+    const template = _trustedIconCache.get(key);
+    if (!template) return null;
+    const iconNode = template.cloneNode(true);
+    container.appendChild(iconNode);
+    return iconNode;
+  }
+  const iconNode = _parseTrustedIcon(key);
+  _trustedIconCache.set(key, iconNode ? iconNode.cloneNode(true) : null);
+  if (!iconNode) return null;
+  container.appendChild(iconNode);
+  return iconNode;
+}
+
+function _parseTrustedIcon(markup) {
   // HTML-парсер помещает <svg> в SVG namespace. XML-парсер без явного
   // xmlns создавал внешне правильный, но не рисуемый браузером XML-элемент:
   // кнопка занимала место, а сама иконка оставалась пустой.
@@ -52,9 +72,7 @@ function appendTrustedIcon(container, markup) {
   if (nodes.some(node => Array.from(node.attributes).some(attr =>
     /^on/i.test(attr.name) || /^(?:style|href|xlink:href)$/i.test(attr.name)
   ))) return null;
-  const iconNode = document.importNode(svg, true);
-  container.appendChild(iconNode);
-  return iconNode;
+  return document.importNode(svg, true);
 }
 
 function replaceWithTrustedIcon(container, markup) {

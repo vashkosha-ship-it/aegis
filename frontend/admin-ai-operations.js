@@ -110,8 +110,7 @@ async function refreshDescriptionGenerationStatus() {
         + (job.failed_books ? ` · ошибок: ${job.failed_books}` : '')
       );
       await loadBooksFromApi();
-      const tbody = document.getElementById('adminBooksTableBody');
-      if (tbody) renderAdminBookRows(tbody, state.books);
+      renderAdminBooksTable();
     }
   } catch (error) {
     button.disabled = false;

@@ -3,8 +3,14 @@ document.getElementById('trainingTabs').addEventListener('click', e => {
   const t = e.target.closest('.training-tab');
   if (!t) return;
   state.trainingTab = t.dataset.ttab;
+  trainingVisibleCount = TRAINING_PAGE_SIZE;
   renderTrainingScreen();
 });
+
+// В библиотеке тысячи книг; карточка теста на каждую сразу — это секунда
+// отрисовки на каждом заходе на экран. Показываем порциями.
+const TRAINING_PAGE_SIZE = 60;
+let trainingVisibleCount = TRAINING_PAGE_SIZE;
 
 function renderTrainingScreen() {
   updateAvatar('avatarTraining');
@@ -65,15 +71,24 @@ function renderTrainingScreen() {
     }
   }
 
+  const visible = f.slice(0, trainingVisibleCount);
+  const rest = f.length - visible.length;
+  const moreHtml = rest > 0
+    ? `<button type="button" class="btn-quiz training-more" id="trainingMoreBtn">Показать ещё (${rest})</button>`
+    : '';
   const listHtml = f.length
-    ? f.map(t => `<button type="button" class="training-card" data-onclick="startQuizFromTraining(${t.bookId})">
+    ? visible.map(t => `<button type="button" class="training-card" data-onclick="startQuizFromTraining(${t.bookId})">
         <h4>${eh(t.book.title)}</h4>
         <div class="meta">${eh(bookCategoriesText(t.book))}</div>
         <span class="status ${t.completed ? 'status-completed' : 'status-pending'}">${t.completed ? ICONS.check + ' Пройдено' : ICONS.clock + ' Не пройдено'}</span>
-      </button>`).join('')
+      </button>`).join('') + moreHtml
     : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.education}</div><p>Нет тестов</p></div>`;
 
   replaceWithAppMarkup(document.getElementById('trainingList'), cyberLevelBlock + listHtml);
+  document.getElementById('trainingMoreBtn')?.addEventListener('click', () => {
+    trainingVisibleCount += TRAINING_PAGE_SIZE * 2;
+    renderTrainingScreen();
+  });
 }
 
 function restartOnboardingFromTraining() {
