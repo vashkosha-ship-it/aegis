@@ -57,8 +57,11 @@ class Settings(BaseSettings):
     # Путь относительно рабочей директории, откуда запускается uvicorn (то есть backend/).
     STORAGE_LOCAL_PATH: str = "./storage"
     # Лимиты размеров. Меняй в .env, если книги тяжелее.
-    MAX_PDF_SIZE_MB: int = 150
-    MAX_EPUB_SIZE_MB: int = 150
+    # Лимит на файл книги. Меняется переменными окружения; вместе с ним надо
+    # поднять client_max_body_size в nginx (deploy/nginx-aegis.conf).
+    # Индексация для поиска берёт PDF до 500 МБ (search_index.MAX_PDF_BYTES).
+    MAX_PDF_SIZE_MB: int = 500
+    MAX_EPUB_SIZE_MB: int = 500
     MAX_COVER_SIZE_MB: int = 5
 
     # S3 / MinIO. S3_ENDPOINT_URL можно оставить пустым для AWS S3; для

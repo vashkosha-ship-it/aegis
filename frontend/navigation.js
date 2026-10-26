@@ -65,6 +65,17 @@ let _assistantCheckedAt = 0;
 // Своя переменная, а не state: navigation.js подключается раньше app-state.js,
 // а состояние нужно уже при загрузке страницы.
 let _assistantEnabled = true;
+// Последние настройки сервиса (/settings): лимиты размера книг и т. п.
+let _serviceSettings = null;
+const DEFAULT_MAX_BOOK_SIZE_MB = 500;
+
+// Лимит на файл книги в МБ — из настроек сервера, чтобы админка не
+// отказывала в файле, который сервер принял бы (и наоборот).
+function getMaxBookSizeMb(format) {
+  const key = format === 'epub' ? 'max_epub_size_mb' : 'max_pdf_size_mb';
+  const value = Number(_serviceSettings && _serviceSettings[key]);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_MAX_BOOK_SIZE_MB;
+}
 
 function isAssistantEnabled() {
   return _assistantEnabled;
@@ -92,6 +103,7 @@ async function refreshAssistantAvailability(force = false) {
   _assistantCheckedAt = Date.now();
   try {
     const settings = await api.settings();
+    if (settings) _serviceSettings = settings;
     applyAssistantAvailability(settings && settings.assistant_enabled === true);
   } catch (_) {
     // Нет сети или сервер недоступен — оставляем последнее известное состояние.

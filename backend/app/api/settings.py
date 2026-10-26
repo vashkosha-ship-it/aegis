@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user
+from app.core.config import settings as config
 from app.db.session import get_db
 from app.models.user import User
 from app.services import app_settings
@@ -14,6 +15,10 @@ router = APIRouter(tags=["settings"])
 
 class PublicSettings(BaseModel):
     assistant_enabled: bool
+    # Лимиты на файл книги — чтобы админка проверяла размер до загрузки
+    # по тем же числам, что и сервер.
+    max_pdf_size_mb: int
+    max_epub_size_mb: int
 
 
 class SettingsUpdate(BaseModel):
@@ -21,7 +26,11 @@ class SettingsUpdate(BaseModel):
 
 
 async def _public(db: AsyncSession) -> PublicSettings:
-    return PublicSettings(assistant_enabled=await app_settings.assistant_enabled(db))
+    return PublicSettings(
+        assistant_enabled=await app_settings.assistant_enabled(db),
+        max_pdf_size_mb=config.MAX_PDF_SIZE_MB,
+        max_epub_size_mb=config.MAX_EPUB_SIZE_MB,
+    )
 
 
 @router.get("/settings", response_model=PublicSettings)
