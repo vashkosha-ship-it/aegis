@@ -186,6 +186,9 @@ function onAppScreenShown() {
   const user = state.currentUser;
   if (!user || state.currentScreen === 'auth') return;
   applyAccountAppearance();
+  // Сначала — согласие с текущей редакцией документов: пока оно не дано,
+  // остальные приветственные окна не показываем.
+  if (typeof maybeShowLegalConsent === 'function' && maybeShowLegalConsent()) return;
   // Экран уже закрыли на этом устройстве, но сервер флаг не получил
   // (не было сети) — досылаем, чтобы он не появился на другом устройстве.
   if (user.appearance_onboarded === false && user.id && _appearanceDoneLocally(user.id) && !appearanceFlagResent) {

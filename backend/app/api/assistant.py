@@ -3,10 +3,13 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.rate_limit import assistant_limiter
+from app.db.session import get_db
 from app.models.user import User
+from app.services.app_settings import assistant_enabled
 from app.schemas.assistant import (
     ChatRequest,
     ChatResponse,
@@ -18,7 +21,23 @@ from app.services.deepseek_client import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/me/assistant", tags=["assistant"])
+
+
+async def require_assistant_enabled(db: AsyncSession = Depends(get_db)) -> None:
+    """Ассистент выключен администратором — запрос в DeepSeek не уходит.
+
+    Проверка стоит до лимита запросов: выключенный ассистент не должен
+    расходовать попытки пользователя.
+    """
+    if not await assistant_enabled(db):
+        raise HTTPException(status_code=403, detail="ИИ-ассистент отключён администратором")
+
+
+router = APIRouter(
+    prefix="/me/assistant",
+    tags=["assistant"],
+    dependencies=[Depends(require_assistant_enabled)],
+)
 
 
 @router.post("/chat", response_model=ChatResponse)

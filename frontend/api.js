@@ -205,11 +205,16 @@
       return data;
     },
 
-    async register(username, password, email = null, full_name = null, department = null) {
-      // Регистрация больше НЕ выдаёт токены — аккаунт ждёт подтверждения email
+    async register(username, password, email = null, full_name = null, department = null, consents = {}) {
+      // Регистрация больше НЕ выдаёт токены — аккаунт ждёт подтверждения email.
+      // consents: { accept_terms, pd_consent } — две отдельные отметки формы.
       return await request('/auth/register', {
         method: 'POST',
-        body: { username, password, email, full_name, department },
+        body: {
+          username, password, email, full_name, department,
+          accept_terms: consents.accept_terms === true,
+          pd_consent: consents.pd_consent === true,
+        },
         auth: false,
       });
     },
@@ -275,6 +280,16 @@
       // payload: {full_name?: string|null}
       return request('/me', { method: 'PATCH', body: payload });
     },
+    // Принять текущую редакцию правовых документов (обе отметки обязательны).
+    acceptLegalDocuments() {
+      return request('/me/legal-consent', {
+        method: 'POST',
+        body: { accept_terms: true, pd_consent: true },
+      });
+    },
+    // Настройки сервиса: { assistant_enabled }.
+    settings() { return request('/settings'); },
+    updateSettings(payload) { return request('/admin/settings', { method: 'PATCH', body: payload }); },
     assistantChat(messages, context = {}) {
           return request('/me/assistant/chat', {
             method: 'POST',

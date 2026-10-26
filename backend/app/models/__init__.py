@@ -1,6 +1,7 @@
 """Import all models so Alembic and SQLAlchemy can see them."""
 from app.models.achievement import Achievement, UserAchievement
 from app.models.admin_log import AdminLog
+from app.models.app_setting import AppSetting
 from app.models.book import Book
 from app.models.book_comment import BookComment
 from app.models.book_page import BookPage
@@ -27,6 +28,7 @@ from app.models.user import User, UserRole
 __all__ = [
     "Achievement",
     "AdminLog",
+    "AppSetting",
     "Annotation",
     "AnnotationType",
     "Book",

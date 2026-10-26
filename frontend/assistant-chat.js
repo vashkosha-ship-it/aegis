@@ -240,9 +240,11 @@ async function assistantSend(surface, text, opts = {}) {
     if (surface.messages.length && surface.messages[surface.messages.length - 1].role === 'assistant') {
       surface.messages.pop();
     }
-    const errText = e.status === 429
-      ? (e.detail || 'Слишком много запросов. Попробуйте позже.')
-      : (e.status === 502 ? 'AI временно недоступен. Попробуйте позже.' : 'Не удалось получить ответ.');
+    let errText = 'Не удалось получить ответ.';
+    if (e.status === 429) errText = e.detail || 'Слишком много запросов. Попробуйте позже.';
+    else if (e.status === 502) errText = 'AI временно недоступен. Попробуйте позже.';
+    // Ассистента выключил администратор — говорим об этом прямо.
+    else if (e.status === 403) errText = e.detail || 'ИИ-ассистент отключён администратором.';
     surface.messages.push({ role: 'assistant', content: '⚠ ' + errText });
     console.error('Assistant error:', e);
   } finally {

@@ -1,6 +1,6 @@
 """User self-service endpoints: edit own profile, manage avatar."""
 import logging
-from datetime import UTC
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, StreamingResponse
@@ -12,6 +12,7 @@ from app.api.deps import (
     get_current_user_optional,
 )
 from app.core.avatars import preset_path
+from app.core.legal import LEGAL_VERSION
 from app.core.rate_limit import email_send_limiter, otp_attempt_limiter
 from app.core.security import hash_new_password, hash_otp, verify_otp, verify_password
 from app.core.storage import (
@@ -21,7 +22,7 @@ from app.core.storage import (
 )
 from app.db.session import get_db
 from app.models.user import User, UserRole
-from app.schemas.auth import UserPublic, UserUpdate
+from app.schemas.auth import LegalConsentRequest, UserPublic, UserUpdate
 from app.schemas.me import (
     AccountDeleteRequest,
     EmailChangeConfirm,
@@ -86,6 +87,33 @@ async def update_me(
     return UserPublic.model_validate(current)
 
 # ============================================================================
+# POST /api/me/legal-consent — принять текущую редакцию документов
+# ============================================================================
+
+
+@router.post("/me/legal-consent", response_model=UserPublic)
+async def accept_legal_documents(
+    payload: LegalConsentRequest,
+    current: User = Depends(get_current_user_any),
+    db: AsyncSession = Depends(get_db),
+) -> UserPublic:
+    """Записать согласие с текущей редакцией документов.
+
+    Нужно тем, кто зарегистрировался до появления отдельного согласия на
+    обработку персональных данных, и всем — после выхода новой редакции.
+    Обе отметки обязательны: схема принимает только true.
+    """
+    now = datetime.now(UTC)
+    current.terms_accepted_at = now
+    current.pd_consent_at = now
+    current.legal_version = LEGAL_VERSION
+    await db.commit()
+    await db.refresh(current)
+    logger.info("User %s accepted legal documents %s", current.id, LEGAL_VERSION)
+    return UserPublic.model_validate(current)
+
+
+# ============================================================================
 # POST /api/me/password — смена пароля
 # ============================================================================
 
@@ -137,7 +165,7 @@ async def request_email_change(
 ) -> dict:
     """Запросить смену email. Отправляет код подтверждения на НОВЫЙ адрес."""
     import secrets
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
     from sqlalchemy import select
 
@@ -182,8 +210,6 @@ async def confirm_email_change(
     db: AsyncSession = Depends(get_db),
 ) -> UserPublic:
     """Подтвердить смену email кодом из письма."""
-    from datetime import datetime
-
     allowed, wait = await otp_attempt_limiter.try_acquire(f"emailchange:{current.id}")
     if not allowed:
         raise HTTPException(

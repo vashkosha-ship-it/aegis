@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.core.legal import LEGAL_VERSION
 from app.core.security import validate_new_password
 from app.models.user import UserRole
 
@@ -14,11 +15,22 @@ class UserRegister(BaseModel):
     email: EmailStr  # обязателен — на него приходит код подтверждения
     full_name: str | None = Field(default=None, max_length=128)
     department: str | None = Field(default=None, max_length=64)
+    # Две отдельные отметки: принятие Соглашения и Политики и согласие на
+    # обработку персональных данных (152-ФЗ требует, чтобы согласие на
+    # обработку ПДн было отдельным, а не частью другого документа).
+    accept_terms: bool = False
+    pd_consent: bool = False
 
     @field_validator("password")
     @classmethod
     def _password_policy(cls, value: str) -> str:
         return validate_new_password(value)
+
+
+class LegalConsentRequest(BaseModel):
+    """Принять текущую редакцию документов (для зарегистрированных раньше)."""
+    accept_terms: Literal[True]
+    pd_consent: Literal[True]
 
 
 class VerifyEmailRequest(BaseModel):
@@ -78,6 +90,9 @@ class UserPublic(BaseModel):
     ui_theme: str | None = None
     ui_accent: str | None = None
     appearance_onboarded: bool = True
+    # Человек не принимал текущую редакцию документов — интерфейс покажет окно
+    # согласия. По умолчанию False: старый клиент без поля ничего не ломает.
+    legal_consent_required: bool = False
 
     @classmethod
     def model_validate(cls, obj, *, strict=None, from_attributes=None, context=None):
@@ -86,6 +101,12 @@ class UserPublic(BaseModel):
         )
         if hasattr(obj, 'avatar_url'):
             data.has_avatar = bool(obj.avatar_url or getattr(obj, 'avatar_preset', None))
+        if hasattr(obj, 'legal_version'):
+            data.legal_consent_required = (
+                obj.legal_version != LEGAL_VERSION
+                or obj.terms_accepted_at is None
+                or obj.pd_consent_at is None
+            )
         return data
 
     model_config = ConfigDict(from_attributes=True)

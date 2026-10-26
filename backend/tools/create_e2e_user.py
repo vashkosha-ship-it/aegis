@@ -26,10 +26,12 @@ import argparse
 import asyncio
 import os
 import sys
+from datetime import UTC, datetime
 
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy import select
 
+from app.core.legal import LEGAL_VERSION
 from app.core.security import hash_password
 from app.db.session import AsyncSessionLocal
 from app.models.user import User, UserRole
@@ -106,6 +108,13 @@ async def run(username: str, email: str, password: str) -> None:
             action = "обновлён"
 
         changed = _apply_flags(user)
+        # Техническая учётка проверки сайта: без принятых документов после
+        # входа её остановит окно согласия.
+        if user.legal_version != LEGAL_VERSION:
+            consented_at = datetime.now(UTC)
+            user.terms_accepted_at = user.pd_consent_at = consented_at
+            user.legal_version = LEGAL_VERSION
+            changed.append(f"legal_version={LEGAL_VERSION}")
         await db.commit()
         await db.refresh(user)
 

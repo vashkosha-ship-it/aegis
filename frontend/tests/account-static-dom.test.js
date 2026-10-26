@@ -46,10 +46,11 @@ vm.runInContext(source, context);
   context.triggerInstall = () => calls.push('install');
   context.openUserAgreement = () => calls.push('agreement');
   context.openPrivacyPolicy = () => calls.push('privacy');
+  context.openPdConsent = () => calls.push('consent');
   context.renderSettingsHelpTab(content);
   assert.equal(content.querySelector('[data-onclick]'), null);
   content.querySelectorAll('button').forEach(button => button.click());
-  assert.deepEqual(calls.slice(-4), ['tour', 'install', 'agreement', 'privacy']);
+  assert.deepEqual(calls.slice(-5), ['tour', 'install', 'agreement', 'privacy', 'consent']);
   assert.equal(content.querySelector('a').href, 'mailto:support@aegis-sec-library.ru');
 
   context.doDeleteAccount = () => calls.push('delete');

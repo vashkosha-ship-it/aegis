@@ -179,6 +179,8 @@ class TestOtpSecurity:
                 "username": "newbie",
                 "password": "TestPass123!",
                 "email": "newbie@example.com",
+                "accept_terms": True,
+                "pd_consent": True,
             },
         )
         assert r.status_code == 201

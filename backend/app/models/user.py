@@ -76,6 +76,14 @@ class User(Base):
     )
     admin_recovery_codes: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
+    # Согласия по 152-ФЗ. Отдельно: принятие Пользовательского соглашения и
+    # Политики конфиденциальности, и согласие на обработку персональных
+    # данных. legal_version — редакция документов, которую человек принял;
+    # при новой редакции согласие запрашивается заново.
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    pd_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    legal_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
     # Одобрение аккаунта администратором (второй этап после подтверждения email)
     is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
 

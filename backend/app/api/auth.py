@@ -17,6 +17,7 @@ from app.core.cookies import (
     get_refresh_from_cookie,
     set_auth_cookies,
 )
+from app.core.legal import LEGAL_VERSION
 from app.core.rate_limit import email_send_limiter, login_limiter, otp_attempt_limiter
 from app.core.security import (
     hash_new_password,
@@ -124,6 +125,13 @@ async def register(
 ) -> RegisterResponse:
     """Создать аккаунт читателя. Email обязателен — на него отправляется код подтверждения.
     Аккаунт неактивен до подтверждения email."""
+    if not (payload.accept_terms and payload.pd_consent):
+        raise HTTPException(
+            status_code=400,
+            detail="Нужно принять Пользовательское соглашение, Политику конфиденциальности "
+            "и дать согласие на обработку персональных данных",
+        )
+
     await _guard_email_send(payload.email, request)
 
     existing = await db.scalar(select(User).where(User.username == payload.username))
@@ -135,7 +143,11 @@ async def register(
         raise HTTPException(status_code=400, detail="Email already registered")
 
     code = _gen_code()
+    consented_at = datetime.now(UTC)
     user = User(
+        terms_accepted_at=consented_at,
+        pd_consent_at=consented_at,
+        legal_version=LEGAL_VERSION,
         username=payload.username,
         email=payload.email,
         password_hash=hash_new_password(payload.password),

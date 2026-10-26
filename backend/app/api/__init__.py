@@ -22,6 +22,7 @@ from app.api import (
     onboarding,
     quizzes,
     search,
+    settings,
 )
 
 api_router = APIRouter(prefix="/api")
@@ -50,3 +51,4 @@ api_router.include_router(chats.router)
 
 # Администрирование
 api_router.include_router(admin.router)
+api_router.include_router(settings.router)
