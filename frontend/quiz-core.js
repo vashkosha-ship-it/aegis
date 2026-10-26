@@ -7,6 +7,7 @@ function renderQuizQuestion() {
   const isAnswered = userAnswer !== -1;
 
   replaceWithAppMarkup(c, `<div class="quiz-container">
+    ${currentQuiz.temporary ? '<p class="quiz-temporary-note">Временный тест по теме книги. Тест по её тексту готовится и скоро заменит этот.</p>' : ''}
     <div data-static-style="a091">
       <span data-static-style="a192">Вопрос ${currentQuiz.currentIndex + 1} из ${currentQuiz.questions.length}</span>
     </div>
@@ -68,12 +69,16 @@ async function startQuiz(bookId) {
   // Показываем спиннер, пока грузятся/генерируются вопросы (может быть долго при AI-генерации)
   const c = document.getElementById('detailTabTraining');
   renderLoadingSpinner(c, 'Готовим тест…');
-  const { questions, sessionToken } = await fetchQuizForBook(bookId);
-  if (!questions.length) return showToast('Нет вопросов теста');
+  const { questions, sessionToken, status } = await fetchQuizForBook(bookId);
+  if (!questions.length) {
+    if (status === 'preparing') return renderQuizPreparing(bookId);
+    return showToast('Нет вопросов теста');
+  }
 
   currentQuiz = {
     bookId,
     sessionToken,
+    temporary: status === 'temporary',
     questions: questions.map(q => ({
       q: q.question,
       options: q.options,
@@ -85,6 +90,29 @@ async function startQuiz(bookId) {
     answers: new Array(questions.length).fill(-1),
   };
   renderQuizQuestion();
+}
+
+// Теста по книге ещё нет: его составляет фоновый воркер по тексту книги.
+// Показываем это на вкладке, а не всплывашкой — иначе вкладка остаётся
+// со спиннером и непонятно, ждать или уходить.
+function renderQuizPreparing(bookId) {
+  const c = document.getElementById('detailTabTraining');
+  if (!c) return;
+  const panel = document.createElement('div');
+  panel.className = 'quiz-preparing';
+  const title = document.createElement('p');
+  title.className = 'quiz-preparing-title';
+  title.textContent = 'Тест по этой книге готовится';
+  const hint = document.createElement('p');
+  hint.className = 'quiz-preparing-hint';
+  hint.textContent = 'Вопросы составляются по тексту книги. Обычно это занимает до получаса — загляните позже.';
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'btn-quiz';
+  retry.textContent = 'Проверить ещё раз';
+  retry.addEventListener('click', () => startQuiz(bookId));
+  panel.append(title, hint, retry);
+  c.replaceChildren(panel);
 }
 
 function startCombinedQuiz(bookIds) {

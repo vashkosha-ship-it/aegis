@@ -55,6 +55,13 @@ async def get_quiz(
         raise HTTPException(status_code=404, detail="Book not found")
     questions = await quizzes_service.ensure_quiz_for_book(db, book)
     served = quizzes_service.select_questions(questions)
+    if not served:
+        # AI-теста ещё нет, шаблона для темы книги тоже: тест готовит фоновый
+        # воркер. Сессию не открываем — сдавать пока нечего.
+        response.headers["X-Quiz-Status"] = "preparing"
+        return []
+    if all(q.source != quizzes_service.SOURCE_AI for q in served):
+        response.headers["X-Quiz-Status"] = "temporary"
 
     token = secrets.token_urlsafe(32)
     db.add(QuizSession(
@@ -103,7 +110,7 @@ async def regenerate_quiz(
     )
     await db.commit()
 
-    questions = await quizzes_service.ensure_quiz_for_book(db, book)
+    questions = await quizzes_service.ensure_quiz_for_book(db, book, generate_now=True)
     return [QuizQuestionPublic.model_validate(q) for q in questions]
 
 
@@ -115,9 +122,10 @@ async def regenerate_all_quizzes(
 ) -> dict:
     """Сбросить тесты у всех книг.
 
-    Удаляем все сохранённые вопросы — они пересоздадутся автоматически при
-    следующем открытии теста (lazy), уже по новой логике (пул, 15 вопросов).
-    Так избегаем долгой синхронной AI-генерации и таймаутов при большом числе
+    Удаляем все сохранённые вопросы. Новые AI-тесты готовит фоновый воркер
+    (задача ``generate_missing_quizzes`` проходит по книгам без AI-теста), а
+    до тех пор книги с шаблоном своей темы получают временный тест. Так
+    избегаем долгой синхронной AI-генерации и таймаутов при большом числе
     книг. Пройденные попытки (QuizAttempt) сохраняются — они ссылаются на
     book_id, а не на конкретные вопросы.
     """

@@ -5,7 +5,6 @@
 """
 from __future__ import annotations
 
-import json
 import logging
 import random
 
@@ -15,12 +14,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.book import Category, book_categories
 from app.models.book_page import BookPage
 from app.services.deepseek_client import chat_completion
+from app.services.quizzes import clean_questions, extract_json_questions
 
 logger = logging.getLogger(__name__)
 
 # Порог прохождения аттестации и размер экзамена
 PASS_THRESHOLD = 85
 NUM_QUESTIONS = 50
+# Меньше — экзамен не выдаём: именной сертификат за 10 вопросов вместо 50
+# не подтверждает знание темы.
+MIN_QUESTIONS = 40
+MAX_BATCH_ATTEMPTS = 10
 
 
 async def gather_category_text(db: AsyncSession, category: str, max_chars: int = 12000) -> str:
@@ -59,31 +63,19 @@ _EXAM_PROMPT = """На основе материалов по теме "{categor
 
 
 def parse_questions(raw: str) -> tuple[list[dict], list[int]]:
-    """Разобрать JSON-ответ AI в (вопросы без ответов, индексы правильных)."""
-    t = raw.strip()
-    if t.startswith("```"):
-        t = t.strip("`")
-        if t.startswith("json"):
-            t = t[4:]
-    s, e = t.find("{"), t.rfind("}")
-    if s == -1 or e == -1:
-        return [], []
-    try:
-        data = json.loads(t[s:e + 1])
-        raw_qs = data["questions"]
-    except (ValueError, KeyError, TypeError):
+    """Разобрать JSON-ответ AI в (вопросы без ответов, индексы правильных).
+
+    Вопросы проходят ту же проверку качества, что и тесты по книгам: ровно
+    4 разных варианта, без «все перечисленное», без вопросов о книге как
+    таковой и без правильного ответа, выдающего себя длиной.
+    """
+    raw_qs = extract_json_questions(raw)
+    if raw_qs is None:
         return [], []
     questions, correct = [], []
-    for q in raw_qs:
-        try:
-            qt = str(q["question"]).strip()
-            opts = [str(o).strip() for o in q["options"]]
-            ci = int(q["correct_index"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        if qt and len(opts) >= 2 and 0 <= ci < len(opts):
-            questions.append({"question": qt, "options": opts})
-            correct.append(ci)
+    for q in clean_questions(raw_qs):
+        questions.append({"question": q["question"], "options": q["options"]})
+        correct.append(q["correct_index"])
     return questions, correct
 
 
