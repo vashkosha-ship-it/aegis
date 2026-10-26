@@ -1,6 +1,8 @@
 // Офлайн-сессия и скачанные книги.
 const offlineBookIds = new Set();
 const CACHED_USER_KEY = 'aegis_cached_user';
+// Последнее место чтения EPUB на устройстве: { bookId: CFI }.
+const EPUB_CFI_KEY = 'aegis_epub_cfi';
 
 function currentOfflineUserId() {
   const id = Number(state.currentUser && state.currentUser.id);
@@ -63,6 +65,7 @@ function userScopedKeys() {
     READING_GOAL_KEY,
     BOOKS_GOAL_KEY,
     REVIEW_PROMPT_KEY,
+    EPUB_CFI_KEY,
   ];
 }
 

@@ -111,6 +111,7 @@ function closeReader() {
   isEpubMode = false;
   epubRendition = null;
   epubBook = null;
+  epubLocationsReady = false;
 
   const zone = document.getElementById('readerGestureZone');
   if (zone) {

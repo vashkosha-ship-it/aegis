@@ -62,6 +62,11 @@ function handleTouchEnd() {
 }
 
 function goToNextPage() {
+  // Пока у EPUB считается нумерация, листаем средствами epub.js.
+  if (isEpubMode && epubRendition && !epubLocationsReady) {
+    epubRendition.next();
+    return;
+  }
   const current = isEpubMode ? epubCurrentPage : pdfCurrentPage;
   const total = isEpubMode ? epubTotalPages : pdfTotalPages;
   if (current < total) {
@@ -70,6 +75,10 @@ function goToNextPage() {
 }
 
 function goToPrevPage() {
+  if (isEpubMode && epubRendition && !epubLocationsReady) {
+    epubRendition.prev();
+    return;
+  }
   const current = isEpubMode ? epubCurrentPage : pdfCurrentPage;
   if (current > 1) {
     goToPage(current - 1);
