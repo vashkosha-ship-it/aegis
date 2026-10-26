@@ -48,6 +48,16 @@ function levelTopicKeywords() {
   return LEVEL_TOPICS[lvl] || null;
 }
 
+// Темы безопасности получают дополнительный вес: Aegis — библиотека по
+// кибербезопасности, и среди равных кандидатов первыми должны идти книги
+// по ИБ, а не Delphi или квантовые вычисления.
+const SECURITY_CATEGORY_RE = /безопасн|security|appsec|devsecops|пентест|оффенсив|offensive|blue team|защит|криминалист|dfir|инцидент|вредонос|malware|реверс|reverse|социальная инженерия|grc|риски|соответствие|криптограф/i;
+const SECURITY_BOOST = 45;
+
+function isSecurityBook(book) {
+  return (book.categories || []).some(category => SECURITY_CATEGORY_RE.test(category));
+}
+
 function getRecommendations(limit = 5) {
   if (!state.currentUser) return [];
   const depKeywords = departmentTopicKeywords();
@@ -71,6 +81,7 @@ function getRecommendations(limit = 5) {
                   + (lvlMatch ? 50 : 0)                 // либо по уровню (для «Другое»)
                   + (hasMatchingCategory ? 40 : 0)      // затем — личная история
                   + (auths.has(b.author) ? 25 : 0)
+                  + (isSecurityBook(b) ? SECURITY_BOOST : 0)
                   + (b.popularity || 0) / 20;
       return { b, score };
     })

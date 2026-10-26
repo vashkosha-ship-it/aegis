@@ -37,7 +37,12 @@ assert.equal(context.getRecommendations(1)[0].id, 3);
 
 context.state.currentUser.cyber_level = 'unknown';
 assert.equal(context.levelTopicKeywords(), null);
-assert.deepEqual(Array.from(context.getRecommendations(2), b => b.id), [4, 3]);
+// Без подразделения и уровня книга по безопасности (Blue Team) идёт первой,
+// затем — книга знакомого автора.
+assert.deepEqual(Array.from(context.getRecommendations(2), b => b.id), [2, 4]);
+assert.equal(context.isSecurityBook({ categories: ['Сетевая архитектура и защита периметра (Defensive Blue Team)'] }), true);
+assert.equal(context.isSecurityBook({ categories: ['Квантовые вычисления'] }), false);
+assert.equal(context.isSecurityBook({ categories: ['Программирование'] }), false);
 
 context.state.currentUser = null;
 assert.deepEqual(Array.from(context.getRecommendations()), []);

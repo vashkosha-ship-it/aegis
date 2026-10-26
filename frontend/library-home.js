@@ -299,16 +299,18 @@ function renderBookInfo() {
   }
 
   const info = _libraryNode('div', 'detail-info');
-  const rating = hasRating(book)
-    ? _libraryIconText(ICONS.star, book.rating)
-    : _libraryNode('div', '', 'Оценок пока нет');
-  rating.className = 'detail-rating';
   info.append(
     _libraryNode('div', 'detail-title', book.title),
     _libraryNode('div', 'detail-author', book.author),
-    rating,
-    _libraryNode('div', 'detail-category', `${bookCategoriesText(book)} • ${formatLabel}`),
   );
+  // Пустой рейтинг не показываем: строка «Оценок пока нет» стояла у всех
+  // книг и только занимала место. Появится первая оценка — появится и строка.
+  if (hasRating(book)) {
+    const rating = _libraryIconText(ICONS.star, book.rating);
+    rating.className = 'detail-rating';
+    info.appendChild(rating);
+  }
+  info.appendChild(_libraryNode('div', 'detail-category', `${bookCategoriesText(book)} • ${formatLabel}`));
 
   if (isAdmin) {
     const stats = _libraryNode('div', 'admin-book-stats');
