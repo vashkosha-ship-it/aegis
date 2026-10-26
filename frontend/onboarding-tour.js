@@ -86,7 +86,7 @@ function startOnboardingTour() {
     const step = ONBOARDING_TOUR_STEPS[index];
     const target = document.querySelector(step.selector);
     // Спрятанный элемент (например, выключенный ИИ-ассистент) пропускаем.
-    if (!target || !target.getClientRects().length) {
+    if (!target || window.getComputedStyle(target).display === 'none') {
       index += 1;
       if (index >= ONBOARDING_TOUR_STEPS.length) finish();
       else showStep();

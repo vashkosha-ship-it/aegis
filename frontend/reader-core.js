@@ -135,7 +135,16 @@ async function loadEpub(b) {
       if (!epubLocationsReady || book !== epubBook) return;
       // Нужна строка CFI: объект loc.start epub.js не принимает и падает
       // внутри сравнения CFI, из-за чего номер страницы не обновлялся.
-      const current = book.locations.locationFromCfi(loc.start.cfi);
+      const startLocation = book.locations.locationFromCfi(loc.start.cfi);
+      const endLocation = loc.end && loc.end.cfi ? book.locations.locationFromCfi(loc.end.cfi) : startLocation;
+      // Страница — кусок в 1000 знаков, а на экране их помещается несколько.
+      // Если нужная страница (после перехода по номеру) уже на экране,
+      // оставляем её номер, иначе он съезжал бы на начало экрана.
+      const shown = epubCurrentPage - 1;
+      const current = Number.isInteger(startLocation) && startLocation >= 0
+        && Number.isInteger(endLocation) && shown >= startLocation && shown <= endLocation
+        ? shown
+        : startLocation;
       // epub.js возвращает -1 для CFI до первой сгенерированной локации.
       // Такой результат нельзя превращать в current_page=0: API его отвергает.
       if (Number.isInteger(current) && current >= 0) {
