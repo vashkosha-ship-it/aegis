@@ -35,7 +35,8 @@ function getFilteredBooks() {
     case 'rating': books.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating)); break;
     case 'title': books.sort((a, b) => a.title.localeCompare(b.title)); break;
     case 'dateAdded': books.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded)); break;
-    case 'datePublished': books.sort((a, b) => new Date(b.datePublished || '2020-01-01') - new Date(a.datePublished || '2020-01-01')); break;
+    // Сортировки «по дате публикации» больше нет: дата не заполнена ни у одной
+    // книги, и порядок выходил случайным. Сохранённое значение падает в default.
     default: books.sort((a, b) => b.popularity - a.popularity);
   }
   return books;
