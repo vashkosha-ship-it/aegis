@@ -436,8 +436,15 @@ async function loadPdf(b) {
     // Читалка тянет PDF кусками и целого файла не держит. Чтобы следующее
     // открытие шло с устройства, докачиваем файл в кэш фоном — с паузой,
     // чтобы не мешать первым страницам.
+    // Только для небольших файлов: скан на сотни мегабайт, скачиваемый
+    // целиком, надолго забивает канал, и всё приложение начинает тормозить.
+    // Большие книги по-прежнему читаются кусками, офлайн их сохраняют кнопкой.
     if (!fromOffline && !fromCache) {
-      setTimeout(() => cacheBookInBackground(b, 'pdf'), 3000);
+      setTimeout(async () => {
+        let size = 0;
+        try { size = Number((await loadedDoc.getDownloadInfo()).length) || 0; } catch (_) { /* размер неизвестен */ }
+        if (size > 0 && size <= BOOK_CACHE_BACKGROUND_MAX_BYTES) cacheBookInBackground(b, 'pdf');
+      }, 3000);
     }
 
     if (fromOffline) showToast('Читаем из оффлайн-хранилища');
