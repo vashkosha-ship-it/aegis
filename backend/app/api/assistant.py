@@ -9,11 +9,11 @@ from app.api.deps import get_current_user
 from app.core.rate_limit import assistant_limiter
 from app.db.session import get_db
 from app.models.user import User
-from app.services.app_settings import assistant_enabled
 from app.schemas.assistant import (
     ChatRequest,
     ChatResponse,
 )
+from app.services.app_settings import assistant_enabled
 from app.services.deepseek_client import (
     DeepSeekError,
     chat_completion,
