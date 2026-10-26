@@ -68,18 +68,29 @@ async function loadBooksFromApi() {
   }
   try {
     const perPage = 100;
-    let page = 1;
-    let all = [];
-    let total = Infinity;
-    // догружаем страницы, пока не соберём все книги (защита: максимум 50 страниц = 5000 книг)
-    while (all.length < total && page <= 50) {
-      const data = await api.books.list({ per_page: perPage, page });
-      if (typeof data.total === 'number') total = data.total;
-      const items = data.items || [];
-      all = all.concat(items);
-      if (items.length < perPage) break; // последняя страница
-      page++;
+    const maxPages = 50;   // защита: максимум 5000 книг
+    // Первая страница сообщает общее число книг, остальные грузим
+    // параллельно по несколько штук: по одной 20 страниц — это лишние секунды
+    // при каждом входе, пока на экране пустая главная.
+    const first = await api.books.list({ per_page: perPage, page: 1 });
+    const firstItems = first.items || [];
+    const total = typeof first.total === 'number' ? first.total : firstItems.length;
+    const pageCount = Math.min(maxPages, Math.max(1, Math.ceil(total / perPage)));
+    const pages = new Array(pageCount);
+    pages[0] = firstItems;
+    const queue = [];
+    if (firstItems.length >= perPage) {
+      for (let page = 2; page <= pageCount; page++) queue.push(page);
     }
+    const PARALLEL = 4;
+    await Promise.all(Array.from({ length: Math.min(PARALLEL, queue.length) }, async () => {
+      while (queue.length) {
+        const page = queue.shift();
+        const data = await api.books.list({ per_page: perPage, page });
+        pages[page - 1] = data.items || [];
+      }
+    }));
+    const all = pages.flat().filter(Boolean);
     state.books = all.map(adaptBookFromApi);
     state.books.forEach(b => { ensureProgress(b); });
     saveState();

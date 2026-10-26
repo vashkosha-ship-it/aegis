@@ -156,9 +156,13 @@ function a11yButtonLabel(button) {
   if (label) button.setAttribute('aria-label', label);
 }
 
-function a11yEnhance(root = document) {
+function a11yLabelButtons(root) {
   if (root.matches?.('button')) a11yButtonLabel(root);
   root.querySelectorAll?.('button').forEach(a11yButtonLabel);
+}
+
+function a11yEnhance(root = document) {
+  a11yLabelButtons(root);
   a11ySyncDialogs();
 }
 
@@ -170,11 +174,15 @@ window.aegisAccessibility = {
 document.addEventListener('keydown', a11yHandleDialogKeydown, true);
 document.addEventListener('DOMContentLoaded', () => {
   a11yEnhance();
+  // Окна проверяем один раз на пачку изменений, а не на каждый добавленный
+  // элемент. Проверка обходит весь документ и читает вычисленные стили; при
+  // отрисовке списка из 1880 книг она запускалась 1881 раз подряд, и экран
+  // «Тестирование» открывался 9 секунд.
   const observer = new MutationObserver(records => {
     records.forEach(record => {
       if (record.type === 'childList') {
         record.addedNodes.forEach(node => {
-          if (node.nodeType === Node.ELEMENT_NODE) a11yEnhance(node);
+          if (node.nodeType === Node.ELEMENT_NODE) a11yLabelButtons(node);
         });
       }
     });

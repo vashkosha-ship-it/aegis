@@ -4019,3 +4019,6 @@ textarea.app-dialog-input {
 /* ИИ-ассистент выключен администратором: прячем все входы в него
    (класс ставит navigation.js по настройке сервиса). */
 html.ai-off [data-ai-entry] { display: none !important; }
+
+/* «Показать ещё» под списком тестов: на всю ширину сетки карточек. */
+.training-more { grid-column: 1 / -1; width: 100%; margin-top: 4px; }
