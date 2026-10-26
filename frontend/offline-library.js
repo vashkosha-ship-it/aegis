@@ -207,6 +207,8 @@ async function removeBookOffline(bookId) {
 // читает его с устройства и не обращается к хранилищу. Запись привязана
 // к file_version: если админ заменит файл, книга скачается заново.
 const bookCacheInFlight = new Map();
+// Больше этого PDF фоном целиком не докачиваем (см. loadPdf).
+const BOOK_CACHE_BACKGROUND_MAX_BYTES = 40 * 1024 * 1024;
 
 function bookCacheKey(bookId, fileType) {
   return bookId + ':' + fileType;
@@ -253,6 +255,11 @@ function cacheBookInBackground(book, fileType) {
   if (!book || !book.has_file || offlineBookIds.has(book.id)) return null;
   if (!currentOfflineUserId()) return null;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
+  // Включён режим экономии трафика — фоном ничего не качаем.
+  const connection = typeof navigator !== 'undefined' && navigator.connection;
+  if (connection && connection.saveData) return null;
+  // Одна фоновая загрузка за раз: несколько параллельных забивают канал.
+  if (bookCacheInFlight.size > 0 && !bookCacheInFlight.has(bookCacheKey(book.id, fileType))) return null;
   if (typeof isWifiOnlyEnabled === 'function' && isWifiOnlyEnabled()
       && typeof isOnWifi === 'function' && !isOnWifi()) return null;
   const key = bookCacheKey(book.id, fileType);

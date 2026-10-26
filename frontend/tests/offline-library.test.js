@@ -173,6 +173,17 @@ vm.runInContext(source, context);
   // Офлайн-книги в кэш не дублируются.
   assert.equal(await context.writeBookToCache(cachedBook, 'pdf', fileBlob), false);
 
+  // Одна фоновая загрузка за раз.
+  const pending = context.cacheBookInBackground({ id: 21, has_file: true }, 'pdf');
+  assert.ok(pending);
+  assert.equal(context.cacheBookInBackground({ id: 22, has_file: true }, 'pdf'), null);
+  await pending;
+
+  // Режим экономии трафика — фоном не качаем.
+  context.navigator.connection = { saveData: true };
+  assert.equal(context.cacheBookInBackground({ id: 23, has_file: true }, 'pdf'), null);
+  delete context.navigator.connection;
+
   // «Только по Wi-Fi» на мобильной сети — фоном не качаем.
   wifiOnly = true;
   assert.equal(context.cacheBookInBackground({ id: 6, has_file: true }, 'pdf'), null);
@@ -202,6 +213,9 @@ vm.runInContext(source, context);
   assert.match(readerSource, /readBookFromCache\(b, 'pdf'\)/);
   assert.match(readerSource, /writeBookToCache\(b, 'epub'/);
   assert.match(readerSource, /cacheBookInBackground\(b, 'pdf'\)/);
+  // Большие PDF фоном не качаются целиком — это забивало канал.
+  assert.match(readerSource, /size <= BOOK_CACHE_BACKGROUND_MAX_BYTES\) cacheBookInBackground\(b, 'pdf'\)/);
+  assert.equal(vm.runInContext('BOOK_CACHE_BACKGROUND_MAX_BYTES', context), 40 * 1024 * 1024);
   assert.ok(readerSource.indexOf("readBookFromCache(b, 'pdf')") < readerSource.indexOf('pdfStreamConfig'));
   console.log('Offline library tests passed');
 })().catch(error => {
