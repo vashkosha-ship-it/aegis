@@ -28,7 +28,7 @@ function renderAdminDashboardStats(container, stats) {
     [stats.total_books, 'Книг в каталоге'],
     [stats.total_users, 'Пользователей'],
     [stats.total_views, 'Просмотров'],
-    [stats.total_downloads, 'Скачиваний'],
+    [stats.total_downloads, 'Сохранено офлайн'],
     [stats.total_reviews, 'Отзывов'],
     [stats.total_quiz_attempts, 'Попыток тестов'],
   ].forEach(([value, label]) => {

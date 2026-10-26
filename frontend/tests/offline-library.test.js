@@ -50,7 +50,9 @@ const api = {
     return { blob: async () => fileBlob };
   },
   ApiError: class ApiError extends Error {},
+  books: { markSavedOffline: async bookId => markedOffline.push(bookId) },
 };
+const markedOffline = [];
 const context = {
   state,
   localStorage: {
@@ -108,6 +110,9 @@ vm.runInContext(source, context);
   assert.equal(saved[1][0], 17);
   assert.equal(saved[1][3], 'epub');
   assert.equal(requestedUrls[1], '/books/4/epub');
+  await new Promise(resolve => setImmediate(resolve));
+  // Сохранение офлайн отмечается на сервере для счётчика в админке.
+  assert.deepEqual(markedOffline, [3, 4]);
 
   await context.removeBookOffline(3);
   assert.deepEqual(removed, [[17, 3]]);

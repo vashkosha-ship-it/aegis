@@ -446,6 +446,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .analytics-card canvas { width: 100% !important; max-height: 250px; }
 .analytics-card canvas[hidden] { display: none; }
 .analytics-empty-note { font-size: 12px; color: var(--text-muted); line-height: 1.5; padding: 24px 0; text-align: center; }
+.analytics-caption { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0 0 8px; }
 
 /* ========== ДЕТАЛЬНАЯ СТРАНИЦА КНИГИ ========== */
 .detail-header { display: flex; align-items: center; gap: 10px; padding: 14px 0; }

@@ -406,6 +406,7 @@
       deleteEpub(id) { return request('/books/' + id + '/epub', { method: 'DELETE' }); },
       deleteCover(id) { return request('/books/' + id + '/cover', { method: 'DELETE' }); },
       indexStatus(id) { return request('/books/' + id + '/index-status'); },
+      markSavedOffline(id) { return request('/books/' + id + '/offline-saved', { method: 'POST' }); },
 
       // PDF возвращаем как ArrayBuffer — pdf.js принимает его напрямую
       async fetchPdfBytes(id) {

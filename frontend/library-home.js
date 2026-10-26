@@ -314,7 +314,7 @@ function renderBookInfo() {
     const stats = _libraryNode('div', 'admin-book-stats');
     stats.append(
       _libraryIconText(ICONS.eye, `${book.views || 0} просмотров`),
-      _libraryIconText(ICONS.download, `${book.downloads || 0} скачиваний`),
+      _libraryIconText(ICONS.download, `${book.downloads || 0} офлайн`),
       _libraryIconText(ICONS.fileText, formatLabel),
     );
     info.appendChild(stats);
