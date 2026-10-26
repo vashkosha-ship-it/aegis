@@ -53,6 +53,10 @@ assert.match(index, /data-onclick="openAvatarPicker\(\)"/);
 
 // --- Удаление аккаунта видно в настройках -----------------------------------
 assert.match(index, /class="btn-delete-account"[^>]*data-onclick="confirmDeleteAccount\(\)"/);
+// Кнопка стоит сразу под «Выйти из аккаунта», а на десктопе растянута на всю
+// ширину вместе с ней, а не зажата в колонке навигации.
+assert.match(index, /Выйти из аккаунта<\/span>\s*<\/button>\s*<button class="btn-delete-account"/);
+assert.match(read('styles.css'), /\.settings-layout \.btn-delete-account\s*\{\s*grid-column: 1 \/ -1;/);
 
 // --- Схемы без камеры ------------------------------------------------------
 assert.doesNotMatch(schemes, /getUserMedia/);

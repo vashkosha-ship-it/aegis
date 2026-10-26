@@ -1,15 +1,23 @@
 // ============================================================================
 // OFFLINE STORAGE — IndexedDB-обёртка для хранения скачанных книг.
 // Хранит PDF/EPUB-файлы (Blob), обложки (Blob), метаданные (плоский объект).
+// Отдельно — кэш открытых книг (store «cache»): файл книги попадает туда при
+// первом открытии, и повторное открытие не обращается к хранилищу. В отличие
+// от «Сохранить офлайн» кэш управляется сам: старые книги вытесняются, когда
+// он превышает лимит, а при смене файла книги запись считается устаревшей.
 // Все операции требуют userId: файлы разных аккаунтов на одном устройстве
 // никогда не используют общие ключи.
 // ============================================================================
 (function () {
   const DB_NAME = 'aegis_offline';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const STORE_BOOKS = 'books';
   const STORE_FILES = 'files';
+  const STORE_CACHE = 'cache';
   const INDEX_USER = 'by_user';
+  // Лимит кэша открытых книг на один аккаунт. Сохранённые офлайн книги
+  // в него не входят и никогда не вытесняются.
+  const CACHE_LIMIT_BYTES = 500 * 1024 * 1024;
 
   let dbPromise = null;
 
@@ -47,6 +55,13 @@
             { keyPath: ['userId', 'bookId', 'type'] },
           );
           files.createIndex(INDEX_USER, 'userId', { unique: false });
+        }
+        if (e.oldVersion < 3 && !db.objectStoreNames.contains(STORE_CACHE)) {
+          const cache = db.createObjectStore(
+            STORE_CACHE,
+            { keyPath: ['userId', 'bookId', 'type'] },
+          );
+          cache.createIndex(INDEX_USER, 'userId', { unique: false });
         }
       };
     });
@@ -174,9 +189,9 @@
   // пользователей этого браузера.
   async function clearUser(userId) {
     const ownerId = normalizeUserId(userId);
-    const t = await tx([STORE_BOOKS, STORE_FILES], 'readwrite');
+    const t = await tx([STORE_BOOKS, STORE_FILES, STORE_CACHE], 'readwrite');
 
-    for (const storeName of [STORE_BOOKS, STORE_FILES]) {
+    for (const storeName of [STORE_BOOKS, STORE_FILES, STORE_CACHE]) {
       const store = t.objectStore(storeName);
       const request = store.index(INDEX_USER).getAllKeys(ownerId);
       request.onsuccess = () => {
@@ -185,6 +200,92 @@
     }
 
     return transactionDone(t);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Кэш открытых книг
+  // ---------------------------------------------------------------------------
+
+  // Достать файл из кэша. version — отпечаток файла с сервера (file_version):
+  // если админ заменил файл, запись устарела, удаляем её и возвращаем null.
+  // Без version (например, сервер его не прислал) доверяем кэшу.
+  async function cacheGet(userId, bookId, type, version = null) {
+    const ownerId = normalizeUserId(userId);
+    const t = await tx([STORE_CACHE], 'readwrite');
+    const store = t.objectStore(STORE_CACHE);
+    const entry = await reqToPromise(store.get([ownerId, bookId, type]));
+    if (!entry || !entry.blob) return null;
+    if (version && entry.version && entry.version !== version) {
+      store.delete([ownerId, bookId, type]);
+      await transactionDone(t);
+      return null;
+    }
+    // Отмечаем использование: по этой отметке вытесняются давно не открытые.
+    store.put({ ...entry, lastUsed: Date.now() });
+    await transactionDone(t);
+    return entry.blob;
+  }
+
+  // Положить файл в кэш и вытеснить давно не открытые книги сверх лимита.
+  // Возвращает false, если файл больше всего лимита и кэшировать его нельзя.
+  async function cachePut(userId, bookId, type, blob, version = null) {
+    const ownerId = normalizeUserId(userId);
+    const size = Number(blob && blob.size) || 0;
+    if (!blob || size <= 0 || size > CACHE_LIMIT_BYTES) return false;
+
+    const t = await tx([STORE_CACHE], 'readwrite');
+    const store = t.objectStore(STORE_CACHE);
+    const entries = (await reqToPromise(store.index(INDEX_USER).getAll(ownerId))) || [];
+    const others = entries
+      .filter(entry => !(entry.bookId === bookId && entry.type === type))
+      .sort((a, b) => (a.lastUsed || 0) - (b.lastUsed || 0));
+    let total = size + others.reduce((sum, entry) => sum + (entry.size || 0), 0);
+    for (const entry of others) {
+      if (total <= CACHE_LIMIT_BYTES) break;
+      store.delete([ownerId, entry.bookId, entry.type]);
+      total -= entry.size || 0;
+    }
+    store.put({
+      userId: ownerId,
+      bookId,
+      type,
+      blob,
+      size,
+      version: version || null,
+      lastUsed: Date.now(),
+    });
+    await transactionDone(t);
+    return true;
+  }
+
+  async function cacheRemove(userId, bookId) {
+    const ownerId = normalizeUserId(userId);
+    const t = await tx([STORE_CACHE], 'readwrite');
+    ['pdf', 'epub'].forEach(type => t.objectStore(STORE_CACHE).delete([ownerId, bookId, type]));
+    return transactionDone(t);
+  }
+
+  // Очистить кэш открытых книг аккаунта. Сохранённые офлайн книги остаются.
+  async function cacheClear(userId) {
+    const ownerId = normalizeUserId(userId);
+    const t = await tx([STORE_CACHE], 'readwrite');
+    const store = t.objectStore(STORE_CACHE);
+    const request = store.index(INDEX_USER).getAllKeys(ownerId);
+    request.onsuccess = () => {
+      for (const key of request.result) store.delete(key);
+    };
+    return transactionDone(t);
+  }
+
+  // Сколько книг в кэше и сколько они занимают: {count, size} в байтах.
+  async function cacheStats(userId) {
+    const ownerId = normalizeUserId(userId);
+    const t = await tx([STORE_CACHE]);
+    const entries = (await reqToPromise(t.objectStore(STORE_CACHE).index(INDEX_USER).getAll(ownerId))) || [];
+    return {
+      count: entries.length,
+      size: entries.reduce((sum, entry) => sum + (entry.size || 0), 0),
+    };
   }
 
   // Оценить, сколько места занято и сколько доступно. Возвращает {usage, quota} в байтах.
@@ -209,5 +310,11 @@
     remove,
     clearUser,
     getQuotaEstimate,
+    cacheGet,
+    cachePut,
+    cacheRemove,
+    cacheClear,
+    cacheStats,
+    CACHE_LIMIT_BYTES,
   };
 })();

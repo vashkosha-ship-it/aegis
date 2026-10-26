@@ -17,7 +17,34 @@ function resultRequest(result) {
   return request;
 }
 
+// Кэш открытых книг — настоящее хранилище в памяти: нужно проверить
+// вытеснение и устаревание версий, а не только ключи.
+const cacheRows = new Map();
+const cacheKey = key => JSON.stringify(key);
+
+function makeCacheStore() {
+  return {
+    put(value) {
+      calls.put.push(['cache', value]);
+      cacheRows.set(cacheKey([value.userId, value.bookId, value.type]), value);
+    },
+    get(key) { return resultRequest(cacheRows.get(cacheKey(key))); },
+    delete(key) {
+      calls.delete.push(['cache', key]);
+      cacheRows.delete(cacheKey(key));
+    },
+    index() {
+      const own = userId => [...cacheRows.values()].filter(row => row.userId === userId);
+      return {
+        getAll: userId => resultRequest(own(userId)),
+        getAllKeys: userId => resultRequest(own(userId).map(row => [row.userId, row.bookId, row.type])),
+      };
+    },
+  };
+}
+
 function makeStore(name) {
+  if (name === 'cache') return makeCacheStore();
   return {
     put(value) { calls.put.push([name, value]); },
     get(key) {
@@ -44,7 +71,7 @@ function makeStore(name) {
   };
 }
 
-const stores = new Set(['books', 'files']);
+const stores = new Set(['books', 'files', 'cache']);
 const database = {
   objectStoreNames: { contains: name => stores.has(name) },
   deleteObjectStore(name) {
@@ -74,10 +101,12 @@ const database = {
 const indexedDB = {
   open(name, version) {
     assert.equal(name, 'aegis_offline');
-    assert.equal(version, 2);
+    assert.equal(version, 3);
     const request = {};
     queueMicrotask(() => {
       request.result = database;
+      // Кэша ещё нет: база обновляется с первой версии.
+      stores.delete('cache');
       request.onupgradeneeded({ target: { result: database }, oldVersion: 1 });
       request.onsuccess();
     });
@@ -127,16 +156,58 @@ const plain = value => JSON.parse(JSON.stringify(value));
   assert.ok(calls.delete.some(([, key]) => JSON.stringify(key) === '[7,4]'));
   assert.ok(calls.delete.some(([, key]) => JSON.stringify(key) === '[7,4,"pdf"]'));
 
+  // ---- Кэш открытых книг ----
+  const blob = size => ({ size });
+  assert.equal(await storage.cacheGet(7, 10, 'pdf', 'v1'), null);
+  assert.equal(await storage.cachePut(7, 10, 'pdf', blob(100), 'v1'), true);
+  assert.equal((await storage.cacheGet(7, 10, 'pdf', 'v1')).size, 100);
+  // Чужой аккаунт на том же устройстве кэш не видит.
+  assert.equal(await storage.cacheGet(8, 10, 'pdf', 'v1'), null);
+  // Сервер не прислал версию — доверяем кэшу.
+  assert.equal((await storage.cacheGet(7, 10, 'pdf')).size, 100);
+  // Файл заменили — запись устарела и удалена.
+  assert.equal(await storage.cacheGet(7, 10, 'pdf', 'v2'), null);
+  assert.equal(cacheRows.has(cacheKey([7, 10, 'pdf'])), false);
+
+  // Файл больше всего лимита не кэшируется.
+  const limit = storage.CACHE_LIMIT_BYTES;
+  assert.equal(await storage.cachePut(7, 11, 'pdf', blob(limit + 1), 'x'), false);
+
+  // Вытеснение: давно открытая книга уходит первой.
+  await storage.cachePut(7, 1, 'pdf', blob(limit * 0.4), 'a');
+  await new Promise(resolve => setTimeout(resolve, 5));
+  await storage.cachePut(7, 2, 'epub', blob(limit * 0.4), 'b');
+  await new Promise(resolve => setTimeout(resolve, 5));
+  await storage.cacheGet(7, 1, 'pdf', 'a');   // книгу 1 открыли снова
+  await new Promise(resolve => setTimeout(resolve, 5));
+  await storage.cachePut(7, 3, 'pdf', blob(limit * 0.4), 'c');
+  assert.equal(cacheRows.has(cacheKey([7, 2, 'epub'])), false);
+  assert.equal(cacheRows.has(cacheKey([7, 1, 'pdf'])), true);
+  assert.equal(cacheRows.has(cacheKey([7, 3, 'pdf'])), true);
+  assert.deepEqual(plain(await storage.cacheStats(7)), { count: 2, size: limit * 0.8 });
+
+  await storage.cacheRemove(7, 1);
+  assert.equal(cacheRows.has(cacheKey([7, 1, 'pdf'])), false);
+  await storage.cachePut(8, 1, 'pdf', blob(10), 'z');
+  await storage.cacheClear(7);
+  assert.equal((await storage.cacheStats(7)).count, 0);
+  assert.equal((await storage.cacheStats(8)).count, 1);
+
   calls.delete.length = 0;
+  await storage.cachePut(7, 4, 'pdf', blob(10), 'q');
   await storage.clearUser(7);
   assert.ok(calls.delete.length >= 3);
   assert.ok(calls.delete.every(([, key]) => key[0] === 7));
+  // Удаление аккаунта и выход чистят и кэш открытых книг.
+  assert.equal((await storage.cacheStats(7)).count, 0);
+  assert.equal((await storage.cacheStats(8)).count, 1);
 
   await assert.rejects(storage.listAll(null), /userId/);
   assert.deepEqual(calls.deletedStores.sort(), ['books', 'files']);
   assert.deepEqual(plain(calls.created), [
     ['books', ['userId', 'id']],
     ['files', ['userId', 'bookId', 'type']],
+    ['cache', ['userId', 'bookId', 'type']],
   ]);
 
   console.log('Offline storage user isolation tests passed');

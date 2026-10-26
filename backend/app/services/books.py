@@ -7,6 +7,7 @@ HTTPException они бросают свои исключения, а роуте
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import posixpath
 from collections.abc import AsyncIterator
@@ -137,6 +138,19 @@ async def get_or_create_categories(db: AsyncSession, names: list[str]) -> list[C
     return result
 
 
+def file_version(book: Book) -> str | None:
+    """Короткий отпечаток текущего файла книги для кэша на устройстве.
+
+    Ключ хранения новый при каждой загрузке файла, поэтому отпечаток меняется
+    вместе с файлом. Сам ключ наружу не отдаём — только хеш от него.
+    """
+    key = book.epub_storage_key if book.file_format == "epub" else book.pdf_storage_key
+    key = key or book.pdf_storage_key or book.epub_storage_key
+    if not key:
+        return None
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+
+
 def to_public(book: Book) -> BookPublic:
     """ORM-модель → схема ответа, с вычисляемыми флагами наличия файлов."""
     return BookPublic(
@@ -156,6 +170,7 @@ def to_public(book: Book) -> BookPublic:
         has_file=bool(book.pdf_storage_key or book.epub_storage_key),
         file_format=book.file_format,
         has_cover=bool(book.cover_storage_key),
+        file_version=file_version(book),
         indexing_status=book.indexing_status,
         indexing_started_at=book.indexing_started_at,
         indexing_finished_at=book.indexing_finished_at,

@@ -2148,7 +2148,8 @@ select[multiple] option:hover {
     gap: 16px;
     align-items: start;
   }
-  .settings-layout .btn-logout {
+  .settings-layout .btn-logout,
+  .settings-layout .btn-delete-account {
     grid-column: 1 / -1;
   }
 }

@@ -18,6 +18,7 @@ async function loadEpub(b) {
     return;
   }
 
+  let epubFromCache = false;
   try {
     let epubData = null;
     let fromOffline = false;
@@ -35,7 +36,16 @@ async function loadEpub(b) {
       }
     }
 
-    // 2. Если в IndexedDB нет — пробуем API
+    // 2. Книгу уже открывали на этом устройстве — берём файл из кэша.
+    if (!epubData) {
+      const cached = await readBookFromCache(b, 'epub');
+      if (cached) {
+        epubData = await cached.arrayBuffer();
+        epubFromCache = true;
+      }
+    }
+
+    // 3. Нигде нет — скачиваем и кладём в кэш для следующих открытий.
     if (!epubData) {
       if (!b.has_file) {
         showToast('EPUB-файл не найден');
@@ -45,6 +55,7 @@ async function loadEpub(b) {
       try {
         const resp = await api.request('/books/' + b.id + '/epub', { raw: true });
         epubData = await resp.arrayBuffer();
+        writeBookToCache(b, 'epub', epubData.slice(0));
       } catch (err) {
         showToast('Нет связи. Сохраните книгу оффлайн заранее.');
         closeReader();
@@ -52,7 +63,7 @@ async function loadEpub(b) {
       }
     }
 
-    // 3. Рендерим EPUB
+    // 4. Рендерим EPUB
     if (typeof ePub === 'undefined') {
       showToast('EPUB-движок не загрузился. Проверьте интернет/доступ к CDN.');
       closeReader();
@@ -116,6 +127,8 @@ async function loadEpub(b) {
     saveState();
     if (fromOffline) showToast('Читаем из оффлайн-хранилища');
   } catch (err) {
+    // Испорченная копия в кэше не должна ломать книгу при каждом открытии.
+    if (epubFromCache) dropBookFromCache(b);
     console.error('Ошибка загрузки EPUB:', err);
     showToast('Не удалось загрузить EPUB');
     closeReader();
@@ -178,16 +191,27 @@ async function loadPdf(b) {
     }
   }
 
+  // Книгу уже открывали на этом устройстве — читаем из кэша без сети.
+  let fromCache = false;
+  if (!bytes) {
+    const cached = await readBookFromCache(b, 'pdf');
+    if (myToken !== _pdfLoadToken) return;   // пока читали кэш, открыли другую книгу
+    if (cached) {
+      bytes = await cached.arrayBuffer();
+      fromCache = true;
+    }
+  }
+
   if (typeof pdfjsLib === 'undefined') {
     showToast('PDF-движок не загрузился. Проверьте интернет/доступ к CDN.');
     return;
   }
 
-  // Если не оффлайн — грузим ПРОГРЕССИВНО по URL (pdf.js тянет страницы по частям,
+  // Если не оффлайн и не в кэше — грузим ПРОГРЕССИВНО по URL (pdf.js тянет страницы по частям,
   // первая страница появляется почти сразу, не дожидаясь всего файла).
   try {
     let loadingTask;
-    if (fromOffline && bytes) {
+    if ((fromOffline || fromCache) && bytes) {
       loadingTask = pdfjsLib.getDocument({ data: bytes });
     } else {
       if (!b.has_file) {
@@ -258,9 +282,17 @@ async function loadPdf(b) {
     setTimeout(async () => {
       await renderPdfPage(pdfCurrentPage);
     }, 100);
-    
+
+    // Читалка тянет PDF кусками и целого файла не держит. Чтобы следующее
+    // открытие шло с устройства, докачиваем файл в кэш фоном — с паузой,
+    // чтобы не мешать первым страницам.
+    if (!fromOffline && !fromCache) {
+      setTimeout(() => cacheBookInBackground(b, 'pdf'), 3000);
+    }
+
     if (fromOffline) showToast('Читаем из оффлайн-хранилища');
   } catch (err) {
+    if (fromCache) dropBookFromCache(b);
     console.error('Ошибка рендеринга PDF:', err);
     showToast('Ошибка: ' + err.message);
     generateDemoPdf(b);
