@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.book import Category
 from app.models.certificate import Certificate
 from app.models.exam_session import ExamSession
 from app.models.user import User
@@ -27,7 +26,6 @@ from app.schemas.certificates import (
 )
 from app.services import certificate_pdf as cert_pdf
 from app.services import certificates as cert_service
-from app.services.deepseek_client import DeepSeekError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/certificates", tags=["certificates"])
@@ -41,8 +39,7 @@ async def list_categories(
     _: User = Depends(get_current_user),
 ) -> list[str]:
     """Категории, доступные для сертификации (есть хотя бы одна книга с текстом)."""
-    rows = await db.scalars(select(Category.name).order_by(Category.name.asc()))
-    return list(rows.all())
+    return await cert_service.certifiable_categories(db)
 
 
 @router.get("/mine")
@@ -74,34 +71,7 @@ async def start_exam(
             detail="Недостаточно проиндексированного текста книг по этой теме для генерации теста",
         )
 
-    questions: list[dict] = []
-    correct: list[int] = []
-    batch_size = 10
-    attempts = 0
-    # Генерируем порциями по 10, пока не наберём 50 (или не исчерпаем попытки)
-    seen: set[str] = set()
-    while (
-        len(questions) < cert_service.NUM_QUESTIONS
-        and attempts < cert_service.MAX_BATCH_ATTEMPTS
-    ):
-        attempts += 1
-        need = min(batch_size, cert_service.NUM_QUESTIONS - len(questions))
-        try:
-            qs, cs = await cert_service.generate_questions_batch(
-                payload.category, text, need, [q["question"] for q in questions]
-            )
-        except DeepSeekError as e:
-            logger.warning("Exam batch failed for %s: %s", payload.category, e)
-            break
-        # Модель иногда повторяет вопросы из прошлых порций — дубль в
-        # экзамене даёт лишний балл за один и тот же ответ.
-        for q, c in zip(qs, cs, strict=True):
-            key = q["question"].casefold()
-            if key in seen:
-                continue
-            seen.add(key)
-            questions.append(q)
-            correct.append(c)
+    questions, correct = await cert_service.generate_exam(payload.category, text)
 
     if len(questions) < cert_service.MIN_QUESTIONS:
         raise HTTPException(status_code=502, detail="Не удалось сгенерировать тест, попробуйте позже")

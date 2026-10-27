@@ -5,15 +5,16 @@
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import random
 
-from sqlalchemy import select
+from sqlalchemy import exists, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Category, book_categories
 from app.models.book_page import BookPage
-from app.services.deepseek_client import chat_completion
+from app.services.deepseek_client import DeepSeekError, chat_completion
 from app.services.quizzes import clean_questions, extract_json_questions
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,31 @@ MIN_QUESTIONS = 40
 MAX_BATCH_ATTEMPTS = 10
 
 
+# Служебная категория: книги, которым тему ещё не назначили. Аттестация
+# «по теме Без категории» бессмысленна.
+UNCATEGORIZED = "Без категории"
+
+
+async def certifiable_categories(db: AsyncSession) -> list[str]:
+    """Темы, по которым можно собрать экзамен: есть книга с проиндексированным текстом.
+
+    В таблице категорий остались старые и пустые темы («AI», «Hack»,
+    «analytics»…). Раньше в списке аттестации были все 55, и выбор пустой
+    заканчивался ошибкой «Недостаточно текста».
+    """
+    has_text = exists(
+        select(BookPage.id)
+        .join(book_categories, book_categories.c.book_id == BookPage.book_id)
+        .where(book_categories.c.category_id == Category.id)
+    )
+    rows = await db.scalars(
+        select(Category.name)
+        .where(has_text, Category.name != UNCATEGORIZED)
+        .order_by(Category.name.asc())
+    )
+    return list(rows.all())
+
+
 async def gather_category_text(db: AsyncSession, category: str, max_chars: int = 12000) -> str:
     """Собирает выдержки текста книг указанной категории для генерации вопросов."""
     cat = await db.scalar(select(Category).where(Category.name == category))
@@ -38,8 +64,13 @@ async def gather_category_text(db: AsyncSession, category: str, max_chars: int =
     if not book_ids:
         return ""
     # Берём страницы из книг категории, перемешиваем для разнообразия
+    # Случайные страницы по всем книгам темы. Раньше брались первые 400
+    # страниц — почти всегда одна-две книги, и вопросы были однобокими.
     pages = (await db.scalars(
-        select(BookPage.content).where(BookPage.book_id.in_(book_ids)).limit(400)
+        select(BookPage.content)
+        .where(BookPage.book_id.in_(book_ids))
+        .order_by(func.random())
+        .limit(400)
     )).all()
     pages = [p for p in pages if p and len(p.strip()) > 100]
     random.shuffle(pages)
@@ -54,6 +85,11 @@ async def gather_category_text(db: AsyncSession, category: str, max_chars: int =
 _EXAM_PROMPT = """На основе материалов по теме "{category}" сгенерируй РОВНО {n} вопросов для аттестации.
 Каждый вопрос — с 4 вариантами ответа, ровно один правильный.
 Вопросы должны проверять понимание темы, быть разной сложности, не повторяться.
+Правильный и неправильные варианты — одинаковой длины и в одном стиле:
+по длине или подробности ответа нельзя угадать правильный.
+Не используй варианты «все перечисленное» / «ничего из перечисленного»
+и не спрашивай о самой книге, её авторе или главах — только о предмете.
+Правильный ответ ставь на разные позиции (0–3).
 {extra}
 Верни СТРОГО JSON без markdown:
 {{"questions":[{{"question":"...","options":["A","B","C","D"],"correct_index":0}}]}}
@@ -94,3 +130,50 @@ async def generate_questions_batch(category: str, text: str, n: int, seen: list[
     )
     return parse_questions(raw)
 
+
+
+# Параллельных запросов к модели за раз. Последовательная генерация пяти
+# порций занимала минуты и обрывалась на первой ошибке модели.
+EXAM_PARALLEL_BATCHES = 6
+EXAM_BATCH_SIZE = 10
+
+
+async def generate_exam(category: str, text: str) -> tuple[list[dict], list[int]]:
+    """Собрать до NUM_QUESTIONS вопросов: порции параллельно, ошибки не фатальны."""
+    questions: list[dict] = []
+    correct: list[int] = []
+    seen: set[str] = set()
+    attempts = 0
+    failures = 0
+    while len(questions) < NUM_QUESTIONS and attempts < MAX_BATCH_ATTEMPTS:
+        missing = NUM_QUESTIONS - len(questions)
+        # С запасом: часть вопросов отбраковывает проверка качества.
+        batches = min(
+            EXAM_PARALLEL_BATCHES,
+            MAX_BATCH_ATTEMPTS - attempts,
+            max(1, -(-missing * 3 // 2) // EXAM_BATCH_SIZE),
+        )
+        attempts += batches
+        known = [q["question"] for q in questions]
+        results = await asyncio.gather(
+            *(generate_questions_batch(category, text, EXAM_BATCH_SIZE, known) for _ in range(batches)),
+            return_exceptions=True,
+        )
+        for result in results:
+            if isinstance(result, BaseException):
+                failures += 1
+                if not isinstance(result, DeepSeekError):
+                    logger.exception("Порция экзамена по %s упала", category, exc_info=result)
+                continue
+            for q, c in zip(*result, strict=True):
+                key = q["question"].casefold()
+                if key in seen:
+                    continue
+                seen.add(key)
+                questions.append(q)
+                correct.append(c)
+    logger.info(
+        "Экзамен по %s: %d вопросов, порций %d, ошибок модели %d",
+        category, len(questions), attempts, failures,
+    )
+    return questions[:NUM_QUESTIONS], correct[:NUM_QUESTIONS]
