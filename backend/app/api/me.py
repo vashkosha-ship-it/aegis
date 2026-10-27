@@ -430,14 +430,17 @@ async def leaderboard(
     )
 
     out: list[LeaderboardEntry] = []
+    is_admin = current.role.value == "admin"
     for place, u in enumerate(rows.all(), start=1):
         is_self = u.id == current.id
         hidden = (u.profile_visibility or "public") != "public" and not is_self
+        # ФИО видит только администратор (и сам человек); остальным — логин.
+        show_name = not hidden and (is_self or is_admin)
         out.append(
             LeaderboardEntry(
                 place=place,
                 username="" if hidden else u.username,
-                full_name=None if hidden else u.full_name,
+                full_name=u.full_name if show_name else None,
                 xp=u.xp,
                 streak_count=u.streak_count,
                 is_hidden=hidden,
@@ -477,10 +480,12 @@ async def get_public_profile(
         )
     ) or 0
 
+    # ФИО видит только администратор (и сам владелец профиля).
+    show_name = is_owner or current.role.value == "admin"
     return PublicProfile(
         id=user.id,
         username=user.username,
-        full_name=user.full_name,
+        full_name=user.full_name if show_name else None,
         department=user.department,
         cyber_level=user.cyber_level,
         xp=user.xp,
