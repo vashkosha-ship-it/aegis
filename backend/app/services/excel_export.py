@@ -101,3 +101,49 @@ def parse_period(
         # Верхняя граница исключающая: дата 2026-01-31 включает весь этот день.
         dt = datetime.fromisoformat(date_to).replace(tzinfo=UTC) + timedelta(days=1)
     return df, dt
+
+
+def build_users_report(users: list) -> io.BytesIO:
+    """Собрать книгу Excel со списком пользователей.
+
+    Пароли не выгружаются: в базе хранится только их bcrypt-хеш, исходный
+    пароль восстановить нельзя.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Пользователи"
+    headers = [
+        "ФИО", "Логин", "Почта", "Подразделение", "Роль",
+        "Статус", "Почта подтверждена", "Дата регистрации",
+    ]
+    for col, name in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=name)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="2F2B7B")
+        cell.alignment = Alignment(horizontal="center")
+
+    for i, u in enumerate(users, start=2):
+        role = getattr(u.role, "value", u.role)
+        ws.cell(row=i, column=1, value=xl_safe(u.full_name or ""))
+        ws.cell(row=i, column=2, value=xl_safe(u.username))
+        ws.cell(row=i, column=3, value=xl_safe(u.email or ""))
+        ws.cell(row=i, column=4, value=xl_safe(u.department or ""))
+        ws.cell(row=i, column=5, value="Администратор" if role == "admin" else "Читатель")
+        ws.cell(row=i, column=6, value="Активен" if u.is_active else "Не активен")
+        ws.cell(row=i, column=7, value="Да" if u.is_verified else "Нет")
+        ws.cell(
+            row=i, column=8,
+            value=u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "",
+        )
+    for col, width in zip("ABCDEFGH", (32, 20, 30, 22, 16, 12, 18, 18), strict=True):
+        ws.column_dimensions[col].width = width
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf

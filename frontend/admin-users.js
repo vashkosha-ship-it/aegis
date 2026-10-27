@@ -127,7 +127,33 @@ function openExportModal() {
       <label data-static-style="a179">Дата по</label>
       <input type="date" id="exportDateTo" data-static-style="a181">
       <button id="exportRunBtn" data-static-style="a184">Скачать Excel</button>
+      <p data-static-style="a182">Список пользователей: ФИО, логин, почта, подразделение, роль и дата регистрации. Пароли не выгружаются — они хранятся в зашифрованном виде.</p>
+      <button id="exportUsersBtn" data-static-style="a184">Скачать список пользователей</button>
     </div>`);
+
+  document.getElementById('exportUsersBtn').onclick = async () => {
+    const btn = document.getElementById('exportUsersBtn');
+    btn.disabled = true;
+    btn.textContent = 'Формирую…';
+    try {
+      const blob = await api.library.adminExportUsers();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'aegis_users_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      document.getElementById('exportModal').remove();
+      showToast('Список пользователей выгружен');
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Скачать список пользователей';
+      console.error('Ошибка экспорта пользователей:', err);
+      showToast('Не удалось сформировать файл');
+    }
+  };
 
   document.getElementById('exportRunBtn').onclick = async () => {
     const btn = document.getElementById('exportRunBtn');

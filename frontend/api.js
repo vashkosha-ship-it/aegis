@@ -620,6 +620,10 @@
       aiMatchArTopics(topics) {
         return request('/books/ai-match-ar-topics', { method: 'POST', body: { topics } });
       },
+      async adminExportUsers() {
+        const resp = await request('/admin/export/users', { raw: true });
+        return resp.blob();
+      },
       async adminExportReading(dateFrom, dateTo) {
         let qs = [];
         if (dateFrom) qs.push('date_from=' + encodeURIComponent(dateFrom));

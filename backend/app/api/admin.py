@@ -800,6 +800,32 @@ async def export_reading_xlsx(
     )
 
 
+@router.get("/export/users")
+async def export_users_xlsx(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+):
+    """Выгрузка в Excel списка пользователей: ФИО, логин, почта и т.д.
+
+    Пароли в выгрузку не попадают: хранится только их хеш.
+    """
+    users = (await db.scalars(
+        select(User).order_by(User.full_name.asc().nulls_last(), User.username.asc())
+    )).all()
+    try:
+        buf = excel_export.build_users_report(list(users))
+    except ImportError as e:
+        raise HTTPException(
+            status_code=500, detail="openpyxl не установлен на сервере"
+        ) from e
+    filename = "aegis_users_" + datetime.now(UTC).strftime("%Y-%m-%d") + ".xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 # ============================================================================
 # Endpoint: детальная аналитика книги
 # ============================================================================

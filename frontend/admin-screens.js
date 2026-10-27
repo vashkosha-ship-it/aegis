@@ -470,7 +470,7 @@ function renderAdminUsersWithFilter() {
   badge.id = 'pendingUsersBadge';
   badge.setAttribute('data-static-style', 'a564');
   pending.appendChild(badge);
-  actionButton('Excel', 'Выгрузка прочитанного в Excel', 'a565', openExportModal);
+  actionButton('Excel', 'Выгрузка в Excel: прочитанное и список пользователей', 'a565', openExportModal);
 
   const dashboard = document.createElement('div');
   dashboard.setAttribute('data-static-style', 'a552');
