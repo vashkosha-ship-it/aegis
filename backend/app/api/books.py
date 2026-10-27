@@ -177,7 +177,10 @@ async def list_books(
         "date_published": desc(Book.date_published),
         "default": desc(Book.popularity),
     }
-    stmt = stmt.order_by(sort_map[sort])
+    # Второй ключ — id: у многих книг одинаковая популярность (или дата
+    # массовой загрузки), и без него порядок между страницами «плавал» —
+    # одни книги повторялись, другие не попадали в каталог вовсе.
+    stmt = stmt.order_by(sort_map[sort], desc(Book.id))
     stmt = stmt.offset((page - 1) * per_page).limit(per_page)
 
     total = (await db.scalar(count_stmt)) or 0

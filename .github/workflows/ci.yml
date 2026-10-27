@@ -171,7 +171,16 @@ jobs:
         run: |
           for test_file in tests/*.test.js; do
             echo "::group::$test_file"
-            node "$test_file"
+            # При падении хвост вывода попадает в аннотацию проверки:
+            # её видно на странице PR без скачивания полного лога.
+            if ! node "$test_file" > /tmp/test-out.txt 2>&1; then
+              cat /tmp/test-out.txt
+              echo "::endgroup::"
+              msg=$(tail -n 25 /tmp/test-out.txt | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+              echo "::error file=frontend/$test_file,title=Упал $test_file::$msg"
+              exit 1
+            fi
+            cat /tmp/test-out.txt
             echo "::endgroup::"
           done
 
