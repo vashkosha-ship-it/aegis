@@ -70,7 +70,13 @@ assert.match(indexStatus.textContent, /<img src=x/);
 assert.equal(indexStatus.querySelector('img'), null);
 assert.equal(dom.window.document.getElementById('adminReindexBookBtn').disabled, false);
 
+// Ручной запуск доступен и для «в очереди»/«индексируется»: после массовой
+// индексации книга может ждать часами, а статус running — зависнуть.
 context.renderBookIndexStatus({ status: 'running' }, true);
+assert.equal(dom.window.document.getElementById('adminReindexBookBtn').disabled, false);
+context.renderBookIndexStatus({ status: 'queued' }, true);
+assert.equal(dom.window.document.getElementById('adminReindexBookBtn').disabled, false);
+context.renderBookIndexStatus({ status: 'not_indexed' }, false);
 assert.equal(dom.window.document.getElementById('adminReindexBookBtn').disabled, true);
 
 assert.doesNotMatch(source, /body\.innerHTML = `<div data-static-style="a203"/);

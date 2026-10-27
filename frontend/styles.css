@@ -691,6 +691,20 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .selection-toolbar { position: absolute; background: var(--bg-elevated); border: 1px solid var(--accent); border-radius: 8px; padding: 6px; display: none; gap: 6px; z-index: 20; box-shadow: var(--shadow-card); }
 .selection-toolbar button { background: var(--bg-primary); border: 1px solid var(--border); color: var(--accent); padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; font-family: inherit; transition: var(--transition); }
 .selection-toolbar button:hover { background: rgba(var(--accent-rgb),0.1); border-color: var(--accent); }
+/* Телефон: панель выделения внизу экрана, чтобы её не закрывало системное меню. */
+.selection-toolbar.is-docked {
+  position: fixed;
+  left: 50%;
+  top: auto;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+  transform: translateX(-50%);
+  z-index: var(--z-modal);
+  max-width: calc(100vw - 24px);
+  justify-content: center;
+  padding: 8px;
+  gap: 8px;
+}
+.selection-toolbar.is-docked button { min-height: 38px; min-width: 38px; font-size: 13px; }
 
 /* EPUB viewport */
 .epub-viewport {

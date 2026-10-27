@@ -104,7 +104,7 @@ async def _mark_indexing_failed(db: AsyncSession, book: Book, message: str) -> N
 
 
 async def _enqueue_book_index(
-    db: AsyncSession, book: Book
+    db: AsyncSession, book: Book, *, priority: bool = False
 ) -> tuple[str | None, str]:
     """Поставить книгу в очередь и зафиксировать результат постановки в БД."""
     from app.core.queue import get_queue
@@ -124,7 +124,14 @@ async def _enqueue_book_index(
         await _mark_indexing_failed(db, book, "Очередь индексации недоступна")
         return None, "unavailable"
     try:
-        job = await queue.enqueue_job("index_book", book.id)
+        if priority:
+            # Ручная переиндексация одной книги не должна ждать за тысячами
+            # задач массовой индексации.
+            from app.core.queue import enqueue_priority
+
+            job = await enqueue_priority(queue, "index_book", book.id)
+        else:
+            job = await queue.enqueue_job("index_book", book.id)
     except Exception as exc:  # noqa: BLE001 — файл уже сохранён, повтор upload опасен
         logger.exception("Не удалось поставить файл книги %s на индексацию", book.id)
         await _mark_indexing_failed(
@@ -170,7 +177,10 @@ async def list_books(
         "date_published": desc(Book.date_published),
         "default": desc(Book.popularity),
     }
-    stmt = stmt.order_by(sort_map[sort])
+    # Второй ключ — id: у многих книг одинаковая популярность (или дата
+    # массовой загрузки), и без него порядок между страницами «плавал» —
+    # одни книги повторялись, другие не попадали в каталог вовсе.
+    stmt = stmt.order_by(sort_map[sort], desc(Book.id))
     stmt = stmt.offset((page - 1) * per_page).limit(per_page)
 
     total = (await db.scalar(count_stmt)) or 0
@@ -752,7 +762,7 @@ async def reindex_book(
         db, admin, "book_reindex", request=request, target=f"book:{book.id}",
         detail="Поставлена переиндексация книги",
     )
-    job_id, queue_status = await _enqueue_book_index(db, book)
+    job_id, queue_status = await _enqueue_book_index(db, book, priority=True)
     if queue_status != "queued":
         raise HTTPException(
             status_code=503,

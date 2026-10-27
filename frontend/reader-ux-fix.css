@@ -7,3 +7,42 @@
 #readerScreen.reader-empty .reader-arrow,
 #readerScreen.reader-empty .page-indicator-overlay,
 #readerScreen.reader-empty .tap-zone { display: none; }
+
+/* Масштаб страницы PDF: кнопки −/100%/+ в правом нижнем углу. */
+.pdf-zoom-controls {
+  position: absolute;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  opacity: 0.85;
+}
+.pdf-zoom-controls[hidden] { display: none; }
+.pdf-zoom-controls:hover,
+.pdf-zoom-controls:focus-within { opacity: 1; }
+.pdf-zoom-controls button {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pdf-zoom-controls #pdfZoomReset { font-size: 12px; color: var(--text-secondary); min-width: 48px; }
+.pdf-zoom-controls button:disabled { opacity: 0.35; cursor: default; }
+.pdf-zoom-controls button:not(:disabled):hover { background: rgba(var(--accent-rgb), 0.12); }
+/* Увеличенную страницу двигают пальцем — зоны перелистывания не мешают. */
+#readerGestureZone.is-pdf-zoomed .tap-zone { display: none; }
+#readerScreen.reader-empty .pdf-zoom-controls { display: none; }

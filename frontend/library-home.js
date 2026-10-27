@@ -405,6 +405,17 @@ function renderBookInfo() {
         'a469',
       ),
     );
+    if (book.has_pdf || book.has_epub) {
+      const indexed = book.indexing_status === 'succeeded';
+      const reindex = _libraryAction(
+        ICONS.refresh,
+        indexed ? 'Переиндексировать' : 'Индексировать',
+        () => reindexBookFromDetail(book.id, reindex),
+        'btn-detail detail-action-secondary',
+      );
+      if (typeof bookIndexStatusText === 'function') reindex.title = bookIndexStatusText(book);
+      actions.appendChild(reindex);
+    }
   }
 
   info.appendChild(actions);
@@ -422,3 +433,17 @@ function renderBookInfo() {
 }
 
 // ========== EPUB READER ==========
+
+async function reindexBookFromDetail(bookId, button) {
+  button.disabled = true;
+  try {
+    await api.library.reindexBook(bookId);
+    showToast('Книга поставлена первой в очередь на индексацию');
+    const book = state.books.find(item => item.id === bookId);
+    if (book) book.indexing_status = 'queued';
+    button.title = 'Индекс: в очереди';
+  } catch (err) {
+    button.disabled = false;
+    showToast('Ошибка индексации: ' + (err.detail || err.message));
+  }
+}

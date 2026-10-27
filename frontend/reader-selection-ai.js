@@ -1,4 +1,8 @@
 // ========== TEXT SELECTION ==========
+function isTouchSelectionDevice() {
+  return Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+}
+
 function showSelectionToolbar() {
   if (state.currentScreen !== 'reader' || isEpubMode) return false;
   const s = window.getSelection();
@@ -9,6 +13,17 @@ function showSelectionToolbar() {
     const r = s.getRangeAt(0).getBoundingClientRect();
     const v = document.getElementById('pdfViewport').getBoundingClientRect();
     toolbar.style.display = 'flex';
+    if (isTouchSelectionDevice()) {
+      // На телефоне над выделением всплывает системное меню («Копировать»,
+      // «Перевести»…) и закрывает наши кнопки. Поэтому панель стоит внизу
+      // экрана, где системного меню не бывает.
+      if (toolbar.parentElement !== document.body) document.body.appendChild(toolbar);
+      toolbar.classList.add('is-docked');
+      toolbar.style.left = '';
+      toolbar.style.top = '';
+      return true;
+    }
+    toolbar.classList.remove('is-docked');
     toolbar.style.left = Math.min(Math.max(r.left - v.left + r.width / 2 - 70, 10), v.width - 150) + 'px';
     toolbar.style.top = Math.max(r.top - v.top - 45, 5) + 'px';
     return true;
@@ -49,6 +64,18 @@ document.addEventListener('touchend', function (e) {
 document.addEventListener('selectionchange', function () {
   if (state.currentScreen !== 'reader' || isEpubMode) return;
   const s = window.getSelection();
+  if (isTouchSelectionDevice() && !(s && s.toString().trim())) {
+    // Панель внизу экрана не привязана к выделению: убираем её, когда
+    // выделение снято. Задержка даёт сработать нажатию на кнопку панели.
+    clearTimeout(window._selToolbarHideTimer);
+    window._selToolbarHideTimer = setTimeout(() => {
+      const current = window.getSelection();
+      if (current && current.toString().trim()) return;
+      const tb = document.getElementById('selectionToolbar');
+      if (tb && tb.classList.contains('is-docked')) tb.style.display = 'none';
+    }, 700);
+    return;
+  }
   if (s && s.toString().trim().length > 0) {
     // дебаунс, чтобы не дёргать на каждое микродвижение
     clearTimeout(window._selToolbarTimer);

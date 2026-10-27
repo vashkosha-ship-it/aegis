@@ -743,6 +743,12 @@
         <button class="reader-arrow reader-arrow-right" id="readerArrowRight" title="Следующая страница (→)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
+        <!-- Масштаб страницы PDF -->
+        <div class="pdf-zoom-controls" id="pdfZoomControls" role="group" aria-label="Масштаб страницы" hidden>
+          <button type="button" id="pdfZoomOut" title="Уменьшить" aria-label="Уменьшить">−</button>
+          <button type="button" id="pdfZoomReset" title="По ширине экрана" aria-label="Сбросить масштаб"><span id="pdfZoomLabel">100%</span></button>
+          <button type="button" id="pdfZoomIn" title="Увеличить" aria-label="Увеличить">+</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1077,6 +1083,7 @@
 <!-- Тяжёлые vendor-библиотеки (pdf, epub, chart) грузятся ЛЕНИВО при первом
      открытии книги/графика — см. vendor-loader.js. Это убирает
      их из критического пути первой загрузки и ускоряет старт. -->
+<script defer src="app-icon.js"></script>
 <script defer src="error-reporter.js"></script>
 <script defer src="dynamic-styles.js"></script>
 <script defer src="handler-allowlist.js"></script>
