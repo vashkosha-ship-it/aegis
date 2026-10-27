@@ -537,6 +537,7 @@
       reindexBook(bookId) { return request('/books/' + bookId + '/reindex', { method: 'POST' }); },
       reindexAllBooks() { return request('/books/reindex-all', { method: 'POST' }); },
       reindexStatus() { return request('/books/reindex/status'); },
+      stopReindex() { return request('/books/reindex/stop', { method: 'POST' }); },
       adminLogs(limit = 50) { return request('/books/admin/logs?limit=' + limit); },
       // Обсуждения книги
       bookComments(bookId) { return request('/books/' + bookId + '/comments'); },

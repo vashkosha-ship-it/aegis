@@ -171,9 +171,40 @@ async function regenerateAllQuizzesUI() {
   });
 }
 
-async function reindexAllBooksUI() {
+async function stopReindexUI() {
   showConfirmModal({
-    title: 'Переиндексировать все книги?',    message: 'Будет извлечён текст из всех PDF для полнотекстового поиска. Индексация идёт в фоне — можно продолжать работу.',
+    title: 'Остановить индексацию?',
+    message: 'Книги, у которых текст для поиска уже есть, перестанут переиндексироваться — поиск по ним продолжит работать. Новые, ещё не проиндексированные книги останутся в очереди: без индексации их не найти поиском по тексту.',
+    confirmText: 'Остановить',
+    cancelText: 'Отмена',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const res = await api.library.stopReindex();
+        showToast(`Индексация остановлена · в очереди осталось новых книг: ${res.still_queued}`);
+        stopReindexPolling();
+        document.getElementById('reindexProgressModal')?.remove();
+        await loadBooksFromApi();
+        if (typeof renderAdminPanel === 'function') renderAdminPanel();
+      } catch (e) {
+        showToast(e && e.detail ? e.detail : 'Не удалось остановить индексацию');
+      }
+    },
+  });
+}
+
+async function reindexAllBooksUI() {
+  // Индексация уже идёт — предлагаем посмотреть прогресс или остановить,
+  // а не запускать заново.
+  try {
+    const status = await api.library.reindexStatus();
+    if (status && status.active > 0) {
+      showReindexProgress();
+      return;
+    }
+  } catch (_) { /* статус недоступен — обычный запуск */ }
+  showConfirmModal({
+    title: 'Переиндексировать все книги?',    message: `Текст будет заново извлечён из всех ${(state.books || []).length} книг. Это долго — на большом каталоге больше суток. Новые книги индексируются сами при загрузке: запускайте, только если поиск по тексту перестал находить книги.`,
     confirmText: 'Запустить',
     cancelText: 'Отмена',
     onConfirm: async () => {
@@ -210,9 +241,11 @@ function showReindexProgress() {
       </div>
     </div>
     <div data-static-style="a202">Можно закрыть это окно — индексация продолжится в фоне.</div>
+    <button type="button" id="reindexStopBtn" class="admin-tool admin-tool--danger reindex-stop-btn">Остановить индексацию</button>
   </div>`);
   m.onclick = (e) => { if (e.target === m) { stopReindexPolling(); m.remove(); } };
   document.body.appendChild(m);
+  document.getElementById('reindexStopBtn')?.addEventListener('click', stopReindexUI);
   startReindexPolling();
 }
 
@@ -240,8 +273,11 @@ function startReindexPolling() {
       if (s.finished) {
         stopReindexPolling();
         renderReindexResult(body, s);
-      } else if (s.running) {
-        body.querySelector('div').textContent = `Обработано ${s.done} из ${s.total} книг (${s.percent}%)`;
+        document.getElementById('reindexStopBtn')?.remove();
+      } else if (s.active > 0) {
+        // Сервер отдаёт active (книг в очереди и в работе), поля running нет —
+        // из-за этого строка прогресса раньше так и оставалась «Запуск…».
+        body.querySelector('div').textContent = `Обработано ${s.done} из ${s.total} книг (${s.percent}%) · в очереди ${s.active}`;
       }
     } catch (e) {
       stopReindexPolling();

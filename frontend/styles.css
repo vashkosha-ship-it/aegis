@@ -4039,3 +4039,6 @@ html.ai-off [data-ai-entry] { display: none !important; }
 .metadata-changes-panel td { font-size: 12px; vertical-align: top; }
 .metadata-changes-panel .metadata-old { color: var(--text-muted); text-decoration: line-through; }
 .metadata-changes-panel .metadata-new { color: var(--text-primary); }
+
+/* Окно прогресса индексации: кнопка остановки. */
+.reindex-stop-btn { margin-top: 12px; width: 100%; }
