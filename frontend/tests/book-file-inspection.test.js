@@ -64,6 +64,16 @@ const file = data => ({ name: 'book.pdf', slice: () => ({ arrayBuffer: async () 
   assert.ok(bulk.indexOf('inspectBookFile(item.file)') < bulk.indexOf('api.books.create('));
   assert.match(bulk, /Файл не принят — пустую карточку тоже убираем\.\n\s+try \{ await api\.books\.delete\(created\.id\)/);
   assert.match(admin, /Без файла карточка в каталоге бесполезна/);
+  // «Названия и теги» в админке: кнопка, модуль и правки со старыми значениями.
+  const screens = read('admin-screens.js');
+  const review = read('admin-metadata-review.js');
+  assert.match(screens, /id="adminMetadataBtn"/);
+  assert.match(screens, /refreshMetadataReviewStatus\(\)/);
+  assert.match(review, /api\.library\.startMetadataReview\(\)/);
+  assert.match(review, /change\.old_title/);
+  assert.match(read('api.js'), /'\/admin\/book-metadata\/jobs'/);
+  assert.ok(index.indexOf('admin-metadata-review.js') < index.indexOf('app.js'));
+  assert.match(read('sw.js'), /'\/admin-metadata-review\.js'/);
   console.log('Book file inspection tests passed');
 })().catch(error => {
   console.error(error);

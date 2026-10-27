@@ -158,6 +158,41 @@ class DescriptionGenerationJobView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class BookMetadataJobView(BaseModel):
+    id: str
+    status: Literal["queued", "running", "completed", "failed"]
+    total_books: int
+    processed_books: int
+    changed_books: int
+    skipped_books: int
+    failed_books: int
+    last_error: str | None
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BookMetadataJobStart(BaseModel):
+    started: bool
+    reason: str | None = None
+    job: BookMetadataJobView | None = None
+
+
+class BookMetadataChangeView(BaseModel):
+    book_id: int
+    old_title: str
+    new_title: str
+    old_author: str
+    new_author: str
+    old_categories: list[str]
+    new_categories: list[str]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DescriptionGenerationStart(BaseModel):
     started: bool
     reason: str | None = None

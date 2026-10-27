@@ -214,6 +214,8 @@ function renderAdminBooks() {
       <button id="adminReindexBtn" class="admin-tool" title="Переиндексировать текст всех книг для поиска">Индексировать поиск</button>
       <button id="adminCoversBtn" class="admin-tool" title="Создать обложки для книг без обложки">Обложки</button>
       <button id="adminDescriptionsBtn" class="admin-tool" title="Создать ИИ-описания для книг без описания">ИИ-описания</button>
+      <button id="adminMetadataBtn" class="admin-tool" title="ИИ проверит названия и авторов всех книг и проставит теги книгам без тегов">Названия и теги</button>
+      <button id="adminMetadataChangesBtn" class="admin-tool admin-tool--quiet" type="button" hidden>Что изменилось</button>
       <button id="adminArMatchBtn" class="admin-tool" title="ИИ подберёт книги к темам схем атак">Книги для схем</button>
       <button id="adminRegenerateQuizzesBtn" class="admin-tool" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)">Перегенерировать тесты</button>
       <button id="adminStorageAuditBtn" class="admin-tool admin-tool--quiet" title="Проверить файлы книг, обложек и аватаров">Хранилище</button>
@@ -240,6 +242,8 @@ function renderAdminBooks() {
   document.getElementById('adminStorageAuditBtn').addEventListener('click', auditStorageUI);
   document.getElementById('adminCoversBtn').addEventListener('click', generateMissingCoversUI);
   document.getElementById('adminDescriptionsBtn').addEventListener('click', generateMissingDescriptionsUI);
+  document.getElementById('adminMetadataBtn').addEventListener('click', startMetadataReviewUI);
+  document.getElementById('adminMetadataChangesBtn').addEventListener('click', openMetadataChanges);
   document.getElementById('adminArMatchBtn').addEventListener('click', aiMatchArBooksUI);
   document.getElementById('adminRegenerateQuizzesBtn').addEventListener('click', regenerateAllQuizzesUI);
   document.getElementById('adminBooksCount').textContent = String(state.books.length);
@@ -266,6 +270,7 @@ function renderAdminBooks() {
   });
   renderAdminBooksTable();
   refreshDescriptionGenerationStatus();
+  refreshMetadataReviewStatus();
 }
 
 // В таблице тысячи книг; строки на все сразу — секунды отрисовки на каждом

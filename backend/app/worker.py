@@ -26,11 +26,12 @@ from app.core.storage import StorageNotFound, get_storage
 from app.db.session import AsyncSessionLocal
 from app.models.admin_log import AdminLog
 from app.models.book import Book
+from app.models.book_metadata_job import BookMetadataJob
 from app.models.description_job import DescriptionGenerationJob
 from app.models.exam_session import ExamSession
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
-from app.services.book_autofill import autofill_book
+from app.services.book_autofill import autofill_book, review_and_fix_book
 from app.services.book_descriptions import (
     generate_book_description,
     load_book_content_excerpt,
@@ -461,6 +462,82 @@ async def generate_missing_book_descriptions(
             raise
 
 
+# Сколько книг проверять одновременно: запросы к модели идут параллельно,
+# а БД и воркер при этом почти не нагружены.
+METADATA_REVIEW_CONCURRENCY = 4
+
+
+async def _bump_metadata_job(job_id: str, outcome: str, error: str | None = None) -> None:
+    counters = {
+        "changed": "changed_books",
+        "unchanged": None,
+        "skipped": "skipped_books",
+        "failed": "failed_books",
+    }
+    values = {"processed_books": BookMetadataJob.processed_books + 1}
+    column = counters.get(outcome)
+    if column:
+        values[column] = getattr(BookMetadataJob, column) + 1
+    if error:
+        values["last_error"] = error[:2000]
+    async with AsyncSessionLocal() as db:
+        await db.execute(update(BookMetadataJob).where(BookMetadataJob.id == job_id).values(**values))
+        await db.commit()
+
+
+async def review_book_metadata_bulk(ctx: dict, job_id: str, book_ids: list[int]) -> dict:
+    """Проверить и исправить названия, авторов и теги книг по их тексту."""
+    async with _measure_job(ctx, "review_book_metadata_bulk"):
+        try:
+            async with AsyncSessionLocal() as db:
+                job = await db.get(BookMetadataJob, job_id)
+                if job is None:
+                    raise RuntimeError(f"Задача проверки карточек {job_id} не найдена")
+                job.status = "running"
+                job.started_at = datetime.now(UTC)
+                job.finished_at = None
+                await db.commit()
+
+            semaphore = asyncio.Semaphore(METADATA_REVIEW_CONCURRENCY)
+
+            async def review(book_id: int) -> None:
+                async with semaphore:
+                    try:
+                        async with AsyncSessionLocal() as db:
+                            outcome = await review_and_fix_book(db, book_id, job_id=job_id)
+                        await _bump_metadata_job(job_id, outcome)
+                    except Exception as exc:  # noqa: BLE001 — одна книга не валит остальные
+                        message = f"Книга {book_id}: {type(exc).__name__}: {exc}"
+                        logger.warning("Не удалось проверить карточку: %s", message)
+                        await _bump_metadata_job(job_id, "failed", message)
+
+            await asyncio.gather(*(review(book_id) for book_id in book_ids))
+
+            async with AsyncSessionLocal() as db:
+                job = await db.get(BookMetadataJob, job_id)
+                result = {"job_id": job_id}
+                if job:
+                    job.status = "completed"
+                    job.finished_at = datetime.now(UTC)
+                    await db.commit()
+                    result.update(
+                        total_books=job.total_books,
+                        changed_books=job.changed_books,
+                        failed_books=job.failed_books,
+                    )
+            logger.info("Проверка карточек завершена: %s", result)
+            return result
+        except Exception as exc:
+            async with AsyncSessionLocal() as db:
+                job = await db.get(BookMetadataJob, job_id)
+                if job:
+                    job.status = "failed"
+                    job.last_error = f"{type(exc).__name__}: {exc}"[:2000]
+                    job.finished_at = datetime.now(UTC)
+                    await db.commit()
+            raise
+
+
 async def on_worker_startup(ctx: dict) -> None:
     """Действия при старте воркера (то есть после каждой выкладки)."""
     await recover_interrupted_indexing(ctx)
@@ -601,6 +678,7 @@ class WorkerSettings:
         index_book,
         index_all_books,
         generate_missing_book_descriptions,
+        review_book_metadata_bulk,
         cleanup_expired_sessions,
         generate_book_quiz,
         generate_missing_quizzes,

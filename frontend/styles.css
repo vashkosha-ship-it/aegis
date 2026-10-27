@@ -4029,3 +4029,13 @@ html.ai-off [data-ai-entry] { display: none !important; }
 .admin-books-search { width: 100%; margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); color: var(--text-primary); font: inherit; font-size: 13px; }
 .admin-books-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .admin-books-shown { font-size: 12px; color: var(--text-muted); }
+
+/* Админка → «Что изменилось» после проверки названий и тегов. */
+.metadata-changes-overlay { position: fixed; inset: 0; z-index: var(--z-modal); display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--overlay); }
+.metadata-changes-panel { width: min(1100px, 100%); max-height: 88vh; display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); }
+.metadata-changes-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.metadata-changes-header h3 { margin: 0; font-size: 16px; }
+.metadata-changes-panel .table-wrap { overflow: auto; }
+.metadata-changes-panel td { font-size: 12px; vertical-align: top; }
+.metadata-changes-panel .metadata-old { color: var(--text-muted); text-decoration: line-through; }
+.metadata-changes-panel .metadata-new { color: var(--text-primary); }
