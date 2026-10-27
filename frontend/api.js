@@ -597,6 +597,15 @@
       startDescriptionGeneration() {
         return request('/admin/book-descriptions/jobs', { method: 'POST' });
       },
+      startMetadataReview() {
+        return request('/admin/book-metadata/jobs', { method: 'POST' });
+      },
+      latestMetadataReview() {
+        return request('/admin/book-metadata/jobs/latest');
+      },
+      metadataChanges(limit = 500) {
+        return request('/admin/book-metadata/changes?limit=' + encodeURIComponent(limit));
+      },
       latestDescriptionGeneration() {
         return request('/admin/book-descriptions/jobs/latest');
       },

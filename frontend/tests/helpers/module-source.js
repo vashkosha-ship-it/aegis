@@ -17,6 +17,7 @@ const groups = Object.freeze({
     'admin-users.js',
     'admin-ai-operations.js',
     'book-file-inspect.js',
+    'admin-metadata-review.js',
     'admin-books.js',
     'admin-bulk-upload.js',
   ],

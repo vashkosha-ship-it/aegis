@@ -27,6 +27,9 @@ from app.models.user import User, UserRole
 from app.schemas.admin import (
     AdminUserView,
     BookAnalytics,
+    BookMetadataChangeView,
+    BookMetadataJobStart,
+    BookMetadataJobView,
     BookReaderRow,
     CreateUserRequest,
     DashboardStats,
@@ -236,6 +239,115 @@ async def start_description_generation_job(
     await db.commit()
     await db.refresh(job)
     return DescriptionGenerationStart(started=True, job=_description_job_view(job))
+
+
+# ============================================================================
+# Проверка названий, авторов и тегов по тексту книг (ИИ)
+# ============================================================================
+
+
+@router.get("/book-metadata/jobs/latest", response_model=BookMetadataJobView | None)
+async def latest_book_metadata_job(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> BookMetadataJobView | None:
+    from app.models.book_metadata_job import BookMetadataJob
+
+    job = await db.scalar(
+        select(BookMetadataJob).order_by(BookMetadataJob.created_at.desc()).limit(1)
+    )
+    return BookMetadataJobView.model_validate(job) if job else None
+
+
+@router.get("/book-metadata/changes", response_model=list[BookMetadataChangeView])
+async def book_metadata_changes(
+    job_id: str | None = None,
+    limit: int = 200,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> list[BookMetadataChangeView]:
+    """Что изменила проверка карточек: было → стало."""
+    from app.models.book_metadata_job import BookMetadataChange
+
+    stmt = select(BookMetadataChange).order_by(BookMetadataChange.id.desc())
+    if job_id:
+        stmt = stmt.where(BookMetadataChange.job_id == job_id)
+    rows = (await db.scalars(stmt.limit(max(1, min(limit, 5000))))).all()
+    return [BookMetadataChangeView.model_validate(row) for row in rows]
+
+
+@router.post(
+    "/book-metadata/jobs",
+    response_model=BookMetadataJobStart,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def start_book_metadata_job(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> BookMetadataJobStart:
+    """Проверить карточки всех книг: название, автор, теги (если их нет)."""
+    from app.models.book_metadata_job import BookMetadataJob
+
+    active = await db.scalar(
+        select(BookMetadataJob)
+        .where(BookMetadataJob.status.in_(("queued", "running")))
+        .order_by(BookMetadataJob.created_at.desc())
+        .limit(1)
+    )
+    if active:
+        return BookMetadataJobStart(
+            started=False, reason="already_running",
+            job=BookMetadataJobView.model_validate(active),
+        )
+
+    book_ids = list((await db.scalars(select(Book.id).order_by(Book.id))).all())
+    if not book_ids:
+        return BookMetadataJobStart(started=False, reason="no_books")
+
+    job = BookMetadataJob(
+        id=str(uuid4()),
+        status="queued",
+        total_books=len(book_ids),
+        processed_books=0,
+        changed_books=0,
+        skipped_books=0,
+        failed_books=0,
+        created_by_id=admin.id,
+        created_by_username=admin.username,
+    )
+    db.add(job)
+    await db.flush()
+
+    from app.core.queue import get_queue
+
+    try:
+        queue = await get_queue()
+        if queue is None:
+            raise RuntimeError("Очередь фоновых задач недоступна")
+        arq_job = await queue.enqueue_job("review_book_metadata_bulk", job.id, book_ids)
+        if arq_job is None:
+            raise RuntimeError("Очередь не вернула идентификатор задачи")
+        job.arq_job_id = arq_job.job_id
+    except Exception as exc:  # noqa: BLE001
+        job.status = "failed"
+        job.last_error = f"Не удалось поставить задачу в очередь: {exc}"[:2000]
+        job.finished_at = datetime.now(UTC)
+        await log_admin_action(
+            db, admin, "book_metadata_review", request=request,
+            target=f"metadata-job:{job.id}", detail=job.last_error, result="failure",
+        )
+        await db.commit()
+        raise HTTPException(status_code=503, detail="Не удалось запустить проверку карточек") from None
+
+    await log_admin_action(
+        db, admin, "book_metadata_review", request=request,
+        target=f"metadata-job:{job.id}",
+        detail=f"Запущена проверка названий, авторов и тегов для {len(book_ids)} книг",
+    )
+    await db.commit()
+    await db.refresh(job)
+    return BookMetadataJobStart(started=True, job=BookMetadataJobView.model_validate(job))
 
 
 # ============================================================================

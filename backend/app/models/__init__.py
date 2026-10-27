@@ -4,6 +4,7 @@ from app.models.admin_log import AdminLog
 from app.models.app_setting import AppSetting
 from app.models.book import Book
 from app.models.book_comment import BookComment
+from app.models.book_metadata_job import BookMetadataChange, BookMetadataJob
 from app.models.book_page import BookPage
 from app.models.certificate import Certificate
 from app.models.chat import ChatMessage, ChatSession
@@ -33,6 +34,8 @@ __all__ = [
     "AnnotationType",
     "Book",
     "BookComment",
+    "BookMetadataChange",
+    "BookMetadataJob",
     "BookPage",
     "Certificate",
     "ChatMessage",
