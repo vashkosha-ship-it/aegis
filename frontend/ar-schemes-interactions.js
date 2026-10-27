@@ -93,9 +93,18 @@ function toggleStageDetailsPanel(e) {
   if (svg) svg.style.transform = willOpen ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
+function _isInDetailsHeader(target) {
+  const panel = document.getElementById('arStageDetails');
+  const header = panel && panel.firstElementChild;
+  return Boolean(header && target && header.contains(target));
+}
+
 function onDetailsClick(e) {
   if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
   if (detailsPanelDidDrag) { detailsPanelDidDrag = false; return; } // это было перетаскивание
+  // Открытую панель сворачивает только нажатие на шапку: клик по тексту
+  // или списку книг раньше захлопывал панель.
+  if (detailsPanelOpen && !_isInDetailsHeader(e.target)) return;
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;
   panel.style.transition = 'transform 0.3s ease';
@@ -137,23 +146,43 @@ function onDetailsMouseDown(e) {
   document.addEventListener('mouseup', onUp);
 }
 
+// Панель одновременно шторка (тянется вверх-вниз) и прокручиваемый список.
+// Раньше любое касание тянуло шторку и отменяло прокрутку — до книг по теме
+// было не долистать. Теперь у открытой панели содержимое прокручивается
+// как обычно, а шторку тянут за шапку или вниз, когда список уже вверху.
+let detailsTouchDecided = false;
+let detailsTouchFromHeader = false;
+
 function onDetailsTouchStart(e) {
   detailsPanelStartY = e.touches[0].clientY;
-  detailsPanelIsDragging = true;
+  detailsTouchDecided = false;
+  detailsTouchFromHeader = _isInDetailsHeader(e.target);
   const panel = document.getElementById('arStageDetails');
-  if (panel) {
-    panel.style.transition = 'none';
-  }
+  const scrolled = panel ? panel.scrollTop > 0 : false;
+  // Открыта и уже пролистана, касание не по шапке — это прокрутка списка.
+  detailsPanelIsDragging = !(detailsPanelOpen && scrolled && !detailsTouchFromHeader);
 }
 
 function onDetailsTouchMove(e) {
   if (!detailsPanelIsDragging) return;
-  e.preventDefault();
 
   const currentY = e.touches[0].clientY;
   const deltaY = currentY - detailsPanelStartY;
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;
+
+  if (!detailsTouchDecided) {
+    if (Math.abs(deltaY) < 6) return;
+    // Палец вверх по содержимому открытой панели — листаем список.
+    if (detailsPanelOpen && !detailsTouchFromHeader && deltaY < 0) {
+      detailsPanelIsDragging = false;
+      return;
+    }
+    detailsTouchDecided = true;
+    detailsPanelDidDrag = true;
+    panel.style.transition = 'none';
+  }
+  e.preventDefault();
 
   const panelHeight = panel.offsetHeight;
   const currentTransform = detailsPanelOpen ? 0 : panelHeight - 60;
@@ -169,6 +198,8 @@ function onDetailsTouchMove(e) {
 function onDetailsTouchEnd(e) {
   if (!detailsPanelIsDragging) return;
   detailsPanelIsDragging = false;
+  // Касание без движения — это нажатие, его обработает click.
+  if (e && e.touches && !detailsTouchDecided && e.type === 'touchend') return;
 
   const panel = document.getElementById('arStageDetails');
   if (!panel) return;

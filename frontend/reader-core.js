@@ -519,6 +519,7 @@ async function renderPdfPageOffscreen(page, viewport, dpr, cancellable) {
   ctx.fillRect(0, 0, off.width, off.height);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const task = page.render({ canvasContext: ctx, viewport });
+  _pdfBackgroundTasks.add(task);
   if (cancellable) {
     if (_pdfRenderTask) { try { _pdfRenderTask.cancel(); } catch (_) { /* уже завершён */ } }
     _pdfRenderTask = task;
@@ -526,9 +527,36 @@ async function renderPdfPageOffscreen(page, viewport, dpr, cancellable) {
   try {
     await task.promise;
   } finally {
+    _pdfBackgroundTasks.delete(task);
     if (cancellable && _pdfRenderTask === task) _pdfRenderTask = null;
   }
   return off;
+}
+
+// Все незавершённые отрисовки, включая фоновую подготовку соседних страниц.
+const _pdfBackgroundTasks = new Set();
+
+// Выход из книги. Тяжёлую страницу (например, обложку-JPEG на 5 МБ) телефон
+// декодирует десятки секунд; раньше это продолжалось и после нажатия
+// «назад», и приложение подвисало. Теперь всё незавершённое отменяется,
+// а кэш отрисованных страниц освобождается.
+function stopPdfRendering() {
+  _pdfRenderToken += 1;
+  _pdfLoadToken += 1;
+  if (_pdfRenderTask) {
+    try { _pdfRenderTask.cancel(); } catch (_) { /* уже завершён */ }
+    _pdfRenderTask = null;
+  }
+  _pdfBackgroundTasks.forEach(task => {
+    try { task.cancel(); } catch (_) { /* уже завершён */ }
+  });
+  _pdfBackgroundTasks.clear();
+  if (typeof showPdfPageLoading === 'function') showPdfPageLoading(false);
+  if (window._bookLoadHintTimer) { clearTimeout(window._bookLoadHintTimer); window._bookLoadHintTimer = null; }
+  if (pdfDoc) {
+    try { _pdfCacheFor(pdfDoc).clear(); } catch (_) { /* кэша нет */ }
+    try { pdfDoc.cleanup(); } catch (_) { /* документ уже закрыт */ }
+  }
 }
 
 function schedulePdfNeighbourPrerender(pn, dpr, targetWidth, token) {
@@ -635,6 +663,7 @@ async function renderPdfPage(pn) {
   // рисовалась, читатель видел пустой белый лист.
   const loadingTimer = setTimeout(() => showPdfPageLoading(true), 250);
   let rendered;
+  const renderStartedAt = performance.now();
   try {
     rendered = await getRenderedPdfPage(pn, page, viewport, dpr, targetWidth);
   } catch (err) {
@@ -662,7 +691,12 @@ async function renderPdfPage(pn) {
   ctx.drawImage(rendered, 0, 0);
 
   // Соседние страницы готовим заранее — листание становится мгновенным.
-  schedulePdfNeighbourPrerender(pn, dpr, targetWidth, myToken);
+  // Если страница рисовалась дольше полутора секунд (тяжёлая картинка или
+  // слабый телефон), фоновую подготовку пропускаем: она отнимает память
+  // и процессор у того, что человек видит сейчас.
+  if (performance.now() - renderStartedAt < 1500) {
+    schedulePdfNeighbourPrerender(pn, dpr, targetWidth, myToken);
+  }
 
   // Text layer для выделения (правильный API для PDF.js 3.x)
   const textLayerDiv = document.getElementById('pdfTextLayer');

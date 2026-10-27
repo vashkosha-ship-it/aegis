@@ -58,12 +58,23 @@ dom.window.dispatchEvent(installEvent);
   androidModal.querySelector('button').click();
   assert.equal(dom.window.document.getElementById('androidInstallModal'), null);
 
+  // iPhone в Safari: четыре шага, без предупреждения о браузере.
+  context.navigator.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
   vm.runInContext('showIOSInstallInstructions()', context);
-  const iosModal = dom.window.document.getElementById('iosInstallModal');
-  assert.equal(iosModal.querySelectorAll('br').length, 2);
-  assert.match(iosModal.textContent, /На экран Домой/);
+  let iosModal = dom.window.document.getElementById('iosInstallModal');
+  assert.equal(iosModal.querySelectorAll('li').length, 4);
+  assert.match(iosModal.textContent, /На экран «Домой»/);
+  assert.doesNotMatch(iosModal.textContent, /Сейчас сайт открыт в/);
   iosModal.querySelector('button').click();
   assert.equal(dom.window.document.getElementById('iosInstallModal'), null);
+
+  // iPhone в Chrome: подсказываем открыть в Safari.
+  context.navigator.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0 Mobile/15E148 Safari/604.1';
+  vm.runInContext('showIOSInstallInstructions()', context);
+  iosModal = dom.window.document.getElementById('iosInstallModal');
+  assert.match(iosModal.textContent, /Сейчас сайт открыт в: Chrome/);
+  iosModal.querySelector('button').click();
+  context.navigator.userAgent = 'Mozilla/5.0 (Linux; Android 14) Mobile';
 
   assert.doesNotMatch(appSource, /beforeinstallprompt|function triggerInstall\(/);
   assert.doesNotMatch(source, /style\.cssText/);
