@@ -43,6 +43,7 @@ const context = {
   bookCategoriesText: book => book.categories.join(', '),
   eh: value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
   renderLevelChoices: () => calls.push(['levels']),
+  startOnboardingQuiz: () => calls.push(['quiz']),
   navigateTo: screen => calls.push(['navigate', screen]),
   openBookDetail: id => calls.push(['book', id]),
   setTimeout: fn => { fn(); return 1; },
@@ -63,9 +64,26 @@ assert.equal(list.querySelectorAll('.training-card').length, 1);
 assert.match(list.textContent, /Пройденная/);
 assert.match(list.textContent, /Разведчик/);
 
+// Тест уровня виден на «Все тесты» всегда — раньше он был только на
+// «Пройдено», и прошедшим его негде было найти.
+context.state.trainingTab = 'all';
+context.renderTrainingScreen();
+assert.match(list.textContent, /Твой уровень кибербезопасности/);
+
 context.state.currentUser.cyber_level = null;
 context.renderTrainingScreen();
 assert.match(list.textContent, /Определи свой уровень/);
+assert.match(list.innerHTML, /data-onclick="startCyberLevelTest\(\)"/);
+context.state.trainingTab = 'pending';
+context.renderTrainingScreen();
+assert.match(list.textContent, /Определи свой уровень/);
+context.state.trainingTab = 'completed';
+context.renderTrainingScreen();
+assert.doesNotMatch(list.textContent, /Определи свой уровень/);
+
+// Кнопка сразу запускает вопросы.
+context.startCyberLevelTest();
+assert.deepEqual(calls.slice(-2), [['navigate', 'onboarding'], ['quiz']]);
 
 context.startQuizFromTraining(2);
 assert.deepEqual(calls.at(-1), ['book', 2]);
