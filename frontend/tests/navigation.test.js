@@ -43,6 +43,7 @@ const context = {
   renderMyList: mark('mylist'),
   initDragAndDrop: mark('drag'),
   renderTrainingScreen: mark('training'),
+  renderLevelChoices: mark('levels'),
   renderProfile: mark('profile'),
   updateProfileXpDisplay: mark('xp'),
   renderAchievementsInProfile: mark('achievements'),
@@ -81,6 +82,11 @@ assert.equal(calls.at(-1), 'pending');
 assert.equal(context.state.currentScreen, 'auth');
 
 context.state.currentUser = { role: 'admin', is_approved: true };
+// Экран уровня всегда показывает карточки выбора и тест — раньше вход из
+// профиля и после регистрации давал пустой экран.
+const callsBeforeOnboarding = calls.length;
+context.navigateTo('onboarding');
+assert.ok(calls.slice(callsBeforeOnboarding).includes('levels'));
 context.navigateTo('home');
 assert.ok(dom.window.document.getElementById('fabSuperContainer').classList.contains('visible'));
 

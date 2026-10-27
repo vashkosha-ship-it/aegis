@@ -184,6 +184,10 @@ function navigateTo(s) {
   if (s === 'home') { renderHome(); renderRecommendations(); maybeStartOnboardingTour(); }
   if (s === 'mylist') { renderMyList(); initDragAndDrop(); }
   if (s === 'training') renderTrainingScreen();
+  // Экран уровня: карточки выбора и «Хочу узнать (тест)» рисуются при каждом
+  // показе. Раньше это делал не каждый вход (профиль, после регистрации),
+  // и человек видел пустой экран с одним «Пропустить».
+  if (s === 'onboarding' && typeof renderLevelChoices === 'function') renderLevelChoices();
   if (s === 'profile') { renderProfile(); updateProfileXpDisplay(); renderAchievementsInProfile(); renderHeatmap(); renderSkillsRadar(); renderMyCertificates(); }
   if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'assistant') { renderAssistantScreen(); }
