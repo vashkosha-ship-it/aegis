@@ -331,6 +331,17 @@ function certModalShell(inner) {
   return modal;
 }
 
+// Кнопки окна результата: диспетчер data-onclick вызывает одну функцию.
+function closeCertResult() {
+  closeCertModal();
+  renderMyCertificates();
+}
+
+function downloadCertificateAndClose(categoryValue) {
+  downloadCertificate(categoryValue);
+  closeCertResult();
+}
+
 function closeCertModal() {
   const m = document.getElementById('certModal');
   if (m) m.remove();
@@ -463,8 +474,8 @@ function showCertResult(score, category) {
       <h3 data-static-style="a173">Поздравляем!</h3>
       <p data-static-style="a169">Вы прошли аттестацию по теме<br><b data-static-style="a154">${eh(category)}</b></p>
       <p data-static-style="a174">${score}%</p>
-      <button data-onclick="downloadCertificate('${encodeURIComponent(category).replace(/'/g, '')}');closeCertModal();renderMyCertificates()" data-static-style="a175">Скачать сертификат</button>
-      <br><button data-onclick="closeCertModal();renderMyCertificates()" data-static-style="a176">Закрыть</button>
+      <button data-onclick="downloadCertificateAndClose('${encodeURIComponent(category).replace(/'/g, '')}')" data-static-style="a175">Скачать сертификат</button>
+      <br><button data-onclick="closeCertResult()" data-static-style="a176">Закрыть</button>
     </div>`);
 }
 

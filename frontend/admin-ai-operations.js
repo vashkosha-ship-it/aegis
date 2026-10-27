@@ -232,7 +232,7 @@ function showReindexProgress() {
   replaceAdminStaticMarkup(m, `<div data-static-style="a198">
     <div data-static-style="a126">
       <h3 data-static-style="a127">Индексация поиска</h3>
-      <button data-onclick="stopReindexPolling();document.getElementById('reindexProgressModal').remove()" data-static-style="a128">✕</button>
+      <button data-onclick="closeReindexProgress()" data-static-style="a128">✕</button>
     </div>
     <div id="reindexProgressBody">
       <div data-static-style="a199">Запуск…</div>
@@ -250,6 +250,13 @@ function showReindexProgress() {
 }
 
 let _reindexPollTimer = null;
+// Диспетчер data-onclick вызывает ровно одну функцию: цепочка через «;»
+// молча выполняла только первую, и крестик не закрывал окно.
+function closeReindexProgress() {
+  stopReindexPolling();
+  document.getElementById('reindexProgressModal')?.remove();
+}
+
 function stopReindexPolling() {
   if (_reindexPollTimer) { clearInterval(_reindexPollTimer); _reindexPollTimer = null; }
 }
