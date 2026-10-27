@@ -287,9 +287,8 @@ async def start_book_metadata_job(
     admin: User = Depends(get_current_admin),
 ) -> BookMetadataJobStart:
     """Проверить карточки всех книг: название, автор, теги (если их нет)."""
-    from app.models.book_metadata_job import BookMetadataJob
-
     from app.core.queue import enqueue_priority, get_queue
+    from app.models.book_metadata_job import BookMetadataJob
 
     active = await db.scalar(
         select(BookMetadataJob)
