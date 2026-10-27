@@ -257,8 +257,18 @@ async function startBulkUpload() {
     renderBulkUploadList();
 
     try {
-      const ext = item.file.name.split('.').pop().toLowerCase();
-      const format = (ext === 'epub') ? 'epub' : 'pdf';
+      // Формат — по содержимому файла, а не по расширению. Неподходящий
+      // файл отклоняем до создания карточки, чтобы не оставлять пустых.
+      item.message = 'Проверка файла...';
+      renderBulkUploadList();
+      const inspected = await inspectBookFile(item.file);
+      if (inspected.problem) {
+        item.status = 'error';
+        item.message = inspected.problem;
+        renderBulkUploadList();
+        continue;
+      }
+      const format = inspected.format;
       const meta = format === 'pdf' ? await readPdfMetadata(item.file) : {};
       const title = meta.title || titleFromFilename(item.file.name);
 
@@ -312,6 +322,8 @@ async function startBulkUpload() {
           renderBulkUploadList();
           continue;
         }
+        // Файл не принят — пустую карточку тоже убираем.
+        try { await api.books.delete(created.id); } catch (_) { /* не критично */ }
         throw uploadErr;
       }
       if (format !== 'epub') {

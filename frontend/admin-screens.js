@@ -219,7 +219,11 @@ function renderAdminBooks() {
       <button id="adminStorageAuditBtn" class="admin-tool admin-tool--quiet" title="Проверить файлы книг, обложек и аватаров">Хранилище</button>
       <button id="adminLogsBtn" class="admin-tool admin-tool--quiet" title="Журнал действий администраторов">Журнал</button>
     </div>
-    <input id="adminBooksSearch" class="admin-books-search" type="search" placeholder="Найти книгу по названию или автору" aria-label="Поиск книги" autocomplete="off">
+    <div class="admin-books-filters">
+      <input id="adminBooksSearch" class="admin-books-search" type="search" placeholder="Найти книгу по названию или автору" aria-label="Поиск книги" autocomplete="off">
+      <button id="adminBooksNoFileBtn" class="admin-tool admin-tool--quiet" type="button" hidden></button>
+      <button id="adminBooksDeleteEmptyBtn" class="admin-tool admin-tool--danger" type="button" hidden>Удалить все без файла</button>
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Книга</th><th>Автор</th><th>Категория</th><th>Формат</th><th>Индекс</th><th>Рейтинг</th><th>Действия</th></tr></thead>
@@ -250,6 +254,12 @@ function renderAdminBooks() {
       renderAdminBooksTable();
     }, 200);
   });
+  document.getElementById('adminBooksNoFileBtn').addEventListener('click', () => {
+    adminBooksOnlyEmpty = !adminBooksOnlyEmpty;
+    adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
+    renderAdminBooksTable();
+  });
+  document.getElementById('adminBooksDeleteEmptyBtn').addEventListener('click', deleteBooksWithoutFile);
   document.getElementById('adminBooksMoreBtn').addEventListener('click', () => {
     adminBooksVisible += ADMIN_BOOKS_PAGE_SIZE * 2;
     renderAdminBooksTable();
@@ -263,15 +273,58 @@ function renderAdminBooks() {
 const ADMIN_BOOKS_PAGE_SIZE = 50;
 let adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
 let adminBooksQuery = '';
+// Карточки без файла — обычно остатки неудачных загрузок.
+let adminBooksOnlyEmpty = false;
+
+function booksWithoutFile() {
+  return (state.books || []).filter(book => !book.has_file);
+}
+
+async function deleteBooksWithoutFile() {
+  const empty = booksWithoutFile();
+  if (!empty.length) return;
+  if (!confirm(`Удалить карточки без файла (${empty.length})? Это книги, к которым не загружен PDF или EPUB. Действие необратимо.`)) return;
+  const button = document.getElementById('adminBooksDeleteEmptyBtn');
+  if (button) button.disabled = true;
+  let deleted = 0;
+  let failed = 0;
+  for (const book of empty) {
+    try {
+      await api.books.delete(book.id);
+      deleted += 1;
+    } catch (_) {
+      failed += 1;
+    }
+    if (button) button.textContent = `Удаление… ${deleted + failed} из ${empty.length}`;
+  }
+  await loadBooksFromApi();
+  adminBooksOnlyEmpty = false;
+  renderAdminBooks();
+  showToast(`Удалено карточек: ${deleted}` + (failed ? ` · не удалось: ${failed}` : ''));
+}
 
 function renderAdminBooksTable() {
   const tbody = document.getElementById('adminBooksTableBody');
   if (!tbody) return;
   const query = adminBooksQuery.trim().toLowerCase();
+  const source = adminBooksOnlyEmpty ? booksWithoutFile() : (state.books || []);
   const books = query
-    ? (state.books || []).filter(book =>
+    ? source.filter(book =>
       `${book.title || ''} ${book.author || ''}`.toLowerCase().includes(query))
-    : (state.books || []);
+    : source;
+  const emptyCount = booksWithoutFile().length;
+  const noFileBtn = document.getElementById('adminBooksNoFileBtn');
+  if (noFileBtn) {
+    noFileBtn.hidden = emptyCount === 0 && !adminBooksOnlyEmpty;
+    noFileBtn.textContent = adminBooksOnlyEmpty ? 'Показать все книги' : `Без файла: ${emptyCount}`;
+    noFileBtn.classList.toggle('active', adminBooksOnlyEmpty);
+  }
+  const deleteEmptyBtn = document.getElementById('adminBooksDeleteEmptyBtn');
+  if (deleteEmptyBtn) {
+    deleteEmptyBtn.hidden = !adminBooksOnlyEmpty || emptyCount === 0;
+    deleteEmptyBtn.disabled = false;
+    deleteEmptyBtn.textContent = `Удалить все без файла (${emptyCount})`;
+  }
   const visible = books.slice(0, adminBooksVisible);
   renderAdminBookRows(tbody, visible);
   const shown = document.getElementById('adminBooksShown');
