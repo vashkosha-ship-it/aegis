@@ -335,8 +335,18 @@ async def _index_all_books() -> dict:
     indexed_books = 0
     indexed_pages = 0
     failed = 0
+    skipped = 0
 
     for book_id in book_ids:
+        # Книга больше не ждёт индексации: администратор остановил массовую
+        # переиндексацию (кнопка «Остановить») или книгу уже проиндексировала
+        # отдельная задача. Пропускаем — так остановка не требует убивать
+        # задачу в очереди.
+        async with AsyncSessionLocal() as db:
+            current = await db.scalar(select(Book.indexing_status).where(Book.id == book_id))
+        if current != "queued":
+            skipped += 1
+            continue
         try:
             pages = await _index_one(book_id)
             indexed_pages += pages
@@ -350,6 +360,7 @@ async def _index_all_books() -> dict:
         "indexed_books": indexed_books,
         "indexed_pages": indexed_pages,
         "failed": failed,
+        "skipped": skipped,
     }
     logger.info("Массовая индексация завершена: %s", result)
     return result

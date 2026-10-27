@@ -991,6 +991,44 @@ async def ai_match_ar_topics(
     return {"updated": updated, "total": len(books)}
 
 
+@router.post("/reindex/stop")
+async def stop_reindex_all(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> dict:
+    """Admin only: остановить массовую переиндексацию.
+
+    Книгам, у которых уже есть текст в поисковом индексе, возвращается статус
+    «проиндексирована» — массовая задача их пропустит, а поиск по ним как
+    работал, так и работает. Книги без текста остаются в очереди: их
+    индексация нужна (обычно это недавно загруженные).
+    """
+    from app.models.book_page import BookPage
+
+    has_text = select(BookPage.book_id).where(BookPage.book_id == Book.id).exists()
+    restored = await db.execute(
+        sa_update(Book)
+        .where(Book.indexing_status == "queued", has_text)
+        .values(
+            indexing_status="succeeded",
+            indexing_error=None,
+            indexing_finished_at=datetime.now(UTC),
+        )
+        .execution_options(synchronize_session=False)
+    )
+    still_queued = await db.scalar(
+        select(func.count()).select_from(Book).where(Book.indexing_status == "queued")
+    ) or 0
+    await log_admin_action(
+        db, admin, "books_reindex_stop", request=request, target="books:all",
+        detail=f"Массовая переиндексация остановлена: {restored.rowcount} книг уже с текстом, "
+               f"в очереди без текста осталось {still_queued}",
+    )
+    await db.commit()
+    return {"stopped": True, "restored": restored.rowcount or 0, "still_queued": still_queued}
+
+
 @router.get("/reindex/status")
 async def reindex_status(
     db: AsyncSession = Depends(get_db),
