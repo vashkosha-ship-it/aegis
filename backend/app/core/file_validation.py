@@ -13,7 +13,17 @@ from typing import BinaryIO
 # --- PDF --------------------------------------------------------------------
 
 PDF_MIME = "application/pdf"
-PDF_MAGIC = b"%PDF-"  # все валидные PDF начинаются с этого
+PDF_MAGIC = b"%PDF-"
+# Заголовок %PDF- обычно стоит в самом начале, но спецификация и все
+# читалки (Acrobat, pdf.js) допускают мусор перед ним в первых 1024 байтах:
+# так выглядят файлы с BOM, MacBinary-обёрткой или «приклеенным» заголовком
+# сайта-источника. Раньше такие книги отклонялись, хотя открываются везде.
+PDF_HEADER_SEARCH_BYTES = 1024
+# Браузер берёт тип файла из системы. На Windows без программы для PDF он
+# присылает octet-stream или пустую строку — решаем по содержимому.
+ALLOWED_PDF_MIMES = frozenset({
+    PDF_MIME, "application/x-pdf", "application/octet-stream", "binary/octet-stream",
+})
 
 # --- EPUB -------------------------------------------------------------------
 
@@ -43,20 +53,80 @@ class FileValidationError(ValueError):
 # --- проверки ---------------------------------------------------------------
 
 
-def validate_pdf_head(head: bytes, *, declared_mime: str | None) -> None:
-    """Проверить, что head — начало валидного PDF.
+# Что на самом деле лежит в файле с расширением .pdf — чтобы объяснить
+# администратору, что делать, а не просто «не PDF».
+_NOT_PDF_HINTS = {
+    "empty": "Файл пустой — скорее всего, он не докачался. Скачайте книгу заново.",
+    "html": "Это не PDF, а веб-страница: вместо книги сохранилась страница сайта "
+            "(ссылка истекла или скачивание не завершилось). Скачайте книгу заново.",
+    "djvu": "Это не PDF, а DjVu. Сконвертируйте файл в PDF и загрузите снова.",
+    "epub": "Это EPUB с расширением .pdf. Загрузите его как EPUB.",
+    "word": "Это документ Word, а не PDF. Сохраните его как PDF и загрузите снова.",
+    "mobi": "Это книга Kindle (MOBI/AZW), а не PDF. Сконвертируйте в PDF или EPUB.",
+    "chm": "Это справка CHM, а не PDF. Сконвертируйте в PDF.",
+    "rtf": "Это документ RTF, а не PDF. Сохраните его как PDF.",
+    "archive": "Это архив (ZIP/RAR/7z), а не PDF. Распакуйте его и загрузите книгу.",
+    "fb2": "Это книга FB2, а не PDF. Сконвертируйте в PDF или EPUB.",
+    "image": "Это картинка, а не PDF.",
+}
 
-    head: первые ≥5 байт файла, прочитанные ДО основной записи.
-    declared_mime: значение Content-Type из multipart-заголовка (для подсказки).
+
+def sniff_book_kind(head: bytes) -> str | None:
+    """Определить по первым байтам, что за файл. None — не узнали."""
+    if not head:
+        return "empty"
+    if PDF_MAGIC in head[:PDF_HEADER_SEARCH_BYTES]:
+        return "pdf"
+    if head.startswith(b"AT&TFORM"):
+        return "djvu"
+    if head.startswith(EPUB_ZIP_MAGIC):
+        if b"mimetypeapplication/epub+zip" in head[:200]:
+            return "epub"
+        if b"[Content_Types].xml" in head or b"word/" in head:
+            return "word"
+        return "archive"
+    if head.startswith((b"Rar!", b"7z\xbc\xaf\x27\x1c", b"\x1f\x8b")):
+        return "archive"
+    if head.startswith(b"\xd0\xcf\x11\xe0"):
+        return "word"
+    if len(head) >= 68 and head[60:68] in (b"BOOKMOBI", b"TEXtREAd"):
+        return "mobi"
+    if head.startswith(b"ITSF"):
+        return "chm"
+    if head.startswith(b"{\\rtf"):
+        return "rtf"
+    if head.startswith((b"\xff\xd8\xff", b"\x89PNG", b"GIF8")):
+        return "image"
+    text = head[:PDF_HEADER_SEARCH_BYTES].lstrip(b"\xef\xbb\xbf \t\r\n").lower()
+    if text.startswith((b"<!doctype html", b"<html", b"<head", b"<!--")) or b"<html" in text[:300]:
+        return "html"
+    if b"<fictionbook" in text:
+        return "fb2"
+    return None
+
+
+def validate_pdf_head(head: bytes, *, declared_mime: str | None) -> None:
+    """Проверить, что head — начало PDF.
+
+    head: первые байты файла (до PDF_HEADER_SEARCH_BYTES), прочитанные ДО
+    основной записи. declared_mime: Content-Type из multipart-заголовка.
     """
-    if declared_mime and declared_mime != PDF_MIME:
-        raise FileValidationError(
-            f"Expected {PDF_MIME}, got {declared_mime!r}"
+    if declared_mime and declared_mime not in ALLOWED_PDF_MIMES:
+        kind = sniff_book_kind(head)
+        if kind != "pdf":
+            raise FileValidationError(
+                _NOT_PDF_HINTS.get(kind or "", f"Это не PDF (тип файла {declared_mime}).")
+            )
+    kind = sniff_book_kind(head)
+    if kind == "pdf":
+        return
+    raise FileValidationError(
+        _NOT_PDF_HINTS.get(
+            kind or "",
+            "Файл не похож на PDF: в начале нет заголовка %PDF-. "
+            "Возможно, он повреждён или это другой формат.",
         )
-    if not head.startswith(PDF_MAGIC):
-        raise FileValidationError(
-            "File does not look like a PDF (missing %PDF- header)"
-        )
+    )
 
 
 def validate_epub_head(head: bytes, *, declared_mime: str | None) -> None:
@@ -66,7 +136,14 @@ def validate_epub_head(head: bytes, *, declared_mime: str | None) -> None:
             f"Expected {EPUB_MIME}, got {declared_mime!r}"
         )
     if not head.startswith(EPUB_ZIP_MAGIC):
-        raise FileValidationError("File does not look like an EPUB (missing ZIP header)")
+        kind = sniff_book_kind(head)
+        if kind == "pdf":
+            raise FileValidationError("Это PDF с расширением .epub. Загрузите его как PDF.")
+        hint = _NOT_PDF_HINTS.get(kind or "")
+        raise FileValidationError(
+            hint.replace("не PDF", "не EPUB") if hint else
+            "Файл не похож на EPUB: это не ZIP-архив. Возможно, он повреждён."
+        )
 
 
 def validate_epub_archive(

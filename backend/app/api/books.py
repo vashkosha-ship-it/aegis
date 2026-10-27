@@ -77,6 +77,8 @@ async def _get_book_or_404(db: AsyncSession, book_id: int) -> Book:
 # Размер «головы» файла, который читаем для magic-bytes проверки.
 # 16 байт хватает на любой формат, что мы поддерживаем.
 _MAGIC_HEAD_BYTES = 16
+# PDF: заголовок %PDF- ищем в первых 1024 байтах (см. file_validation).
+_PDF_HEAD_BYTES = 1024
 
 
 async def _clear_book_index(db: AsyncSession, book: Book) -> None:
@@ -572,7 +574,7 @@ async def upload_book_pdf(
     book = await _get_book_or_404(db, book_id)
 
     # 1) Magic-bytes проверка ДО записи. Читаем «голову», потом стримим остаток.
-    head = await file.read(_MAGIC_HEAD_BYTES)
+    head = await file.read(_PDF_HEAD_BYTES)
     try:
         validate_pdf_head(head, declared_mime=file.content_type)
     except FileValidationError as e:

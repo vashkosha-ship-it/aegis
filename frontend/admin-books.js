@@ -579,7 +579,9 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
   if (!adminBookModalCurrentId) return;
   const file = document.getElementById('adminBookFileInput').files[0];
   if (!file) return showToast('Выберите файл книги');
-  const maxMb = _bookSizeLimitMb(detectFileFormat(file));
+  const inspected = await inspectBookFile(file);
+  if (inspected.problem) return showToast(inspected.problem);
+  const maxMb = _bookSizeLimitMb(inspected.format);
   if (file.size > maxMb * 1024 * 1024) return showToast(`Файл больше ${maxMb} МБ`);
 
   const btn = document.getElementById('adminUploadFileBtn');
@@ -587,7 +589,7 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
   btn.textContent = '...';
 
   try {
-    const format = detectFileFormat(file);
+    const format = inspected.format;
     let uploadResult;
     if (format === 'epub') {
       uploadResult = await api.books.uploadEpub(adminBookModalCurrentId, file);
@@ -746,7 +748,9 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
   const coverFile = document.getElementById('newCover').files[0];
   const bookFile = document.getElementById('newBookFile').files[0];
 
-  const MAX_FILE_MB = bookFile ? _bookSizeLimitMb(detectFileFormat(bookFile)) : 0, MAX_COVER_MB = 5;
+  const inspected = bookFile ? await inspectBookFile(bookFile) : { format: 'pdf' };
+  if (inspected.problem) return showToast(inspected.problem);
+  const MAX_FILE_MB = bookFile ? _bookSizeLimitMb(inspected.format) : 0, MAX_COVER_MB = 5;
   if (bookFile && bookFile.size > MAX_FILE_MB * 1024 * 1024) return showToast(`Файл книги больше ${MAX_FILE_MB} МБ`);
   if (coverFile && coverFile.size > MAX_COVER_MB * 1024 * 1024) return showToast(`Обложка больше ${MAX_COVER_MB} МБ`);
 
@@ -763,7 +767,7 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
       showToast(duplicateMessage(existing) + ' — книга не добавлена');
       return;
     }
-    const format = detectFileFormat(bookFile);
+    const format = inspected.format;
     const created = await api.books.create({
       title: t,
       author: a,
@@ -789,7 +793,10 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
           showToast(String(err.detail || 'Такая книга уже есть') + ' — книга не добавлена');
           return;
         }
-        showToast('Не удалось загрузить файл: ' + (err.detail || err.message));
+        // Без файла карточка в каталоге бесполезна — убираем её.
+        try { await api.books.delete(newId); } catch (_) { /* не критично */ }
+        showToast('Книга не добавлена: ' + (err.detail || err.message));
+        return;
       }
     }
 
