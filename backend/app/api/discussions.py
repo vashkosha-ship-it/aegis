@@ -24,10 +24,12 @@ def _author(u: User, current: User) -> CommentAuthor:
         and u.id != current.id
         and current.role.value != "admin"
     )
+    # ФИО видит только администратор (и сам автор); остальным — логин.
+    show_name = not hidden and (u.id == current.id or current.role.value == "admin")
     return CommentAuthor(
         id=0 if hidden else u.id,
         username="Скрытый пользователь" if hidden else u.username,
-        full_name=None if hidden else u.full_name,
+        full_name=u.full_name if show_name else None,
         has_avatar=False if hidden else bool(u.avatar_url or u.avatar_preset),
     )
 
