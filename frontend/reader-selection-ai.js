@@ -1,4 +1,24 @@
 // ========== TEXT SELECTION ==========
+// Положение выделения в процентах от области страницы (как хранится в
+// заметках). null — если выделение пустое или вне страницы.
+function selectionPositionPercent(range) {
+  const v = document.getElementById('pdfViewport');
+  if (!v || !range) return null;
+  const r = range.getBoundingClientRect();
+  if (!r || r.width <= 0 || r.height <= 0) return null;
+  const vr = v.getBoundingClientRect();
+  const width = v.scrollWidth || vr.width;
+  const height = v.scrollHeight || vr.height;
+  if (!width || !height) return null;
+  const clamp = value => Math.min(100, Math.max(0, value));
+  const x = clamp((r.left - vr.left + v.scrollLeft) / width * 100);
+  const y = clamp((r.top - vr.top + v.scrollTop) / height * 100);
+  const w = Math.min(100 - x, r.width / width * 100);
+  const h = Math.min(100 - y, r.height / height * 100);
+  if (w <= 0 || h <= 0) return null;
+  return { x, y, w, h };
+}
+
 function isTouchSelectionDevice() {
   return Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 }
@@ -8,7 +28,15 @@ function showSelectionToolbar() {
   const s = window.getSelection();
   const selectedText = s ? s.toString().trim() : '';
   if (selectedText && selectedText.length > 0 && s.rangeCount > 0) {
-    lastSelection = { text: selectedText, range: s.getRangeAt(0) };
+    const liveRange = s.getRangeAt(0);
+    // Положение запоминаем сразу: на телефоне выделение снимается в момент
+    // нажатия на кнопку панели, и размеры «живого» выделения становятся
+    // нулевыми — сервер отвечал ошибкой «position.w should be greater than 0».
+    lastSelection = {
+      text: selectedText,
+      range: typeof liveRange.cloneRange === 'function' ? liveRange.cloneRange() : liveRange,
+      position: selectionPositionPercent(liveRange),
+    };
     const toolbar = document.getElementById('selectionToolbar');
     const r = s.getRangeAt(0).getBoundingClientRect();
     const v = document.getElementById('pdfViewport').getBoundingClientRect();
@@ -159,14 +187,13 @@ function summarizeCurrentChapter() {
 
 function highlightSelection(color) {
   if (!lastSelection || !currentBookId || isEpubMode) return;
-  const v = document.getElementById('pdfViewport');
-  const vr = v.getBoundingClientRect();
-  const r = lastSelection.range.getBoundingClientRect();
+  const position = lastSelection.position || selectionPositionPercent(lastSelection.range);
+  if (!position) {
+    showToast('Выделите текст ещё раз');
+    return;
+  }
   addHighlight(currentBookId, lastSelection.text, pdfCurrentPage, {
-    x: (r.left - vr.left) / v.scrollWidth * 100,
-    y: (r.top - vr.top) / v.scrollHeight * 100,
-    w: r.width / v.scrollWidth * 100,
-    h: r.height / v.scrollHeight * 100,
+    ...position,
     color: color || '#fbbf24',
   });
   document.getElementById('selectionToolbar').style.display = 'none';
@@ -178,7 +205,6 @@ function highlightSelection(color) {
 function addNoteToSelection() {
   if (!lastSelection || !currentBookId || isEpubMode) return;
   const sel = lastSelection;  // фиксируем выделение, т.к. модалка асинхронная
-  const v = document.getElementById('pdfViewport');
   const page = pdfCurrentPage;
   document.getElementById('selectionToolbar').style.display = 'none';
   showPromptModal({
@@ -187,14 +213,12 @@ function addNoteToSelection() {
     confirmText: 'Сохранить',
     onConfirm: (n) => {
       if (!n) return;
-      const vr = v.getBoundingClientRect();
-      const r = sel.range.getBoundingClientRect();
-      addNote(currentBookId, sel.text, n, page, {
-        x: (r.left - vr.left) / v.scrollWidth * 100,
-        y: (r.top - vr.top) / v.scrollHeight * 100,
-        w: r.width / v.scrollWidth * 100,
-        h: r.height / v.scrollHeight * 100,
-      });
+      const position = sel.position || selectionPositionPercent(sel.range);
+      if (!position) {
+        showToast('Выделите текст ещё раз');
+        return;
+      }
+      addNote(currentBookId, sel.text, n, page, position);
       window.getSelection().removeAllRanges();
       showToast('Заметка сохранена');
     },
