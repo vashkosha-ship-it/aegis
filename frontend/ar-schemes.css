@@ -67,3 +67,7 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
   #arSchemeRoot #arStageDetailTitle { padding-left:44px; }
   #arSchemeRoot > [data-static-style="a009"] { top:62px; flex-direction:row; }
 }
+
+/* Шапка панели этапа закреплена сверху при прокрутке. Фон был «inherit»
+   от полупрозрачной панели — прокрученный текст просвечивал сквозь шапку. */
+#arStageDetails > :first-child { background:#0b0b0d; z-index:3; box-shadow:0 6px 14px rgba(0,0,0,.45); }

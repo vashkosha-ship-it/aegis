@@ -23,8 +23,9 @@ Object.defineProperties(viewport, {
 });
 viewport.getBoundingClientRect = () => ({ left: 10, top: 20, width: 500, height: 800 });
 
+let rangeRect = { left: 110, top: 220, width: 100, height: 40 };
 const range = {
-  getBoundingClientRect: () => ({ left: 110, top: 220, width: 100, height: 40 }),
+  getBoundingClientRect: () => rangeRect,
 };
 const selection = {
   rangeCount: 1,
@@ -70,8 +71,21 @@ vm.runInContext(source, context);
   assert.equal(context.lastSelection.text, 'Zero Trust');
   assert.equal(dom.window.document.getElementById('selectionToolbar').style.display, 'flex');
 
+  // На телефоне выделение снимается при нажатии на кнопку панели: размеры
+  // «живого» выделения становятся нулевыми. Берём запомненное положение.
+  rangeRect = { left: 0, top: 0, width: 0, height: 0 };
   context.highlightSelection('#10b981');
   assert.equal(highlights.length, 1);
+  assert.deepEqual(
+    { x: highlights[0][3].x, y: highlights[0][3].y, w: highlights[0][3].w, h: highlights[0][3].h },
+    { x: 20, y: 25, w: 20, h: 5 },
+  );
+  // Без запомненного положения и с пустым выделением — просим выделить снова.
+  context.lastSelection = { text: 'пусто', range };
+  context.highlightSelection('#10b981');
+  assert.equal(highlights.length, 1);
+  assert.ok(toasts.includes('Выделите текст ещё раз'));
+  rangeRect = { left: 110, top: 220, width: 100, height: 40 };
   assert.equal(highlights[0][0], 7);
   assert.equal(highlights[0][2], 4);
   assert.equal(highlights[0][3].color, '#10b981');

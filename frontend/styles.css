@@ -704,7 +704,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   padding: 8px;
   gap: 8px;
 }
-.selection-toolbar.is-docked button { min-height: 38px; min-width: 38px; font-size: 13px; }
+/* Кружки цвета маркера: общее правило .selection-toolbar button перекрашивало
+   их в фон панели, и вместо цветов были чёрные квадраты. */
+.selection-toolbar button.static-style-071 { background: #fbbf24; border-radius: 50%; padding: 0; }
+.selection-toolbar button.static-style-072 { background: #10b981; border-radius: 50%; padding: 0; }
+.selection-toolbar button.static-style-073 { background: #ec4899; border-radius: 50%; padding: 0; }
+.selection-toolbar.is-docked button { min-height: 38px; font-size: 13px; }
+.selection-toolbar.is-docked button.static-style-071,
+.selection-toolbar.is-docked button.static-style-072,
+.selection-toolbar.is-docked button.static-style-073 { width: 34px; height: 34px; min-height: 0; flex: 0 0 auto; }
+.selection-toolbar.is-docked { max-width: min(420px, calc(100vw - 24px)); flex-wrap: wrap; align-items: center; }
 
 /* EPUB viewport */
 .epub-viewport {

@@ -41,6 +41,9 @@ function openReader(id) {
     btnHighlight.appendChild(label);
   }
   if (btnNote && !btnNote.querySelector('svg')) {
+    // В разметке у кнопки уже есть текст «Заметка» — без очистки подпись
+    // дублировалась: «Заметка 📄 Заметка».
+    btnNote.textContent = '';
     appendTrustedIcon(btnNote, ICONS.note);
     const label = document.createElement('span');
     label.textContent = 'Заметка';
