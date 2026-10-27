@@ -90,6 +90,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 function closeReader() {
+  // Первым делом останавливаем отрисовку: иначе тяжёлая страница продолжает
+  // декодироваться и выход из книги «зависает».
+  if (!isEpubMode && typeof stopPdfRendering === 'function') stopPdfRendering();
   setReaderFocusMode(false);
   closeReaderToolbarMenu();
   hideEpubSelectionPopup();

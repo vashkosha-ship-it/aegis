@@ -27,9 +27,17 @@ function renderTrainingScreen() {
   if (state.trainingTab === 'completed') f = all.filter(t => t.completed);
   if (state.trainingTab === 'pending') f = all.filter(t => !t.completed);
 
-  // Блок «Тест уровня кибербезопасности» — только на вкладке «Пройдено»
+  // Блок «Тест уровня кибербезопасности»: всегда первым на «Все тесты»,
+  // на «Не пройдено» — пока уровень не определён, на «Пройдено» — после.
+  // Раньше блок был только на «Пройдено», и непрошедшие его не находили.
   let cyberLevelBlock = '';
-  if (state.trainingTab === 'completed' && state.currentUser) {
+  const hasLevel = Boolean(state.currentUser && state.currentUser.cyber_level);
+  const showLevelBlock = state.currentUser && (
+    state.trainingTab === 'all'
+    || (state.trainingTab === 'completed' && hasLevel)
+    || (state.trainingTab === 'pending' && !hasLevel)
+  );
+  if (showLevelBlock) {
     const lvl = state.currentUser.cyber_level;
     if (lvl) {
       const info = getCyberLevelInfo(lvl);
@@ -47,7 +55,7 @@ function renderTrainingScreen() {
           </div>
           <div data-static-style="a108">
             <button data-onclick="openCyberLevelModal()" data-static-style="a329">Подробнее</button>
-            <button data-onclick="restartOnboardingFromTraining()" data-static-style="a330">Пройти заново</button>
+            <button data-onclick="startCyberLevelTest()" data-static-style="a330">Пройти заново</button>
           </div>
         </div>
       `;
@@ -65,7 +73,7 @@ function renderTrainingScreen() {
           <div data-static-style="a328">
             20 вопросов из 5 тем кибербезопасности. Узнай, где у тебя пробелы и что подтянуть.
           </div>
-          <button data-onclick="restartOnboardingFromTraining()" data-static-style="a331">Пройти тест уровня</button>
+          <button data-onclick="startCyberLevelTest()" data-static-style="a331">Пройти тест уровня</button>
         </div>
       `;
     }
@@ -101,6 +109,17 @@ function restartOnboardingFromTraining() {
   document.getElementById('onboardingResult').classList.add('hidden');
   document.getElementById('onboardingQuiz').classList.add('hidden');
   document.getElementById('onboardingWelcome').classList.remove('hidden');
+}
+
+// Тест уровня из раздела «Тестирование»: сразу к вопросам, без экрана
+// выбора «знаю свой уровень / хочу тест».
+function startCyberLevelTest() {
+  if (state.currentUser && state.currentUser.cyber_level) {
+    if (!confirm('Пройти тест заново? Текущий результат будет заменён новым.')) return;
+  }
+  navigateTo('onboarding');
+  document.getElementById('onboardingResult').classList.add('hidden');
+  startOnboardingQuiz();
 }
 
 function startQuizFromTraining(bid) {

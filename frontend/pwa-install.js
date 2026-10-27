@@ -119,6 +119,21 @@ function showAndroidInstallInstructions() {
   m.replaceChildren(panel);
 }
 
+// Браузер на iPhone, отличный от Safari: Chrome (CriOS), Firefox (FxiOS),
+// Яндекс, Edge, встроенные браузеры Telegram/Instagram и т.п. В старых iOS
+// на экран «Домой» добавляет только Safari, в новых — не все браузеры.
+function iosBrowserName() {
+  const ua = navigator.userAgent || '';
+  if (/CriOS/i.test(ua)) return 'Chrome';
+  if (/FxiOS/i.test(ua)) return 'Firefox';
+  if (/YaBrowser/i.test(ua)) return 'Яндекс Браузер';
+  if (/EdgiOS/i.test(ua)) return 'Edge';
+  if (/OPiOS|OPT\//i.test(ua)) return 'Opera';
+  if (/Telegram|Instagram|FBAN|FBAV|VK|Line\//i.test(ua)) return 'встроенный браузер приложения';
+  if (!/Safari/i.test(ua)) return 'встроенный браузер приложения';
+  return null;
+}
+
 function showIOSInstallInstructions() {
   let m = document.getElementById('iosInstallModal');
   if (!m) {
@@ -129,13 +144,21 @@ function showIOSInstallInstructions() {
   }
   const panel = installNode('div', undefined, 'a518');
   panel.appendChild(installNode('div', 'Установка на iPhone/iPad', 'a519'));
-  const steps = installNode('p', undefined, 'a520');
+  const browser = iosBrowserName();
+  if (browser) {
+    panel.appendChild(installNode(
+      'p',
+      `Сейчас сайт открыт в: ${browser}. Пункт «На экран «Домой»» надёжно есть только в Safari — `
+        + 'скопируйте адрес сайта и откройте его в Safari.',
+      'a514',
+    ));
+  }
+  const steps = installNode('ol', undefined, 'a515');
   steps.append(
-    document.createTextNode('1. Нажмите кнопку «Поделиться» '),
-    installNode('span', '⬆️', 'a521'),
-    document.createTextNode(' внизу Safari'), document.createElement('br'),
-    document.createTextNode('2. Выберите «На экран Домой»'), document.createElement('br'),
-    document.createTextNode('3. Нажмите «Добавить»'),
+    installInstructionItem(['Откройте сайт в ', { strong: 'Safari' }, ' (не в режиме «Частный доступ»)']),
+    installInstructionItem(['Нажмите ', { strong: '«Поделиться»' }, ' — квадрат со стрелкой вверх внизу экрана. В iOS 26 она в меню ', { strong: '•••' }, ' справа от адреса']),
+    installInstructionItem(['Пролистайте список действий вниз и выберите ', { strong: '«На экран «Домой»»' }, '. Если его нет — нажмите ', { strong: '«Ещё»' }, ' или ', { strong: '«Редактировать действия»' }, ' и добавьте его']),
+    installInstructionItem(['Нажмите ', { strong: '«Добавить»' }, ' — значок Aegis появится на экране «Домой»']),
   );
   const close = installNode('button', 'Понятно', 'a517');
   close.addEventListener('click', () => m.remove());
