@@ -170,8 +170,8 @@ async def test_start_job_enqueues_all_books(client, db, admin_user, monkeypatch)
         job_id = "arq-1"
 
     class Queue:
-        async def enqueue_job(self, name, *args):
-            enqueued.append((name, args))
+        async def enqueue_job(self, name, *args, **kwargs):
+            enqueued.append((name, args, kwargs))
             return Job()
 
     async def get_queue():
@@ -185,9 +185,14 @@ async def test_start_job_enqueues_all_books(client, db, admin_user, monkeypatch)
     assert body["started"] is True
     assert enqueued[0][0] == "review_book_metadata_bulk"
     assert len(enqueued[0][1][1]) == body["job"]["total_books"] >= 1
+    # В начало очереди: score из прошлого, раньше всей индексации.
+    assert enqueued[0][2]["_defer_until"].year == 2000
 
+    # Не начавшуюся задачу повторный запуск поднимает в начало очереди.
     again = await client.post("/admin/book-metadata/jobs", headers=auth_headers(admin_user))
-    assert again.json()["reason"] == "already_running"
+    assert again.json()["reason"] == "requeued"
+    assert again.json()["job"]["id"] == body["job"]["id"]
+    assert len(enqueued) == 2 and enqueued[1][1][0] == body["job"]["id"]
 
     latest = await client.get("/admin/book-metadata/jobs/latest", headers=auth_headers(admin_user))
     assert latest.json()["status"] == "queued"
@@ -224,3 +229,24 @@ async def test_worker_counts_outcomes(db, engine, monkeypatch):
     assert (job.status, job.processed_books, job.changed_books, job.failed_books) == (
         "completed", 3, 1, 1,
     )
+
+
+@pytest.mark.asyncio
+async def test_worker_skips_duplicate_copy_of_job(db, engine, monkeypatch):
+    """Старая копия задачи после подъёма в начало очереди ничего не делает."""
+    from app import worker
+
+    db.add(BookMetadataJob(
+        id="job-done", status="completed", total_books=1, processed_books=1,
+        changed_books=0, skipped_books=0, failed_books=0, created_by_username="admin",
+    ))
+    await db.commit()
+    called = AsyncMock()
+    monkeypatch.setattr(worker, "review_and_fix_book", called)
+    maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    monkeypatch.setattr(worker, "AsyncSessionLocal", maker)
+
+    result = await worker.review_book_metadata_bulk({}, "job-done", [1])
+
+    assert result == {"job_id": "job-done", "skipped": "completed"}
+    called.assert_not_awaited()

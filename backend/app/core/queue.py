@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 
 from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings
@@ -62,3 +63,15 @@ async def close_queue() -> None:
     if _pool is not None:
         await _pool.aclose()
         _pool = None
+
+
+# ARQ берёт задачи по времени постановки (score в sorted set). Задача, которую
+# запустил администратор, иначе ждёт за всеми книгами в очереди на
+# индексацию — при массовой загрузке это часы. Время «в прошлом» ставит её
+# в начало очереди; индексация продолжится во втором слоте воркера.
+PRIORITY_SCORE_TIME = datetime(2000, 1, 1, tzinfo=UTC)
+
+
+async def enqueue_priority(queue, function: str, *args):
+    """Поставить задачу в начало очереди."""
+    return await queue.enqueue_job(function, *args, _defer_until=PRIORITY_SCORE_TIME)
