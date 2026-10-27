@@ -187,6 +187,8 @@ async def test_start_job_enqueues_all_books(client, db, admin_user, monkeypatch)
     assert len(enqueued[0][1][1]) == body["job"]["total_books"] >= 1
     # В начало очереди: score из прошлого, раньше всей индексации.
     assert enqueued[0][2]["_defer_until"].year == 2000
+    # Без явного срока ARQ посчитал бы отрицательный TTL — Redis вернёт ошибку.
+    assert enqueued[0][2]["_expires"].total_seconds() > 0
 
     # Не начавшуюся задачу повторный запуск поднимает в начало очереди.
     again = await client.post("/admin/book-metadata/jobs", headers=auth_headers(admin_user))
