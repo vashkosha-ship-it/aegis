@@ -119,8 +119,10 @@ function renderBookIndexStatus(data, hasFile = true) {
     output.title = data.error ? String(data.error) : '';
   }
   if (retry) {
-    const status = data.status || data.indexing_status || 'not_indexed';
-    retry.disabled = !hasFile || status === 'queued' || status === 'running';
+    // Кнопка доступна и для книг «в очереди»: после массовой индексации
+    // очередь бывает в тысячи задач, а ручной запуск ставит книгу первой.
+    // Статус «индексируется» тоже может зависнуть, если воркер перезапустили.
+    retry.disabled = !hasFile;
   }
 }
 

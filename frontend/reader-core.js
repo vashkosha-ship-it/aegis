@@ -3,6 +3,7 @@
 
 async function loadEpub(b) {
   isEpubMode = true;
+  if (typeof updatePdfZoomControls === 'function') updatePdfZoomControls();
   document.getElementById('pdfViewport').classList.add('hidden');
   document.getElementById('epubViewport').classList.remove('hidden');
   document.getElementById('annotationLayer').replaceChildren();
@@ -621,6 +622,7 @@ async function renderPdfPage(pn) {
   // Увеличение щипком: страница шире экрана, по ней можно водить пальцем.
   if (pdfZoom > 1) targetWidth = Math.floor(targetWidth * pdfZoom);
   container.classList.toggle('is-zoomed', pdfZoom > 1);
+  if (typeof updatePdfZoomControls === 'function') updatePdfZoomControls();
 
   // Плотность выше 2 на глаз не отличается, а память на телефоне съедает
   // втрое (страница в кэше при 3x — около 60 МБ).

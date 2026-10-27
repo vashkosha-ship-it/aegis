@@ -142,7 +142,7 @@ function appendAdminIndexStatusCell(row, book) {
   status.textContent = bookIndexStatusText(book);
   cell.appendChild(status);
   const retryable = (book.has_pdf || book.has_epub)
-    && ['failed', 'not_indexed'].includes(book.indexing_status || 'not_indexed');
+    && (book.indexing_status || 'not_indexed') !== 'succeeded';
   if (retryable) {
     const retry = document.createElement('button');
     retry.type = 'button';

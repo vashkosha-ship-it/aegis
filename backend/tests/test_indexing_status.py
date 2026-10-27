@@ -28,8 +28,13 @@ async def test_reindex_persists_queued_status_and_admin_can_read_it(
         job_id = "persistent-index-job"
 
     class Queue:
-        async def enqueue_job(self, name, book_id):
+        async def enqueue_job(self, name, book_id, **kwargs):
             assert (name, book_id) == ("index_book", book.id)
+            # Ручная переиндексация встаёт в начало очереди, а не за
+            # тысячами задач массовой индексации.
+            from app.core.queue import PRIORITY_SCORE_TIME
+
+            assert kwargs.get("_defer_until") == PRIORITY_SCORE_TIME
             return Job()
 
     async def get_queue():

@@ -21,8 +21,8 @@ function initReaderGestures() {
 
   const tapLeft = document.getElementById('tapZoneLeft');
   const tapRight = document.getElementById('tapZoneRight');
-  if (tapLeft) tapLeft.onclick = () => goToPrevPage();
-  if (tapRight) tapRight.onclick = () => goToNextPage();
+  if (tapLeft) tapLeft.onclick = () => { if (!pdfPinch.recent) goToPrevPage(); };
+  if (tapRight) tapRight.onclick = () => { if (!pdfPinch.recent) goToNextPage(); };
 
   const arrowLeft = document.getElementById('readerArrowLeft');
   const arrowRight = document.getElementById('readerArrowRight');
@@ -131,8 +131,12 @@ function initPdfPinchZoom() {
   const viewport = document.getElementById('pdfViewport');
   if (!viewport || viewport.dataset.pinchReady) return;
   viewport.dataset.pinchReady = '1';
+  // Щипок слушаем на всей зоне читалки: поверх страницы лежат невидимые
+  // зоны перелистывания, и касания по ним до самой страницы не доходили.
+  const zone = document.getElementById('readerGestureZone') || viewport;
+  initPdfZoomControls();
 
-  viewport.addEventListener('touchstart', e => {
+  zone.addEventListener('touchstart', e => {
     if (isEpubMode || e.touches.length !== 2) return;
     const canvas = document.getElementById('pdfCanvas');
     const rect = canvas.getBoundingClientRect();
@@ -146,7 +150,7 @@ function initPdfPinchZoom() {
     canvas.style.transformOrigin = `${pdfPinch.originX}px ${pdfPinch.originY}px`;
   }, { passive: true });
 
-  viewport.addEventListener('touchmove', e => {
+  zone.addEventListener('touchmove', e => {
     if (!pdfPinch.active || e.touches.length !== 2) return;
     e.preventDefault();
     const target = Math.min(PDF_ZOOM_MAX, Math.max(PDF_ZOOM_MIN, pdfPinch.startZoom * _pinchDistance(e.touches) / pdfPinch.startDist));
@@ -178,21 +182,84 @@ function initPdfPinchZoom() {
     if (textLayer) textLayer.style.visibility = '';
     viewport.scrollLeft = Math.max(0, canvas.offsetLeft + anchorX - screenX);
     viewport.scrollTop = Math.max(0, canvas.offsetTop + anchorY - screenY);
+    updatePdfZoomControls();
   };
-  viewport.addEventListener('touchend', e => { if (e.touches.length < 2) finish(); }, { passive: true });
-  viewport.addEventListener('touchcancel', finish, { passive: true });
+  zone.addEventListener('touchend', e => { if (e.touches.length < 2) finish(); }, { passive: true });
+  zone.addEventListener('touchcancel', finish, { passive: true });
 
   // Двойное касание: увеличить вдвое / вернуть по ширине экрана.
   let lastTap = 0;
-  viewport.addEventListener('touchend', e => {
+  zone.addEventListener('touchend', e => {
     if (isEpubMode || e.touches.length || e.changedTouches.length !== 1) return;
     const now = Date.now();
     if (now - lastTap < 300) {
       lastTap = 0;
-      pdfZoom = pdfZoom > 1 ? 1 : 2;
-      renderPdfPage(pdfCurrentPage);
+      setPdfZoom(pdfZoom > 1 ? 1 : 2);
     } else {
       lastTap = now;
     }
   }, { passive: true });
+}
+
+// Кнопки масштаба: на ПК щипка нет, а на телефоне не все знают про жест.
+const PDF_ZOOM_STEPS = [1, 1.25, 1.5, 2, 2.5, 3];
+
+function updatePdfZoomControls() {
+  const controls = document.getElementById('pdfZoomControls');
+  if (!controls) return;
+  controls.hidden = Boolean(isEpubMode);
+  const label = document.getElementById('pdfZoomLabel');
+  if (label) label.textContent = Math.round(pdfZoom * 100) + '%';
+  const out = document.getElementById('pdfZoomOut');
+  const inc = document.getElementById('pdfZoomIn');
+  if (out) out.disabled = pdfZoom <= PDF_ZOOM_MIN;
+  if (inc) inc.disabled = pdfZoom >= PDF_ZOOM_MAX;
+  const zone = document.getElementById('readerGestureZone');
+  if (zone) zone.classList.toggle('is-pdf-zoomed', !isEpubMode && pdfZoom > 1);
+}
+
+async function setPdfZoom(zoom) {
+  if (isEpubMode) return;
+  const next = Math.min(PDF_ZOOM_MAX, Math.max(PDF_ZOOM_MIN, Math.round(zoom * 100) / 100));
+  const viewport = document.getElementById('pdfViewport');
+  // Сохраняем центр видимой области, чтобы страница не прыгала в угол.
+  let cx = 0.5;
+  let cy = 0;
+  if (viewport && viewport.scrollWidth > 0) {
+    cx = (viewport.scrollLeft + viewport.clientWidth / 2) / viewport.scrollWidth;
+    cy = viewport.scrollHeight > 0 ? viewport.scrollTop / viewport.scrollHeight : 0;
+  }
+  pdfZoom = next;
+  await renderPdfPage(pdfCurrentPage);
+  if (viewport) {
+    viewport.scrollLeft = Math.max(0, cx * viewport.scrollWidth - viewport.clientWidth / 2);
+    viewport.scrollTop = Math.max(0, cy * viewport.scrollHeight);
+  }
+  updatePdfZoomControls();
+}
+
+function pdfZoomIn() {
+  const next = PDF_ZOOM_STEPS.find(step => step > pdfZoom + 0.01);
+  setPdfZoom(next || PDF_ZOOM_MAX);
+}
+
+function pdfZoomOut() {
+  const smaller = PDF_ZOOM_STEPS.filter(step => step < pdfZoom - 0.01);
+  setPdfZoom(smaller.length ? smaller[smaller.length - 1] : PDF_ZOOM_MIN);
+}
+
+function initPdfZoomControls() {
+  const controls = document.getElementById('pdfZoomControls');
+  if (!controls || controls.dataset.ready) return;
+  controls.dataset.ready = '1';
+  document.getElementById('pdfZoomIn')?.addEventListener('click', pdfZoomIn);
+  document.getElementById('pdfZoomOut')?.addEventListener('click', pdfZoomOut);
+  document.getElementById('pdfZoomReset')?.addEventListener('click', () => setPdfZoom(1));
+  const viewport = document.getElementById('pdfViewport');
+  // Ctrl + колесо мыши (и щипок на тачпаде) — масштаб страницы, а не всего сайта.
+  viewport?.addEventListener('wheel', e => {
+    if (!e.ctrlKey || isEpubMode) return;
+    e.preventDefault();
+    if (e.deltaY < 0) pdfZoomIn(); else pdfZoomOut();
+  }, { passive: false });
 }

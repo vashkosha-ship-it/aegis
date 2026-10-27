@@ -60,6 +60,16 @@ function showEpubSelectionPopup(selectedText, cfiRange, x, y, contents) {
   note.appendChild(noteLabel);
   popup.append(highlight, note);
 
+  // На телефоне над выделением появляется системное меню и перекрывает
+  // кнопки — переносим панель вниз экрана.
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    popup.style.left = '50%';
+    popup.style.top = 'auto';
+    popup.style.bottom = 'calc(env(safe-area-inset-bottom, 0px) + 76px)';
+    popup.style.transform = 'translateX(-50%)';
+    popup.style.padding = '8px';
+    popup.style.gap = '8px';
+  }
   document.body.appendChild(popup);
   epubSelectionPopup = popup;
 

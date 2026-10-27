@@ -80,6 +80,35 @@ function renderSettingsPersonalizationTab(c) {
     accentChoices.appendChild(button);
   });
 
+  let appIconChoices = null;
+  if (typeof APP_ICONS !== 'undefined' && typeof getAppIcon === 'function') {
+    const currentIcon = getAppIcon();
+    appIconChoices = document.createElement('div');
+    appIconChoices.className = 'accent-choices app-icon-choices';
+    appIconChoices.setAttribute('role', 'radiogroup');
+    appIconChoices.setAttribute('aria-label', 'Значок приложения');
+    APP_ICONS.forEach(item => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'accent-choice app-icon-choice' + (currentIcon === item.id ? ' active' : '');
+      button.setAttribute('role', 'radio');
+      button.setAttribute('aria-checked', String(currentIcon === item.id));
+      button.title = item.label;
+      const image = document.createElement('img');
+      image.className = 'app-icon-preview';
+      image.src = item.icon;
+      image.alt = '';
+      image.width = 40;
+      image.height = 40;
+      button.append(image, _accountNode('span', null, item.label));
+      button.addEventListener('click', () => {
+        setAppIcon(item.id);
+        renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
+      });
+      appIconChoices.appendChild(button);
+    });
+  }
+
   const gridChoices = _accountNode('div', 'a407');
   [2, 3, 4].forEach(count => {
     gridChoices.appendChild(
@@ -200,6 +229,11 @@ function renderSettingsPersonalizationTab(c) {
     _accountNode('h3', 'a350', 'Персонализация'),
     createRow('Тема приложения', themeChoices),
     createRow('Цвет акцента', accentChoices, 'Кнопки, подписи и подсветка во всём приложении'),
+    ...(appIconChoices ? [createRow(
+      'Значок приложения',
+      appIconChoices,
+      'Значок на экране «Домой». Android обновит его при следующем запуске приложения; на iPhone удалите ярлык и добавьте заново',
+    )] : []),
     createRow('Карточек книг в ряд', gridChoices),
     createRow('Предпросмотр', preview, 'Изменения применяются ко всему каталогу'),
     createRow('Цель чтения (страниц в день)', readingGoalChoices, 'Цель отображается в профиле и тепловой карте'),

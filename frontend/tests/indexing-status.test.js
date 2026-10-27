@@ -14,7 +14,10 @@ assert.match(api, /indexStatus\(id\).*\/index-status/);
 assert.match(admin, /function bookIndexStatusText\s*\(/);
 assert.match(admin, /function renderBookIndexStatus\s*\(/);
 assert.match(admin, /function retryBookIndexing\s*\(/);
-assert.match(admin, /\['failed', 'not_indexed'\]\.includes/);
+assert.ok(admin.includes("(book.indexing_status || 'not_indexed') !== 'succeeded'"));
+// Ручная индексация доступна и для книг «в очереди» (после массовой
+// индексации очередь бывает в тысячи задач).
+assert.ok(admin.includes('retry.disabled = !hasFile;'));
 assert.match(markup, /id="adminIndexStatus"/);
 assert.match(markup, /id="adminReindexBookBtn"/);
 
