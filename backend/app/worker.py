@@ -493,6 +493,10 @@ async def review_book_metadata_bulk(ctx: dict, job_id: str, book_ids: list[int])
                 job = await db.get(BookMetadataJob, job_id)
                 if job is None:
                     raise RuntimeError(f"Задача проверки карточек {job_id} не найдена")
+                if job.status != "queued":
+                    # Задачу поднимали в начало очереди — эту копию уже
+                    # выполнили или выполняют.
+                    return {"job_id": job_id, "skipped": job.status}
                 job.status = "running"
                 job.started_at = datetime.now(UTC)
                 job.finished_at = None

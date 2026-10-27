@@ -27,7 +27,8 @@ async function refreshMetadataReviewStatus() {
     const job = await api.library.latestMetadataReview();
     const active = job && ['queued', 'running'].includes(job.status);
     button.textContent = metadataJobSummary(job);
-    button.disabled = Boolean(active);
+    // Задачу в очереди можно поднять в начало — кнопка остаётся активной.
+    button.disabled = Boolean(job && job.status === 'running');
     const changes = document.getElementById('adminMetadataChangesBtn');
     if (changes) changes.hidden = !job || !job.changed_books;
     if (job) {
@@ -53,7 +54,32 @@ async function refreshMetadataReviewStatus() {
   }
 }
 
-function startMetadataReviewUI() {
+async function requeueMetadataReview() {
+  try {
+    const result = await api.library.startMetadataReview();
+    showToast(result.reason === 'requeued'
+      ? 'Проверка поставлена в начало очереди и скоро начнётся'
+      : 'Проверка карточек уже идёт');
+    metadataJobSeenActive = true;
+    await refreshMetadataReviewStatus();
+  } catch (error) {
+    showToast('Не удалось перезапустить проверку: ' + (error.detail || error.message));
+  }
+}
+
+async function startMetadataReviewUI() {
+  let current = null;
+  try { current = await api.library.latestMetadataReview(); } catch (_) { /* нет данных — обычный запуск */ }
+  if (current && current.status === 'queued') {
+    showConfirmModal({
+      title: 'Проверка ещё не началась',
+      message: 'Задача ждёт в очереди за индексацией книг. Поставить её в начало очереди? Индексация продолжится параллельно.',
+      confirmText: 'В начало очереди',
+      cancelText: 'Отмена',
+      onConfirm: requeueMetadataReview,
+    });
+    return;
+  }
   showConfirmModal({
     title: 'Проверить названия, авторов и теги?',
     message: `ИИ прочитает начало каждой из ${(state.books || []).length} книг и исправит название и автора, если они взяты из имени файла, написаны транслитом или указаны как «Admin». Книгам без тегов подберёт темы из существующих категорий. Теги, которые уже стоят, не меняются. Все правки сохраняются со старыми значениями. Займёт около часа, работает в фоне.`,

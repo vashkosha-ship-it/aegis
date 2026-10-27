@@ -202,10 +202,10 @@ async def start_description_generation_job(
         queue = await get_queue()
         if queue is None:
             raise RuntimeError("Очередь фоновых задач недоступна")
-        arq_job = await queue.enqueue_job(
-            "generate_missing_book_descriptions",
-            job.id,
-            book_ids,
+        from app.core.queue import enqueue_priority
+
+        arq_job = await enqueue_priority(
+            queue, "generate_missing_book_descriptions", job.id, book_ids,
         )
         if arq_job is None:
             raise RuntimeError("Очередь не вернула идентификатор задачи")
@@ -287,6 +287,7 @@ async def start_book_metadata_job(
     admin: User = Depends(get_current_admin),
 ) -> BookMetadataJobStart:
     """Проверить карточки всех книг: название, автор, теги (если их нет)."""
+    from app.core.queue import enqueue_priority, get_queue
     from app.models.book_metadata_job import BookMetadataJob
 
     active = await db.scalar(
@@ -295,6 +296,27 @@ async def start_book_metadata_job(
         .order_by(BookMetadataJob.created_at.desc())
         .limit(1)
     )
+    if active and active.status == "queued":
+        # Задача стоит в очереди, но не началась — раньше она ждала за всей
+        # индексацией. Ставим её заново в начало очереди; старая запись,
+        # когда до неё дойдёт, увидит, что работа уже идёт, и ничего не сделает.
+        book_ids = list((await db.scalars(select(Book.id).order_by(Book.id))).all())
+        queue = await get_queue()
+        if queue is None:
+            raise HTTPException(status_code=503, detail="Очередь фоновых задач недоступна")
+        arq_job = await enqueue_priority(queue, "review_book_metadata_bulk", active.id, book_ids)
+        if arq_job is not None:
+            active.arq_job_id = arq_job.job_id
+        active.total_books = len(book_ids)
+        await log_admin_action(
+            db, admin, "book_metadata_review", request=request,
+            target=f"metadata-job:{active.id}", detail="Задача поднята в начало очереди",
+        )
+        await db.commit()
+        await db.refresh(active)
+        return BookMetadataJobStart(
+            started=True, reason="requeued", job=BookMetadataJobView.model_validate(active),
+        )
     if active:
         return BookMetadataJobStart(
             started=False, reason="already_running",
@@ -319,13 +341,11 @@ async def start_book_metadata_job(
     db.add(job)
     await db.flush()
 
-    from app.core.queue import get_queue
-
     try:
         queue = await get_queue()
         if queue is None:
             raise RuntimeError("Очередь фоновых задач недоступна")
-        arq_job = await queue.enqueue_job("review_book_metadata_bulk", job.id, book_ids)
+        arq_job = await enqueue_priority(queue, "review_book_metadata_bulk", job.id, book_ids)
         if arq_job is None:
             raise RuntimeError("Очередь не вернула идентификатор задачи")
         job.arq_job_id = arq_job.job_id

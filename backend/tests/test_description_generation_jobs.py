@@ -15,10 +15,12 @@ from tests.conftest import auth_headers
 
 
 class FakeQueue:
-    async def enqueue_job(self, name, job_id, book_ids):
+    async def enqueue_job(self, name, job_id, book_ids, **kwargs):
         assert name == "generate_missing_book_descriptions"
         assert job_id
         assert book_ids
+        # Запущено админом — не ждёт за индексацией.
+        assert kwargs["_defer_until"].year == 2000
         return SimpleNamespace(job_id="arq-description-job")
 
 
