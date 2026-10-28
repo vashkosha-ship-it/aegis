@@ -643,7 +643,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .reader-arrow:hover { background: rgba(0,0,0,0.7); border-color: var(--accent); }
 .reader-arrow-left { left: 8px; }
 .reader-arrow-right { right: 8px; }
-.reader-arrow svg { width: 24px; height: 24px; stroke: #fff; }
+.reader-arrow svg { width: 24px; height: 24px; stroke: currentColor; }
 
 @media(min-width: 768px) {
   .reader-arrow { display: flex; }
