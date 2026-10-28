@@ -219,6 +219,7 @@ function renderAdminBooks() {
       <button id="adminMetadataChangesBtn" class="admin-tool admin-tool--quiet" type="button" hidden>Что изменилось</button>
       <button id="adminArMatchBtn" class="admin-tool" title="ИИ подберёт книги к темам схем атак">Книги для схем</button>
       <button id="adminRegenerateQuizzesBtn" class="admin-tool" title="Сбросить и пересоздать тесты всех книг (по 15 вопросов)">Перегенерировать тесты</button>
+      <button id="adminDuplicatesBtn" class="admin-tool" title="Найти одинаковые книги и объединить их">Дубли</button>
       <button id="adminStorageAuditBtn" class="admin-tool admin-tool--quiet" title="Проверить файлы книг, обложек и аватаров">Хранилище</button>
       <button id="adminLogsBtn" class="admin-tool admin-tool--quiet" title="Журнал действий администраторов">Журнал</button>
     </div>
@@ -241,6 +242,7 @@ function renderAdminBooks() {
   document.getElementById('adminReindexBtn').addEventListener('click', reindexAllBooksUI);
   document.getElementById('adminLogsBtn').addEventListener('click', openAdminLogs);
   document.getElementById('adminStorageAuditBtn').addEventListener('click', auditStorageUI);
+  document.getElementById('adminDuplicatesBtn').addEventListener('click', openDuplicatesModal);
   document.getElementById('adminCoversBtn').addEventListener('click', generateMissingCoversUI);
   document.getElementById('adminDescriptionsBtn').addEventListener('click', generateMissingDescriptionsUI);
   document.getElementById('adminMetadataBtn').addEventListener('click', startMetadataReviewUI);

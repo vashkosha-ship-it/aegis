@@ -396,6 +396,8 @@
       get(id) { return request('/books/' + id); },
       categories() { return request('/books/categories/all'); },
       checkDuplicate(payload) { return request('/books/duplicates/check', { method: 'POST', body: payload }); },
+      duplicates() { return request('/books/duplicates/all'); },
+      mergeDuplicates(payload) { return request('/books/duplicates/merge', { method: 'POST', body: payload }); },
       create(payload) { return request('/books', { method: 'POST', body: payload }); },
       update(id, payload) { return request('/books/' + id, { method: 'PATCH', body: payload }); },
       generateDescription(id) { return request('/books/' + id + '/generate-description', { method: 'POST' }); },

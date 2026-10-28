@@ -122,3 +122,144 @@ async def test_list_duplicates_groups_by_file_or_title(client, db, admin_user):
 
 def test_normalize_title():
     assert books_service.normalize_title("  Ёжик, в тумане! ") == "ежик в тумане"
+
+
+# ---------------------------------------------------------------------------
+# Нечёткий поиск дублей и объединение
+# ---------------------------------------------------------------------------
+
+from datetime import timedelta  # noqa: E402
+
+from sqlalchemy import select  # noqa: E402
+
+from app.models.admin_log import AdminLog  # noqa: E402
+from app.models.collection import Collection, collection_books  # noqa: E402
+from app.models.library import MyListEntry, MyListStatus, ReadingProgress  # noqa: E402
+from app.models.team import ReadingAssignment  # noqa: E402
+from app.services.duplicates import title_key  # noqa: E402
+from tests.conftest import make_user, utcnow  # noqa: E402
+
+
+@pytest.mark.parametrize("a, b", [
+    ("Python 3 Using DeepSeek, First Edition", "Python 3 Using DeepSeek"),
+    ("Node и Express, 2-е издание", "Node и Express. 2-е изд."),
+    ("Биоинформатика с Python, третье издание", "Биоинформатика с Python, 3-е издание"),
+    ("Экстремальный Си. Параллелизм", "Экстремальный Cи. Параллелизм"),  # латинская C
+])
+def test_title_key_ignores_spelling_of_the_same_book(a, b):
+    assert title_key(a).ident == title_key(b).ident
+
+
+@pytest.mark.parametrize("a, b", [
+    ("Windows Kernel Programming, Second Edition", "Windows Kernel Programming"),
+    ("XSS Cheat Sheet, 2020 Edition", "XSS Cheat Sheet, 2018 Edition"),
+    ("Компьютерный английский. Часть II", "Компьютерный английский. Часть I"),
+    ("История ИТ, Том 5", "История ИТ, Том 4"),
+    ("Взлом. Секреты хакеров", "Взлом. Секреты хакеров. Версия 2.0"),
+])
+def test_title_key_keeps_editions_and_volumes_apart(a, b):
+    assert title_key(a).ident != title_key(b).ident
+
+
+@pytest.mark.asyncio
+async def test_fuzzy_groups(client, db, admin_user):
+    db.add_all([
+        # те же авторы в другом порядке
+        Book(title="Знакомство с PyTorch", author="Брайан Макмахан, Делип Рао", description="", total_pages=256),
+        Book(title="Знакомство с PyTorch", author="Делип Рао, Брайан Макмахан", description="", total_pages=256),
+        # подзаголовок у одной копии, страниц столько же
+        Book(title="Облачные микросервисы", author="Кофлер", description="", total_pages=626),
+        Book(title="Облачные микросервисы: разработка на Kubernetes", author="Михаэль Кофлер",
+             description="", total_pages=626),
+        # разные издания — не дубли
+        Book(title="Windows Kernel Programming", author="Pavel Yosifovich", description="", total_pages=394),
+        Book(title="Windows Kernel Programming, Second Edition", author="Pavel Yosifovich",
+             description="", total_pages=612),
+        # мусорный автор у копии, но совпадают название и страницы
+        Book(title="Cyber Security for Beginners", author="Raef Meeuwisse", description="", total_pages=199),
+        Book(title="Cyber Security for Beginners", author="Автор не указан", description="", total_pages=199),
+        # одинаковое название, разные авторы и объём — разные книги
+        Book(title="Основы Python", author="Иванов", description="", total_pages=100),
+        Book(title="Основы Python", author="Петров", description="", total_pages=400),
+    ])
+    await db.commit()
+
+    groups = (await client.get("/books/duplicates/all", headers=auth_headers(admin_user))).json()
+    by_title = {g["books"][0]["title"]: g for g in groups}
+
+    assert set(by_title) == {"Знакомство с PyTorch", "Облачные микросервисы", "Cyber Security for Beginners"}
+    assert by_title["Знакомство с PyTorch"]["confidence"] == "certain"
+    assert "другом порядке" in by_title["Знакомство с PyTorch"]["reasons"][0]
+    assert by_title["Облачные микросервисы"]["confidence"] == "likely"
+    # Порядок: сначала точные.
+    assert groups[-1]["confidence"] == "likely"
+
+
+@pytest.mark.asyncio
+async def test_merge_moves_user_data_and_deletes_copy(client, db, admin_user, storage):
+    keep = Book(title="Книга", author="А", description="", total_pages=100,
+                pdf_storage_key="books/keep.pdf", views=5)
+    dup = Book(title="Книга", author="А", description="", total_pages=100,
+               pdf_storage_key="books/dup.pdf", views=3)
+    db.add_all([keep, dup])
+    await db.commit()
+    storage.files.update({"books/keep.pdf": b"1", "books/dup.pdf": b"2"})
+
+    only_dup = await make_user(db, username="only_dup")
+    both = await make_user(db, username="both")
+    now = utcnow()
+    collection = Collection(user_id=only_dup.id, name="Моя")
+    db.add_all([
+        ReadingProgress(user_id=only_dup.id, book_id=dup.id, current_page=40, total_pages=100, last_read_at=now),
+        # у этого читателя прогресс на обеих; на копии свежее — он и останется
+        ReadingProgress(user_id=both.id, book_id=keep.id, current_page=10, total_pages=100,
+                        last_read_at=now - timedelta(days=3)),
+        ReadingProgress(user_id=both.id, book_id=dup.id, current_page=70, total_pages=100, last_read_at=now),
+        MyListEntry(user_id=only_dup.id, book_id=dup.id, status=MyListStatus.READING),
+        ReadingAssignment(department="CVV", book_id=dup.id),
+        collection,
+    ])
+    await db.commit()
+    await db.execute(collection_books.insert().values(collection_id=collection.id, book_id=dup.id))
+    await db.commit()
+
+    keep_id, dup_id, only_dup_id, both_id = keep.id, dup.id, only_dup.id, both.id
+    response = await client.post(
+        "/books/duplicates/merge", json={"keep_id": keep_id, "remove_ids": [dup_id]},
+        headers=auth_headers(admin_user),
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"kept": keep_id, "removed": [dup_id], "moved_readers": 2}
+    db.expire_all()
+    assert await db.get(Book, dup_id) is None
+    progress = {
+        p.user_id: p.current_page
+        for p in (await db.scalars(select(ReadingProgress).where(ReadingProgress.book_id == keep_id))).all()
+    }
+    assert progress == {only_dup_id: 40, both_id: 70}
+    assert (await db.scalar(select(MyListEntry.book_id).where(MyListEntry.user_id == only_dup_id))) == keep_id
+    assert (await db.scalar(select(ReadingAssignment.book_id).where(ReadingAssignment.department == "CVV"))) == keep_id
+    assert (await db.scalar(select(collection_books.c.book_id))) == keep_id
+    assert (await db.get(Book, keep_id)).views == 8
+    assert "books/dup.pdf" not in storage.files and "books/keep.pdf" in storage.files
+    log = await db.scalar(select(AdminLog).where(AdminLog.action == "book_merge"))
+    assert log is not None and str(dup_id) in log.detail
+
+
+@pytest.mark.asyncio
+async def test_merge_validation(client, db, admin_user, approved_user):
+    book = Book(title="Одна", author="А", description="")
+    db.add(book)
+    await db.commit()
+    headers = auth_headers(admin_user)
+
+    same = await client.post("/books/duplicates/merge", json={"keep_id": book.id, "remove_ids": [book.id]},
+                             headers=headers)
+    assert same.status_code == 400
+    missing = await client.post("/books/duplicates/merge", json={"keep_id": book.id, "remove_ids": [999999]},
+                                headers=headers)
+    assert missing.status_code == 404
+    forbidden = await client.post("/books/duplicates/merge", json={"keep_id": book.id, "remove_ids": [1]},
+                                  headers=auth_headers(approved_user))
+    assert forbidden.status_code == 403

@@ -53,6 +53,9 @@ from app.schemas.book import (
     DuplicateCheckRequest,
     DuplicateCheckResult,
     DuplicateGroup,
+    DuplicateGroupBook,
+    DuplicateMergeRequest,
+    DuplicateMergeResult,
 )
 from app.services import books as books_service
 from app.services.admin_audit import log_admin_action
@@ -570,9 +573,64 @@ async def list_duplicates(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ) -> list[DuplicateGroup]:
-    """Admin only: группы уже загруженных дубликатов (по файлу или названию)."""
-    groups = await books_service.find_duplicate_groups(db)
-    return [DuplicateGroup(books=[_duplicate_ref(b) for b in group]) for group in groups]
+    """Admin only: группы книг-дубликатов с рекомендацией, какую оставить."""
+    from app.services import duplicates
+
+    groups = await duplicates.find_duplicate_groups(db)
+    readers = await duplicates.readers_count(db, [b.id for g in groups for b in g.books])
+    return [
+        DuplicateGroup(
+            books=[
+                DuplicateGroupBook(
+                    id=b.id, title=b.title, author=b.author, total_pages=b.total_pages or 0,
+                    file_format=b.file_format, has_file=bool(b.pdf_storage_key or b.epub_storage_key),
+                    readers=readers.get(b.id, 0), views=b.views or 0,
+                )
+                for b in g.books
+            ],
+            keep_id=g.keep_id,
+            confidence=g.confidence,
+            reasons=g.reasons,
+        )
+        for g in groups
+    ]
+
+
+@router.post("/duplicates/merge", response_model=DuplicateMergeResult)
+async def merge_duplicates(
+    request: Request,
+    payload: DuplicateMergeRequest,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> DuplicateMergeResult:
+    """Admin only: оставить одну книгу, а прогресс, списки, заметки, отзывы,
+    назначения и подборки с копий перенести на неё; копии удалить."""
+    from app.services import duplicates
+    from app.services.admin_audit import log_admin_action
+
+    remove_ids = list(dict.fromkeys(i for i in payload.remove_ids if i != payload.keep_id))
+    if not remove_ids:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Нечего объединять")
+    keep = await _get_book_or_404(db, payload.keep_id)
+    dups = (await db.scalars(select(Book).where(Book.id.in_(remove_ids)))).all()
+    if len(dups) != len(remove_ids):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Книга не найдена")
+
+    titles = ", ".join(f"«{b.title}» (#{b.id})" for b in dups)
+    stats = await duplicates.merge_books(db, keep, list(dups))
+    await log_admin_action(
+        db, admin, "book_merge", request=request, target=f"book:{keep.id}",
+        detail=f"Дубли {titles} объединены с «{keep.title}» (#{keep.id})",
+    )
+    await db.commit()
+
+    for key in stats.storage_keys:
+        try:
+            await storage.delete(key)
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to delete storage object %s of merged duplicate", key)
+    return DuplicateMergeResult(kept=keep.id, removed=stats.removed, moved_readers=stats.moved_readers)
 
 
 # ============================================================================
