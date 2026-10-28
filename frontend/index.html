@@ -145,9 +145,7 @@
             <option value="ЦКГ">ЦКГ</option>
             <option value="ЦУПКБ">ЦУПКБ</option>
             <option value="ЦВВ">ЦВВ</option>
-            <option value="__other__">Другое</option>
           </select>
-          <input type="text" id="authDepartmentOther" placeholder="Введите название подразделения" maxlength="64" class="hidden static-style-001">
         </div>
         <div id="registerConsentField" class="auth-consent-field hidden"><label class="auth-consent-label"><input type="checkbox" id="registerConsent"><span>Принимаю <button type="button" class="auth-legal-link" data-onclick="openUserAgreement()">Пользовательское соглашение</button> и <button type="button" class="auth-legal-link" data-onclick="openPrivacyPolicy()">Политику конфиденциальности</button>.</span></label><label class="auth-consent-label"><input type="checkbox" id="registerPdConsent"><span>Даю <button type="button" class="auth-legal-link" data-onclick="openPdConsent()">согласие на обработку персональных данных</button>, в том числе на их передачу поставщику ИИ-ассистента.</span></label></div>
         <div class="form-group">
@@ -614,6 +612,7 @@
       <div class="admin-tab-btn active" data-atab="dashboard">Дашборд</div>
       <div class="admin-tab-btn" data-atab="books">Книги</div>
       <div class="admin-tab-btn" data-atab="users">Пользователи</div>
+      <div class="admin-tab-btn" data-atab="org">Структура</div>
       <div class="admin-tab-btn" data-atab="reviews">Отзывы</div>
       <div class="admin-tab-btn" data-atab="analytics">Аналитика</div>
       <div class="admin-tab-btn" data-atab="usage">Использование</div>
@@ -622,6 +621,7 @@
     <div id="adDashboard" class="admin-panel-section show"></div>
     <div id="adBooks" class="admin-panel-section"></div>
     <div id="adUsers" class="admin-panel-section"></div>
+    <div id="adOrg" class="admin-panel-section"></div>
     <div id="adReviews" class="admin-panel-section"></div>
     <div id="adUsage" class="admin-panel-section"></div>
     <div id="adAnalytics" class="admin-panel-section">
@@ -1146,6 +1146,7 @@
 <script defer src="onboarding-tour.js"></script>
 <script defer src="appearance-onboarding.js"></script>
 <script defer src="avatar-picker.js"></script>
+<script defer src="org-structure.js"></script>
 <script defer src="team.js"></script>
 <script defer src="analytics.js"></script>
 <script defer src="profile-insights.js"></script>

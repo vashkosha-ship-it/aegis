@@ -32,6 +32,7 @@ from app.schemas.me import (
     PublicProfile,
 )
 from app.schemas.usage import UsageReport
+from app.services.org import is_known_unit
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["me"])
@@ -59,6 +60,8 @@ async def update_me(
 
     if payload.department is not None:
         dep = payload.department.strip()
+        if dep and dep != current.department and not await is_known_unit(db, dep):
+            raise HTTPException(status_code=422, detail="Выберите подразделение из списка")
         current.department = dep if dep else None
 
     if payload.profile_visibility is not None:

@@ -395,7 +395,7 @@ function renderBookInfo() {
   if (typeof isTeamManager === 'function' && isTeamManager()) {
     const assign = _libraryAction(
       ICONS.users,
-      'Назначить отделу',
+      'Назначить сотрудникам',
       () => openAssignBookModal({ bookId: book.id }),
       'btn-detail detail-action-secondary',
     );

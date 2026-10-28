@@ -37,6 +37,9 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(source, context);
+// Список подразделений строит org-structure.js из справочника.
+context.state.orgUnits = [{ id: 1, code: 'УЭК', name: null, kind: 'directorate', parent_id: null }];
+vm.runInContext(fs.readFileSync(path.join(frontend, 'org-structure.js'), 'utf8'), context);
 
 const content = dom.window.document.getElementById('settingsContent');
 
@@ -52,7 +55,11 @@ assert.equal(content.querySelectorAll('[data-onclick]').length, 0);
 context.renderSettingsInfoTab(content);
 assert.equal(content.querySelector('#setUsername').value, '<img src=x onerror=alert(1)>');
 assert.equal(content.querySelector('#setFullName').value, 'Иван <script>alert(1)</script>');
-assert.equal(content.querySelector('#setDepartmentOther').value, '<svg onload=alert(1)>');
+// Подразделение из старых данных, которого нет в справочнике, остаётся выбранным — текстом.
+const departmentSelect = content.querySelector('#setDepartment');
+assert.equal(departmentSelect.value, '<svg onload=alert(1)>');
+assert.match(departmentSelect.selectedOptions[0].textContent, /нет в справочнике/);
+assert.ok([...departmentSelect.options].some(option => option.value === 'УЭК'));
 assert.equal(content.querySelector('script, svg[onload], img[onerror]'), null);
 assert.equal(content.querySelectorAll('[data-onclick], [data-onchange]').length, 0);
 

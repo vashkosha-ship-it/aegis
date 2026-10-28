@@ -30,6 +30,8 @@ function setup(user, extra = {}) {
       teamOverview: async department => { calls.push(['overview', department]); return extra.overview; },
       createAssignment: async payload => { calls.push(['create', payload]); return {}; },
       setManagedDepartment: async (id, department) => { calls.push(['manager', id, department]); return { managed_department: department }; },
+      setUserDepartment: async (id, department) => { calls.push(['move', id, department]); return { department }; },
+      orgUnits: async () => extra.orgUnits || [],
     },
   };
   window.showToast = message => calls.push(['toast', message]);
@@ -39,6 +41,7 @@ function setup(user, extra = {}) {
   // попали бы в window, как в браузере у обычных <script>.
   const asScript = code => code.replace(/^'use strict';/m, '');
   window.eval(asScript(read('dialogs.js')));
+  window.eval(asScript(read('org-structure.js')));
   window.eval(asScript(source));
   return { window, calls };
 }
@@ -154,7 +157,7 @@ const iso = days => {
   {
     const books = [{ id: 21, title: 'Сетевая безопасность', author: 'Иванов' }, { id: 22, title: 'Кулинария', author: 'Х' }];
     const { window, calls } = setup({ id: 2, role: 'reader', managed_department: 'ЦВВ' }, { books, currentScreen: 'home' });
-    window.openAssignBookModal();
+    await window.openAssignBookModal();
     const doc = window.document;
     const modal = doc.getElementById('assignBookModal');
     assert.ok(modal);
@@ -172,7 +175,7 @@ const iso = days => {
     form.dispatchEvent(new window.Event('submit', { cancelable: true }));
     await new Promise(resolve => setTimeout(resolve, 0));
     const create = calls.find(call => call[0] === 'create');
-    assert.deepEqual({ ...create[1] }, { book_id: 21, due_date: iso(7), note: 'к планёрке' });
+    assert.deepEqual({ ...create[1] }, { book_id: 21, due_date: iso(7), note: 'к планёрке', department: 'ЦВВ' });
     assert.equal(doc.getElementById('assignBookModal'), null, 'окно закрывается после сохранения');
   }
 
@@ -180,13 +183,78 @@ const iso = days => {
   {
     const { window, calls } = setup({ id: 1, role: 'admin' });
     const user = { id: 9, username: 'petrov', department: 'УЭК', managed_department: null };
-    const select = window.buildManagerRoleSelect(user, ['ЦВВ', 'УЭК']);
-    assert.deepEqual([...select.options].map(option => option.textContent), ['Читатель', 'Руководитель УЭК', 'Руководитель ЦВВ']);
+    window.state.orgUnits = [
+      { id: 1, code: 'УЭК', name: 'Экспертиза', kind: 'directorate', parent_id: null },
+      { id: 2, code: 'ОЭ-1', name: null, kind: 'department', parent_id: 1 },
+      { id: 3, code: 'ЦВВ', name: null, kind: 'department', parent_id: null },
+    ];
+    const select = window.buildManagerRoleSelect(user);
+    assert.deepEqual([...select.options].map(option => option.textContent),
+      ['Читатель', 'Начальник управления УЭК', 'Руководитель отдела ОЭ-1', 'Руководитель отдела ЦВВ']);
     select.value = 'УЭК';
     select.dispatchEvent(new window.Event('change'));
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.deepEqual(calls.find(call => call[0] === 'manager'), ['manager', 9, 'УЭК']);
     assert.equal(user.managed_department, 'УЭК');
+
+    // Перевод сотрудника в другое подразделение — тем же выбором из справочника.
+    const move = window.buildUserDepartmentSelect(user);
+    assert.equal(move.value, 'УЭК');
+    assert.deepEqual([...move.querySelectorAll('optgroup')].map(group => group.label), ['Управление УЭК — Экспертиза', 'Самостоятельные отделы']);
+    move.value = 'ОЭ-1';
+    move.dispatchEvent(new window.Event('change'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(calls.find(call => call[0] === 'move'), ['move', 9, 'ОЭ-1']);
+  }
+
+  // Администратор без выбора видит список подразделений, а не «свой» отдел.
+  {
+    const overview = {
+      department: '', departments: ['УЭК', 'ОЭ-1', 'ЦВВ'], members: [], assignments: [], progress: {},
+      units: [
+        { code: 'УЭК', name: 'Экспертиза', kind: 'directorate', parent_code: null },
+        { code: 'ОЭ-1', name: null, kind: 'department', parent_code: 'УЭК' },
+        { code: 'ЦВВ', name: null, kind: 'department', parent_code: null },
+      ],
+    };
+    const { window, calls } = setup({ id: 1, role: 'admin' }, { overview });
+    window.updateTeamEntryPoints();
+    assert.equal(window.document.querySelector('#btnTeamGo .header-btn-label').textContent, 'Отделы');
+    await window.renderTeamScreen();
+    const root = window.document.getElementById('teamContent');
+    assert.match(root.textContent, /Выберите подразделение/);
+    assert.doesNotMatch(root.textContent, /Отдел УЭК/);
+    const cards = [...root.querySelectorAll('.team-unit-card')];
+    assert.deepEqual(cards.map(card => card.querySelector('.team-unit-code').textContent), ['УЭК', 'ОЭ-1', 'ЦВВ']);
+    cards[1].click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(calls.filter(call => call[0] === 'overview').map(call => call[1]), [null, 'ОЭ-1']);
+  }
+
+  // Начальник управления: выбор отдела, назначение управления в отделе — без кнопок изменения.
+  {
+    const overview = {
+      department: 'ОЭ-1', department_kind: 'department', parent_code: 'УЭК', departments: ['УЭК', 'ОЭ-1'],
+      units: [
+        { code: 'УЭК', name: null, kind: 'directorate', parent_code: null },
+        { code: 'ОЭ-1', name: null, kind: 'department', parent_code: 'УЭК' },
+      ],
+      members: [{ id: 5, name: 'Аня', department: 'ОЭ-1', completed: 0, reading: 0, not_started: 1, overdue: 0 }],
+      assignments: [{
+        id: 7, department: 'УЭК', inherited: true, editable: false, book: { id: 1, title: 'Общая', author: 'А' },
+        due_date: null, completed: 0, reading: 0, not_started: 1,
+      }],
+      progress: { 7: { 5: { status: 'not_started', percent: 0 } } },
+    };
+    const { window } = setup({ id: 2, role: 'reader', managed_department: 'УЭК' }, { overview });
+    await window.renderTeamScreen();
+    const root = window.document.getElementById('teamContent');
+    assert.match(root.textContent, /Отдел ОЭ-1/);
+    assert.match(root.textContent, /входит в управление УЭК/);
+    assert.match(root.textContent, /от управления УЭК/);
+    assert.ok(root.querySelector('.team-department-picker select'));
+    const buttons = [...root.querySelectorAll('.team-card button')].map(button => button.textContent);
+    assert.ok(!buttons.includes('Снять') && !buttons.includes('Изменить'));
   }
 
   // Подключение.
@@ -197,7 +265,10 @@ const iso = days => {
   assert.ok(read('sw.js').includes("'/team.js'"));
   assert.match(read('navigation.js'), /team: 'teamScreen'/);
   assert.match(read('library-home.js'), /openAssignBookModal\(\{ bookId: book\.id \}\)/);
-  assert.match(read('admin-screens.js'), /buildManagerRoleSelect\(user, knownDepartments\)/);
+  assert.match(read('admin-screens.js'), /buildManagerRoleSelect\(user\)/);
+  assert.match(read('admin-screens.js'), /buildUserDepartmentSelect\(user\)/);
+  assert.match(index, /data-atab="org">Структура</);
+  assert.ok(read('sw.js').includes("'/org-structure.js'"));
 
   console.log('team assignments tests passed');
 })().catch(error => {

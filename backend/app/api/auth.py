@@ -45,6 +45,7 @@ from app.services.email_service import (
     EmailError,
     send_verification_code,
 )
+from app.services.org import is_known_unit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -142,6 +143,10 @@ async def register(
     if email_exists:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    department = (payload.department or "").strip() or None
+    if department and not await is_known_unit(db, department):
+        raise HTTPException(status_code=422, detail="Выберите подразделение из списка")
+
     code = _gen_code()
     consented_at = datetime.now(UTC)
     user = User(
@@ -152,7 +157,7 @@ async def register(
         email=payload.email,
         password_hash=hash_new_password(payload.password),
         full_name=payload.full_name,
-        department=payload.department,
+        department=department,
         role=UserRole.READER,
         is_verified=False,
         verify_code=hash_otp(code),

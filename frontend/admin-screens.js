@@ -15,6 +15,7 @@ function renderAdminPanel() {
   if (at === 'dashboard') renderDashboard();
   if (at === 'books') renderAdminBooks();
   if (at === 'users') loadAndRenderAdminUsers();
+  if (at === 'org' && typeof renderAdminOrg === 'function') renderAdminOrg();
   if (at === 'reviews') loadAndRenderAdminReviews();
   if (at === 'analytics') renderAnalytics();
   if (at === 'usage') renderUsageStats();
@@ -403,7 +404,10 @@ async function loadAndRenderAdminUsers() {
   if (!container) return;
   replaceWithStaticText(container, 'Загрузка...', 'a449');
   try {
-    const users = await api.library.adminUsers();
+    const [users] = await Promise.all([
+      api.library.adminUsers(),
+      typeof loadOrgUnits === 'function' ? loadOrgUnits({ force: true }) : null,
+    ]);
 
     // Сохраняем в state, чтобы фильтр работал без повторного запроса
     state._adminUsers = users;
@@ -426,10 +430,6 @@ function appendAdminMetric(container, value, label, valueStyle) {
   card.append(valueNode, labelNode);
   container.appendChild(card);
 }
-
-// Подразделения из формы регистрации — чтобы руководителя можно было назначить
-// ещё до того, как в отдел пришёл первый сотрудник.
-const DEFAULT_TEAM_DEPARTMENTS = ['ЦКЗ', 'ДПМ', 'УБД', 'УКИИ', 'УКАИ', 'УМК', 'УЭК', 'ЦКГ', 'ЦУПКБ', 'ЦВВ'];
 
 function renderAdminUsersWithFilter() {
   const container = document.getElementById('adUsers');
@@ -536,10 +536,6 @@ function renderAdminUsersWithFilter() {
   });
   thead.appendChild(header);
   const tbody = document.createElement('tbody');
-  const knownDepartments = [...new Set([
-    ...DEFAULT_TEAM_DEPARTMENTS,
-    ...users.map(user => user.department).filter(Boolean),
-  ])];
   displayed.forEach((user, index) => {
     const row = document.createElement('tr');
     if (filter !== 'all') {
@@ -547,14 +543,22 @@ function renderAdminUsersWithFilter() {
       place.setAttribute('data-static-style', 'a560');
     }
     const levelInfo = user.cyber_level ? getCyberLevelInfo(user.cyber_level) : null;
-    [user.id, user.username, user.full_name || '—', user.department || '—', user.email || '—']
-      .forEach(value => appendAdminCell(row, value));
-    // Роль: администратор — как есть; остальным можно выдать «Руководитель отдела».
+    [user.id, user.username, user.full_name || '—'].forEach(value => appendAdminCell(row, value));
+    // Подразделение: перевод сотрудника — выбором из справочника.
+    if (typeof buildUserDepartmentSelect === 'function') {
+      const departmentCell = document.createElement('td');
+      departmentCell.appendChild(buildUserDepartmentSelect(user));
+      row.appendChild(departmentCell);
+    } else {
+      appendAdminCell(row, user.department || '—');
+    }
+    appendAdminCell(row, user.email || '—');
+    // Роль: администратор — как есть; остальным можно выдать руководство подразделением.
     if (user.role === 'admin' || typeof buildManagerRoleSelect !== 'function') {
       appendAdminCell(row, user.role === 'admin' ? 'Администратор' : (user.managed_department ? `Руководитель ${user.managed_department}` : 'Читатель'));
     } else {
       const roleCell = document.createElement('td');
-      roleCell.appendChild(buildManagerRoleSelect(user, knownDepartments));
+      roleCell.appendChild(buildManagerRoleSelect(user));
       row.appendChild(roleCell);
     }
     [levelInfo ? levelInfo.name : '—', user.xp, user.streak_count, user.completed_books,

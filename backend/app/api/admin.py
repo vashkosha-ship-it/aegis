@@ -45,6 +45,7 @@ from app.schemas.admin import (
 from app.schemas.usage import UsageStats
 from app.services import excel_export
 from app.services.admin_audit import log_admin_action
+from app.services.org import is_known_unit
 from app.services.storage_integrity import audit_storage, delete_orphaned_storage
 
 logger = logging.getLogger(__name__)
@@ -690,11 +691,47 @@ async def set_managed_department(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     department = (payload.department or "").strip() or None
+    if department and not await is_known_unit(db, department):
+        raise HTTPException(status_code=404, detail="Подразделение не найдено")
     user.managed_department = department
     await log_admin_action(
         db, admin, "user_manager_update", request=request,
         target=f"user:{user.id}:{user.username}",
-        detail=(f"Руководитель отдела {department}" if department else "Снята роль руководителя"),
+        detail=(f"Руководитель подразделения {department}" if department else "Снята роль руководителя"),
+    )
+    await db.commit()
+    await db.refresh(user)
+    return AdminUserView(
+        id=user.id, username=user.username, email=user.email, role=user.role,
+        full_name=user.full_name, department=user.department,
+        managed_department=user.managed_department, xp=user.xp,
+        streak_count=user.streak_count or 0, cyber_level=user.cyber_level,
+        is_active=user.is_active,
+        created_at=user.created_at.isoformat() if user.created_at else None,
+    )
+
+
+@router.put("/users/{user_id}/department", response_model=AdminUserView)
+async def set_user_department(
+    request: Request,
+    user_id: int,
+    payload: ManagedDepartmentSet,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> AdminUserView:
+    """Перевести сотрудника в другое подразделение (или убрать: department=null)."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    department = (payload.department or "").strip() or None
+    if department and not await is_known_unit(db, department):
+        raise HTTPException(status_code=404, detail="Подразделение не найдено")
+    old = user.department
+    user.department = department
+    await log_admin_action(
+        db, admin, "user_department_update", request=request,
+        target=f"user:{user.id}:{user.username}",
+        detail=f"Подразделение: {old or '—'} → {department or '—'}",
     )
     await db.commit()
     await db.refresh(user)
@@ -753,13 +790,16 @@ async def admin_create_user(
     existing = await db.scalar(select(User).where(User.username == username))
     if existing:
         raise HTTPException(status_code=400, detail="Такой логин уже занят")
+    department = (payload.department or "").strip() or None
+    if department and not await is_known_unit(db, department):
+        raise HTTPException(status_code=422, detail="Выберите подразделение из списка")
 
     user = User(
         username=username,
         email=None,
         password_hash=hash_new_password(payload.password),
         full_name=(payload.full_name or "").strip() or None,
-        department=(payload.department or "").strip() or None,
+        department=department,
         role=UserRole.READER,
         is_verified=True,
         is_approved=True,
