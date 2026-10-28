@@ -556,6 +556,7 @@ async def review_book_metadata_bulk(ctx: dict, job_id: str, book_ids: list[int])
 async def on_worker_startup(ctx: dict) -> None:
     """Действия при старте воркера (то есть после каждой выкладки)."""
     await recover_interrupted_indexing(ctx)
+    await requeue_stuck_indexing(ctx)
     await _clean_offtopic_quizzes()
 
 
@@ -636,6 +637,59 @@ async def recover_interrupted_indexing(_ctx: dict) -> None:
                 "Отмечено зависших в очереди задач описаний: %d",
                 stale_queued.rowcount,
             )
+
+
+async def requeue_stuck_indexing(ctx: dict) -> int:
+    """Вернуть в очередь книги, чья задача индексации пропала.
+
+    Массовая переиндексация — одна долгая задача на весь каталог. Если воркер
+    падает посреди неё (книга не влезла в память, выкладка), задача теряется,
+    а оставшиеся книги навсегда висят «в очереди». При старте ставим каждой
+    такой книге собственную задачу. Задачи, которые ещё ждут в очереди, не
+    трогаем; «выполняется» при старте означает, что выполнял её умерший
+    процесс (воркер один, и сам он ещё ничего не начал).
+    """
+    redis = ctx.get("redis")
+    if redis is None:
+        return 0
+    from arq.jobs import Job, JobStatus
+
+    async with AsyncSessionLocal() as db:
+        rows = (await db.execute(
+            select(Book.id, Book.indexing_job_id).where(Book.indexing_status == "queued")
+        )).all()
+    if not rows:
+        return 0
+
+    waiting: dict[str, bool] = {}
+    for job_id in {job_id for _book_id, job_id in rows if job_id}:
+        try:
+            status = await Job(job_id, redis).status()
+        except Exception:  # noqa: BLE001 — неизвестно: считаем пропавшей
+            status = None
+        waiting[job_id] = status in (JobStatus.queued, JobStatus.deferred)
+
+    stuck = [book_id for book_id, job_id in rows if not (job_id and waiting.get(job_id))]
+    requeued = 0
+    for book_id in stuck:
+        try:
+            job = await redis.enqueue_job("index_book", book_id)
+        except Exception:  # noqa: BLE001
+            logger.exception("Не удалось вернуть в очередь книгу %s", book_id)
+            continue
+        if job is None:
+            continue
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                update(Book)
+                .where(Book.id == book_id, Book.indexing_status == "queued")
+                .values(indexing_job_id=job.job_id)
+            )
+            await db.commit()
+        requeued += 1
+    if requeued:
+        logger.warning("Возвращено в очередь книг с пропавшей задачей индексации: %d", requeued)
+    return requeued
 
 
 # Сколько храним отработавшие записи после истечения срока. Не удаляем сразу:
