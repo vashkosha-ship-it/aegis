@@ -8,7 +8,7 @@ document.getElementById('mylistTabs').addEventListener('click', e => {
 
 function renderMyList() {
   updateAvatar('avatarMylist');
-  const g = { reading: [], planned: [], dropped: [], completed: [], liked: [] };
+  const g = { reading: [], planned: [], completed: [], liked: [] };
   state.books.forEach(b => {
     const s = state.mylist[b.id];
     if (s && g[s]) g[s].push(b);

@@ -67,3 +67,15 @@ assert.ok(indexSource.indexOf('mylist-screen.js') < indexSource.indexOf('app.js'
 assert.match(workerSource, /['"]\/mylist-screen\.js['"]/);
 assert.match(workerSource, /aegis-cache-v[0-9]+/);
 console.log('My List screen tests passed');
+
+// «Брошено» убрано: ни вкладки, ни пункта в выборе статуса.
+{
+  const fsm = require('node:fs');
+  const pathm = require('node:path');
+  const dir = pathm.resolve(__dirname, '..');
+  const html = fsm.readFileSync(pathm.join(dir, 'index.html'), 'utf8');
+  if (/data-mylist="dropped"|Брошено/.test(html)) throw new Error('вкладка «Брошено» осталась');
+  for (const file of ['library-home.js', 'mylist-screen.js', 'analytics.js', 'assistant-chat.js']) {
+    if (/Брошено|брошено/.test(fsm.readFileSync(pathm.join(dir, file), 'utf8'))) throw new Error('«Брошено» осталось в ' + file);
+  }
+}

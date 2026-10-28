@@ -351,7 +351,6 @@ function renderBookInfo() {
     ['', 'Не в списке'],
     ['reading', 'Читаю'],
     ['planned', 'В планах'],
-    ['dropped', 'Брошено'],
     ['completed', 'Прочитано'],
     ['liked', 'Избранное'],
   ].forEach(([value, label]) => {

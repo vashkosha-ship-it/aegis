@@ -374,7 +374,7 @@ function buildAssistantContext(text) {
   // #9 — библиотеку шлём, когда вопрос про рекомендации/выбор книги
   const t = (text || '').toLowerCase();
   if (/рекоменд|посоветуй|что почитать|какую книг|подбери|с чего начать|порекоменд|почитат/.test(t)) {
-    const statusRu = { reading: 'читаю', planned: 'в планах', completed: 'прочитано', dropped: 'брошено', liked: 'нравится' };
+    const statusRu = { reading: 'читаю', planned: 'в планах', completed: 'прочитано', liked: 'нравится' };
     ctx.library = (state.books || []).slice(0, 60).map(b => ({
       title: b.title,
       author: b.author || null,
