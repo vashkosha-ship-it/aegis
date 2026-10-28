@@ -18,7 +18,7 @@ assert.equal(more.getAttribute('aria-expanded'), 'false');
 assert.equal(more.getAttribute('aria-haspopup'), 'menu');
 assert.ok(secondary, 'secondary reader actions must have a menu');
 assert.equal(secondary.getAttribute('role'), 'menu');
-assert.equal(secondary.querySelectorAll('[role="menuitem"]').length, 6);
+assert.equal(secondary.querySelectorAll('[role="menuitem"]').length, 7);
 
 // Меню «Ещё» работает на любой ширине, а пункты подписаны текстом из title.
 assert.doesNotMatch(css, /@media/);

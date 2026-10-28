@@ -58,3 +58,29 @@
    центрирование flex-контейнера прячет левую часть страницы за край. */
 .pdf-viewport.is-zoomed { justify-content: flex-start; touch-action: pan-x pan-y; }
 .pdf-viewport.is-zoomed canvas { margin: 0; flex: 0 0 auto; max-width: none; }
+
+/* «12 / 363» открывает переход на страницу. */
+/* Это кнопка, но выглядит как прежний счётчик, а не как кнопки панели. */
+.reader-toolbar button.page-indicator-top {
+  min-height: 0;
+  padding: 3px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.page-indicator-top.is-clickable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.page-indicator-top.is-clickable:hover { color: var(--accent); }
+.page-indicator-top.is-clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.app-dialog-panel.goto-page-dialog { max-width: 360px; }
+.goto-page-form { display: grid; gap: 14px; }
+.goto-page-row { display: flex; align-items: center; gap: 10px; }
+.goto-page-input { flex: 1; font-size: 22px; font-weight: 700; text-align: center; }
+.goto-page-total { color: var(--text-secondary); font-size: 16px; white-space: nowrap; }
+.goto-page-slider { width: 100%; padding: 0; accent-color: var(--accent); }
+.goto-page-error { color: #ef4444; font-size: 13px; }
+.goto-page-error:empty { display: none; }
