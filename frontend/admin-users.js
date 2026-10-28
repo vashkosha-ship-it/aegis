@@ -76,16 +76,23 @@ function openCreateUserModal() {
       <label data-static-style="a179">ФИО</label>
       <input type="text" id="cuFullName" data-static-style="a180">
       <label data-static-style="a179">Подразделение</label>
-      <input type="text" id="cuDepartment" data-static-style="a181">
+      <select id="cuDepartment" data-static-style="a181"></select>
       <button id="cuCreateBtn" data-static-style="a149">Создать</button>
     </div>`);
+
+  // Подразделение — из справочника (вкладка «Структура»).
+  const cuDepartment = document.getElementById('cuDepartment');
+  if (typeof fillOrgSelect === 'function') {
+    fillOrgSelect(cuDepartment, { value: '', placeholder: '— Не указано —' });
+    loadOrgUnits({ force: true }).then(() => fillOrgSelect(cuDepartment, { value: cuDepartment.value, placeholder: '— Не указано —' }));
+  }
 
   document.getElementById('cuCreateBtn').onclick = async () => {
     const btn = document.getElementById('cuCreateBtn');
     const username = document.getElementById('cuUsername').value.trim();
     const password = document.getElementById('cuPassword').value;
     const full_name = document.getElementById('cuFullName').value.trim() || null;
-    const department = document.getElementById('cuDepartment').value.trim() || null;
+    const department = document.getElementById('cuDepartment').value || null;
     if (username.length < 3) return showToast('Логин: минимум 3 символа');
     if (!/^[a-zA-Z0-9_]+$/.test(username)) return showToast('Логин: только латиница, цифры и _');
     if (password.length < 8) return showToast('Пароль: минимум 8 символов');
