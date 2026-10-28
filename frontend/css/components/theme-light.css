@@ -1,0 +1,27 @@
+/* Светлая тема: места, где цвет был зашит под тёмную.
+   Проверено скриптом контраста по всем экранам (кнопки и поля). */
+
+/* Текст на кнопках с акцентным фоном. В светлой теме акценты тёмные
+   (синий #1d4ed8 и т. п.) — тёмный текст на них не читался. */
+:root[data-theme="light"] { --on-accent: #ffffff; }
+:root[data-theme="light"] .admin-tool--primary,
+:root[data-theme="light"] .admin-tool--primary:hover { color: #ffffff; }
+
+/* Заглушки вместо обложек: были почти чёрными прямоугольниками. */
+:root[data-theme="light"] .book-card-compact .cover-bg,
+:root[data-theme="light"] [data-static-style="a309"],
+:root[data-theme="light"] .detail-cover,
+:root[data-theme="light"] #detailScreen .detail-cover {
+  background: linear-gradient(145deg, #e9eef6, #d8e0eb);
+  color: #64748b;
+}
+
+/* Пустые звёзды оценки почти сливались с белым фоном. */
+:root[data-theme="light"] .star:not(.filled) { color: #64748b; }
+
+/* «Excel» в админке: зелёный текст на светло-зелёном фоне. */
+:root[data-theme="light"] [data-static-style="a565"] {
+  background: rgba(21, 128, 61, .08);
+  border-color: rgba(21, 128, 61, .45);
+  color: #15803d;
+}
