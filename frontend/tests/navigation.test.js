@@ -35,6 +35,7 @@ const context = {
   setTimeout(callback) { callback(); return 1; },
   state: { currentUser: { role: 'user', is_approved: true }, currentScreen: 'auth' },
   currentBookId: null,
+  readerBookId: null,
   showPendingApprovalScreen: mark('pending'),
   closeAIPanel: mark('close-ai'),
   renderHome: mark('home'),

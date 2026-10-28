@@ -219,8 +219,23 @@ function lastStartedBookId() {
   return best;
 }
 
+// Вернуть читалке её книгу, если пока она была в фоне, открывали страницу
+// другой книги.
+function restoreReaderBook() {
+  if (readerBookId === null) return false;
+  const book = (state.books || []).find(item => item.id === readerBookId);
+  if (!book) {
+    // Книгу удалили или вошёл другой пользователь — открытой книги нет.
+    readerBookId = null;
+    return false;
+  }
+  currentBookId = readerBookId;
+  state.currentBook = book;
+  return true;
+}
+
 function ensureReaderHasBook() {
-  if (currentBookId) return; // книга открыта — ничего не делаем
+  if (restoreReaderBook()) return; // книга открыта — возвращаемся к ней
   // После перезагрузки страницы открытой книги нет, но начатые есть —
   // открываем последнюю вместо «Вы ещё не начали читать».
   const resumeId = lastStartedBookId();
