@@ -164,11 +164,11 @@
 .reader-toolbar button,
 .reader-search-panel button,
 .reader-arrow,
-.pomodoro-btn { background: rgba(12, 20, 35, .94); border: 1px solid rgba(var(--accent-rgb), .24); color: var(--text-primary); box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.pomodoro-btn { background: color-mix(in srgb, var(--bg-card) 94%, transparent); border: 1px solid rgba(var(--accent-rgb), .24); color: var(--text-primary); box-shadow: 0 4px 14px rgba(0,0,0,.18); }
 .reader-toolbar button:hover,
 .reader-search-panel button:hover,
 .reader-arrow:hover,
-.pomodoro-btn:hover { background: rgba(20, 37, 61, .98); border-color: var(--accent); color: var(--accent); }
+.pomodoro-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); color: var(--accent); }
 .reader-focus-mode .reader-toolbar,
 .reader-focus-mode .reader-search-panel,
 .reader-focus-mode .reader-arrow,
