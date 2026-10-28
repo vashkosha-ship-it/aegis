@@ -189,7 +189,29 @@ class DuplicateCheckResult(BaseModel):
     book: DuplicateBookRef | None = None
 
 
-class DuplicateGroup(BaseModel):
-    """Группа одинаковых книг. Первая — оригинал, остальные — копии."""
+class DuplicateGroupBook(DuplicateBookRef):
+    total_pages: int = 0
+    file_format: str | None = None
+    has_file: bool = False
+    readers: int = 0
+    views: int = 0
 
-    books: list[DuplicateBookRef]
+
+class DuplicateGroup(BaseModel):
+    """Группа одинаковых книг; ``keep_id`` — какую разумно оставить."""
+
+    books: list[DuplicateGroupBook]
+    keep_id: int
+    confidence: Literal["certain", "likely"]
+    reasons: list[str]
+
+
+class DuplicateMergeRequest(BaseModel):
+    keep_id: int
+    remove_ids: list[int] = Field(min_length=1, max_length=20)
+
+
+class DuplicateMergeResult(BaseModel):
+    kept: int
+    removed: list[int]
+    moved_readers: int

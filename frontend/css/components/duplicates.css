@@ -1,0 +1,89 @@
+/* ---------- Админка: окно «Дубли книг» ---------- */
+.app-dialog-panel.dup-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  max-height: calc(100dvh - 32px);
+}
+.dup-lead { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.45; }
+.dup-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.dup-toolbar:empty { display: none; }
+.dup-list {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.dup-group {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+.dup-group--done { opacity: 0.6; }
+.dup-group-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dup-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dup-badge--certain { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.dup-badge--likely { background: color-mix(in srgb, #f5a524 20%, transparent); color: #c27c0e; }
+.dup-reason { color: var(--text-secondary); font-size: 13px; }
+.dup-books { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.dup-legend { margin-bottom: 4px; padding: 0; color: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.dup-book {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.dup-book:has(input:checked) { border-color: var(--accent); }
+.dup-book input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  accent-color: var(--accent);
+  -webkit-appearance: radio;
+  appearance: auto;
+}
+.dup-book-text { display: grid; gap: 2px; min-width: 0; }
+.dup-book-title { font-weight: 600; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere; }
+.dup-book-author,
+.dup-book-meta { color: var(--text-secondary); font-size: 13px; overflow-wrap: anywhere; }
+.dup-open {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dup-open:hover,
+.dup-open:focus-visible { color: var(--text-primary); border-color: var(--accent); }
+.dup-group-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; }
+.dup-status { flex: 1; color: var(--text-secondary); font-size: 13px; }
+
+@media (max-width: 599.98px) {
+  .dup-book { grid-template-columns: auto minmax(0, 1fr); }
+  .dup-open { grid-column: 2; justify-self: start; }
+}

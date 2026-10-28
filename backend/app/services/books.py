@@ -218,53 +218,16 @@ async def find_book_by_hash(
 async def find_book_by_title(
     db: AsyncSession, title: str, *, exclude_id: int | None = None
 ) -> Book | None:
-    """Книга с тем же нормализованным названием, кроме ``exclude_id``."""
-    key = normalize_title(title)
-    if not key:
+    """Книга с тем же названием (без учёта регистра, пунктуации и записи издания)."""
+    from app.services.duplicates import title_key
+
+    key = title_key(title)
+    if not key.words:
         return None
     stmt = select(Book).order_by(Book.id)
     if exclude_id is not None:
         stmt = stmt.where(Book.id != exclude_id)
     for book in (await db.scalars(stmt)).all():
-        if normalize_title(book.title) == key:
+        if title_key(book.title).ident == key.ident:
             return book
     return None
-
-
-async def find_duplicate_groups(db: AsyncSession) -> list[list[Book]]:
-    """Группы книг-дубликатов: одинаковый файл или одинаковое название.
-
-    В каждой группе первой идёт самая ранняя книга — её разумно оставить.
-    """
-    books = (await db.scalars(select(Book).order_by(Book.id))).all()
-    parent = {b.id: b.id for b in books}
-
-    def root(book_id: int) -> int:
-        while parent[book_id] != book_id:
-            parent[book_id] = parent[parent[book_id]]
-            book_id = parent[book_id]
-        return book_id
-
-    def join(a: int, b: int) -> None:
-        ra, rb = root(a), root(b)
-        if ra != rb:
-            parent[max(ra, rb)] = min(ra, rb)
-
-    first_by_key: dict[str, int] = {}
-    for book in books:
-        keys = []
-        if book.file_sha256:
-            keys.append("sha:" + book.file_sha256)
-        title_key = normalize_title(book.title)
-        if title_key:
-            keys.append("title:" + title_key)
-        for key in keys:
-            if key in first_by_key:
-                join(first_by_key[key], book.id)
-            else:
-                first_by_key[key] = book.id
-
-    groups: dict[int, list[Book]] = {}
-    for book in books:
-        groups.setdefault(root(book.id), []).append(book)
-    return [group for group in groups.values() if len(group) > 1]

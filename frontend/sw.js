@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v353';
+const CACHE_NAME = 'aegis-cache-v354';
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -28,6 +28,7 @@ const PRECACHE_URLS = [
   '/css/components/touch-targets.css',
   '/css/components/appearance-onboarding.css',
   '/css/components/team.css',
+  '/css/components/duplicates.css',
   '/css/components/theme-light.css',
   '/fonts/jetbrains-mono-cyrillic-400-normal.woff2',
   '/fonts/jetbrains-mono-cyrillic-500-normal.woff2',
@@ -107,6 +108,7 @@ const PRECACHE_URLS = [
   '/appearance-onboarding.js',
   '/avatar-picker.js',
   '/org-structure.js',
+  '/admin-duplicates.js',
   '/team.js',
   '/desktop-mode-hint.js',
   '/avatars/a01.svg',
