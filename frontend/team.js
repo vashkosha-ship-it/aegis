@@ -37,6 +37,8 @@ function updateTeamEntryPoints() {
     document.getElementById('btnTeamGo')?.setAttribute('aria-label', text);
     const title = document.querySelector('#teamScreen .logo-name');
     if (title) title.textContent = text;
+    // На компьютере заголовок экрана берётся из data-title шапки.
+    document.querySelector('#teamScreen .top-header')?.setAttribute('data-title', text);
   };
   apply();
   if (typeof loadOrgUnits === 'function' && state.currentUser?.managed_department) loadOrgUnits().then(apply);

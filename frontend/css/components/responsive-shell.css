@@ -18,3 +18,14 @@
   body:has(#onboardingScreen.active) #app,
   body.reader-active #app { margin-left: 0 !important; }
 }
+
+/* Подпись под логотипом в боковом меню. */
+.sidebar-logo-brand { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sidebar-logo-tagline {
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: .02em;
+  white-space: normal;
+}
