@@ -140,3 +140,59 @@ class TestLimits:
         for _ in range(3):
             pages = await _extract_pages(simple_pdf)
             assert len(pages) == 2
+
+
+def _damage(path: str, how: str) -> None:
+    """Испортить PDF так же, как испорчены книги, на которых падал pypdf."""
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if how == "no_xref":
+        # Файл оборван перед таблицей xref и трейлером:
+        # pypdf — «Stream has ended unexpectedly».
+        data = data[: data.rfind(b"xref")]
+    elif how == "bad_encrypt":
+        # pypdf — «/Encrypt entry of the trailer is not a dictionary».
+        data = data.replace(b"trailer\n<<", b"trailer\n<< /Encrypt 5 ", 1)
+    elif how == "no_endstream":
+        # pypdf — «Unable to find 'endstream' marker».
+        data = data.replace(b"endstream", b"endstrXam", 1)
+    with open(path, "wb") as fh:
+        fh.write(data)
+
+
+class TestDamagedPdfFallback:
+    """Книги с повреждённой структурой открываются в читалке, но pypdf на
+    них сдавался целиком, и они не попадали в поиск. Теперь их разбирает
+    PDFium."""
+
+    @pytest.mark.parametrize("how", ["no_xref", "bad_encrypt", "no_endstream"])
+    async def test_damaged_pdf_is_indexed_via_pdfium(self, how):
+        from pypdf import PdfReader
+        from pypdf.errors import PyPdfError
+
+        path = _make_pdf([f"Firewall page {i}" for i in range(1, 6)])
+        try:
+            _damage(path, how)
+            with pytest.raises(PyPdfError):
+                [page.extract_text() for page in PdfReader(path).pages]
+            pages = await _extract_pages(path)
+            assert len(pages) == 5
+            # Испорченный поток может унести текст своей страницы, остальные
+            # должны прочитаться.
+            assert sum("Firewall page" in page for page in pages) >= 4
+            assert "Firewall page 5" in pages[4]
+        finally:
+            os.unlink(path)
+
+    async def test_garbage_still_fails_with_original_error(self):
+        """Если не справился и PDFium, наружу уходит понятная ошибка."""
+        fd, path = tempfile.mkstemp(suffix=".pdf")
+        os.write(fd, b"%PDF-1.4\nnot really a pdf at all")
+        os.close(fd)
+        try:
+            from pypdf.errors import PyPdfError
+
+            with pytest.raises(PyPdfError):
+                await _extract_pages(path)
+        finally:
+            os.unlink(path)

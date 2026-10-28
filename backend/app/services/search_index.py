@@ -86,17 +86,14 @@ async def spool_to_tempfile(chunks: AsyncIterator[bytes], *, suffix: str = ".pdf
     return path
 
 
-def _extract_pages_worker(path: str) -> list[str]:
-    """Извлечь текст всех страниц. Выполняется в ОТДЕЛЬНОМ процессе.
+def _clean_page_text(txt: str) -> str:
+    # PostgreSQL не принимает NUL-байт в text-колонке, а он встречается в
+    # PDF с битой кодировкой шрифтов и роняет вставку целой книги.
+    txt = _normalise_unicode((txt or "").replace("\x00", ""))
+    return " ".join(txt.split())[:MAX_PAGE_CHARS]
 
-    Так сделано по двум причинам:
-      * pypdf строит в памяти карту объектов всего документа — на книге в
-        150 МБ это сотни мегабайт, которые Python не отдаёт ОС обратно. При
-        индексации подряд полусотни книг воркер доходил до OOM. Отдельный
-        процесс умирает вместе со своей памятью.
-      * extract_text() — синхронный CPU-bound код; в основном процессе он
-        блокировал event loop воркера целиком.
-    """
+
+def _extract_pages_pypdf(path: str) -> list[str]:
     from pypdf import PdfReader
 
     reader = PdfReader(path)
@@ -110,11 +107,65 @@ def _extract_pages_worker(path: str) -> list[str]:
             txt = page.extract_text() or ""
         except Exception:  # noqa: BLE001 — битая страница не должна ронять всю книгу
             txt = ""
-        # PostgreSQL не принимает NUL-байт в text-колонке, а он встречается в
-        # PDF с битой кодировкой шрифтов и роняет вставку целой книги.
-        txt = _normalise_unicode(txt.replace("\x00", ""))
-        out.append(" ".join(txt.split())[:MAX_PAGE_CHARS])
+        out.append(_clean_page_text(txt))
     return out
+
+
+def _extract_pages_pdfium(path: str) -> list[str]:
+    """Запасной разбор через PDFium — движок PDF из Chrome.
+
+    Он восстанавливает файлы, на которых pypdf сдаётся целиком: без таблицы
+    xref и трейлера в конце («Stream has ended unexpectedly»), с битым
+    /Encrypt, с потоками без endstream, с повреждённым деревом страниц.
+    Такие книги при этом нормально открываются в читалке, а в поиск не
+    попадали.
+    """
+    import pypdfium2 as pdfium
+
+    document = pdfium.PdfDocument(path)
+    try:
+        out: list[str] = []
+        for index in range(min(len(document), MAX_PAGES_PER_BOOK)):
+            try:
+                page = document[index]
+                try:
+                    textpage = page.get_textpage()
+                    try:
+                        txt = textpage.get_text_bounded()
+                    finally:
+                        textpage.close()
+                finally:
+                    page.close()
+            except Exception:  # noqa: BLE001 — битая страница не должна ронять всю книгу
+                txt = ""
+            out.append(_clean_page_text(txt))
+        return out
+    finally:
+        document.close()
+
+
+def _extract_pages_worker(path: str) -> list[str]:
+    """Извлечь текст всех страниц. Выполняется в ОТДЕЛЬНОМ процессе.
+
+    Так сделано по двум причинам:
+      * pypdf строит в памяти карту объектов всего документа — на книге в
+        150 МБ это сотни мегабайт, которые Python не отдаёт ОС обратно. При
+        индексации подряд полусотни книг воркер доходил до OOM. Отдельный
+        процесс умирает вместе со своей памятью.
+      * extract_text() — синхронный CPU-bound код; в основном процессе он
+        блокировал event loop воркера целиком.
+
+    Сначала pypdf; если он не смог разобрать файл целиком — PDFium. Если не
+    справился и он, наружу уходит исходная ошибка pypdf: по ней понятнее,
+    что не так с файлом.
+    """
+    try:
+        return _extract_pages_pypdf(path)
+    except Exception as primary:  # noqa: BLE001
+        try:
+            return _extract_pages_pdfium(path)
+        except Exception:  # noqa: BLE001
+            raise primary from None
 
 
 def _extract_epub_sections_worker(path: str) -> list[str]:
