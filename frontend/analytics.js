@@ -264,7 +264,6 @@ function renderBookAnalytics(d) {
         ${miniStat('Читают', d.mylist.reading, '#10b981')}
         ${miniStat('В планах', d.mylist.planned, '#3b82f6')}
         ${miniStat('Завершено', d.mylist.completed, '#a78bfa')}
-        ${miniStat('Брошено', d.mylist.dropped, '#ef4444')}
         ${miniStat('Любимое', d.mylist.liked, '#f59e0b')}
       </div>
     </div>

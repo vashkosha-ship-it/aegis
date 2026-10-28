@@ -94,6 +94,10 @@ async def set_mylist_status(
     current: User = Depends(get_current_user),
 ) -> MyListEntryPublic:
     """Set the user's MyList status for a book."""
+    if payload.status == MyListStatus.DROPPED:
+        # Статус «Брошено» убран: пользователи сочли его грубым. Значение
+        # остаётся в перечислении только ради старых данных в БД.
+        raise HTTPException(status_code=422, detail="Такого статуса больше нет")
     book = await db.get(Book, book_id)
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")

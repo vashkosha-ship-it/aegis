@@ -22,7 +22,7 @@ from app.db.session import Base
 class MyListStatus(str, Enum):
     READING = "reading"
     PLANNED = "planned"
-    DROPPED = "dropped"
+    DROPPED = "dropped"  # больше не используется (убран из интерфейса)
     COMPLETED = "completed"
     LIKED = "liked"
 

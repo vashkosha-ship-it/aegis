@@ -83,7 +83,7 @@ vm.runInContext(source, context);
 
   state.mylist[1] = 'reading';
   mutationError = new ApiError(409, 'Конфликт');
-  await context.updateBookStatus(1, 'dropped');
+  await context.updateBookStatus(1, 'planned');
   assert.equal(state.mylist[1], 'reading');
   assert.equal(toasts.at(-1), 'Ошибка: Конфликт');
 

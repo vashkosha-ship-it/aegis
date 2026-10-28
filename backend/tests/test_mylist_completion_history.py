@@ -45,3 +45,15 @@ def test_export_end_date_includes_entire_day():
     start, end = parse_period("2026-09-01", "2026-09-30")
     assert start == datetime(2026, 9, 1, tzinfo=UTC)
     assert end == datetime(2026, 10, 1, tzinfo=UTC)
+
+
+async def test_dropped_status_is_gone(client, db, approved_user):
+    """«Брошено» убрано из интерфейса: сервер такой статус больше не принимает."""
+    book = Book(title="Без «Брошено»", author="Автор", description="")
+    db.add(book)
+    await db.commit()
+    await db.refresh(book)
+    response = await client.put(
+        f"/books/{book.id}/mylist", headers=auth_headers(approved_user), json={"status": "dropped"},
+    )
+    assert response.status_code == 422
