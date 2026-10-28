@@ -75,7 +75,12 @@ console.log('My List screen tests passed');
   const dir = pathm.resolve(__dirname, '..');
   const html = fsm.readFileSync(pathm.join(dir, 'index.html'), 'utf8');
   if (/data-mylist="dropped"|Брошено/.test(html)) throw new Error('вкладка «Брошено» осталась');
+  if (/data-mylist="liked"|>Избранное</.test(html)) throw new Error('вкладка «Избранное» осталась');
+  const tabs = [...html.matchAll(/data-mylist="(\w+)"/g)].map(m => m[1]);
+  if (tabs.join() !== 'reading,planned,completed') throw new Error('вкладки: ' + tabs.join());
   for (const file of ['library-home.js', 'mylist-screen.js', 'analytics.js', 'assistant-chat.js']) {
-    if (/Брошено|брошено/.test(fsm.readFileSync(pathm.join(dir, file), 'utf8'))) throw new Error('«Брошено» осталось в ' + file);
+    const text = fsm.readFileSync(pathm.join(dir, file), 'utf8');
+    if (/Брошено|брошено/.test(text)) throw new Error('«Брошено» осталось в ' + file);
+    if (/'Избранное'|'Любимое'/.test(text)) throw new Error('«Избранное» осталось в ' + file);
   }
 }
