@@ -64,3 +64,50 @@ async def test_bulk_indexing_skips_books_no_longer_queued(db, engine, monkeypatc
 
     assert todo in indexed and done not in indexed
     assert result["skipped"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_startup_requeues_books_whose_job_was_lost(db, engine, monkeypatch):
+    """Воркер упал посреди массовой индексации: задача пропала, книги висят
+    «в очереди». При старте им ставятся собственные задачи; книги, чья задача
+    ещё ждёт в очереди, не трогаются."""
+    import arq.jobs
+
+    from app import worker
+
+    lost_a = await _book(db, "lost-a", status="queued", text=False)
+    lost_b = await _book(db, "lost-b", status="queued", text=False)
+    waiting = await _book(db, "waiting", status="queued", text=False)
+    done = await _book(db, "done", status="succeeded", text=True)
+    for book_id, job_id in ((lost_a, "dead-bulk"), (lost_b, "dead-bulk"), (waiting, "alive"), (done, "dead-bulk")):
+        book = await db.get(Book, book_id)
+        book.indexing_job_id = job_id
+    await db.commit()
+
+    class FakeJob:
+        def __init__(self, job_id, _redis):
+            self.job_id = job_id
+
+        async def status(self):
+            return arq.jobs.JobStatus.queued if self.job_id == "alive" else arq.jobs.JobStatus.in_progress
+
+    class FakeRedis:
+        def __init__(self):
+            self.enqueued = []
+
+        async def enqueue_job(self, name, book_id):
+            self.enqueued.append((name, book_id))
+            return FakeJob(f"new-{book_id}", self)
+
+    monkeypatch.setattr(arq.jobs, "Job", FakeJob)
+    maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    monkeypatch.setattr(worker, "AsyncSessionLocal", maker)
+    redis = FakeRedis()
+
+    assert await worker.requeue_stuck_indexing({"redis": redis}) == 2
+    assert sorted(redis.enqueued) == sorted([("index_book", lost_a), ("index_book", lost_b)])
+    db.expire_all()
+    assert (await db.get(Book, lost_a)).indexing_job_id == f"new-{lost_a}"
+    assert (await db.get(Book, waiting)).indexing_job_id == "alive"
+    # Без Redis — ничего не делаем.
+    assert await worker.requeue_stuck_indexing({}) == 0
