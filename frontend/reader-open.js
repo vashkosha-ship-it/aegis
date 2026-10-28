@@ -6,6 +6,7 @@ function openReader(id) {
   // в блок «Продолжить», даже если раньше её оттуда убрали.
   unhideFromResume(id);
   currentBookId = id;
+  readerBookId = id;
   state.currentBook = b;
   hideReaderEmptyStub();
   if (!state.readingProgress[id]) state.readingProgress[id] = { currentPage: 1, totalPages: 10, started: false };

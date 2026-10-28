@@ -90,6 +90,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 function closeReader() {
+  if (typeof restoreReaderBook === 'function') restoreReaderBook();
   // Первым делом останавливаем отрисовку: иначе тяжёлая страница продолжает
   // декодироваться и выход из книги «зависает».
   if (!isEpubMode && typeof stopPdfRendering === 'function') stopPdfRendering();
@@ -109,8 +110,10 @@ function closeReader() {
   }
   window._lastEpubSearchCfi = null;
 
-  if (state.currentBook) state.readingProgress[currentBookId].currentPage = isEpubMode ? epubCurrentPage : pdfCurrentPage;
+  const openProgress = state.readingProgress[currentBookId];
+  if (state.currentBook && openProgress) openProgress.currentPage = isEpubMode ? epubCurrentPage : pdfCurrentPage;
   flushPendingProgress();
+  readerBookId = null;
   isEpubMode = false;
   epubRendition = null;
   epubBook = null;
@@ -125,7 +128,13 @@ function closeReader() {
 
   const returnTo = state._readerReturnTo || 'home';
   state._readerReturnTo = null;
-  navigateTo(returnTo);
+  // Возврат на «О книге» — страницу именно этой книги: пока читалка была в
+  // фоне, там могла открываться другая.
+  if (returnTo === 'detail' && typeof openBookDetail === 'function' && state.books.some(b => b.id === currentBookId)) {
+    openBookDetail(currentBookId);
+  } else {
+    navigateTo(returnTo);
+  }
 
   // Если возвращаемся на детальную — она уже отрендерена (currentBookId сохранён)
   // Иначе на home — он сам перерисуется
