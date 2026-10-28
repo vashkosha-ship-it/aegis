@@ -1,0 +1,398 @@
+"""Отдел: назначенное чтение.
+
+* Читатель видит книги, назначенные его подразделению, со сроком и своим
+  прогрессом (`GET /team/me/assignments`).
+* Руководитель отдела (`users.managed_department`, выдаёт администратор)
+  назначает книги своему отделу и видит, кто из сотрудников их читает.
+* Администратор может то же самое для любого отдела и назначает руководителей
+  (`PUT /admin/users/{id}/managed-department`, в admin.py).
+
+Руководитель видит только прогресс по назначенным книгам — не всё, что
+сотрудник читает, и не его заметки.
+"""
+from __future__ import annotations
+
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user
+from app.db.session import get_db
+from app.models.book import Book
+from app.models.library import MyListEntry, MyListStatus, ReadingProgress
+from app.models.team import ReadingAssignment
+from app.models.user import User, UserRole
+from app.services.admin_audit import log_admin_action
+
+router = APIRouter(prefix="/team", tags=["team"])
+
+NOTE_MAX = 500
+
+
+# ---------------------------------------------------------------------------
+# Схемы
+# ---------------------------------------------------------------------------
+
+
+class AssignmentBook(BaseModel):
+    id: int
+    title: str
+    author: str
+    has_cover: bool = False
+
+
+class MemberProgress(BaseModel):
+    status: str  # not_started | reading | completed
+    percent: int = 0
+
+
+class AssignmentView(BaseModel):
+    id: int
+    department: str
+    book: AssignmentBook
+    due_date: date | None = None
+    note: str | None = None
+    assigned_by: str | None = None
+    overdue: bool = False
+    # Для читателя — его собственный прогресс.
+    my_progress: MemberProgress | None = None
+    # Для руководителя — сводка по отделу.
+    completed: int = 0
+    reading: int = 0
+    not_started: int = 0
+
+
+class TeamMember(BaseModel):
+    id: int
+    name: str
+    avatar_preset: str | None = None
+    completed: int = 0
+    reading: int = 0
+    not_started: int = 0
+    overdue: int = 0
+
+
+class TeamOverview(BaseModel):
+    department: str
+    departments: list[str] = []  # для администратора: из каких можно выбрать
+    members: list[TeamMember]
+    assignments: list[AssignmentView]
+    # progress[assignment_id][member_id]
+    progress: dict[int, dict[int, MemberProgress]]
+
+
+def _clean_note(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+class AssignmentCreate(BaseModel):
+    book_id: int = Field(gt=0)
+    due_date: date | None = None
+    note: str | None = Field(default=None, max_length=NOTE_MAX)
+    department: str | None = Field(default=None, max_length=64)  # только для администратора
+
+    @field_validator("note")
+    @classmethod
+    def _strip_note(cls, value: str | None) -> str | None:
+        return _clean_note(value)
+
+
+class AssignmentUpdate(BaseModel):
+    due_date: date | None = None
+    note: str | None = Field(default=None, max_length=NOTE_MAX)
+
+    @field_validator("note")
+    @classmethod
+    def _strip_note(cls, value: str | None) -> str | None:
+        return _clean_note(value)
+
+
+# ---------------------------------------------------------------------------
+# Права
+# ---------------------------------------------------------------------------
+
+
+def _is_admin(user: User) -> bool:
+    return user.role == UserRole.ADMIN
+
+
+def _managed_department(user: User, requested: str | None) -> str:
+    """Отдел, с которым пользователь может работать как руководитель."""
+    requested = (requested or "").strip() or None
+    if _is_admin(user):
+        department = requested or user.managed_department or user.department
+        if not department:
+            raise HTTPException(status_code=400, detail="Выберите отдел")
+        return department
+    if not user.managed_department:
+        raise HTTPException(status_code=403, detail="Доступно только руководителю отдела")
+    if requested and requested != user.managed_department:
+        raise HTTPException(status_code=403, detail="Можно управлять только своим отделом")
+    return user.managed_department
+
+
+def _require_manager(user: User) -> None:
+    if not _is_admin(user) and not user.managed_department:
+        raise HTTPException(status_code=403, detail="Доступно только руководителю отдела")
+
+
+async def _get_assignment_for_manager(
+    db: AsyncSession, assignment_id: int, user: User
+) -> ReadingAssignment:
+    assignment = await db.get(ReadingAssignment, assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Назначение не найдено")
+    if not _is_admin(user) and assignment.department != user.managed_department:
+        # Чужое назначение — не раскрываем, что оно существует.
+        raise HTTPException(status_code=404, detail="Назначение не найдено")
+    return assignment
+
+
+# ---------------------------------------------------------------------------
+# Прогресс
+# ---------------------------------------------------------------------------
+
+
+async def _progress_map(
+    db: AsyncSession, user_ids: list[int], book_ids: list[int]
+) -> dict[tuple[int, int], MemberProgress]:
+    """(user_id, book_id) → прогресс. Нет записи — «не начинал»."""
+    result: dict[tuple[int, int], MemberProgress] = {}
+    if not user_ids or not book_ids:
+        return result
+    rows = (await db.scalars(
+        select(ReadingProgress).where(
+            ReadingProgress.user_id.in_(user_ids), ReadingProgress.book_id.in_(book_ids)
+        )
+    )).all()
+    for row in rows:
+        total = max(row.total_pages or 1, 1)
+        percent = max(0, min(100, round((row.current_page or 0) * 100 / total)))
+        if row.finished_at is not None:
+            result[(row.user_id, row.book_id)] = MemberProgress(status="completed", percent=100)
+        elif row.started:
+            result[(row.user_id, row.book_id)] = MemberProgress(status="reading", percent=percent)
+    done = (await db.execute(
+        select(MyListEntry.user_id, MyListEntry.book_id).where(
+            MyListEntry.user_id.in_(user_ids),
+            MyListEntry.book_id.in_(book_ids),
+            MyListEntry.status == MyListStatus.COMPLETED,
+        )
+    )).all()
+    for user_id, book_id in done:
+        result[(user_id, book_id)] = MemberProgress(status="completed", percent=100)
+    return result
+
+
+def _is_overdue(assignment: ReadingAssignment, progress: MemberProgress | None) -> bool:
+    if not assignment.due_date or assignment.due_date >= date.today():
+        return False
+    return not progress or progress.status != "completed"
+
+
+def _view(assignment: ReadingAssignment) -> AssignmentView:
+    book = assignment.book
+    author = assignment.assigned_by
+    return AssignmentView(
+        id=assignment.id,
+        department=assignment.department,
+        book=AssignmentBook(
+            id=book.id, title=book.title, author=book.author or "",
+            has_cover=bool(book.cover_storage_key),
+        ),
+        due_date=assignment.due_date,
+        note=assignment.note,
+        assigned_by=(author.full_name or author.username) if author else None,
+    )
+
+
+async def _assignments(db: AsyncSession, department: str) -> list[ReadingAssignment]:
+    return list((await db.scalars(
+        select(ReadingAssignment)
+        .where(ReadingAssignment.department == department)
+        .order_by(ReadingAssignment.due_date.is_(None), ReadingAssignment.due_date,
+                  ReadingAssignment.created_at.desc())
+    )).unique().all())
+
+
+# ---------------------------------------------------------------------------
+# Читатель
+# ---------------------------------------------------------------------------
+
+
+@router.get("/me/assignments", response_model=list[AssignmentView])
+async def my_assignments(
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> list[AssignmentView]:
+    """Книги, назначенные подразделению текущего пользователя."""
+    if not current.department:
+        return []
+    assignments = await _assignments(db, current.department)
+    progress = await _progress_map(db, [current.id], [a.book_id for a in assignments])
+    views = []
+    for assignment in assignments:
+        mine = progress.get((current.id, assignment.book_id)) or MemberProgress(status="not_started")
+        view = _view(assignment)
+        view.my_progress = mine
+        view.overdue = _is_overdue(assignment, mine)
+        views.append(view)
+    return views
+
+
+# ---------------------------------------------------------------------------
+# Руководитель
+# ---------------------------------------------------------------------------
+
+
+async def _known_departments(db: AsyncSession) -> list[str]:
+    from_users = (await db.scalars(
+        select(User.department).where(User.department.is_not(None)).distinct()
+    )).all()
+    from_assignments = (await db.scalars(select(ReadingAssignment.department).distinct())).all()
+    return sorted({d for d in [*from_users, *from_assignments] if d and d.strip()})
+
+
+@router.get("/overview", response_model=TeamOverview)
+async def team_overview(
+    department: str | None = Query(default=None, max_length=64),
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> TeamOverview:
+    departments: list[str] = []
+    if _is_admin(current):
+        departments = await _known_departments(db)
+        requested = (department or "").strip() or None
+        dept = requested or current.managed_department or current.department or (
+            departments[0] if departments else ""
+        )
+        if not dept:
+            return TeamOverview(department="", departments=[], members=[], assignments=[], progress={})
+    else:
+        dept = _managed_department(current, department)
+
+    members = list((await db.scalars(
+        select(User)
+        .where(User.department == dept, User.is_active.is_(True), User.is_approved.is_(True))
+        .order_by(User.full_name.nulls_last(), User.username)
+    )).all())
+    assignments = await _assignments(db, dept)
+    member_ids = [m.id for m in members]
+    progress = await _progress_map(db, member_ids, [a.book_id for a in assignments])
+
+    member_views = {
+        m.id: TeamMember(id=m.id, name=m.full_name or m.username, avatar_preset=m.avatar_preset)
+        for m in members
+    }
+    matrix: dict[int, dict[int, MemberProgress]] = {}
+    views = []
+    for assignment in assignments:
+        view = _view(assignment)
+        row: dict[int, MemberProgress] = {}
+        for member_id in member_ids:
+            item = progress.get((member_id, assignment.book_id)) or MemberProgress(status="not_started")
+            row[member_id] = item
+            setattr(view, item.status, getattr(view, item.status) + 1)
+            member = member_views[member_id]
+            setattr(member, item.status, getattr(member, item.status) + 1)
+            if _is_overdue(assignment, item):
+                member.overdue += 1
+        view.overdue = any(_is_overdue(assignment, item) for item in row.values())
+        matrix[assignment.id] = row
+        views.append(view)
+
+    return TeamOverview(
+        department=dept,
+        departments=departments,
+        members=list(member_views.values()),
+        assignments=views,
+        progress=matrix,
+    )
+
+
+@router.post("/assignments", response_model=AssignmentView, status_code=status.HTTP_201_CREATED)
+async def create_assignment(
+    request: Request,
+    payload: AssignmentCreate,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> AssignmentView:
+    dept = _managed_department(current, payload.department)
+    book = await db.get(Book, payload.book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="Книга не найдена")
+    if payload.due_date and payload.due_date < date.today():
+        raise HTTPException(status_code=422, detail="Срок не может быть в прошлом")
+    existing = await db.scalar(
+        select(ReadingAssignment).where(
+            ReadingAssignment.department == dept, ReadingAssignment.book_id == book.id
+        )
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Эта книга уже назначена отделу")
+    assignment = ReadingAssignment(
+        department=dept, book_id=book.id, assigned_by_id=current.id,
+        due_date=payload.due_date, note=payload.note,
+    )
+    db.add(assignment)
+    await log_admin_action(
+        db, current, "team_assignment_create", request=request,
+        target=f"book:{book.id}", detail=f"Отделу {dept} назначена книга «{book.title}»",
+    )
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Эта книга уже назначена отделу") from None
+    await db.refresh(assignment)
+    return _view(assignment)
+
+
+@router.patch("/assignments/{assignment_id}", response_model=AssignmentView)
+async def update_assignment(
+    request: Request,
+    assignment_id: int,
+    payload: AssignmentUpdate,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> AssignmentView:
+    _require_manager(current)
+    assignment = await _get_assignment_for_manager(db, assignment_id, current)
+    fields = payload.model_fields_set
+    if "due_date" in fields:
+        if payload.due_date and payload.due_date < date.today() and payload.due_date != assignment.due_date:
+            raise HTTPException(status_code=422, detail="Срок не может быть в прошлом")
+        assignment.due_date = payload.due_date
+    if "note" in fields:
+        assignment.note = payload.note
+    await log_admin_action(
+        db, current, "team_assignment_update", request=request,
+        target=f"assignment:{assignment.id}", detail=f"Изменено назначение для {assignment.department}",
+    )
+    await db.commit()
+    await db.refresh(assignment)
+    return _view(assignment)
+
+
+@router.delete("/assignments/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_assignment(
+    request: Request,
+    assignment_id: int,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> None:
+    _require_manager(current)
+    assignment = await _get_assignment_for_manager(db, assignment_id, current)
+    await log_admin_action(
+        db, current, "team_assignment_delete", request=request,
+        target=f"book:{assignment.book_id}", detail=f"Снято назначение для {assignment.department}",
+    )
+    await db.delete(assignment)
+    await db.commit()

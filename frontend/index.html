@@ -68,6 +68,10 @@
       </button>
     </div>
     <div class="sidebar-footer">
+      <button type="button" class="sidebar-item hidden" id="sidebarTeam" data-screen="team" data-onclick="navigateTo('team')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="item-label">Мой отдел</span>
+      </button>
       <button type="button" class="sidebar-item" data-screen="assistant" data-ai-entry data-onclick="navigateTo('assistant')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
         <span class="item-label">AI Ассистент</span>
@@ -193,6 +197,10 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7H17A2 2 0 0 1 19 9V17A2 2 0 0 1 17 19H7A2 2 0 0 1 5 17V9A2 2 0 0 1 7 7H9"/><rect x="10" y="2" width="4" height="6" rx="2"/><line x1="12" y1="13" x2="12" y2="16"/></svg>
             <span class="header-btn-label">Клавиши</span>
           </button>
+          <button class="header-icon-btn btn-team-icon hidden" id="btnTeamGo" data-onclick="navigateTo('team')" title="Мой отдел" aria-label="Мой отдел">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="header-btn-label">Мой отдел</span>
+          </button>
           <button class="header-icon-btn btn-admin-icon hidden" id="btnAdminGo" data-onclick="navigateTo('admin')" title="Админ-панель" aria-label="Админ-панель">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
             <span class="header-btn-label">Админка</span>
@@ -250,6 +258,13 @@
     </div>
 
     <!-- Секции книг -->
+    <div class="home-section assigned-section hidden" id="sectionAssigned">
+      <div class="assigned-head">
+        <div class="section-title">Назначено вам</div>
+        <span class="assigned-counter" id="assignedCounter"></span>
+      </div>
+      <div class="assigned-list" id="assignedList"></div>
+    </div>
     <div class="home-section static-style-009" id="sectionRecommendations">
       <div class="section-title">Рекомендации</div>
       <div class="static-style-010" id="recommendationsList"></div>
@@ -657,6 +672,17 @@
     <div id="detailTabDiscussion" class="detail-tab-content hidden" role="tabpanel"></div>
     <div id="detailTabTraining" class="detail-tab-content hidden" role="tabpanel"></div>
     <div id="detailTabNotes" class="detail-tab-content hidden" role="tabpanel"></div>
+  </div>
+
+  <!-- ======================== МОЙ ОТДЕЛ (руководитель) ======================== -->
+  <div id="teamScreen" class="screen">
+    <div class="top-header" data-title="Мой отдел">
+      <div class="header-left">
+        <button class="btn-back" data-onclick="navigateTo('home')" aria-label="Назад">←</button>
+        <div class="logo-name">Мой отдел</div>
+      </div>
+    </div>
+    <div id="teamContent" class="team-screen"></div>
   </div>
 
   <!-- ======================== ЧИТАЛКА (PDF + EPUB) ======================== -->
@@ -1120,6 +1146,7 @@
 <script defer src="onboarding-tour.js"></script>
 <script defer src="appearance-onboarding.js"></script>
 <script defer src="avatar-picker.js"></script>
+<script defer src="team.js"></script>
 <script defer src="analytics.js"></script>
 <script defer src="profile-insights.js"></script>
 <script defer src="profile-screen.js"></script>

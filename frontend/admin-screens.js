@@ -427,6 +427,10 @@ function appendAdminMetric(container, value, label, valueStyle) {
   container.appendChild(card);
 }
 
+// Подразделения из формы регистрации — чтобы руководителя можно было назначить
+// ещё до того, как в отдел пришёл первый сотрудник.
+const DEFAULT_TEAM_DEPARTMENTS = ['ЦКЗ', 'ДПМ', 'УБД', 'УКИИ', 'УКАИ', 'УМК', 'УЭК', 'ЦКГ', 'ЦУПКБ', 'ЦВВ'];
+
 function renderAdminUsersWithFilter() {
   const container = document.getElementById('adUsers');
   const users = state._adminUsers || [];
@@ -532,6 +536,10 @@ function renderAdminUsersWithFilter() {
   });
   thead.appendChild(header);
   const tbody = document.createElement('tbody');
+  const knownDepartments = [...new Set([
+    ...DEFAULT_TEAM_DEPARTMENTS,
+    ...users.map(user => user.department).filter(Boolean),
+  ])];
   displayed.forEach((user, index) => {
     const row = document.createElement('tr');
     if (filter !== 'all') {
@@ -539,8 +547,17 @@ function renderAdminUsersWithFilter() {
       place.setAttribute('data-static-style', 'a560');
     }
     const levelInfo = user.cyber_level ? getCyberLevelInfo(user.cyber_level) : null;
-    [user.id, user.username, user.full_name || '—', user.department || '—', user.email || '—',
-      user.role, levelInfo ? levelInfo.name : '—', user.xp, user.streak_count, user.completed_books,
+    [user.id, user.username, user.full_name || '—', user.department || '—', user.email || '—']
+      .forEach(value => appendAdminCell(row, value));
+    // Роль: администратор — как есть; остальным можно выдать «Руководитель отдела».
+    if (user.role === 'admin' || typeof buildManagerRoleSelect !== 'function') {
+      appendAdminCell(row, user.role === 'admin' ? 'Администратор' : (user.managed_department ? `Руководитель ${user.managed_department}` : 'Читатель'));
+    } else {
+      const roleCell = document.createElement('td');
+      roleCell.appendChild(buildManagerRoleSelect(user, knownDepartments));
+      row.appendChild(roleCell);
+    }
+    [levelInfo ? levelInfo.name : '—', user.xp, user.streak_count, user.completed_books,
       user.quiz_attempts, user.perfect_quizzes, user.total_pages_read].forEach(value => appendAdminCell(row, value));
     const active = document.createElement('td');
     appendTrustedIcon(active, user.is_active ? ICONS.check : ICONS.x);
