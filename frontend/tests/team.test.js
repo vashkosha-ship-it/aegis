@@ -205,6 +205,14 @@ const iso = days => {
     move.dispatchEvent(new window.Event('change'));
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.deepEqual(calls.find(call => call[0] === 'move'), ['move', 9, 'ОЭ-1']);
+
+    // Перевод из списка сотрудников подразделения сообщает, что пора обновить «Структуру».
+    let changed = null;
+    const move2 = window.buildUserDepartmentSelect(user, { onChanged: who => { changed = who.department; } });
+    move2.value = 'ЦВВ';
+    move2.dispatchEvent(new window.Event('change'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(changed, 'ЦВВ');
   }
 
   // Администратор без выбора видит список подразделений, а не «свой» отдел.
@@ -269,6 +277,9 @@ const iso = days => {
   assert.match(read('admin-screens.js'), /buildUserDepartmentSelect\(user\)/);
   assert.match(index, /data-atab="org">Структура</);
   assert.ok(read('sw.js').includes("'/org-structure.js'"));
+  // Создание пользователя и «Структура»: подразделение — выбором, у подразделения — список сотрудников.
+  assert.match(read('admin-users.js'), /<select id="cuDepartment"/);
+  assert.match(read('org-structure.js'), /async function toggleOrgPeople/);
 
   console.log('team assignments tests passed');
 })().catch(error => {

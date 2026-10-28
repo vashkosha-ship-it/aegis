@@ -421,6 +421,12 @@
 .org-name { color: var(--text-secondary); font-size: 14px; }
 .org-unit-facts { color: var(--text-muted); font-size: 12px; }
 .org-unit-actions { display: flex; gap: 8px; }
+.org-people { display: grid; gap: 6px; flex: 1 1 100%; padding-top: 8px; border-top: 1px solid var(--border); }
+.org-people.hidden { display: none; }
+.org-person { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.org-person-name { flex: 1 1 200px; font-size: 14px; }
+.org-person .team-role-select { flex: 0 0 260px; width: 260px; max-width: 100%; }
+.org-person-role { color: var(--text-muted); font-size: 12px; }
 .app-dialog-panel.org-dialog { max-width: 460px; }
 .org-form { display: grid; gap: 12px; }
 .org-field { display: grid; gap: 6px; }

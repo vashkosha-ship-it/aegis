@@ -195,12 +195,50 @@ function _orgUnitRow(unit, units) {
     : `руководитель: ${managers || 'не назначен'}`);
   body.appendChild(_orgEl('div', 'org-unit-facts', facts.join(' · ')));
   const actions = _orgEl('div', 'org-unit-actions');
+  const people = _orgEl('div', 'org-people hidden');
+  const peopleButton = _orgButton(`Сотрудники (${unit.members || 0})`, 'org-secondary', () => toggleOrgPeople(unit, people, peopleButton));
+  peopleButton.setAttribute('aria-expanded', 'false');
   actions.append(
+    peopleButton,
     _orgButton('Изменить', 'org-secondary', () => openOrgUnitModal({ unit })),
     _orgButton('Удалить', 'org-secondary is-danger', () => confirmDeleteOrgUnit(unit)),
   );
-  row.append(body, actions);
+  row.append(body, actions, people);
   return row;
+}
+
+// Список сотрудников подразделения с переводом в другое — прямо в «Структуре».
+async function toggleOrgPeople(unit, box, button) {
+  const open = box.classList.contains('hidden');
+  box.classList.toggle('hidden', !open);
+  button.setAttribute('aria-expanded', String(open));
+  if (!open) return;
+  box.replaceChildren(_orgEl('div', 'org-empty org-empty--small', 'Загрузка…'));
+  try {
+    state._adminUsers = await api.library.adminUsers();
+  } catch (err) {
+    box.replaceChildren(_orgEl('div', 'org-empty org-empty--small', 'Не удалось загрузить сотрудников'));
+    return;
+  }
+  const people = state._adminUsers.filter(user => user.department === unit.code);
+  if (!people.length) {
+    box.replaceChildren(_orgEl('div', 'org-empty org-empty--small',
+      'Сотрудников нет. Перевести сотрудника сюда можно на вкладке «Пользователи» или из списка другого подразделения.'));
+    return;
+  }
+  box.replaceChildren(...people.map(user => {
+    const line = _orgEl('div', 'org-person');
+    const who = _orgEl('div', 'org-person-name', user.full_name || user.username);
+    if (user.managed_department) who.appendChild(_orgEl('span', 'org-person-role', ` · руководит ${user.managed_department}`));
+    // После перевода обновляем счётчики в «Структуре».
+    const select = typeof buildUserDepartmentSelect === 'function'
+      ? buildUserDepartmentSelect(user, { onChanged: () => renderAdminOrg() })
+      : null;
+    if (select) select.setAttribute('aria-label', `Перевести ${user.full_name || user.username} в другое подразделение`);
+    line.append(who);
+    if (select) line.append(select);
+    return line;
+  }));
 }
 
 function confirmDeleteOrgUnit(unit) {

@@ -696,7 +696,7 @@ async function openAssignBookModal({ bookId = null, assignment = null } = {}) {
 
 // ---------- Администратор: подразделение и роль сотрудника ----------
 
-function buildUserDepartmentSelect(user) {
+function buildUserDepartmentSelect(user, { onChanged = null } = {}) {
   const select = document.createElement('select');
   select.className = 'team-role-select';
   select.setAttribute('aria-label', `Подразделение пользователя ${user.username}`);
@@ -708,6 +708,7 @@ function buildUserDepartmentSelect(user) {
       const updated = await api.library.setUserDepartment(user.id, value || null);
       user.department = updated.department || null;
       showToast(value ? `${user.full_name || user.username} → ${value}` : 'Подразделение убрано');
+      if (typeof onChanged === 'function') onChanged(user);
     } catch (err) {
       select.value = user.department || '';
       showToast((err && err.detail) || 'Не удалось перевести');
