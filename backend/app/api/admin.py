@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import Date, and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -590,6 +591,7 @@ async def list_all_users(
             role=u.role,
             full_name=u.full_name,
             department=u.department,
+            managed_department=u.managed_department,
             xp=u.xp,
             streak_count=u.streak_count or 0,
             cyber_level=u.cyber_level,
@@ -669,6 +671,41 @@ async def approve_user(
             pass
 
     return {"detail": "approved", "user_id": user_id}
+
+
+class ManagedDepartmentSet(BaseModel):
+    department: str | None = Field(default=None, max_length=64)
+
+
+@router.put("/users/{user_id}/managed-department", response_model=AdminUserView)
+async def set_managed_department(
+    request: Request,
+    user_id: int,
+    payload: ManagedDepartmentSet,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> AdminUserView:
+    """Сделать пользователя руководителем отдела (или снять роль: department=null)."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    department = (payload.department or "").strip() or None
+    user.managed_department = department
+    await log_admin_action(
+        db, admin, "user_manager_update", request=request,
+        target=f"user:{user.id}:{user.username}",
+        detail=(f"Руководитель отдела {department}" if department else "Снята роль руководителя"),
+    )
+    await db.commit()
+    await db.refresh(user)
+    return AdminUserView(
+        id=user.id, username=user.username, email=user.email, role=user.role,
+        full_name=user.full_name, department=user.department,
+        managed_department=user.managed_department, xp=user.xp,
+        streak_count=user.streak_count or 0, cyber_level=user.cyber_level,
+        is_active=user.is_active,
+        created_at=user.created_at.isoformat() if user.created_at else None,
+    )
 
 
 @router.post("/users/{user_id}/reject", status_code=status.HTTP_200_OK)

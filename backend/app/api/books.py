@@ -40,6 +40,7 @@ from app.core.storage import (
 )
 from app.db.session import get_db
 from app.models.book import Book, Category
+from app.models.team import ReadingAssignment
 from app.models.user import User
 from app.schemas.book import (
     BookCreate,
@@ -284,6 +285,16 @@ async def set_required(
     """Admin only: пометить книгу обязательной для подразделения (или снять)."""
     book = await _get_book_or_404(db, book_id)
     book.required_for_department = (payload.department or None)
+    # Обязательная книга — это назначение отделу (см. app/api/team.py).
+    if book.required_for_department:
+        exists = await db.scalar(select(ReadingAssignment.id).where(
+            ReadingAssignment.department == book.required_for_department,
+            ReadingAssignment.book_id == book.id,
+        ))
+        if not exists:
+            db.add(ReadingAssignment(
+                department=book.required_for_department, book_id=book.id, assigned_by_id=admin.id,
+            ))
     await log_admin_action(
         db, admin, "book_required_update", request=request,
         target=f"book:{book.id}",
@@ -307,7 +318,9 @@ async def my_required_books(
         return []
     rows = (
         await db.scalars(
-            select(Book).where(Book.required_for_department == current.department)
+            select(Book)
+            .join(ReadingAssignment, ReadingAssignment.book_id == Book.id)
+            .where(ReadingAssignment.department == current.department)
         )
     ).all()
     return [

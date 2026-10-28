@@ -531,6 +531,17 @@
       // E4: обязательные книги
       setRequiredBook(bookId, department) { return request('/books/' + bookId + '/required', { method: 'POST', body: { department } }); },
       myRequiredBooks() { return request('/books/required/mine'); },
+      // Назначенное чтение отдела (руководитель отдела и читатель)
+      myAssignments() { return request('/team/me/assignments'); },
+      teamOverview(department) {
+        return request('/team/overview' + (department ? '?department=' + encodeURIComponent(department) : ''));
+      },
+      createAssignment(payload) { return request('/team/assignments', { method: 'POST', body: payload }); },
+      updateAssignment(id, payload) { return request('/team/assignments/' + id, { method: 'PATCH', body: payload }); },
+      deleteAssignment(id) { return request('/team/assignments/' + id, { method: 'DELETE' }); },
+      setManagedDepartment(userId, department) {
+        return request('/admin/users/' + userId + '/managed-department', { method: 'PUT', body: { department: department || null } });
+      },
       // Полнотекстовый поиск по содержимому и метаданным
       searchBooks(query, limit = 20) { return request('/search?q=' + encodeURIComponent(query) + '&limit=' + limit); },
       // Переиндексация (админ)

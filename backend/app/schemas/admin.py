@@ -89,6 +89,7 @@ class AdminUserView(BaseModel):
     role: UserRole
     full_name: str | None = None
     department: str | None = None
+    managed_department: str | None = None
     xp: int
     streak_count: int = 0
     cyber_level: str | None = None

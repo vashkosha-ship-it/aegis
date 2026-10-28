@@ -1,0 +1,346 @@
+/* Назначенное чтение (team.js): блок «Назначено вам» на главной,
+   экран «Мой отдел» руководителя и окно «Назначить книгу». */
+
+/* ---------- Общие элементы ---------- */
+.team-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  background: var(--bg-card-hover);
+  color: var(--text-secondary);
+}
+.team-chip--warning { background: rgba(245, 158, 11, .16); color: #d97706; }
+.team-chip--danger { background: rgba(239, 68, 68, .15); color: #ef4444; }
+.team-chip--success { background: rgba(34, 197, 94, .15); color: #16a34a; }
+
+.team-progress {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--border);
+}
+.team-progress-fill { display: block; height: 100%; }
+.team-progress-fill.is-completed { background: #22c55e; }
+.team-progress-fill.is-reading { background: var(--accent); }
+
+.team-cover {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--bg-card-hover);
+  font-size: 24px;
+}
+.team-cover img { width: 100%; height: 100%; object-fit: cover; }
+.team-cover.is-clickable { cursor: pointer; }
+
+.team-empty,
+.team-hint {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.team-empty {
+  padding: 18px;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius);
+  text-align: center;
+}
+.team-hint { margin: 12px 0 0; font-size: 12px; color: var(--text-muted); }
+
+/* ---------- «Назначено вам» на главной ---------- */
+.assigned-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.assigned-counter { color: var(--text-secondary); font-size: 13px; }
+.assigned-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.assigned-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.assigned-card:hover { background: var(--bg-card-hover); }
+.assigned-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.assigned-card.is-done { border-left-color: #22c55e; opacity: .75; }
+.assigned-card-body { display: grid; flex: 1; gap: 6px; min-width: 0; }
+.assigned-card-title {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.assigned-card-author { color: var(--text-secondary); font-size: 13px; }
+.assigned-card-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.assigned-card-status { color: var(--text-secondary); font-size: 12px; }
+.assigned-card-note { color: var(--text-muted); font-size: 12px; font-style: italic; }
+
+.detail-assigned {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), .14);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------- Экран «Мой отдел» ---------- */
+.team-screen {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 16px calc(var(--bottom-nav-h) + 24px);
+}
+.team-head {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(var(--accent-rgb), .14), transparent 55%),
+    var(--bg-card);
+}
+.team-head-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; }
+.team-kicker {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.team-title { margin: 4px 0 0; font-size: 24px; line-height: 1.2; }
+.team-department-picker { display: grid; gap: 4px; color: var(--text-secondary); font-size: 12px; }
+.team-department-picker select,
+.team-role-select {
+  min-width: 170px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+}
+.team-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.team-metric {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+.team-metric strong { font-size: 22px; line-height: 1.1; }
+.team-metric span { color: var(--text-secondary); font-size: 12px; }
+.team-metric--danger strong { color: #ef4444; }
+
+.team-primary,
+.team-secondary,
+.team-link {
+  min-height: 40px;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.team-primary {
+  justify-self: start;
+  padding: 10px 18px;
+  border: 0;
+  background: var(--accent-gradient);
+  color: #fff;
+}
+.team-secondary {
+  padding: 8px 14px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.team-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.team-secondary.is-danger { color: #ef4444; }
+.team-secondary.is-danger:hover { border-color: #ef4444; }
+.team-link {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+}
+.team-primary:focus-visible,
+.team-secondary:focus-visible,
+.team-link:focus-visible,
+.team-card-title:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.team-section { display: grid; gap: 12px; }
+.team-section-title { margin: 0; font-size: 17px; }
+
+.team-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+.team-card-top { display: flex; gap: 12px; align-items: flex-start; }
+.team-card-body { display: grid; flex: 1; gap: 6px; min-width: 0; }
+.team-card-title {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+.team-card-author,
+.team-card-by { color: var(--text-secondary); font-size: 13px; }
+.team-card-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.team-card-note {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: pre-line;
+}
+.team-card-stats { display: grid; gap: 6px; }
+.team-card-counts { color: var(--text-secondary); font-size: 13px; }
+.team-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.team-who {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.team-who-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-size: 14px;
+}
+.team-who-status { color: var(--text-secondary); white-space: nowrap; }
+.team-who-row.is-completed .team-who-status { color: #16a34a; }
+.team-who-row.is-reading .team-who-status { color: var(--accent); }
+
+.team-members { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.team-member {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+.team-avatar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-weight: 700;
+}
+.team-avatar img { width: 100%; height: 100%; }
+.team-member-body { flex: 1; min-width: 0; }
+.team-member-name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.team-member-stats { color: var(--text-secondary); font-size: 13px; }
+
+/* ---------- Окно «Назначить книгу» ---------- */
+.app-dialog-panel.team-dialog { max-width: 480px; max-height: calc(100dvh - 32px); overflow-y: auto; }
+.team-form { display: grid; gap: 14px; }
+.team-dialog-lead { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.45; }
+.team-field { display: grid; gap: 6px; }
+.team-field-label { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.team-chosen-book {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+.team-chosen-book .team-cover { width: 36px; height: 50px; font-size: 18px; }
+.team-chosen-text { flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; }
+.team-book-results { display: grid; gap: 4px; max-height: 240px; overflow-y: auto; }
+.team-book-option {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.team-book-option:hover,
+.team-book-option:focus-visible { border-color: var(--accent); outline: none; }
+.team-book-option-title { font-size: 14px; font-weight: 600; }
+.team-book-option-author { color: var(--text-secondary); font-size: 12px; }
+.team-form-error { color: #ef4444; font-size: 13px; }
+.team-form-error:empty { display: none; }
+
+@media (max-width: 599.98px) {
+  .assigned-list { grid-template-columns: 1fr; }
+  .team-screen { padding-top: 12px; }
+  .team-head { padding: 14px; }
+  .team-title { font-size: 20px; }
+  .team-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .team-primary { justify-self: stretch; }
+  .team-card-actions > * { flex: 1 1 auto; }
+  .team-members { grid-template-columns: 1fr; }
+}

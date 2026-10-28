@@ -85,6 +85,8 @@ class UserPublic(BaseModel):
     topic_scores: dict | None = None
     level_assessed_at: datetime | None = None
     department: str | None = None
+    # Отдел, которым пользователь руководит (None — обычный читатель).
+    managed_department: str | None = None
     profile_visibility: str = "public"
     is_approved: bool = True
     ui_theme: str | None = None

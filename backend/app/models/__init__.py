@@ -23,6 +23,7 @@ from app.models.library import (
 from app.models.quiz import QuizAttempt, QuizQuestion
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
+from app.models.team import ReadingAssignment
 from app.models.usage import UsageCounter
 from app.models.user import User, UserRole
 
@@ -33,6 +34,7 @@ __all__ = [
     "Annotation",
     "AnnotationType",
     "Book",
+    "ReadingAssignment",
     "BookComment",
     "BookMetadataChange",
     "BookMetadataJob",

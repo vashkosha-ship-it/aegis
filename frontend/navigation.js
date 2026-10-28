@@ -16,6 +16,7 @@ const SCREEN_IDS = {
   admin: 'adminScreen',
   training: 'trainingScreen',
   onboarding: 'onboardingScreen',
+  team: 'teamScreen',
 };
 
 const screens = new Proxy({}, {
@@ -192,6 +193,7 @@ function navigateTo(s) {
   if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'assistant') { renderAssistantScreen(); }
   if (s === 'admin') { renderAdminPanel(); refreshPendingBadge(); }
+  if (s === 'team' && typeof renderTeamScreen === 'function') renderTeamScreen();
   if (s === 'reader') { ensureReaderHasBook(); }
   updateFabVisibility();
   _scheduleScreenScroll(s);
