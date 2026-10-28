@@ -196,3 +196,39 @@ class TestDamagedPdfFallback:
                 await _extract_pages(path)
         finally:
             os.unlink(path)
+
+
+def _allocate_a_lot() -> int:
+    data = bytearray(1024 * 1024 * 1024)  # 1 ГБ
+    return len(data)
+
+
+def _crash_worker(_path: str) -> list[str]:
+    os._exit(137)  # как процесс, убитый за нехватку памяти
+
+
+class TestExtractionMemoryLimit:
+    """Тяжёлая книга не должна ронять весь воркер: у процесса разбора свой
+    потолок памяти, а его смерть превращается в понятную ошибку книги."""
+
+    def test_child_process_gets_its_own_memory_ceiling(self, monkeypatch):
+        from app.services import search_index
+
+        monkeypatch.setattr(search_index, "EXTRACT_MEMORY_LIMIT_BYTES", 512 * 1024 * 1024)
+        pool = search_index._new_extract_pool()
+        try:
+            with pytest.raises(MemoryError):
+                pool.submit(_allocate_a_lot).result(timeout=60)
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
+
+    async def test_killed_extraction_becomes_book_error(self, monkeypatch, simple_pdf):
+        from app.services import search_index
+
+        monkeypatch.setattr(search_index, "_extract_pages_worker", _crash_worker)
+        with pytest.raises(search_index.ExtractionOutOfMemory, match="не хватило памяти"):
+            await _extract_pages(simple_pdf)
+
+    async def test_normal_book_still_fits_under_the_ceiling(self, simple_pdf):
+        pages = await _extract_pages(simple_pdf)
+        assert "Hello" in pages[0]

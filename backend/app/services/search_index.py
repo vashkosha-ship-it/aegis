@@ -16,6 +16,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from collections.abc import AsyncIterator
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,6 +40,16 @@ MAX_PAGES_PER_BOOK = 5000
 EXTRACT_TIMEOUT_SECONDS = 900  # 15 минут на книгу
 MAX_PDF_BYTES = 500 * 1024 * 1024
 
+# Потолок памяти процесса, который разбирает одну книгу. У службы воркера
+# общий лимит (MemoryMax=2G в aegis-worker.service), и при его превышении
+# systemd останавливает ВСЮ службу: прерывались обе книги, что шли
+# параллельно, а следующая крупная книга роняла воркер снова. Со своим
+# потолком у процесса кончается память раньше общей — падает только эта книга
+# с понятной ошибкой, воркер работает дальше. Два процесса (max_jobs=2) плюс
+# сам воркер укладываются в 2 ГБ. Это бюджет СВЕРХ того, что процесс разбора
+# унаследовал от воркера (см. _limit_child_memory).
+EXTRACT_MEMORY_LIMIT_BYTES = int(os.getenv("AEGIS_EXTRACT_MEMORY_MB", "768")) * 1024 * 1024
+
 
 class IndexingError(Exception):
     """Книгу не удалось проиндексировать."""
@@ -46,6 +57,66 @@ class IndexingError(Exception):
 
 class PdfTooLarge(IndexingError):
     pass
+
+
+class ExtractionOutOfMemory(IndexingError):
+    pass
+
+
+OUT_OF_MEMORY_MESSAGE = (
+    "не хватило памяти на разбор файла (лимит {mb} МБ на книгу) — "
+    "файл слишком тяжёлый или повреждён"
+)
+
+
+def _current_address_space() -> int:
+    """Сколько адресного пространства процесс уже занимает (VmSize)."""
+    try:
+        with open("/proc/self/status", encoding="ascii") as fh:
+            for line in fh:
+                if line.startswith("VmSize:"):
+                    return int(line.split()[1]) * 1024
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0
+
+
+def _limit_child_memory(budget_bytes: int) -> None:
+    """Инициализатор процесса разбора: свой потолок памяти.
+
+    Потолок = то, что процесс уже унаследовал от воркера при fork (библиотеки,
+    пулы соединений — общие страницы, реальной памяти почти не занимают),
+    плюс бюджет на разбор книги. Абсолютное число здесь опасно: адресное
+    пространство воркера может само по себе быть больше любого бюджета.
+    """
+    if budget_bytes <= 0:
+        return
+    try:
+        import resource
+
+        limit = _current_address_space() + budget_bytes
+        _soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        if hard != resource.RLIM_INFINITY:
+            limit = min(limit, hard)
+        resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
+    except (ImportError, ValueError, OSError):  # не Linux или лимит не меняется
+        pass
+
+
+def _new_extract_pool() -> ProcessPoolExecutor:
+    # max_workers=1 + новый пул на каждую книгу = процесс гарантированно
+    # завершается, освобождая всю память.
+    return ProcessPoolExecutor(
+        max_workers=1,
+        initializer=_limit_child_memory,
+        initargs=(EXTRACT_MEMORY_LIMIT_BYTES,),
+    )
+
+
+def _out_of_memory() -> ExtractionOutOfMemory:
+    return ExtractionOutOfMemory(
+        OUT_OF_MEMORY_MESSAGE.format(mb=EXTRACT_MEMORY_LIMIT_BYTES // (1024 * 1024))
+    )
 
 
 class ExtractionTimeout(IndexingError):
@@ -161,11 +232,15 @@ def _extract_pages_worker(path: str) -> list[str]:
     """
     try:
         return _extract_pages_pypdf(path)
-    except Exception as primary:  # noqa: BLE001
-        try:
-            return _extract_pages_pdfium(path)
-        except Exception:  # noqa: BLE001
-            raise primary from None
+    except Exception as exc:  # noqa: BLE001
+        # Без трассировки: она держит кадры с разобранным документом, а после
+        # MemoryError эта память нужна PDFium.
+        primary = exc.with_traceback(None)
+        primary.__context__ = None
+    try:
+        return _extract_pages_pdfium(path)
+    except Exception:  # noqa: BLE001
+        raise primary from None
 
 
 def _extract_epub_sections_worker(path: str) -> list[str]:
@@ -241,14 +316,16 @@ async def _extract_pages(path: str) -> list[str]:
         raise PdfTooLarge(f"{size} байт — больше допустимых {MAX_PDF_BYTES}")
 
     loop = asyncio.get_running_loop()
-    # max_workers=1 + новый пул на каждую книгу = процесс гарантированно
-    # завершается, освобождая всю память.
-    pool = ProcessPoolExecutor(max_workers=1)
+    pool = _new_extract_pool()
     try:
         return await asyncio.wait_for(
             loop.run_in_executor(pool, _extract_pages_worker, path),
             timeout=EXTRACT_TIMEOUT_SECONDS,
         )
+    except (MemoryError, BrokenProcessPool) as e:
+        # MemoryError — Python упёрся в потолок; BrokenProcessPool — процесс
+        # разбора убит (нативный код не смог выделить память).
+        raise _out_of_memory() from e
     except TimeoutError as e:
         raise ExtractionTimeout(
             f"извлечение текста заняло больше {EXTRACT_TIMEOUT_SECONDS} с"
@@ -272,12 +349,14 @@ async def _extract_epub_sections(path: str) -> list[str]:
     if size > MAX_PDF_BYTES:
         raise PdfTooLarge(f"{size} байт — больше допустимых {MAX_PDF_BYTES}")
     loop = asyncio.get_running_loop()
-    pool = ProcessPoolExecutor(max_workers=1)
+    pool = _new_extract_pool()
     try:
         return await asyncio.wait_for(
             loop.run_in_executor(pool, _extract_epub_sections_worker, path),
             timeout=EXTRACT_TIMEOUT_SECONDS,
         )
+    except (MemoryError, BrokenProcessPool) as exc:
+        raise _out_of_memory() from exc
     except TimeoutError as exc:
         raise ExtractionTimeout(
             f"извлечение EPUB заняло больше {EXTRACT_TIMEOUT_SECONDS} с"
