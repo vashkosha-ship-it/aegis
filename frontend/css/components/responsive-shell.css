@@ -30,16 +30,39 @@
   line-height: 1.3;
   letter-spacing: .02em;
 }
-#homeScreen .top-header .header-left {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  justify-items: start;
-  align-items: center;
-  column-gap: 8px;
-  row-gap: 4px;
-  min-width: 0;
+/* Шапка главной до 1280px (дальше логотип в боковом меню): значок,
+   название и кнопки — в одну строку, подпись — отдельной строкой под всем.
+   Раньше подпись стояла в одном блоке с логотипом и не давала ему сжаться:
+   у администратора (четыре кнопки) шапка вылезала за экран и страница
+   прокручивалась вбок. */
+@media (max-width: 1279.98px) {
+  #homeScreen .top-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon name actions"
+      "tagline tagline tagline";
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 6px;
+  }
+  #homeScreen .top-header .header-left { display: contents; }
+  #homeScreen .top-header .logo-sm { grid-area: icon; }
+  #homeScreen .top-header .logo-name {
+    grid-area: name;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #homeScreen .top-header .header-actions { grid-area: actions; min-width: 0; }
+  #homeScreen .top-header .home-logo-tagline { grid-area: tagline; }
 }
-.home-logo-tagline { grid-column: 1 / -1; white-space: nowrap; }
+.home-logo-tagline { white-space: normal; }
+@media (max-width: 599.98px) {
+  /* Четыре кнопки администратора по 44px помещаются и на узком телефоне. */
+  #homeScreen .header-buttons-group { gap: 4px; }
+}
+
 /* Логотип главной с подписью виден, пока нет бокового меню (до 1280px);
    с 1280px логотип и подпись — в боковом меню. Раньше на 1024–1279px
    (планшет в альбомной ориентации) логотипа не было нигде. */
