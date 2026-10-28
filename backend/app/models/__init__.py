@@ -20,6 +20,7 @@ from app.models.library import (
     ReadingProgress,
     Review,
 )
+from app.models.org_unit import OrgUnit
 from app.models.quiz import QuizAttempt, QuizQuestion
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
@@ -35,6 +36,7 @@ __all__ = [
     "AnnotationType",
     "Book",
     "ReadingAssignment",
+    "OrgUnit",
     "BookComment",
     "BookMetadataChange",
     "BookMetadataJob",

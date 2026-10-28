@@ -9,6 +9,7 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   const isRegister = state.currentTab === 'register';
   document.getElementById('registerEmailField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerDepartmentField').classList.toggle('hidden', !isRegister);
+  if (isRegister && typeof initRegistrationDepartments === 'function') initRegistrationDepartments();
   document.getElementById('registerFirstNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerLastNameField').classList.toggle('hidden', !isRegister);
   // Согласие нужно только при регистрации. Раньше блок висел и на вкладке
@@ -160,17 +161,6 @@ function socialAuth(provider) {
     showToast(`Вход через ${provider} ещё не реализован`);
   }
 }
-
-document.getElementById('authDepartment').addEventListener('change', function() {
-  const other = document.getElementById('authDepartmentOther');
-  if (this.value === '__other__') {
-    other.classList.remove('hidden');
-    other.focus();
-  } else {
-    other.classList.add('hidden');
-    other.value = '';
-  }
-});
 
 function formatApiError(err) {
   if (!(err instanceof api.ApiError)) return 'Не удаётся связаться с сервером.';
@@ -501,13 +491,8 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       const lastName = document.getElementById('authLastName').value.trim();
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || null;
       // Собираем подразделение
-      const depSelect = document.getElementById('authDepartment').value;
-      let department = null;
-      if (depSelect === '__other__') {
-        department = document.getElementById('authDepartmentOther').value.trim() || null;
-      } else if (depSelect) {
-        department = depSelect;
-      }
+      // Подразделение — только из справочника (вкладка «Структура» в админке).
+      const department = document.getElementById('authDepartment').value || null;
       await api.register(n, p, email, fullName, department, {
         accept_terms: Boolean(document.getElementById('registerConsent')?.checked),
         pd_consent: Boolean(document.getElementById('registerPdConsent')?.checked),

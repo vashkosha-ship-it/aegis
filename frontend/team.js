@@ -16,12 +16,39 @@ function isTeamManager(user = state.currentUser) {
   return Boolean(user && (user.role === 'admin' || user.managed_department));
 }
 
+function teamEntryLabel(user = state.currentUser) {
+  if (!user) return 'Мой отдел';
+  if (user.role === 'admin') return 'Отделы';
+  const unit = typeof orgUnitByCode === 'function' ? orgUnitByCode(user.managed_department) : null;
+  return unit && unit.kind === 'directorate' ? 'Моё управление' : 'Мой отдел';
+}
+
 function updateTeamEntryPoints() {
   const show = isTeamManager();
   document.getElementById('btnTeamGo')?.classList.toggle('hidden', !show);
   document.getElementById('sidebarTeam')?.classList.toggle('hidden', !show);
-  const label = document.querySelector('#btnTeamGo .header-btn-label');
-  if (label) label.textContent = 'Мой отдел';
+  if (!show) return;
+  const apply = () => {
+    const text = teamEntryLabel();
+    const headerLabel = document.querySelector('#btnTeamGo .header-btn-label');
+    if (headerLabel) headerLabel.textContent = text;
+    const sideLabel = document.querySelector('#sidebarTeam .item-label');
+    if (sideLabel) sideLabel.textContent = text;
+    document.getElementById('btnTeamGo')?.setAttribute('aria-label', text);
+    const title = document.querySelector('#teamScreen .logo-name');
+    if (title) title.textContent = text;
+  };
+  apply();
+  if (typeof loadOrgUnits === 'function' && state.currentUser?.managed_department) loadOrgUnits().then(apply);
+}
+
+const TEAM_KIND_LABEL = { directorate: 'Управление', department: 'Отдел' };
+
+// Подразделения из ответа сервера — в виде справочника для fillOrgSelect.
+function _teamUnitsAsOrg(overview) {
+  return (overview?.units || []).map(unit => ({
+    id: unit.code, code: unit.code, name: unit.name, kind: unit.kind, parent_id: unit.parent_code,
+  }));
 }
 
 // ---------- Общие мелочи ----------
@@ -208,6 +235,7 @@ function assignmentForBook(bookId) {
 async function renderTeamScreen() {
   const root = document.getElementById('teamContent');
   if (!root) return;
+  updateTeamEntryPoints();
   if (!isTeamManager()) {
     root.replaceChildren(_teamEl('div', 'team-empty', 'Экран доступен руководителям отделов. Роль назначает администратор.'));
     return;
@@ -216,12 +244,17 @@ async function renderTeamScreen() {
     root.replaceChildren(_teamEl('div', 'team-empty', 'Нет подключения к интернету. Данные отдела появятся, когда сеть вернётся.'));
     return;
   }
-  if (!_teamOverview) root.replaceChildren(_teamEl('div', 'team-empty', 'Загружаем данные отдела…'));
+  if (!_teamOverview) root.replaceChildren(_teamEl('div', 'team-empty', 'Загружаем данные…'));
   try {
-    _teamOverview = await api.library.teamOverview(_teamDepartment);
+    _teamOverview = await api.library.teamOverview(_teamDepartment || null);
     _teamDepartment = _teamOverview.department;
   } catch (err) {
-    root.replaceChildren(_teamEl('div', 'team-empty', (err && err.detail) || 'Не удалось загрузить данные отдела'));
+    if (err && (err.status === 403 || err.status === 404) && _teamDepartment) {
+      // Подразделение удалили или роль сменилась — начинаем с выбора заново.
+      _teamDepartment = null;
+      return renderTeamScreen();
+    }
+    root.replaceChildren(_teamEl('div', 'team-empty', (err && err.detail) || 'Не удалось загрузить данные'));
     return;
   }
   drawTeamScreen();
@@ -229,24 +262,66 @@ async function renderTeamScreen() {
 
 function _teamDepartmentPicker(overview) {
   const wrap = _teamEl('label', 'team-department-picker');
-  wrap.appendChild(_teamEl('span', '', 'Отдел'));
+  wrap.appendChild(_teamEl('span', '', 'Подразделение'));
   const select = document.createElement('select');
-  const options = new Set([...(overview.departments || []), overview.department].filter(Boolean));
-  if (!options.size) options.add('');
-  [...options].sort().forEach(value => {
+  const isAdmin = state.currentUser?.role === 'admin';
+  fillOrgSelect(select, {
+    value: overview.department || '',
+    placeholder: isAdmin ? '— Выберите подразделение —' : null,
+    units: _teamUnitsAsOrg(overview),
+  });
+  // Коды из старых данных, которых нет в справочнике.
+  const listed = new Set(_teamUnitsAsOrg(overview).map(unit => unit.code));
+  (overview.departments || []).filter(code => !listed.has(code)).forEach(code => {
     const option = document.createElement('option');
-    option.value = value;
-    option.textContent = value || '—';
-    option.selected = value === overview.department;
+    option.value = code;
+    option.textContent = `${code} (нет в справочнике)`;
     select.appendChild(option);
   });
+  select.value = overview.department || '';
   select.addEventListener('change', () => {
-    _teamDepartment = select.value;
+    _teamDepartment = select.value || null;
     _teamExpanded = new Set();
     renderTeamScreen();
   });
   wrap.appendChild(select);
   return wrap;
+}
+
+function _teamChooser(overview) {
+  const section = _teamEl('section', 'team-section');
+  section.appendChild(_teamEl('h3', 'team-section-title', 'Подразделения'));
+  const units = _teamUnitsAsOrg(overview);
+  if (!units.length) {
+    section.appendChild(_teamEl('div', 'team-empty', 'Подразделений пока нет. Создайте их в админ-панели на вкладке «Структура».'));
+    return section;
+  }
+  const card = unit => {
+    const button = _teamButton('', `team-unit-card${unit.parent_id ? ' is-child' : ''}`, () => {
+      _teamDepartment = unit.code;
+      renderTeamScreen();
+    });
+    button.append(
+      _teamEl('span', 'team-unit-kind', TEAM_KIND_LABEL[unit.kind] || 'Отдел'),
+      _teamEl('strong', 'team-unit-code', unit.code),
+    );
+    if (unit.name) button.appendChild(_teamEl('span', 'team-unit-name', unit.name));
+    return button;
+  };
+  const { groups, standalone } = orgGroups(units);
+  groups.forEach(({ unit, children }) => {
+    section.appendChild(_teamEl('h4', 'team-unit-group', `Управление ${unit.code}`));
+    const grid = _teamEl('div', 'team-unit-grid');
+    [unit, ...children].forEach(item => grid.appendChild(card(item)));
+    section.appendChild(grid);
+  });
+  const grid = _teamEl('div', 'team-unit-grid');
+  if (standalone.length) {
+    if (groups.length) section.appendChild(_teamEl('h4', 'team-unit-group', 'Самостоятельные отделы'));
+    standalone.forEach(item => grid.appendChild(card(item)));
+  }
+  section.appendChild(grid);
+  return section;
 }
 
 function _teamMetric(value, label, tone) {
@@ -262,17 +337,35 @@ function drawTeamScreen() {
   const members = overview.members || [];
   const assignments = overview.assignments || [];
   const isAdmin = state.currentUser?.role === 'admin';
+  const isDirectorate = overview.department_kind === 'directorate';
+  const kindLabel = TEAM_KIND_LABEL[overview.department_kind] || 'Отдел';
 
   const head = _teamEl('section', 'team-head');
   const titleRow = _teamEl('div', 'team-head-row');
   const titles = _teamEl('div', 'team-head-titles');
-  titles.appendChild(_teamEl('div', 'team-kicker', isAdmin ? 'Назначенное чтение' : 'Вы руководитель отдела'));
-  titles.appendChild(_teamEl('h2', 'team-title', overview.department ? `Отдел ${overview.department}` : 'Отдел не выбран'));
+  let kicker = 'Администратор · назначенное чтение';
+  if (!isAdmin) {
+    const own = state.currentUser?.managed_department;
+    if (overview.department === own) kicker = isDirectorate ? 'Вы начальник управления' : 'Вы руководитель отдела';
+    else kicker = `Управление ${own} · отдел`;
+  }
+  titles.appendChild(_teamEl('div', 'team-kicker', kicker));
+  titles.appendChild(_teamEl('h2', 'team-title', overview.department ? `${kindLabel} ${overview.department}` : 'Выберите подразделение'));
+  const subtitle = [overview.department_name, overview.parent_code ? `входит в управление ${overview.parent_code}` : '']
+    .filter(Boolean).join(' · ');
+  if (subtitle) titles.appendChild(_teamEl('div', 'team-subtitle', subtitle));
   titleRow.appendChild(titles);
-  if (isAdmin) titleRow.appendChild(_teamDepartmentPicker(overview));
+  if (isAdmin || (overview.departments || []).length > 1) titleRow.appendChild(_teamDepartmentPicker(overview));
   head.appendChild(titleRow);
 
-  const cells = assignments.length * members.length;
+  if (!overview.department) {
+    head.appendChild(_teamEl('p', 'team-hint',
+      'Выберите управление или отдел, чтобы назначить книги и посмотреть прогресс сотрудников.'));
+    root.replaceChildren(head, _teamChooser(overview));
+    return;
+  }
+
+  const cells = assignments.reduce((sum, item) => sum + _teamAudience(item, members), 0);
   const completed = assignments.reduce((sum, item) => sum + item.completed, 0);
   const overdue = assignments.filter(item => item.overdue).length;
   const metrics = _teamEl('div', 'team-metrics');
@@ -288,7 +381,7 @@ function drawTeamScreen() {
   }
 
   const booksSection = _teamEl('section', 'team-section');
-  booksSection.appendChild(_teamEl('h3', 'team-section-title', 'Книги отдела'));
+  booksSection.appendChild(_teamEl('h3', 'team-section-title', isDirectorate ? 'Книги управления' : 'Книги отдела'));
   if (!assignments.length) {
     booksSection.appendChild(_teamEl('div', 'team-empty',
       'Пока ничего не назначено. Нажмите «Назначить книгу» здесь или на странице книги — сотрудники увидят её на главной со сроком.'));
@@ -299,11 +392,12 @@ function drawTeamScreen() {
   const peopleSection = _teamEl('section', 'team-section');
   peopleSection.appendChild(_teamEl('h3', 'team-section-title', 'Сотрудники'));
   if (!members.length) {
-    peopleSection.appendChild(_teamEl('div', 'team-empty',
-      `В отделе пока никого нет. Сотрудник попадает сюда, когда в профиле указано подразделение ${overview.department || ''}.`));
+    peopleSection.appendChild(_teamEl('div', 'team-empty', isDirectorate
+      ? `В управлении пока никого нет. Сюда попадают сотрудники управления ${overview.department} и всех его отделов.`
+      : `В отделе пока никого нет. Сотрудник попадает сюда, когда в профиле указано подразделение ${overview.department}.`));
   } else {
     const list = _teamEl('div', 'team-members');
-    members.forEach(member => list.appendChild(_teamMemberRow(member, assignments.length)));
+    members.forEach(member => list.appendChild(_teamMemberRow(member, assignments.length, overview.department)));
     peopleSection.appendChild(list);
   }
   peopleSection.appendChild(_teamEl('p', 'team-hint',
@@ -324,8 +418,12 @@ function _teamStackedBar(item, total) {
   return bar;
 }
 
+function _teamAudience(item, members) {
+  return typeof item.audience === 'number' ? item.audience : members.length;
+}
+
 function _teamAssignmentCard(item, members, progress) {
-  const total = members.length;
+  const total = _teamAudience(item, members);
   const allDone = total > 0 && item.completed === total;
   const card = _teamEl('article', 'team-card');
   const top = _teamEl('div', 'team-card-top');
@@ -338,6 +436,10 @@ function _teamAssignmentCard(item, members, progress) {
   const meta = _teamEl('div', 'team-card-meta');
   const due = teamDueLabel(item.due_date, allDone);
   meta.appendChild(_teamEl('span', `team-chip team-chip--${due.tone}`, due.text));
+  if (item.inherited) meta.appendChild(_teamEl('span', 'team-chip team-chip--info', `от управления ${item.department}`));
+  else if (_teamOverview && item.department !== _teamOverview.department) {
+    meta.appendChild(_teamEl('span', 'team-chip team-chip--info', `отдел ${item.department}`));
+  }
   if (item.assigned_by) meta.appendChild(_teamEl('span', 'team-card-by', `назначил(а) ${item.assigned_by}`));
   body.appendChild(meta);
   if (item.note) body.appendChild(_teamEl('div', 'team-card-note', item.note));
@@ -347,7 +449,7 @@ function _teamAssignmentCard(item, members, progress) {
   const stats = _teamEl('div', 'team-card-stats');
   stats.appendChild(_teamStackedBar(item, total));
   stats.appendChild(_teamEl('div', 'team-card-counts',
-    total ? `Прочитали ${item.completed} из ${total} · читают ${item.reading} · не начали ${item.not_started}` : 'В отделе пока нет сотрудников'));
+    total ? `Прочитали ${item.completed} из ${total} · читают ${item.reading} · не начали ${item.not_started}` : 'Пока нет сотрудников, которым это назначено'));
   card.appendChild(stats);
 
   const actions = _teamEl('div', 'team-card-actions');
@@ -358,14 +460,16 @@ function _teamAssignmentCard(item, members, progress) {
   });
   who.setAttribute('aria-expanded', String(expanded));
   if (total) actions.appendChild(who);
-  actions.appendChild(_teamButton('Изменить', 'team-secondary', () => openAssignBookModal({ assignment: item })));
-  actions.appendChild(_teamButton('Снять', 'team-secondary is-danger', () => confirmRemoveAssignment(item)));
+  if (item.editable !== false) {
+    actions.appendChild(_teamButton('Изменить', 'team-secondary', () => openAssignBookModal({ assignment: item })));
+    actions.appendChild(_teamButton('Снять', 'team-secondary is-danger', () => confirmRemoveAssignment(item)));
+  }
   card.appendChild(actions);
 
   if (expanded && total) {
     const list = _teamEl('ul', 'team-who');
     const order = { completed: 0, reading: 1, not_started: 2 };
-    [...members]
+    members.filter(member => progress[member.id])
       .sort((a, b) => order[(progress[a.id] || {}).status || 'not_started'] - order[(progress[b.id] || {}).status || 'not_started'])
       .forEach(member => {
         const cell = progress[member.id] || { status: 'not_started', percent: 0 };
@@ -380,7 +484,7 @@ function _teamAssignmentCard(item, members, progress) {
   return card;
 }
 
-function _teamMemberRow(member, assignedCount) {
+function _teamMemberRow(member, assignedCount, viewedDepartment) {
   const row = _teamEl('div', 'team-member');
   const avatar = _teamEl('div', 'team-avatar');
   const url = typeof avatarPresetUrl === 'function' ? avatarPresetUrl(member.avatar_preset) : '';
@@ -394,6 +498,9 @@ function _teamMemberRow(member, assignedCount) {
   }
   const body = _teamEl('div', 'team-member-body');
   body.appendChild(_teamEl('div', 'team-member-name', member.name));
+  if (member.department && member.department !== viewedDepartment) {
+    body.appendChild(_teamEl('div', 'team-member-dept', `отдел ${member.department}`));
+  }
   body.appendChild(_teamEl('div', 'team-member-stats', assignedCount
     ? `Прочитано ${member.completed} из ${assignedCount}${member.reading ? ` · читает ${member.reading}` : ''}`
     : 'Книги ещё не назначены'));
@@ -406,7 +513,7 @@ function _teamMemberRow(member, assignedCount) {
 function confirmRemoveAssignment(item) {
   showConfirmModal({
     title: 'Снять назначение?',
-    message: `«${item.book.title}» пропадёт из блока «Назначено вам» у сотрудников отдела ${item.department}. Их прогресс чтения сохранится.`,
+    message: `«${item.book.title}» пропадёт из блока «Назначено вам» у сотрудников подразделения ${item.department}. Их прогресс чтения сохранится.`,
     confirmText: 'Снять',
     danger: true,
     onConfirm: async () => {
@@ -431,40 +538,44 @@ function _teamBookMatches(query) {
     .slice(0, 8);
 }
 
-function openAssignBookModal({ bookId = null, assignment = null } = {}) {
+async function openAssignBookModal({ bookId = null, assignment = null } = {}) {
   if (!isTeamManager()) return;
   const editing = Boolean(assignment);
-  const isAdmin = state.currentUser?.role === 'admin';
+  // Со страницы книги экран отдела мог ещё не открываться — узнаём, какими
+  // подразделениями пользователь управляет.
+  if (!editing && !_teamOverview) {
+    try { _teamOverview = await api.library.teamOverview(_teamDepartment || null); } catch (_) { /* ниже покажем, что есть */ }
+  }
+  const choices = _teamOverview?.departments || [];
   const department = editing
     ? assignment.department
-    : (isAdmin ? (_teamDepartment || state.currentUser.managed_department || state.currentUser.department) : state.currentUser.managed_department);
-  const { overlay, panel } = createDialogShell('assignBookModal', editing ? 'Изменить назначение' : 'Назначить книгу отделу');
+    : (_teamDepartment || _teamOverview?.department || (choices.length === 1 ? choices[0] : '') || state.currentUser.managed_department || '');
+  const { overlay, panel } = createDialogShell('assignBookModal', editing ? 'Изменить назначение' : 'Назначить книгу');
   panel.classList.add('team-dialog');
 
   let selected = editing ? assignment.book : (bookId ? (state.books || []).find(book => book.id === bookId) : null);
   const form = _teamEl('form', 'team-form');
   form.noValidate = true;
 
-  // Отдел
+  // Подразделение: выбор, если их несколько (администратор, начальник управления).
   let departmentSelect = null;
-  if (isAdmin && !editing) {
-    const known = new Set([..._teamOverview?.departments || [], department].filter(Boolean));
+  if (!editing && choices.length > 1) {
     const field = _teamEl('label', 'team-field');
-    field.appendChild(_teamEl('span', 'team-field-label', 'Отдел'));
+    field.appendChild(_teamEl('span', 'team-field-label', 'Кому назначить'));
     departmentSelect = document.createElement('select');
     departmentSelect.className = 'app-dialog-input';
-    if (!known.size) known.add('');
-    [...known].sort().forEach(value => {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = value || 'Выберите отдел';
-      option.selected = value === department;
-      departmentSelect.appendChild(option);
+    fillOrgSelect(departmentSelect, {
+      value: department,
+      placeholder: department ? null : '— Выберите подразделение —',
+      units: _teamUnitsAsOrg(_teamOverview),
     });
     field.appendChild(departmentSelect);
+    field.appendChild(_teamEl('span', 'team-hint', 'Назначение управлению получают сотрудники всех его отделов.'));
     form.appendChild(field);
   } else {
-    form.appendChild(_teamEl('p', 'team-dialog-lead', `Отдел ${department || '—'}: книга появится у сотрудников на главной в блоке «Назначено вам».`));
+    const unit = (_teamOverview?.units || []).find(item => item.code === department);
+    const label = `${TEAM_KIND_LABEL[unit?.kind] || 'Подразделение'} ${department || '—'}`;
+    form.appendChild(_teamEl('p', 'team-dialog-lead', `${label}: книга появится у сотрудников на главной в блоке «Назначено вам».`));
   }
 
   // Книга
@@ -556,22 +667,23 @@ function openAssignBookModal({ bookId = null, assignment = null } = {}) {
       error.textContent = 'Срок не может быть в прошлом'; due.focus(); return;
     }
     const targetDepartment = departmentSelect ? departmentSelect.value : department;
-    if (!targetDepartment) { error.textContent = 'Выберите отдел'; return; }
+    if (!targetDepartment) { error.textContent = 'Выберите подразделение'; return; }
     submit.disabled = true;
     try {
       if (editing) {
         await api.library.updateAssignment(assignment.id, { due_date: due.value || null, note: note.value.trim() || null });
         showToast('Назначение обновлено');
       } else {
-        const payload = { book_id: selected.id, due_date: due.value || null, note: note.value.trim() || null };
-        if (isAdmin) payload.department = targetDepartment;
+        const payload = {
+          book_id: selected.id, due_date: due.value || null, note: note.value.trim() || null, department: targetDepartment,
+        };
         await api.library.createAssignment(payload);
         _teamDepartment = targetDepartment;
-        showToast(`Книга назначена отделу ${targetDepartment}`);
+        showToast(`Книга назначена: ${targetDepartment}`);
       }
       close();
       if (state.currentScreen === 'team') renderTeamScreen();
-      if (targetDepartment === state.currentUser?.department) refreshAssignedForMe();
+      refreshAssignedForMe();
     } catch (err) {
       submit.disabled = false;
       error.textContent = (err && err.detail && typeof err.detail === 'string') ? err.detail : 'Не удалось сохранить';
@@ -582,29 +694,67 @@ function openAssignBookModal({ bookId = null, assignment = null } = {}) {
   (selected ? due : search).focus();
 }
 
-// ---------- Администратор: выдать роль руководителя ----------
+// ---------- Администратор: подразделение и роль сотрудника ----------
 
-function buildManagerRoleSelect(user, knownDepartments) {
+function buildUserDepartmentSelect(user) {
+  const select = document.createElement('select');
+  select.className = 'team-role-select';
+  select.setAttribute('aria-label', `Подразделение пользователя ${user.username}`);
+  fillOrgSelect(select, { value: user.department || '', placeholder: '—' });
+  select.addEventListener('change', async () => {
+    const value = select.value;
+    select.disabled = true;
+    try {
+      const updated = await api.library.setUserDepartment(user.id, value || null);
+      user.department = updated.department || null;
+      showToast(value ? `${user.full_name || user.username} → ${value}` : 'Подразделение убрано');
+    } catch (err) {
+      select.value = user.department || '';
+      showToast((err && err.detail) || 'Не удалось перевести');
+    } finally {
+      select.disabled = false;
+    }
+  });
+  return select;
+}
+
+function buildManagerRoleSelect(user) {
   const select = document.createElement('select');
   select.className = 'team-role-select';
   select.setAttribute('aria-label', `Роль пользователя ${user.username}`);
-  const departments = new Set([...(knownDepartments || []), user.department, user.managed_department].filter(Boolean));
-  const add = (value, label) => {
+  const current = user.managed_department || '';
+  const add = (parent, value, label) => {
     const option = document.createElement('option');
     option.value = value;
     option.textContent = label;
-    option.selected = (user.managed_department || '') === value;
-    select.appendChild(option);
+    option.selected = current === value;
+    parent.appendChild(option);
   };
-  add('', 'Читатель');
-  [...departments].sort().forEach(dep => add(dep, `Руководитель ${dep}`));
+  add(select, '', 'Читатель');
+  const { groups, standalone } = orgGroups();
+  groups.forEach(({ unit, children }) => {
+    const group = document.createElement('optgroup');
+    group.label = `Управление ${unit.code}`;
+    add(group, unit.code, `Начальник управления ${unit.code}`);
+    children.forEach(child => add(group, child.code, `Руководитель отдела ${child.code}`));
+    select.appendChild(group);
+  });
+  if (standalone.length) {
+    const group = document.createElement('optgroup');
+    group.label = groups.length ? 'Самостоятельные отделы' : 'Отделы';
+    standalone.forEach(unit => add(group, unit.code, `Руководитель отдела ${unit.code}`));
+    select.appendChild(group);
+  }
+  if (current && !orgUnitByCode(current)) add(select, current, `Руководитель ${current}`);
+  select.value = current;
   select.addEventListener('change', async () => {
     const value = select.value;
     select.disabled = true;
     try {
       const updated = await api.library.setManagedDepartment(user.id, value || null);
       user.managed_department = updated.managed_department || null;
-      showToast(value ? `${user.full_name || user.username} — руководитель ${value}` : 'Роль руководителя снята');
+      const label = select.selectedOptions[0]?.textContent || value;
+      showToast(value ? `${user.full_name || user.username}: ${label.toLowerCase()}` : 'Роль руководителя снята');
     } catch (err) {
       select.value = user.managed_department || '';
       showToast((err && err.detail) || 'Не удалось изменить роль');

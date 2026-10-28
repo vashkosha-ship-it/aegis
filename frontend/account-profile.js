@@ -158,21 +158,18 @@ function renderSettingsInfoTab(c) {
 
   const department = document.createElement('select');
   department.id = 'setDepartment';
-  [
-    ['', '— Не указано —'],
-    ['ЦКЗ', 'ЦКЗ'], ['ДПМ', 'ДПМ'], ['УБД', 'УБД'], ['УКИИ', 'УКИИ'],
-    ['УКАИ', 'УКАИ'], ['УМК', 'УМК'], ['УЭК', 'УЭК'], ['ЦКГ', 'ЦКГ'],
-    ['ЦУПКБ', 'ЦУПКБ'], ['ЦВВ', 'ЦВВ'], ['__other__', 'Другое...'],
-  ].forEach(([value, label]) => {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = label;
-    department.appendChild(option);
-  });
-  const departmentOther = _accountFormInput('text', 'setDepartmentOther', 'Введите название', null, 64);
-  departmentOther.setAttribute('data-static-style', 'a432');
+  // Подразделения — из справочника, который ведёт администратор.
+  if (typeof fillOrgSelect === 'function') {
+    fillOrgSelect(department, { value: user.department || '', placeholder: '— Не указано —' });
+  }
+  if (typeof loadOrgUnits === 'function') {
+    loadOrgUnits().then(() => {
+      if (document.body.contains(department)) {
+        fillOrgSelect(department, { value: user.department || '', placeholder: '— Не указано —' });
+      }
+    });
+  }
   const departmentRow = _accountLabeledInput('Подразделение', department);
-  departmentRow.appendChild(departmentOther);
 
   c.replaceChildren(
     _accountNode('h3', 'a350', 'Информация о профиле'),
@@ -185,38 +182,11 @@ function renderSettingsInfoTab(c) {
 
   renderSettingsAvatarPreview();
 
-  const knownDepartments = ['ЦКЗ', 'ДПМ', 'УБД', 'УКИИ', 'УКАИ', 'УМК', 'УЭК', 'ЦКГ', 'ЦУПКБ', 'ЦВВ'];
-  if (user.department) {
-    if (knownDepartments.includes(user.department)) {
-      department.value = user.department;
-      departmentOther.style.display = 'none';
-    } else {
-      department.value = '__other__';
-      departmentOther.value = user.department;
-      departmentOther.style.display = 'block';
-    }
-  }
-
-  department.addEventListener('change', () => {
-    if (department.value === '__other__') {
-      departmentOther.style.display = 'block';
-      departmentOther.focus();
-    } else {
-      departmentOther.style.display = 'none';
-      departmentOther.value = '';
-    }
-  });
 }
 
 async function saveSettingsInfo() {
   const fullName = (document.getElementById('setFullName').value || '').trim();
-  const depSelect = document.getElementById('setDepartment').value;
-  let department = null;
-  if (depSelect === '__other__') {
-    department = (document.getElementById('setDepartmentOther').value || '').trim();
-  } else if (depSelect) {
-    department = depSelect;
-  }
+  const department = document.getElementById('setDepartment').value || null;
 
   try {
     const updated = await api.updateMe({
@@ -226,6 +196,8 @@ async function saveSettingsInfo() {
     // Обновим state
     state.currentUser.full_name = updated.full_name;
     state.currentUser.department = updated.department;
+    // Другое подразделение — другие назначенные книги.
+    if (typeof refreshAssignedForMe === 'function') refreshAssignedForMe();
     showToast('Изменения сохранены');
     renderProfile();
   } catch (e) {

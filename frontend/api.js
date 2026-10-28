@@ -539,6 +539,14 @@
       createAssignment(payload) { return request('/team/assignments', { method: 'POST', body: payload }); },
       updateAssignment(id, payload) { return request('/team/assignments/' + id, { method: 'PATCH', body: payload }); },
       deleteAssignment(id) { return request('/team/assignments/' + id, { method: 'DELETE' }); },
+      orgUnits() { return request('/org/units', { auth: false }); },
+      adminOrgUnits() { return request('/admin/org/units'); },
+      createOrgUnit(payload) { return request('/admin/org/units', { method: 'POST', body: payload }); },
+      updateOrgUnit(id, payload) { return request('/admin/org/units/' + id, { method: 'PATCH', body: payload }); },
+      deleteOrgUnit(id) { return request('/admin/org/units/' + id, { method: 'DELETE' }); },
+      setUserDepartment(userId, department) {
+        return request('/admin/users/' + userId + '/department', { method: 'PUT', body: { department: department || null } });
+      },
       setManagedDepartment(userId, department) {
         return request('/admin/users/' + userId + '/managed-department', { method: 'PUT', body: { department: department || null } });
       },
