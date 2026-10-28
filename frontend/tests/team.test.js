@@ -270,7 +270,8 @@ const iso = days => {
   assert.match(light, /:root\[data-theme="light"\] \{ --on-accent: #ffffff; \}/);
   assert.match(read('desktop-stability.css'), /theme-light\.css/);
   assert.ok(read('sw.js').includes("'/css/components/theme-light.css'"));
-  assert.match(index, /class="sidebar-logo-tagline">Центр знаний по кибербезопасности</);
+  assert.match(index, /class="sidebar-logo-tagline brand-tagline">Центр знаний по кибербезопасности</);
+  assert.match(index, /class="home-logo-tagline brand-tagline">Центр знаний по кибербезопасности</);
   assert.match(source, /setAttribute\('data-title', text\)/);
 
   // Подключение.

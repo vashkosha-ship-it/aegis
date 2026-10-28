@@ -1219,8 +1219,10 @@
    ===================================================================== */
 
 @media (min-width: 1024px) {
-  .top-header .header-left .logo-sm,
-  .top-header .header-left .logo-name {
+  /* Главная — исключение: её логотип с подписью прячется только там, где
+     есть боковое меню (от 1280px), см. css/components/responsive-shell.css. */
+  .screen:not(#homeScreen) .top-header .header-left .logo-sm,
+  .screen:not(#homeScreen) .top-header .header-left .logo-name {
     display: none !important;
   }
 

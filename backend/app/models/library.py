@@ -24,7 +24,7 @@ class MyListStatus(str, Enum):
     PLANNED = "planned"
     DROPPED = "dropped"  # больше не используется (убран из интерфейса)
     COMPLETED = "completed"
-    LIKED = "liked"
+    LIKED = "liked"  # больше не используется (убран из интерфейса)
 
 
 class AnnotationType(str, Enum):

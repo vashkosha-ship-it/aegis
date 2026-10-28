@@ -4,7 +4,9 @@
    достаточно поменять переменную, а мышь продолжает видеть компактный вид. */
 @media (pointer: coarse) {
   :root { --touch-target: 44px; }
-  .header-buttons-group .header-icon-btn { width: var(--touch-target); height: var(--touch-target); }
+  /* min-width, а не width: от 1024px у кнопок шапки появляется подпись
+     («Ассистент», «Схемы»), и фиксированная ширина её обрезала. */
+  .header-buttons-group .header-icon-btn { min-width: var(--touch-target); height: var(--touch-target); }
   .book-card-remove { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
   .static-style-007 { width: 38px; height: 38px; right: 4px; }
 }

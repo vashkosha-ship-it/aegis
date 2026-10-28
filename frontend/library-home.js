@@ -352,7 +352,6 @@ function renderBookInfo() {
     ['reading', 'Читаю'],
     ['planned', 'В планах'],
     ['completed', 'Прочитано'],
-    ['liked', 'Избранное'],
   ].forEach(([value, label]) => {
     const option = document.createElement('option');
     option.value = value;

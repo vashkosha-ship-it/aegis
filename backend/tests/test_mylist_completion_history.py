@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+
 from app.models.book import Book
 from app.services.excel_export import parse_period
 from tests.conftest import auth_headers
@@ -25,13 +27,13 @@ async def test_completion_timestamp_survives_later_status_changes(
     completed_at = completed.json()["completed_at"]
     assert completed_at
 
-    liked = await client.put(
+    planned = await client.put(
         f"/books/{book.id}/mylist",
         headers=auth_headers(approved_user),
-        json={"status": "liked"},
+        json={"status": "planned"},
     )
-    assert liked.status_code == 200
-    assert liked.json()["completed_at"] == completed_at
+    assert planned.status_code == 200
+    assert planned.json()["completed_at"] == completed_at
 
     completed_again = await client.put(
         f"/books/{book.id}/mylist",
@@ -47,13 +49,14 @@ def test_export_end_date_includes_entire_day():
     assert end == datetime(2026, 10, 1, tzinfo=UTC)
 
 
-async def test_dropped_status_is_gone(client, db, approved_user):
-    """«Брошено» убрано из интерфейса: сервер такой статус больше не принимает."""
+@pytest.mark.parametrize("removed", ["dropped", "liked"])
+async def test_removed_statuses_are_gone(client, db, approved_user, removed):
+    """«Брошено» и «Избранное» убраны: сервер такие статусы больше не принимает."""
     book = Book(title="Без «Брошено»", author="Автор", description="")
     db.add(book)
     await db.commit()
     await db.refresh(book)
     response = await client.put(
-        f"/books/{book.id}/mylist", headers=auth_headers(approved_user), json={"status": "dropped"},
+        f"/books/{book.id}/mylist", headers=auth_headers(approved_user), json={"status": removed},
     )
     assert response.status_code == 422

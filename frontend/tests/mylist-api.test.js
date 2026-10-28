@@ -89,7 +89,7 @@ vm.runInContext(source, context);
 
   state.currentScreen = 'detail';
   mutationError = new Error('network');
-  await context.updateBookStatus(3, 'liked');
+  await context.updateBookStatus(3, 'completed');
   assert.equal(state.mylist[3], undefined);
   assert.equal(detailRenders, 1);
   assert.equal(toasts.at(-1), 'Сервер недоступен');
