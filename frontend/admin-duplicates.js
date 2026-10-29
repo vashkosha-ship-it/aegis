@@ -136,7 +136,8 @@ async function openDuplicatesModal() {
   const extra = groups.reduce((sum, group) => sum + group.books.length - 1, 0);
   lead.textContent = `Найдено групп: ${groups.length}, лишних копий: ${extra}. `
     + 'При объединении прогресс, списки, заметки, отзывы и назначения читателей переносятся на оставленную книгу. '
-    + '«Проверьте» — названия отличаются, сравните перед объединением.';
+    + '«Объединить все» сольёт каждую группу по отмеченной в ней книге. '
+    + 'В группах «Проверьте» названия отличаются — их стоит просмотреть заранее.';
 
   const cards = new Map();
   const onMerged = group => { changed = true; cards.delete(group); };
@@ -149,37 +150,52 @@ async function openDuplicatesModal() {
     body.appendChild(card);
   });
 
-  if (certain.length) {
-    const all = _dupEl('button', 'admin-tool', `Объединить все точные (${certain.length})`);
-    all.type = 'button';
-    all.addEventListener('click', () => {
-      showConfirmModal({
-        title: 'Объединить точные дубли?',
-        message: `Групп: ${certain.length}. В каждой останется отмеченная книга, остальные копии будут удалены, а данные читателей перенесены. Отменить нельзя.`,
-        confirmText: 'Объединить',
-        cancelText: 'Отмена',
-        danger: true,
-        onConfirm: async () => {
-          all.disabled = true;
-          let done = 0;
-          let failed = 0;
-          for (const group of certain) {
-            const card = cards.get(group);
-            if (!card) continue;
-            const button = card.querySelector('.dup-merge');
-            if (!button) continue;
-            button.click();
-            // Ждём, пока карточка закончит (кнопка исчезнет или снова станет активной).
-            while (card.querySelector('.dup-merge') && card.querySelector('.dup-merge').disabled) {
-              await new Promise(resolve => setTimeout(resolve, 50));
-            }
-            if (card.classList.contains('dup-group--done')) done += 1; else failed += 1;
-            all.textContent = `Объединено ${done} из ${certain.length}`;
+  // Массовое объединение: по очереди нажимаем «Объединить» в каждой
+  // ещё не объединённой группе — с той книгой, что в ней отмечена.
+  const mergeMany = (list, button, title) => {
+    showConfirmModal({
+      title,
+      message: `Групп: ${list.length}. В каждой останется отмеченная книга, остальные копии будут удалены, а данные читателей перенесены. Отменить нельзя.`,
+      confirmText: 'Объединить',
+      cancelText: 'Отмена',
+      danger: true,
+      onConfirm: async () => {
+        toolbar.querySelectorAll('button').forEach(item => { item.disabled = true; });
+        let done = 0;
+        let failed = 0;
+        for (const group of list) {
+          const card = cards.get(group);
+          const merge = card && card.querySelector('.dup-merge');
+          if (!merge) continue;
+          merge.click();
+          // Ждём, пока карточка закончит (кнопка исчезнет или снова станет активной).
+          while (card.querySelector('.dup-merge') && card.querySelector('.dup-merge').disabled) {
+            await new Promise(resolve => setTimeout(resolve, 50));
           }
-          showToast(failed ? `Объединено: ${done}, с ошибкой: ${failed}` : `Объединено групп: ${done}`);
-        },
-      });
+          if (card.classList.contains('dup-group--done')) done += 1; else failed += 1;
+          button.textContent = `Объединено ${done} из ${list.length}`;
+        }
+        showToast(failed ? `Объединено: ${done}, с ошибкой: ${failed}` : `Объединено групп: ${done}`);
+        toolbar.querySelectorAll('button').forEach(item => { item.disabled = false; });
+      },
     });
-    toolbar.appendChild(all);
+  };
+
+  const all = _dupEl('button', 'admin-tool admin-tool--primary dup-merge-all', `Объединить все (${groups.length})`);
+  all.type = 'button';
+  all.addEventListener('click', () => {
+    const left = groups.filter(group => cards.has(group));
+    if (left.length) mergeMany(left, all, 'Объединить все дубли?');
+  });
+  toolbar.appendChild(all);
+
+  if (certain.length && certain.length < groups.length) {
+    const onlyCertain = _dupEl('button', 'admin-tool dup-merge-certain', `Только точные (${certain.length})`);
+    onlyCertain.type = 'button';
+    onlyCertain.addEventListener('click', () => {
+      const left = certain.filter(group => cards.has(group));
+      if (left.length) mergeMany(left, onlyCertain, 'Объединить точные дубли?');
+    });
+    toolbar.appendChild(onlyCertain);
   }
 }

@@ -67,8 +67,19 @@ const flush = () => new Promise(resolve => setTimeout(resolve, 0));
   assert.ok(cards[0].classList.contains('dup-group--done'));
   assert.match(cards[0].querySelector('.dup-status').textContent, /оставлена #3704/);
 
-  // Кнопка «Объединить все точные» есть, только если такие группы найдены.
-  assert.match(modal.querySelector('.dup-toolbar').textContent, /все точные \(1\)/);
+  // Кнопки массового объединения: все группы и только точные.
+  assert.match(modal.querySelector('.dup-merge-all').textContent, /Объединить все \(2\)/);
+  assert.match(modal.querySelector('.dup-merge-certain').textContent, /Только точные \(1\)/);
+
+  // «Объединить все» после подтверждения сливает оставшиеся группы.
+  modal.querySelector('.dup-merge-all').click();
+  const confirm = [...window.document.querySelectorAll('button')].find(b => b.textContent === 'Объединить' && !b.classList.contains('dup-merge'));
+  assert.ok(confirm, 'спрашивает подтверждение');
+  confirm.click();
+  for (let i = 0; i < 20 && merges.length < 2; i += 1) await new Promise(resolve => setTimeout(resolve, 60));
+  await new Promise(resolve => setTimeout(resolve, 120));
+  assert.equal(JSON.stringify(merges[1]), JSON.stringify({ keep_id: 91, remove_ids: [386] }));
+  assert.ok(cards[1].classList.contains('dup-group--done'));
 
   // Закрытие после объединения обновляет каталог.
   modal.querySelector('#duplicatesCloseBtn').click();
