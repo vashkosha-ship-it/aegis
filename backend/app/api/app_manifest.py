@@ -63,6 +63,10 @@ def _load(icon: str) -> str:
     return json.dumps(data, ensure_ascii=False)
 
 
+# Адрес без «.json»: в nginx сервера файлы *.json отдаются с диска раньше,
+# чем запрос доходит до /api/, и /api/app/manifest отвечал 404 — Chrome
+# ставил простой ярлык без значка и короткого названия.
+@router.get("/manifest", include_in_schema=False)
 @router.get("/manifest.json", include_in_schema=False)
 async def app_manifest(request: Request) -> Response:
     icon = request.cookies.get(ICON_COOKIE, "blue")

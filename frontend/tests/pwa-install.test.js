@@ -34,8 +34,20 @@ assert.equal(banner.className, 'install-banner');
 assert.equal(banner.querySelector('#installBannerBtn').textContent, 'Установить');
 
 banner.querySelector('#installBannerClose').onclick();
-assert.equal(dom.window.localStorage.getItem('aegis_install_dismissed'), '1');
+// Закрытая плашка не появляется две недели — но не навсегда.
+const dismissedAt = Number(dom.window.localStorage.getItem('aegis_install_dismissed'));
+assert.ok(dismissedAt > 1e12);
 assert.equal(dom.window.document.getElementById('installBanner'), null);
+vm.runInContext('showInstallBanner()', context);
+assert.equal(dom.window.document.getElementById('installBanner'), null, 'сразу после закрытия не показываем');
+dom.window.localStorage.setItem('aegis_install_dismissed', String(Date.now() - 15 * 24 * 3600 * 1000));
+vm.runInContext('showInstallBanner()', context);
+assert.ok(dom.window.document.getElementById('installBanner'), 'через две недели показываем снова');
+dom.window.document.getElementById('installBanner').remove();
+dom.window.localStorage.setItem('aegis_install_dismissed', '1');
+vm.runInContext('showInstallBanner()', context);
+assert.ok(dom.window.document.getElementById('installBanner'), 'старое «закрыто навсегда» больше не прячет плашку');
+dom.window.document.getElementById('installBanner').remove();
 
 dom.window.localStorage.removeItem('aegis_install_dismissed');
 let prompted = 0;
@@ -50,13 +62,28 @@ dom.window.dispatchEvent(installEvent);
   assert.equal(prompted, 1);
   assert.equal(dom.window.document.getElementById('installBanner'), null);
   assert.deepEqual(toasts, ['Устанавливаем приложение…']);
+  // После установки на Android — где искать значок и что делать на Xiaomi.
+  const installed = dom.window.document.getElementById('androidInstalledModal');
+  assert.match(installed.textContent, /Ярлыки на рабочем столе/);
+  installed.querySelector('button').click();
 
   vm.runInContext('showAndroidInstallInstructions()', context);
-  const androidModal = dom.window.document.getElementById('androidInstallModal');
+  let androidModal = dom.window.document.getElementById('androidInstallModal');
   assert.equal(androidModal.querySelectorAll('ol li').length, 4);
   assert.match(androidModal.textContent, /Chrome/);
+  assert.match(androidModal.textContent, /Другие разрешения/);
   androidModal.querySelector('button').click();
   assert.equal(dom.window.document.getElementById('androidInstallModal'), null);
+
+  // Mi Браузер: установки нет — одна кнопка открывает сайт в Chrome.
+  context.navigator.userAgent = 'Mozilla/5.0 (Linux; U; Android 13; ru-ru; 2201117TG Build/TKQ1) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/112.0 Mobile Safari/537.36 XiaoMi/MiuiBrowser/14.5.5-gn';
+  vm.runInContext('showAndroidInstallInstructions()', context);
+  androidModal = dom.window.document.getElementById('androidInstallModal');
+  assert.match(androidModal.textContent, /Сейчас сайт открыт в: Mi Браузер/);
+  const openChrome = androidModal.querySelector('a.install-open-chrome');
+  assert.equal(openChrome.getAttribute('href'), 'intent://aegis.example/#Intent;scheme=https;package=com.android.chrome;end');
+  androidModal.querySelector('button').click();
+  context.navigator.userAgent = 'Mozilla/5.0 (Linux; Android 14) Mobile';
 
   // iPhone в Safari: четыре шага, без предупреждения о браузере.
   context.navigator.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
