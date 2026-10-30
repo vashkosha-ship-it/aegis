@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from app.api import (
     achievements,
     admin,
+    app_manifest,
     assistant,
     auth,
     books,
@@ -29,6 +30,9 @@ from app.api import (
 )
 
 api_router = APIRouter(prefix="/api")
+
+# Описание установленного приложения (значок по выбору пользователя)
+api_router.include_router(app_manifest.router)
 
 # Аутентификация и профиль
 api_router.include_router(auth.router)
