@@ -263,3 +263,21 @@ async def test_merge_validation(client, db, admin_user, approved_user):
     forbidden = await client.post("/books/duplicates/merge", json={"keep_id": book.id, "remove_ids": [1]},
                                   headers=auth_headers(approved_user))
     assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_different_issues_and_levels_are_not_duplicates(client, db, admin_user):
+    """Ложные «дубли», найденные на живом каталоге."""
+    db.add_all([
+        Book(title="Cyber Defense eMagazine – February 2023 Edition", author="Cyber Defense Media Group", description="", total_pages=186),
+        Book(title="Cyber Defense eMagazine, July 2023 Edition", author="Cyber Defense Media Group", description="", total_pages=182),
+        Book(title="SQL for Data Analysis: A Middle-Level Guide", author="Joe Smith", description="", total_pages=234),
+        Book(title="SQL for Data Analysis: A Pro-Level Guide", author="Joe Smith", description="", total_pages=237),
+        Book(title="Занимайся хакингом с ловкостью Бога", author="Спарк Флоу", description="", total_pages=152),
+        Book(title="Занимайся хакингом с ловкостью ниндзя", author="Спарк Флоу", description="", total_pages=155),
+    ])
+    await db.commit()
+
+    groups = (await client.get("/books/duplicates/all", headers=auth_headers(admin_user))).json()
+
+    assert groups == []

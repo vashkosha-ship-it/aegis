@@ -34,6 +34,16 @@ _LAT_TO_CYR = str.maketrans("aceopxykmhtb", "асеорхукмнтв")
 _CYR = re.compile(r"[а-я]")
 _LAT = re.compile(r"[a-z]")
 
+# Месяцы отличают выпуски журналов («February 2023» / «July 2023») так же,
+# как номера томов.
+_MONTHS = {
+    "january", "february", "march", "april", "may", "june", "july", "august",
+    "september", "october", "november", "december",
+    "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август",
+    "сентябрь", "октябрь", "ноябрь", "декабрь",
+    "января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа",
+    "сентября", "октября", "ноября", "декабря",
+}
 _ORDINALS = {
     "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6,
     "seventh": 7, "eighth": 8, "ninth": 9, "tenth": 10,
@@ -104,7 +114,7 @@ def title_key(title: str) -> TitleKey:
         if prev in _VOLUME_WORDS and (value is not None or word in _ROMAN):
             volume = value if value is not None else _ROMAN[word]
             continue
-        if word.isdigit():
+        if word.isdigit() or word in _MONTHS:
             numbers.add(word)
             continue
         if word in _ROMAN and prev in {"часть", "том"}:
@@ -169,7 +179,13 @@ def compare(a: Book, b: Book, ka: TitleKey, kb: TitleKey) -> tuple[Confidence, s
         if pages_close:
             return "certain", "Совпадают название и число страниц"
         return None
-    similar = (
+    # «Похожее» — только когда одно название дополняет другое (подзаголовок,
+    # уточнение). Если у каждого названия есть свои слова, которых нет в
+    # другом («Middle-Level» / «Pro-Level», «ловкостью Бога» / «…порнозвезды»),
+    # это разные книги, даже при общем начале и близком объёме.
+    wa, wb = set(ka.words), set(kb.words)
+    one_extends_other = wa <= wb or wb <= wa
+    similar = one_extends_other and (
         (len(ka.main) >= 2 and ka.main == kb.main)
         or _is_prefix(ka.words, kb.words)
         or _jaccard(ka.words, kb.words) >= 0.6

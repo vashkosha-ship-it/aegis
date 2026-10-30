@@ -137,3 +137,18 @@ async def test_password_help_request_without_email(client, db):
     assert (await client.post(f"/admin/password-help/{left[0]['id']}/close", headers=ha)).status_code == 204
     assert (await client.get("/admin/password-help", headers=ha)).json() == []
     assert (await db.scalar(select(PasswordHelpRequest).where(PasswordHelpRequest.resolved_at.is_(None)))) is None
+
+
+@pytest.mark.asyncio
+async def test_admin_reviews_in_one_request(client, db):
+    from app.models.library import Review
+
+    admin = await make_user(db, username="rev_admin", role=UserRole.ADMIN)
+    reader = await make_user(db, username="rev_reader")
+    book = await _book(db)
+    db.add(Review(user_id=reader.id, book_id=book.id, rating=5, text="Отлично"))
+    await db.commit()
+
+    rows = (await client.get("/admin/reviews", headers=auth_headers(admin))).json()
+    assert [(r["book_title"], r["user_username"], r["rating"]) for r in rows] == [("Сети", "rev_reader", 5)]
+    assert (await client.get("/admin/reviews", headers=auth_headers(reader))).status_code == 403

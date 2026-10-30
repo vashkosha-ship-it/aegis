@@ -38,6 +38,8 @@ MAX_PAGE_CHARS = 20000
 # и объём работы, и время.
 MAX_PAGES_PER_BOOK = 5000
 EXTRACT_TIMEOUT_SECONDS = 900  # 15 минут на книгу
+# Запасной разбор через PDFium после таймаута pypdf.
+PDFIUM_FALLBACK_TIMEOUT_SECONDS = 600
 MAX_PDF_BYTES = 500 * 1024 * 1024
 
 # Потолок памяти процесса, который разбирает одну книгу. У службы воркера
@@ -309,27 +311,16 @@ def _extract_epub_sections_worker(path: str) -> list[str]:
         return out
 
 
-async def _extract_pages(path: str) -> list[str]:
-    """Обёртка: запускает извлечение в одноразовом процессе, с таймаутом."""
-    size = os.path.getsize(path)
-    if size > MAX_PDF_BYTES:
-        raise PdfTooLarge(f"{size} байт — больше допустимых {MAX_PDF_BYTES}")
-
+async def _run_extraction(func, path: str, timeout: float) -> list[str]:
+    """Запустить разбор в одноразовом процессе с ограничением по времени."""
     loop = asyncio.get_running_loop()
     pool = _new_extract_pool()
     try:
-        return await asyncio.wait_for(
-            loop.run_in_executor(pool, _extract_pages_worker, path),
-            timeout=EXTRACT_TIMEOUT_SECONDS,
-        )
+        return await asyncio.wait_for(loop.run_in_executor(pool, func, path), timeout=timeout)
     except (MemoryError, BrokenProcessPool) as e:
         # MemoryError — Python упёрся в потолок; BrokenProcessPool — процесс
         # разбора убит (нативный код не смог выделить память).
         raise _out_of_memory() from e
-    except TimeoutError as e:
-        raise ExtractionTimeout(
-            f"извлечение текста заняло больше {EXTRACT_TIMEOUT_SECONDS} с"
-        ) from e
     finally:
         # cancel_futures + kill: зависший процесс нужно снять принудительно,
         # иначе он продолжит жечь CPU уже после нашего таймаута.
@@ -341,6 +332,29 @@ async def _extract_pages(path: str) -> list[str]:
                     proc.kill()
             except Exception:  # noqa: BLE001, S110 — процесс мог завершиться сам
                 pass
+
+
+async def _extract_pages(path: str) -> list[str]:
+    """Обёртка: запускает извлечение в одноразовом процессе, с таймаутом.
+
+    Если pypdf не уложился во время (на больших PDF со сложной вёрсткой он
+    бывает очень медленным), пробуем PDFium: он написан на C++ и разбирает те
+    же файлы в разы быстрее. Раньше такие книги сразу помечались ошибкой.
+    """
+    size = os.path.getsize(path)
+    if size > MAX_PDF_BYTES:
+        raise PdfTooLarge(f"{size} байт — больше допустимых {MAX_PDF_BYTES}")
+    try:
+        return await _run_extraction(_extract_pages_worker, path, EXTRACT_TIMEOUT_SECONDS)
+    except TimeoutError:
+        logger.warning("pypdf не уложился в %s с для %s, пробую PDFium", EXTRACT_TIMEOUT_SECONDS, path)
+    try:
+        return await _run_extraction(_extract_pages_pdfium, path, PDFIUM_FALLBACK_TIMEOUT_SECONDS)
+    except TimeoutError as e:
+        raise ExtractionTimeout(
+            f"извлечение текста заняло больше {EXTRACT_TIMEOUT_SECONDS} с (pypdf) "
+            f"и {PDFIUM_FALLBACK_TIMEOUT_SECONDS} с (PDFium)"
+        ) from e
 
 
 async def _extract_epub_sections(path: str) -> list[str]:
