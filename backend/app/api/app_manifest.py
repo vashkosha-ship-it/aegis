@@ -37,7 +37,7 @@ _FILES = {
 # минимальное описание со стандартным значком.
 _FALLBACK = {
     "name": "Aegis — центр знаний кибербезопасности",
-    "short_name": "Aegis",
+    "short_name": "Aegis Lib",
     "start_url": "/",
     "scope": "/",
     "id": "/",
