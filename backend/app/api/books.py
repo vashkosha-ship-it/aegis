@@ -319,6 +319,11 @@ async def my_required_books(
     """Книги, обязательные для подразделения текущего пользователя."""
     if not current.department:
         return []
+    from app.services.org import load_tree
+
+    # Руководитель своего подразделения назначения не получает — он их выдаёт.
+    if (await load_tree(db)).leads(current, current.department):
+        return []
     rows = (
         await db.scalars(
             select(Book)

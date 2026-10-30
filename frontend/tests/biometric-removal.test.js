@@ -40,7 +40,7 @@ assert.match(
   appSource,
   // Старт без биометрического экрана: сразу навигация по результату входа.
   // После navigateTo допускается остальная обработка (тост «Сессия завершена»).
-  /tryAutoLogin\(\)\.then\(ok => \{\s*navigateTo\(ok \? 'home' : 'auth'\);/,
+  /tryAutoLogin\(\)\.then\(ok => \{[\s\S]{0,200}?if \(!ok\) navigateTo\('auth'\);[\s\S]{0,200}?restoreUiState\(\)\)\) navigateTo\('home'\);/,
 );
 assert.match(workerSource, /aegis-cache-v[0-9]+/);
 

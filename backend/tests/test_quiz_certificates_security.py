@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
 
+import pytest
 from sqlalchemy import select
 
 from app.models.certificate import Certificate
@@ -31,7 +32,7 @@ class TestQuizXpFarming:
         rows = (await db.scalars(
             select(QuizQuestion).where(QuizQuestion.book_id == book_with_quiz.id)
         )).all()
-        correct_by_id = {q.id: q.correct_index for q in rows}
+        by_id = {q.id: q for q in rows}
 
         async def submit_all_correct():
             r = await client.get(
@@ -39,7 +40,11 @@ class TestQuizXpFarming:
             )
             questions = r.json()
             token = r.headers.get("X-Quiz-Session")
-            answers = [correct_by_id[q["id"]] for q in questions]
+            # Варианты перемешаны для этой выдачи — правильный ищем по тексту.
+            answers = [
+                q["options"].index(by_id[q["id"]].options[by_id[q["id"]].correct_index])
+                for q in questions
+            ]
             return await client.post(
                 f"/books/{book_with_quiz.id}/quiz/submit",
                 headers=auth_headers(approved_user),
@@ -71,7 +76,7 @@ class TestQuizXpFarming:
         rows = (await db.scalars(
             select(QuizQuestion).where(QuizQuestion.book_id == book_with_quiz.id)
         )).all()
-        correct_by_id = {q.id: q.correct_index for q in rows}
+        by_id = {q.id: q for q in rows}
 
         for _ in range(2):
             r = await client.get(
@@ -79,7 +84,11 @@ class TestQuizXpFarming:
             )
             questions = r.json()
             token = r.headers.get("X-Quiz-Session")
-            answers = [correct_by_id[q["id"]] for q in questions]
+            # Варианты перемешаны для этой выдачи — правильный ищем по тексту.
+            answers = [
+                q["options"].index(by_id[q["id"]].options[by_id[q["id"]].correct_index])
+                for q in questions
+            ]
             await client.post(
                 f"/books/{book_with_quiz.id}/quiz/submit",
                 headers=auth_headers(approved_user),
@@ -268,3 +277,41 @@ class TestExamSession:
             select(Certificate).where(Certificate.user_id == user.id)
         )
         assert cert is not None, "Сертификат должен выдаться после заполнения ФИО"
+
+
+@pytest.mark.asyncio
+async def test_options_are_reshuffled_per_session_and_graded_by_shown_order(client, db, approved_user, book_with_quiz):
+    from app.models.quiz import QuizQuestion
+
+    rows = {q.id: q for q in (await db.scalars(
+        select(QuizQuestion).where(QuizQuestion.book_id == book_with_quiz.id)
+    )).all()}
+    headers = auth_headers(approved_user)
+    positions = set()
+    for _ in range(3):
+        r = await client.get(f"/books/{book_with_quiz.id}/quiz", headers=headers)
+        questions, token = r.json(), r.headers["X-Quiz-Session"]
+        answers = []
+        for q in questions:
+            row = rows[q["id"]]
+            assert sorted(q["options"]) == sorted(row.options)
+            answers.append(q["options"].index(row.options[row.correct_index]))
+        positions.update(answers)
+        result = await client.post(
+            f"/books/{book_with_quiz.id}/quiz/submit", headers=headers,
+            json={"answers": answers, "session_token": token},
+        )
+        assert result.status_code == 201 and result.json()["percentage"] == 100
+        assert result.json()["correct_indices"] == answers
+    # Правильный ответ не стоит всегда на одном месте.
+    assert len(positions) > 1
+
+
+def test_onboarding_correct_answers_are_spread_over_positions():
+    from collections import Counter
+
+    from app.data.onboarding_questions import ONBOARDING_QUESTIONS
+
+    counts = Counter(q["correct"] for q in ONBOARDING_QUESTIONS)
+    assert set(counts) == {0, 1, 2, 3}
+    assert max(counts.values()) - min(counts.values()) <= 1

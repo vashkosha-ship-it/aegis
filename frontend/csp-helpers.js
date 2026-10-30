@@ -185,13 +185,24 @@ function onBookStatusChange(bookId, el) {
 
 /* ---- поиск и чат ---- */
 
+// Поиск один: пока печатаешь, через короткую паузу ищем по названиям,
+// авторам и тексту книг и показываем один и тот же список результатов.
+let _searchInputTimer = null;
 function onSearchInput() {
-  state.booksPage = 1;
+  clearTimeout(_searchInputTimer);
+  const q = (document.getElementById('searchInput')?.value || '').trim();
+  if (typeof rememberUiState === 'function') rememberUiState();
+  if (!q) { clearFullTextSearch(); return; }
   renderHome();
+  if (q.length < 2) return;
+  _searchInputTimer = setTimeout(() => runFullTextSearch({ silent: true }), 350);
 }
 
 function onSearchKeydown(ev) {
-  if (ev.key === 'Enter') runFullTextSearch();
+  if (ev.key === 'Enter') {
+    clearTimeout(_searchInputTimer);
+    runFullTextSearch();
+  }
 }
 
 function onAiInputKeydown(ev) {

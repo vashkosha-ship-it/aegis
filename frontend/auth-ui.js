@@ -9,6 +9,9 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   const isRegister = state.currentTab === 'register';
   document.getElementById('registerEmailField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerDepartmentField').classList.toggle('hidden', !isRegister);
+  document.getElementById('registerRequiredHint')?.classList.toggle('hidden', !isRegister);
+  const emailInput = document.getElementById('authEmail');
+  if (emailInput) emailInput.required = isRegister;
   if (isRegister && typeof initRegistrationDepartments === 'function') initRegistrationDepartments();
   document.getElementById('registerFirstNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerLastNameField').classList.toggle('hidden', !isRegister);
@@ -449,7 +452,7 @@ async function finishAuthenticatedLogin(password, username) {
   document.getElementById('authForm').reset();
 
   if (state.currentUser.is_approved === false) showPendingApprovalScreen();
-  else navigateTo('home');
+  else if (!restoreUiState()) navigateTo('home');
 }
 
 document.getElementById('authForm').addEventListener('submit', async e => {

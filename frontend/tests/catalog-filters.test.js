@@ -62,10 +62,11 @@ assert.equal(context.state.booksPage, 1);
 assert.equal(toasts.at(-1), 'Применено');
 assert.deepEqual(Array.from(context.getFilteredBooks(), b => b.id), [1, 3]);
 
+// Строка поиска каталог не фильтрует: результаты поиска — отдельный общий список.
 dom.window.document.getElementById('searchInput').value = 'alice';
 context.state.filters.categories = [];
 context.state.filters.sort = 'rating';
-assert.deepEqual(Array.from(context.getFilteredBooks(), b => b.id), [3, 1]);
+assert.deepEqual(Array.from(context.getFilteredBooks(), b => b.id), [2, 3, 1]);
 
 context.resetFilters();
 assert.deepEqual(Array.from(context.state.filters.categories), []);

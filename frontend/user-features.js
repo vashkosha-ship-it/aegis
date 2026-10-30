@@ -131,29 +131,45 @@ function renderAchievementsInProfile() {
 }
 
 // ===== Полнотекстовый поиск по содержимому книг (H) =====
-async function runFullTextSearch() {
+// Номер последнего запроса: при быстром наборе ответы могут прийти не по
+// порядку — показываем только ответ на последний.
+let _fullTextSearchSeq = 0;
+let _fullTextShownQuery = null;
+
+function ensureFullTextPanel() {
+  let panel = document.getElementById('fullTextResults');
+  if (panel) return panel;
+  const container = document.getElementById('booksContainer') || document.getElementById('homeBooksGrid');
+  panel = document.createElement('div');
+  panel.id = 'fullTextResults';
+  panel.className = 'fulltext-results';
+  const anchor = document.getElementById('sectionResume') || container;
+  if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor);
+  else if (container) container.parentNode.insertBefore(panel, container);
+  return panel;
+}
+
+async function runFullTextSearch({ silent = false } = {}) {
   const input = document.getElementById('searchInput');
   const q = (input?.value || '').trim();
-  if (q.length < 2) { showToast('Введите минимум 2 символа'); return; }
+  if (q.length < 2) { if (!silent) showToast('Введите минимум 2 символа'); return; }
+  if (q === _fullTextShownQuery && document.getElementById('fullTextResults')) return;
 
-  const container = document.getElementById('booksContainer') || document.getElementById('homeBooksGrid');
-  // показываем оверлей результатов
-  let panel = document.getElementById('fullTextResults');
-  if (!panel) {
-    panel = document.createElement('div');
-    panel.id = 'fullTextResults';
-    panel.style.cssText = 'margin-top:14px;';
-    const anchor = document.getElementById('sectionResume') || container;
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(panel, anchor);
-    else if (container) container.parentNode.insertBefore(panel, container);
-  }
-  replaceWithStaticText(panel, `Ищу «${q}»…`, 'a111');
-
+  const panel = ensureFullTextPanel();
+  if (!panel.hasChildNodes()) replaceWithStaticText(panel, `Ищу «${q}»…`, 'a111');
+  panel.setAttribute('aria-busy', 'true');
+  const seq = ++_fullTextSearchSeq;
   try {
     const res = await api.library.searchBooks(q, 20);
+    if (seq !== _fullTextSearchSeq) return;
+    _fullTextShownQuery = q;
     renderFullTextResults(res);
   } catch (e) {
+    if (seq !== _fullTextSearchSeq) return;
+    _fullTextShownQuery = null;
     replaceWithStaticText(panel, `Ошибка поиска. ${String(e?.detail || '')}`, 'a112');
+  } finally {
+    if (seq === _fullTextSearchSeq) document.getElementById('fullTextResults')?.removeAttribute('aria-busy');
   }
 }
 
@@ -176,7 +192,7 @@ function renderFullTextResults(res) {
     header.append(heading, clear);
     const empty = document.createElement('div');
     empty.setAttribute('data-static-style', 'a111');
-    empty.textContent = 'Ничего не найдено. Возможно, книги ещё не проиндексированы (админ → «Переиндексировать»).';
+    empty.textContent = 'Ничего не найдено. Попробуйте другие слова или проверьте раскладку клавиатуры.';
     fragment.append(header, empty);
     panel.replaceChildren(fragment);
     return;
@@ -260,10 +276,14 @@ function askAiAboutSnippet(bookId, page, snippet, title) {
 }
 
 function clearFullTextSearch() {
+  _fullTextSearchSeq += 1;
+  _fullTextShownQuery = null;
   const panel = document.getElementById('fullTextResults');
   if (panel) panel.remove();
   const input = document.getElementById('searchInput');
-  if (input) { input.value = ''; renderHome(); }
+  if (input) input.value = '';
+  if (typeof rememberUiState === 'function') rememberUiState();
+  renderHome();
 }
 
 

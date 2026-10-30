@@ -51,7 +51,7 @@ function setAppIcon(id) {
   try { localStorage.setItem(APP_ICON_KEY, item.id); } catch (_) { /* хранилище недоступно */ }
   if (typeof showToast === 'function') {
     showToast(isInstalledApp()
-      ? `Значок «${item.label}» выбран. Он обновится при следующем запуске приложения`
+      ? `Значок «${item.label}» выбран. Телефон заменит его не сразу — быстрее всего переустановить приложение на экран «Домой»`
       : `Значок «${item.label}» будет у приложения после установки на экран «Домой»`);
   }
   return item;

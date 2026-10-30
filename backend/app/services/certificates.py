@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.book import Category, book_categories
 from app.models.book_page import BookPage
 from app.services.deepseek_client import DeepSeekError, chat_completion
-from app.services.quizzes import clean_questions, extract_json_questions
+from app.services.quizzes import clean_questions, extract_json_questions, shuffle_options
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,11 @@ async def gather_category_text(db: AsyncSession, category: str, max_chars: int =
 
 _EXAM_PROMPT = """На основе материалов по теме "{category}" сгенерируй РОВНО {n} вопросов для аттестации.
 Каждый вопрос — с 4 вариантами ответа, ровно один правильный.
-Вопросы должны проверять понимание темы, быть разной сложности, не повторяться.
+Это аттестация, вопросы должны быть СЛОЖНЫМИ, для специалиста: не больше
+пятой части — на определения, остальные — на применение и анализ (разбор
+ситуации или примера, выбор лучшего решения, последствия действия, отличие
+близких понятий, типичная ошибка). Неверные варианты — правдоподобные
+заблуждения и частично верные утверждения. Вопросы не повторяются.
 Правильный и неправильные варианты — одинаковой длины и в одном стиле:
 по длине или подробности ответа нельзя угадать правильный.
 Не используй варианты «все перечисленное» / «ничего из перечисленного»
@@ -110,6 +114,8 @@ def parse_questions(raw: str) -> tuple[list[dict], list[int]]:
         return [], []
     questions, correct = [], []
     for q in clean_questions(raw_qs):
+        # Модель почти всегда ставит правильный ответ на одно и то же место.
+        q = shuffle_options(q)
         questions.append({"question": q["question"], "options": q["options"]})
         correct.append(q["correct_index"])
     return questions, correct

@@ -25,7 +25,7 @@ for (const file of variants) {
 for (const [, src] of appIcon.matchAll(/icon: '([^']+)'/g)) {
   assert.ok(fs.existsSync(path.join(frontend, src)), `нет превью ${src}`);
 }
-assert.match(read('index.html'), /<script defer src="app-icon\.js"><\/script>/);
+assert.match(read('index.html'), /<link rel="manifest" href="manifest\.json">\s*<script src="app-icon\.js"><\/script>/);
 assert.match(read('sw.js'), /'\/app-icon\.js'/);
 assert.match(read('account-personalization.js'), /Значок приложения/);
 

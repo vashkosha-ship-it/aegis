@@ -1,5 +1,6 @@
 """Full-text search endpoints — поиск по метаданным и содержимому книг (H)."""
 import logging
+import re
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, text
@@ -30,15 +31,28 @@ async def search_books(
     query = q.strip()
 
     # --- 1. Поиск по метаданным книг ---
+    # Поиск идёт по мере набора, поэтому «PyTo» должно находить «PyTorch»:
+    # кроме полнотекстового совпадения учитываем начало слов (prefix-запрос)
+    # и подстроку в названии или авторе. Название весит больше всего.
+    words = re.findall(r"[^\W_]+", query.lower())
+    prefix_q = " & ".join(f"{w}:*" for w in words[:8]) if words else ""
+    like = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
     meta_sql = text(
         "SELECT id, title, author, cover_storage_key, file_format, "
-        "ts_rank(search_vector, websearch_to_tsquery('russian', :q)) AS rank "
+        "ts_rank(search_vector, websearch_to_tsquery('russian', :q)) "
+        "  + CASE WHEN :pq <> '' AND search_vector @@ to_tsquery('simple', :pq) THEN 0.2 ELSE 0 END "
+        "  + CASE WHEN title ILIKE :like THEN 1.0 ELSE 0 END "
+        "  + CASE WHEN author ILIKE :like THEN 0.5 ELSE 0 END AS rank "
         "FROM books "
         "WHERE search_vector @@ websearch_to_tsquery('russian', :q) "
-        "ORDER BY rank DESC "
+        "   OR (:pq <> '' AND search_vector @@ to_tsquery('simple', :pq)) "
+        "   OR title ILIKE :like OR author ILIKE :like "
+        "ORDER BY rank DESC, id "
         "LIMIT :lim"
     )
-    meta_rows = (await db.execute(meta_sql, {"q": query, "lim": limit})).mappings().all()
+    meta_rows = (await db.execute(
+        meta_sql, {"q": query, "pq": prefix_q, "like": like, "lim": limit},
+    )).mappings().all()
 
     hits: dict[int, SearchHit] = {}
     for r in meta_rows:

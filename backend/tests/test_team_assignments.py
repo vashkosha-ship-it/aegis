@@ -95,8 +95,13 @@ async def test_admin_makes_manager_and_manager_assigns(client, db):
     await db.commit()
     overview = (await client.get("/team/overview", headers=hb)).json()
     assert overview["department"] == "ЦВВ"
-    # В отделе двое: руководитель и сотрудник; сотрудник УЭК сюда не попадает.
-    assert sorted(m["id"] for m in overview["members"]) == sorted([boss.id, worker.id])
+    # В команде только сотрудник: руководитель назначает, а не получает;
+    # сотрудник УЭК сюда не попадает.
+    assert [m["id"] for m in overview["members"]] == [worker.id]
+    assert overview["assignments"][0]["audience"] == 1
+    # Своё же назначение руководителю не приходит.
+    assert (await client.get("/team/me/assignments", headers=hb)).json() == []
+    assert (await client.get("/books/required/mine", headers=hb)).json() == []
     assert any(m["name"] == "Иван" for m in overview["members"])
     cell = overview["progress"][str(assignment["id"])][str(worker.id)]
     assert cell == {"status": "reading", "percent": 25}

@@ -166,6 +166,8 @@ body.reader-active .reader-toolbar {
 .auth-tab.active { background: var(--bg-card); color: var(--accent); }
 .form-group { margin-bottom: 14px; position: relative; z-index: 1; }
 .form-group label { display: block; font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.required-mark { color: var(--danger, #ef4444); font-weight: 700; }
+.auth-required-hint { margin: -4px 0 12px; color: var(--text-secondary); font-size: 12px; }
 input, select, textarea { width: 100%; padding: 11px 14px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 14px; outline: none; transition: var(--transition); -webkit-appearance: none; appearance: none; }
 @media(max-width: 767px) { input, select, textarea { font-size: 16px; } }
 select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236b7280' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
@@ -220,6 +222,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 /* ========== ПОИСК ========== */
 .search-catalog-row { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
 @media(min-width: 768px) { .search-catalog-row { gap: 10px; margin-bottom: 20px; } }
+.fulltext-results { margin-top: 14px; }
+.fulltext-results[aria-busy="true"] { opacity: 0.6; transition: opacity 0.15s; }
 .search-bar { flex: 1; position: relative; }
 .search-bar input { padding: 11px 14px 11px 38px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; font-size: 13px; width: 100%; transition: var(--transition); }
 .search-bar .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.4; font-size: 14px; pointer-events: none; display: flex; align-items: center; justify-content: center; }

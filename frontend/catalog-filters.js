@@ -23,8 +23,9 @@ function toggleCategoryFilter(c) { const idx = state.filters.categories.indexOf(
 function applyFilters() { state.booksPage = 1; state.filters.sort = document.getElementById('filterSort').value; renderHome(); showToast('Применено'); }
 function resetFilters() { state.filters = { categories: [], sort: 'default' }; populateCatalog(); renderHome(); showToast('Сброшено'); }
 function getFilteredBooks() {
-  let books = [...state.books]; const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
-  if (q) books = books.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q));
+  // Строка поиска каталог не фильтрует: у поиска один вид результатов —
+  // список «Найдено» (названия, авторы и текст книг), см. runFullTextSearch.
+  let books = [...state.books];
   if (state.filters.categories.length > 0) {
     books = books.filter(b => {
       const bCats = b.categories || [];

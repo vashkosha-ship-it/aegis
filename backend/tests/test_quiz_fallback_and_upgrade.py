@@ -218,7 +218,8 @@ def test_exam_parser_uses_the_same_quality_check():
     questions, correct = certificates.parse_questions(raw)
 
     assert [q["question"] for q in questions] == ["Что такое XSS?"]
-    assert correct == [2]
+    # Варианты перемешаны, но правильным остаётся тот же ответ.
+    assert questions[0]["options"][correct[0]] == "c"
 
 
 # --- Очистка старых временных тестов ---------------------------------------
@@ -257,3 +258,13 @@ async def test_remove_offtopic_temporary_questions(db, monkeypatch):
     assert len(await _questions(db, networks.id)) == 15
     # Повторный запуск ничего не находит.
     assert await quizzes.remove_offtopic_temporary_questions(db) == []
+
+
+def test_exam_answers_are_not_always_in_the_same_place():
+    raw = json.dumps({"questions": [
+        {"question": f"Вопрос про атаки номер {i}?", "options": [f"w{i}", f"r{i}", f"x{i}", f"y{i}"], "correct_index": 1}
+        for i in range(40)
+    ]}, ensure_ascii=False)
+    questions, correct = certificates.parse_questions(raw)
+    assert all(q["options"][c].startswith("r") for q, c in zip(questions, correct, strict=True))
+    assert len(set(correct)) > 1

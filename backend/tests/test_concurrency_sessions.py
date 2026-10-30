@@ -54,7 +54,7 @@ class TestQuizSessionsRace:
         rows = (await db.scalars(
             select(QuizQuestion).where(QuizQuestion.book_id == book_with_quiz.id)
         )).all()
-        correct = {q.id: q.correct_index for q in rows}
+        correct = {q.id: q.options[q.correct_index] for q in rows}  # варианты перемешаны для каждой выдачи
 
         # Две независимые сессии — два токена, две строки в quiz_sessions
         opened = []
@@ -65,7 +65,7 @@ class TestQuizSessionsRace:
             )
             assert r.status_code == 200, r.text
             opened.append(
-                (r.headers["X-Quiz-Session"], [correct[q["id"]] for q in r.json()])
+                (r.headers["X-Quiz-Session"], [q["options"].index(correct[q["id"]]) for q in r.json()])
             )
         assert opened[0][0] != opened[1][0], "сессии должны быть разными"
 
