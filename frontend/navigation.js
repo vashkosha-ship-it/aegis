@@ -198,6 +198,10 @@ function navigateTo(s) {
   updateFabVisibility();
   _scheduleScreenScroll(s);
   if (typeof onAppScreenShown === 'function') onAppScreenShown();
+  if (!isAuthScreen && state.currentUser) {
+    rememberUiState();
+    installBackGuard();
+  }
 }
 
 // Если пользователь зашёл в «Читаю», но ещё не открыл ни одной книги —
@@ -274,3 +278,131 @@ function hideReaderEmptyStub() {
 function updateFabVisibility() {
   document.getElementById('fabSuperContainer')?.classList.toggle('visible', state.currentUser?.role === 'admin' && state.currentScreen === 'home');
 }
+
+// ========== ГДЕ ОСТАНОВИЛСЯ ПОЛЬЗОВАТЕЛЬ ==========
+// Экран, открытая книга и строка поиска запоминаются на устройстве (для
+// каждого аккаунта отдельно). После перезагрузки или повторного открытия
+// приложения человек возвращается туда же, а не на главную.
+const UI_STATE_KEY_PREFIX = 'aegis_ui_state_v1:';
+const UI_STATE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const RESTORABLE_SCREENS = new Set([
+  'home', 'detail', 'reader', 'mylist', 'profile', 'assistant', 'settings', 'admin', 'training', 'team',
+]);
+
+function _uiStateKey() {
+  const id = state.currentUser && state.currentUser.id;
+  return id ? UI_STATE_KEY_PREFIX + id : null;
+}
+
+function rememberUiState() {
+  const key = _uiStateKey();
+  if (!key || !RESTORABLE_SCREENS.has(state.currentScreen)) return;
+  const screen = state.currentScreen;
+  const value = {
+    screen,
+    bookId: (screen === 'detail' || screen === 'reader') ? (state.currentBook && state.currentBook.id) || null : null,
+    returnTo: screen === 'detail' ? (state._detailReturnTo || 'home') : null,
+    search: (document.getElementById('searchInput')?.value || '').slice(0, 200),
+    at: Date.now(),
+  };
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* приватный режим — не запоминаем */ }
+}
+
+function readUiState() {
+  const key = _uiStateKey();
+  if (!key) return null;
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || 'null');
+    if (!value || typeof value !== 'object' || !RESTORABLE_SCREENS.has(value.screen)) return null;
+    if (!value.at || Date.now() - value.at > UI_STATE_TTL_MS) return null;
+    return value;
+  } catch (_) {
+    return null;
+  }
+}
+
+function _canRestoreScreen(screen) {
+  const user = state.currentUser || {};
+  if (screen === 'admin') return user.role === 'admin';
+  if (screen === 'team') return user.role === 'admin' || Boolean(user.managed_department);
+  if (screen === 'assistant') return typeof isAssistantEnabled !== 'function' || isAssistantEnabled();
+  return true;
+}
+
+// Вернуть пользователя туда, где он остановился. false — запоминать было
+// нечего, вызывающий открывает главную.
+function restoreUiState() {
+  const saved = readUiState();
+  if (!saved) return false;
+  const input = document.getElementById('searchInput');
+  if (input && saved.search) input.value = saved.search;
+  const book = id => (state.books || []).some(item => item.id === id);
+  if (saved.screen === 'detail' && book(saved.bookId)) {
+    navigateTo(_canRestoreScreen(saved.returnTo) && saved.returnTo !== 'detail' ? saved.returnTo || 'home' : 'home');
+    openBookDetail(saved.bookId);
+    return true;
+  }
+  if (saved.screen === 'reader' && book(saved.bookId)) {
+    navigateTo('home');
+    openReader(saved.bookId);
+    return true;
+  }
+  if (saved.screen === 'detail' || saved.screen === 'reader' || !_canRestoreScreen(saved.screen)) {
+    navigateTo('home');
+    return true;
+  }
+  navigateTo(saved.screen);
+  return true;
+}
+
+// ========== КНОПКА «НАЗАД» ТЕЛЕФОНА И БРАУЗЕРА ==========
+// Своей истории переходов у приложения не было: системная «назад»
+// закрывала его или уводила со страницы, и при возврате терялись поиск и
+// открытый экран. Держим в истории одну «страховочную» запись и по «назад»
+// делаем шаг внутри приложения. С главной без поиска «назад» работает как
+// обычно — выходит.
+let _backGuardReady = false;
+
+function installBackGuard() {
+  if (_backGuardReady || !window.history || typeof history.pushState !== 'function') return;
+  _backGuardReady = true;
+  try {
+    history.replaceState({ aegis: 'base' }, '');
+    history.pushState({ aegis: 'app' }, '');
+  } catch (_) {
+    _backGuardReady = false;
+  }
+}
+
+function goBackFromDetail() {
+  const target = state._detailReturnTo;
+  state._detailReturnTo = null;
+  navigateTo(target && target !== 'detail' && SCREEN_IDS[target] ? target : 'home');
+}
+
+function handleAppBack() {
+  const dialog = document.querySelector('.app-dialog-overlay, .modal-overlay:not(.hidden)');
+  if (dialog) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    if (document.body.contains(dialog) && dialog.classList.contains('app-dialog-overlay')) dialog.remove();
+    return true;
+  }
+  const screen = state.currentScreen;
+  if (!state.currentUser || screen === 'auth' || screen === 'onboarding') return false;
+  if (screen === 'reader') { closeReader(); return true; }
+  if (screen === 'detail') { goBackFromDetail(); return true; }
+  if (screen !== 'home') { navigateTo('home'); return true; }
+  const input = document.getElementById('searchInput');
+  if (input && input.value) { clearFullTextSearch(); return true; }
+  return false;
+}
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('popstate', () => {
+  if (!_backGuardReady) return;
+  if (handleAppBack()) {
+    try { history.pushState({ aegis: 'app' }, ''); } catch (_) { /* история недоступна */ }
+    return;
+  }
+  _backGuardReady = false;
+  history.back();
+});

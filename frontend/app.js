@@ -17,7 +17,9 @@ for (const key of ['aegis_biometric_enabled', 'aegis_biometric_cred', 'aegis_bio
 }
 const hadCachedSession = typeof getCachedUser === 'function' && Boolean(getCachedUser());
 tryAutoLogin().then(ok => {
-  navigateTo(ok ? 'home' : 'auth');
+  // Вошли — возвращаем туда, где человек остановился в прошлый раз.
+  if (!ok) navigateTo('auth');
+  else if (!(state.currentUser && state.currentUser.is_approved !== false && restoreUiState())) navigateTo('home');
   if (!ok && hadCachedSession && typeof showActionToast === 'function') {
     showActionToast(
       'Сессия завершена. Войдите снова.',

@@ -76,7 +76,11 @@ async def get_quiz(
     # Токен отдаём заголовком, а не в теле: так формат ответа не меняется и
     # уже установленные PWA со старым app.js продолжают работать.
     response.headers["X-Quiz-Session"] = token
-    return [QuizQuestionPublic.model_validate(q) for q in served]
+    served_public = []
+    for q in served:
+        order = quizzes_service.session_order(token, q.id, len(q.options))
+        served_public.append(QuizQuestionPublic(id=q.id, question=q.question, options=[q.options[i] for i in order]))
+    return served_public
 
 
 @router.post("/books/{book_id}/quiz/regenerate", response_model=list[QuizQuestionPublic])
@@ -210,7 +214,11 @@ async def submit_quiz(
             detail=f"Expected {len(graded)} answers, got {len(payload.answers)}",
         )
 
-    correct_indices = [q.correct_index for q in graded]
+    # Индексы — в том порядке вариантов, в каком их показали в этой сессии.
+    correct_indices = [
+        quizzes_service.session_order(session.token, q.id, len(q.options)).index(q.correct_index)
+        for q in graded
+    ]
     score = sum(1 for i, ans in enumerate(payload.answers) if ans == correct_indices[i])
     total = len(graded)
     percentage = round(score / total * 100) if total else 0

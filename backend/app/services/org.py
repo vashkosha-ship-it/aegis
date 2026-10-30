@@ -49,6 +49,15 @@ class OrgTree:
         parent = self.parent_code(code)
         return [code, parent] if parent else [code]
 
+    def leads(self, user: User, code: str | None) -> bool:
+        """Руководит ли пользователь этим подразделением (или его управлением).
+
+        Назначение подразделению — задание его сотрудникам, а не тому, кто
+        назначает: руководитель отдела и начальник управления в «аудиторию»
+        назначения не входят.
+        """
+        return bool(user.managed_department) and user.managed_department in self.lineage(code)
+
     def manageable(self, user: User) -> list[str]:
         """Коды, с которыми пользователь работает как руководитель (по порядку)."""
         if user.role == UserRole.ADMIN:

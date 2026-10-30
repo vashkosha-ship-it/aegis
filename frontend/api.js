@@ -158,10 +158,15 @@
     return response.json();
   }
 
+  // Номер сессии: растёт при выходе. Ответ на обновление токена, запрошенное
+  // до выхода, не должен «впустить» обратно уже вышедшего пользователя.
+  let _sessionEpoch = 0;
+
   async function tryRefresh() {
     if (_refreshPromise) return _refreshPromise;
     const csrf = getCsrfToken();
     if (!csrf) { tokens.clear(); return false; }
+    const epoch = _sessionEpoch;
     _refreshPromise = (async () => {
       try {
         const data = await request('/auth/refresh', {
@@ -169,6 +174,7 @@
           headers: { 'X-CSRF-Token': csrf },
           auth: false,
         });
+        if (epoch !== _sessionEpoch) return false;
         tokens.set(data.access_token);
         _lastRefreshOffline = false;
         return true;
@@ -192,6 +198,7 @@
     // Восстановить сессию после перезагрузки страницы: access-токен в памяти
     // потерян, но refresh-cookie осталась.
     restoreSession: () => tryRefresh(),
+    sessionEpoch: () => _sessionEpoch,
     lastRefreshWasOffline: () => _lastRefreshOffline,
     baseUrl: BASE,
     tokens,
@@ -262,6 +269,7 @@
     async logout() {
       // Cookie удаляет сервер: из JS httpOnly-cookie не стереть. Заодно он
       // отзывает refresh-токен, иначе утёкшая копия работала бы и после выхода.
+      _sessionEpoch += 1;
       const csrf = getCsrfToken();
       try {
         await request('/auth/logout', {

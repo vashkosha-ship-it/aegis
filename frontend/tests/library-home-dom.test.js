@@ -84,10 +84,14 @@ context.state.currentUser.role = 'reader';
 context.renderBookInfo();
 assert.equal(detail.querySelector('.detail-action-admin'), null);
 
+// Поиск один: в режиме поиска каталог прячется, а запрос уходит в общий
+// поиск по названиям, авторам и тексту (runFullTextSearch).
+const searches = [];
+context.runFullTextSearch = options => searches.push(options);
 context.renderHome();
-const empty = dom.window.document.getElementById('scrollAll');
-assert.match(empty.textContent, /<img src=x onerror=alert\(1\)>/);
-assert.equal(empty.querySelector('img'), null);
+assert.equal(dom.window.document.getElementById('sectionBooks').style.display, 'none');
+assert.equal(searches.length, 1);
+assert.equal(dom.window.document.querySelector('#scrollAll img'), null);
 
 assert.equal((source.match(/\.innerHTML\s*=/g) || []).length, 0);
 console.log('Library home DOM tests passed');

@@ -78,8 +78,12 @@ function renderFavCategories() {
 }
 
 function filterByCategory(category) {
+  // Тема — фильтр каталога. Раньше её вписывали в строку поиска, и после
+  // объединения поиска это стало бы поиском по тексту книг.
   const input = document.getElementById('searchInput');
-  if (input) input.value = category;
+  if (input && input.value) clearFullTextSearch();
+  state.filters.categories = [category];
+  if (typeof populateCatalog === 'function') populateCatalog();
   setHomeBooksTab('all');
   renderHome();
   document.getElementById('scrollAll')?.scrollIntoView({

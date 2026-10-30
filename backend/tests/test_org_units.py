@@ -120,7 +120,8 @@ async def test_directorate_head_sees_all_departments(client, db):
     overview = (await client.get("/team/overview", headers=hh)).json()
     assert overview["department"] == "УЭК" and overview["department_kind"] == "directorate"
     assert overview["departments"] == ["УЭК", "ОЭ-1", "ОЭ-2"]
-    assert {m["id"] for m in overview["members"]} == {head.id, a.id, b.id, dept_boss.id}
+    # Сам начальник управления в команду не входит, руководитель отдела — входит.
+    assert {m["id"] for m in overview["members"]} == {a.id, b.id, dept_boss.id}
     assert c.id not in {m["id"] for m in overview["members"]}
     assert (await client.get("/team/overview?department=ЦВВ", headers=hh)).status_code == 403
 
@@ -134,11 +135,19 @@ async def test_directorate_head_sees_all_departments(client, db):
     assert sorted(x["book"]["id"] for x in (await client.get("/team/me/assignments", headers=auth_headers(b))).json()) == sorted([book1.id, book2.id])
     assert [x["book"]["id"] for x in (await client.get("/team/me/assignments", headers=auth_headers(a))).json()] == [book1.id]
     assert (await client.get("/team/me/assignments", headers=auth_headers(c))).json() == []
+    # Начальнику управления его назначения не приходят; руководителю отдела
+    # назначение управления приходит — он подчинённый начальника управления.
+    assert (await client.get("/team/me/assignments", headers=hh)).json() == []
+    assert [x["book"]["id"] for x in (await client.get("/team/me/assignments", headers=auth_headers(dept_boss))).json()] == [book1.id]
+    whole_view = [x for x in (await client.get("/team/overview", headers=hh)).json()["assignments"] if x["book"]["id"] == book1.id][0]
+    assert whole_view["audience"] == 3
 
     # Руководитель отдела видит назначение управления, но изменить его не может.
     hd = auth_headers(dept_boss)
     dept_view = (await client.get("/team/overview", headers=hd)).json()
     assert dept_view["departments"] == ["ОЭ-1"] and dept_view["parent_code"] == "УЭК"
+    # В команде отдела — сотрудники без самого руководителя.
+    assert [m["id"] for m in dept_view["members"]] == [a.id]
     inherited = [x for x in dept_view["assignments"] if x["book"]["id"] == book1.id][0]
     assert inherited["inherited"] is True and inherited["editable"] is False
     assert (await client.delete(f"/team/assignments/{inherited['id']}", headers=hd)).status_code == 404

@@ -280,7 +280,11 @@ async def my_assignments(
         return []
     tree = await load_tree(db)
     # Назначения своего отдела и управления, в которое он входит.
-    assignments = await _assignments(db, tree.lineage(current.department))
+    # Руководителю его же назначения не приходят: он их выдаёт, а не читает.
+    assignments = [
+        a for a in await _assignments(db, tree.lineage(current.department))
+        if not tree.leads(current, a.department)
+    ]
     progress = await _progress_map(db, [current.id], [a.book_id for a in assignments])
     views = []
     for assignment in assignments:
@@ -332,11 +336,16 @@ async def team_overview(
     unit = tree.get(dept)
     # Управление — все сотрудники его отделов; отдел — его сотрудники.
     member_codes = tree.subtree(dept) if tree.is_directorate(dept) else {dept}
-    members = list((await db.scalars(
-        select(User)
-        .where(User.department.in_(member_codes), User.is_active.is_(True), User.is_approved.is_(True))
-        .order_by(User.full_name.nulls_last(), User.username)
-    )).all())
+    members = [
+        m for m in (await db.scalars(
+            select(User)
+            .where(User.department.in_(member_codes), User.is_active.is_(True), User.is_approved.is_(True))
+            .order_by(User.full_name.nulls_last(), User.username)
+        )).all()
+        # Руководитель этого подразделения (и его управления) — не участник
+        # команды: назначения он выдаёт, а не получает.
+        if not tree.leads(m, dept)
+    ]
     # На экране отдела видны и назначения его управления: они касаются тех же
     # людей. На экране управления — и назначения его отделов.
     shown = set(tree.lineage(dept)) | set(member_codes)
@@ -361,7 +370,10 @@ async def team_overview(
             tree.subtree(assignment.department) if tree.is_directorate(assignment.department)
             else {assignment.department}
         )
-        audience = [m.id for m in members if m.department in audience_codes]
+        audience = [
+            m.id for m in members
+            if m.department in audience_codes and not tree.leads(m, assignment.department)
+        ]
         view.audience = len(audience)
         row: dict[int, MemberProgress] = {}
         for member_id in audience:

@@ -57,14 +57,14 @@ class TestQuizConcurrency:
         rows = (await db.scalars(
             select(QuizQuestion).where(QuizQuestion.book_id == book_with_quiz.id)
         )).all()
-        correct = {q.id: q.correct_index for q in rows}
+        correct = {q.id: q.options[q.correct_index] for q in rows}  # варианты перемешаны для каждой выдачи
 
         r = await parallel_client.get(
             f"/books/{book_with_quiz.id}/quiz", headers=auth_headers(approved_user)
         )
         questions = r.json()
         token = r.headers.get("X-Quiz-Session")
-        answers = [correct[q["id"]] for q in questions]
+        answers = [q["options"].index(correct[q["id"]]) for q in questions]
 
         xp_before = approved_user.xp
 

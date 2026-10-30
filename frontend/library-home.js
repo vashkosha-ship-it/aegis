@@ -137,49 +137,28 @@ function renderHome() {
   const sectionGoal = document.getElementById('sectionBooksGoal');
   const booksTabs = document.querySelector('#sectionBooks .books-tabs');
 
+  const sectionBooks = document.getElementById('sectionBooks');
   if (isSearching) {
-    // Режим поиска: прячем рекомендации/продолжить/возобновить/цели/табы,
-    // показываем только результаты поиска единым списком.
+    // Режим поиска: прячем всё, кроме списка «Найдено» — он один для любого
+    // запроса (названия, авторы и текст книг).
+    if (sectionBooks) sectionBooks.style.display = 'none';
     if (sectionContinue) sectionContinue.style.display = 'none';
     if (sectionFavCats) sectionFavCats.style.display = 'none';
     if (sectionRecommend) sectionRecommend.style.display = 'none';
     if (sectionResume) sectionResume.style.display = 'none';
     if (sectionGoal) sectionGoal.style.display = 'none';
     if (booksTabs) booksTabs.style.display = 'none';
-    const pop = document.getElementById('scrollPopular');
-    const all = document.getElementById('scrollAll');
-    if (pop) { pop.classList.add('hidden'); pop.replaceChildren(); }
-    if (all) all.classList.remove('hidden');
-    const pager = document.getElementById('booksPager');
-    if (sorted.length === 0) {
-      // Ничего не найдено — дружелюбное сообщение вместо пустоты
-      if (all) {
-        const empty = document.createElement('div');
-        empty.setAttribute('data-static-style', 'a312');
-        const queryMessage = document.createElement('div');
-        queryMessage.setAttribute('data-static-style', 'a314');
-        queryMessage.textContent = `По запросу «${q}» ничего не найдено`;
-        empty.append(
-          Object.assign(document.createElement('div'), {
-            textContent: '🔍',
-          }),
-          queryMessage,
-          Object.assign(document.createElement('div'), {
-            textContent: 'Попробуйте другие слова или проверьте раскладку клавиатуры',
-          }),
-        );
-        empty.children[0].setAttribute('data-static-style', 'a313');
-        empty.children[2].setAttribute('data-static-style', 'a315');
-        all.replaceChildren(empty);
-      }
-      if (pager) pager.replaceChildren();
-    } else {
-      renderPaginatedBooks('scrollAll', sorted, q);
+    // После перезагрузки или возврата список мог не успеть построиться.
+    if (q.trim().length >= 2 && !document.getElementById('fullTextResults')
+        && typeof runFullTextSearch === 'function') {
+      runFullTextSearch({ silent: true });
     }
     return;
   }
 
   // Обычный режим — возвращаем секции и табы
+  if (sectionBooks) sectionBooks.style.display = '';
+  document.getElementById('fullTextResults')?.remove();
   if (sectionContinue) sectionContinue.style.display = '';
   if (booksTabs) booksTabs.style.display = '';
 
@@ -253,6 +232,8 @@ function openBookDetail(bookId) {
   if (!b) return;
   state.currentBook = b;
   currentBookId = bookId;
+  // Куда вернуться по «назад»: поиск, «Мой список», тестирование и т. д.
+  if (state.currentScreen !== 'detail') state._detailReturnTo = state.currentScreen;
   state.detailTab = 'info';
   document.querySelectorAll('.detail-tab').forEach(t => t.classList.toggle('active', t.dataset.dtab === 'info'));
   document.querySelectorAll('.detail-tab').forEach(t => {
