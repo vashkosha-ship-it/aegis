@@ -127,9 +127,20 @@ class TestLimits:
         from app.services import search_index
 
         monkeypatch.setattr(search_index, "EXTRACT_TIMEOUT_SECONDS", 0.001)
+        monkeypatch.setattr(search_index, "PDFIUM_FALLBACK_TIMEOUT_SECONDS", 0.001)
 
         with pytest.raises(ExtractionTimeout):
             await _extract_pages(simple_pdf)
+
+    async def test_slow_pypdf_falls_back_to_pdfium(self, monkeypatch, simple_pdf):
+        """pypdf не уложился во время — книгу разбирает PDFium, а не ошибка."""
+        from app.services import search_index
+
+        monkeypatch.setattr(search_index, "_extract_pages_worker", _slow_worker)
+        monkeypatch.setattr(search_index, "EXTRACT_TIMEOUT_SECONDS", 1)
+
+        pages = await _extract_pages(simple_pdf)
+        assert "Hello" in pages[0]
 
     async def test_pool_cleanup_after_success(self, simple_pdf):
         """Регрессия: очистка пула падала с AttributeError на любом файле.
@@ -201,6 +212,13 @@ class TestDamagedPdfFallback:
 def _allocate_a_lot() -> int:
     data = bytearray(1024 * 1024 * 1024)  # 1 ГБ
     return len(data)
+
+
+def _slow_worker(path):
+    import time
+
+    time.sleep(30)
+    return []
 
 
 def _crash_worker(_path: str) -> list[str]:

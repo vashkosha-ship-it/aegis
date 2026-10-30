@@ -413,21 +413,19 @@ async function loadAndRenderAdminReviews() {
   replaceWithStaticText(container, 'Загрузка отзывов...', 'a449');
 
   try {
-    const books = state.books;
-    const allReviews = [];
-
-    for (const book of books) {
-      const reviews = await getReviews(book.id);
-      reviews.forEach(review => {
-        allReviews.push({
-          ...review,
-          bookId: book.id,
-          bookTitle: book.title,
-        });
-      });
-    }
-
-    allReviews.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Один запрос на все отзывы (раньше — по запросу на каждую книгу).
+    const list = await api.library.adminAllReviews();
+    const allReviews = list.map(r => ({
+      id: r.id,
+      user: r.user_username,
+      avatar: (r.user_username || '?').charAt(0).toUpperCase(),
+      rating: r.rating,
+      text: r.text,
+      date: r.created_at,
+      _userId: r.user_id,
+      bookId: r.book_id,
+      bookTitle: r.book_title,
+    }));
     renderAdminReviewsTable(container, allReviews);
   } catch (err) {
     replaceWithStaticText(container, 'Не удалось загрузить отзывы', 'a150');

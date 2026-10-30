@@ -93,6 +93,22 @@ assert.equal(window.handleAppBack(), true);
 assert.equal(window.state.currentScreen, 'profile', 'сначала закрывается окно, экран остаётся');
 assert.equal(window.document.querySelector('.app-dialog-overlay'), null);
 
+// Окна, созданные на лету (оценка книги), тоже закрываются «назад»,
+// а статичные окна из разметки прячутся, а не удаляются.
+const finish = window.document.createElement('div');
+finish.id = 'finishReviewModal';
+window.document.body.appendChild(finish);
+window.navigateTo('reader');
+assert.equal(window.handleAppBack(), true);
+assert.equal(window.document.getElementById('finishReviewModal'), null);
+assert.equal(window.state.currentScreen, 'reader', 'сначала закрывается окно, читалка остаётся');
+const staticModal = window.document.createElement('div');
+staticModal.id = 'addModal';
+staticModal.className = 'modal-overlay';
+window.document.body.appendChild(staticModal);
+assert.equal(window.handleAppBack(), true);
+assert.ok(window.document.getElementById('addModal').classList.contains('hidden'));
+
 // Подключение.
 assert.match(read('index.html'), /data-onclick="goBackFromDetail\(\)"/);
 assert.match(read('app.js'), /restoreUiState\(\)/);

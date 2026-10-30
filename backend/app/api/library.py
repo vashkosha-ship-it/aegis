@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_admin, get_current_user
 from app.db.session import get_db
 from app.models.book import Book
 from app.models.library import (
@@ -20,6 +20,7 @@ from app.models.library import (
 from app.models.quiz import QuizAttempt
 from app.models.user import User
 from app.schemas.library import (
+    AdminReviewPublic,
     AnnotationCreate,
     AnnotationPublic,
     DayBookActivity,
@@ -238,6 +239,31 @@ async def list_reviews(
             )
         )
     return result
+
+
+@router.get("/admin/reviews", response_model=list[AdminReviewPublic])
+async def admin_list_reviews(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> list[AdminReviewPublic]:
+    """Admin only: все отзывы одним запросом, свежие сверху.
+
+    Раньше вкладка «Отзывы» запрашивала отзывы каждой книги по отдельности —
+    тысячи запросов при каждом открытии.
+    """
+    rows = (await db.execute(
+        select(Review, User.username, Book.title)
+        .join(User, User.id == Review.user_id)
+        .join(Book, Book.id == Review.book_id)
+        .order_by(Review.created_at.desc())
+    )).all()
+    return [
+        AdminReviewPublic(
+            id=review.id, user_id=review.user_id, user_username=username, rating=review.rating,
+            text=review.text, created_at=review.created_at, book_id=review.book_id, book_title=title,
+        )
+        for review, username, title in rows
+    ]
 
 
 @router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)

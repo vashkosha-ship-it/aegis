@@ -50,6 +50,11 @@ class ReviewPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AdminReviewPublic(ReviewPublic):
+    book_id: int
+    book_title: str
+
+
 class AnnotationPosition(BaseModel):
     """Координаты заметки внутри страницы, только безопасные CSS-значения."""
 

@@ -490,6 +490,7 @@
       },
       // Reviews
       reviews(bookId) { return request('/books/' + bookId + '/reviews'); },
+      adminAllReviews() { return request('/admin/reviews'); },
       addReview(bookId, rating, text) {
         return request('/books/' + bookId + '/reviews', {
           method: 'POST',

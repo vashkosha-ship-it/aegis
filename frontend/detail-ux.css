@@ -27,6 +27,15 @@
   overscroll-behavior-inline: contain;
 }
 #detailScreen .detail-tabs::-webkit-scrollbar { display: none; }
+/* На телефоне пять вкладок не помещаются: край растворяется, чтобы было
+   видно, что ряд прокручивается и дальше есть «Тестирование» и «Заметки». */
+@media (max-width: 599.98px) {
+  #detailScreen .detail-tabs {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    padding-right: 24px;
+  }
+}
 #detailScreen .detail-tab {
   flex: 0 0 auto;
   min-width: max-content;

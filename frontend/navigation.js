@@ -380,12 +380,42 @@ function goBackFromDetail() {
   navigateTo(target && target !== 'detail' && SCREEN_IDS[target] ? target : 'home');
 }
 
+// Окна, которые живут в разметке index.html: их прячут классом hidden,
+// удалять нельзя — иначе второй раз они не откроются.
+const STATIC_MODAL_IDS = new Set([
+  'arSchemeMenuModal', 'addModal', 'editProfileModal', 'bookAnalyticsModal', 'adminBookModal', 'bulkUploadModal',
+]);
+// Все виды окон приложения: общие диалоги, старые modal-overlay и окна,
+// которые создаются на лету (оценка книги, восстановление пароля, установка).
+const BACK_CLOSABLE_OVERLAYS = [
+  '.app-dialog-overlay',
+  '.modal-overlay:not(.hidden)',
+  '.install-modal',
+  '#finishReviewModal',
+  '#forgotPasswordModal',
+  '#tourOverlay',
+].join(', ');
+
+function _topOverlay() {
+  const all = [...document.querySelectorAll(BACK_CLOSABLE_OVERLAYS)]
+    .filter(el => {
+      const style = getComputedStyle(el);
+      return !el.hidden && style.display !== 'none' && style.visibility !== 'hidden';
+    });
+  // Самое верхнее — последнее в документе (окна добавляются в конец body).
+  return all.length ? all[all.length - 1] : null;
+}
+
 function handleAppBack() {
   if (document.querySelector('.app-dialog-overlay[data-locked]')) return true;
-  const dialog = document.querySelector('.app-dialog-overlay, .modal-overlay:not(.hidden)');
+  const dialog = _topOverlay();
   if (dialog) {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    if (document.body.contains(dialog) && dialog.classList.contains('app-dialog-overlay')) dialog.remove();
+    if (document.body.contains(dialog) && _topOverlay() === dialog) {
+      if (dialog.id === 'tourOverlay') document.querySelector('.tour-button--skip')?.click();
+      else if (STATIC_MODAL_IDS.has(dialog.id)) dialog.classList.add('hidden');
+      else dialog.remove();
+    }
     return true;
   }
   const screen = state.currentScreen;
