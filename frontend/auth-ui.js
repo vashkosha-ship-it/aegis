@@ -631,6 +631,10 @@ async function resumeOnlineSession() {
 if (typeof window !== 'undefined') window.addEventListener('online', () => { resumeOnlineSession(); });
 
 async function tryAutoLogin() {
+  // Пока автовход грузит данные, человек мог успеть выйти — тогда его итог
+  // не применяем (иначе вышедший пользователь «возвращался» бы обратно).
+  const epoch = typeof api.sessionEpoch === 'function' ? api.sessionEpoch() : 0;
+  const loggedOutMeanwhile = () => typeof api.sessionEpoch === 'function' && api.sessionEpoch() !== epoch;
   // Access-токен живёт в памяти и после перезагрузки страницы пуст. Пробуем
   // получить новый по httpOnly-cookie: если её нет или она протухла — гость.
   if (!api.isAuthenticated()) {
@@ -644,6 +648,7 @@ async function tryAutoLogin() {
   }
   try {
     const user = await api.me();
+    if (loggedOutMeanwhile()) return false;
    state.currentUser = {
       name: user.username,
       role: user.role,
@@ -675,6 +680,7 @@ async function tryAutoLogin() {
     // Аккаунт — источник истины для блока «Продолжить» и доступности ИИ.
     if (typeof syncResumeHiddenFromAccount === 'function') syncResumeHiddenFromAccount();
     if (typeof refreshAssistantAvailability === 'function') refreshAssistantAvailability(true);
+    if (loggedOutMeanwhile()) return false;
       maybeAutoPreload();
 
     saveState();
