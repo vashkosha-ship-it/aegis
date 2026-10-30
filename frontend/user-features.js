@@ -11,6 +11,27 @@ function calculateLevel(totalXp) {
   return { level, currentLevelXp: remaining, nextLevelXp: getXpForLevel(level) };
 }
 
+// О каких достижениях уже сообщили на этом устройстве (для каждого аккаунта
+// своё). Раньше уведомление строилось сравнением «до/после»: если список «до»
+// оказывался пустым (вход без сети, сбой загрузки, два действия подряд),
+// приложение заново объявляло все давно полученные достижения.
+const ACHIEVEMENTS_NOTIFIED_KEY = 'aegis_achievements_notified';
+
+function _readNotifiedAchievements() {
+  const raw = lsGet(ACHIEVEMENTS_NOTIFIED_KEY);
+  if (raw === null) return null;
+  try {
+    const list = JSON.parse(raw);
+    return new Set(Array.isArray(list) ? list : []);
+  } catch (_) {
+    return null;
+  }
+}
+
+function _saveNotifiedAchievements(codes) {
+  lsSet(ACHIEVEMENTS_NOTIFIED_KEY, JSON.stringify([...codes]));
+}
+
 async function loadGamificationFromApi() {
   if (!state.currentUser || (api.isAuthBootstrapPending?.() && !state.currentUser)) return false;
   try {
@@ -23,6 +44,11 @@ async function loadGamificationFromApi() {
     ]);
     state.gamification.achievementsOwned = owned;
     state.gamification.achievementsCatalog = catalog;
+    // Первый вход на этом устройстве: всё, что уже есть, получено раньше —
+    // запоминаем без уведомлений.
+    if (_readNotifiedAchievements() === null) {
+      _saveNotifiedAchievements(new Set(owned.map(a => a.code)));
+    }
     return true;
   } catch (err) {
     console.error('Не удалось загрузить геймификацию:', err);
@@ -30,19 +56,28 @@ async function loadGamificationFromApi() {
   }
 }
 
-async function refreshGamificationFromApi() {
-  const before = state.gamification.achievementsOwned.map(a => a.code);
-  await loadGamificationFromApi();
-  const after = state.gamification.achievementsOwned;
-  after.forEach(a => {
-    if (!before.includes(a.code)) {
-      showToast(`Достижение получено: ${a.name}!`);
+// Обновления идут по очереди: два действия подряд (открыли книгу и сразу
+// сделали заметку) не должны объявить одно достижение дважды.
+let _gamificationRefreshQueue = Promise.resolve();
+
+function refreshGamificationFromApi() {
+  _gamificationRefreshQueue = _gamificationRefreshQueue.then(async () => {
+    if (!(await loadGamificationFromApi())) return;
+    const notified = _readNotifiedAchievements() || new Set();
+    const fresh = (state.gamification.achievementsOwned || []).filter(a => !notified.has(a.code));
+    if (fresh.length) {
+      fresh.forEach(a => {
+        notified.add(a.code);
+        showToast(`Достижение получено: ${a.name}!`);
+      });
+      _saveNotifiedAchievements(notified);
     }
-  });
-  if (state.currentScreen === 'profile') {
-    updateProfileXpDisplay();
-    renderAchievementsInProfile();
-  }
+    if (state.currentScreen === 'profile') {
+      updateProfileXpDisplay();
+      renderAchievementsInProfile();
+    }
+  }).catch(err => console.error('Не удалось обновить достижения:', err));
+  return _gamificationRefreshQueue;
 }
 
 function updateProfileXpDisplay() {
