@@ -229,6 +229,19 @@ input, select, textarea { border-radius: 6px; }
 /* Выбор значка приложения: картинка над подписью. */
 .app-icon-choice { flex-direction: column; gap: 6px; padding: 8px 10px; font-size: 12px; min-width: 76px; }
 .app-icon-preview { width: 40px; height: 40px; border-radius: 10px; display: block; }
+.app-icon-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.app-icon-note p { margin: 0 0 6px; color: var(--text-primary); }
+.app-icon-note ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.app-icon-note strong { color: var(--text-primary); font-weight: 600; }
 
 /* Заголовок экрана на десктопе (data-title у .top-header) — тем же шрифтом,
    что и остальные заголовки. */

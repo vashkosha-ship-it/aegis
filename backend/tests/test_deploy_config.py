@@ -513,7 +513,7 @@ class TestTemplateStyleExtraction:
 
     def test_pwa_cache_version_updated(self):
         service_worker = (INDEX_HTML.parent / "sw.js").read_text(encoding="utf-8")
-        assert "aegis-cache-v356" in service_worker
+        assert "aegis-cache-v357" in service_worker
 
     def test_deploy_requires_frontend_ci(self):
         deploy_script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
@@ -524,3 +524,29 @@ class TestTemplateStyleExtraction:
 
     def test_deploy_script_is_executable(self):
         assert DEPLOY_SCRIPT.stat().st_mode & 0o111
+
+
+def test_app_manifest_follows_icon_cookie():
+    """Значок установленного приложения — по cookie, адрес manifest постоянный."""
+    import asyncio
+
+    from httpx import ASGITransport, AsyncClient
+
+    from app.main import app
+
+    async def fetch(cookie):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client:
+            if cookie:
+                client.cookies.set("aegis_app_icon", cookie)
+            return await client.get("/api/app/manifest.json")
+
+    blue = asyncio.run(fetch(None))
+    assert blue.status_code == 200
+    assert blue.headers["content-type"].startswith("application/manifest+json")
+    assert "Cookie" in blue.headers["vary"]
+    assert blue.json()["icons"][0]["src"] == "/icons/icon-192.png"
+    green = asyncio.run(fetch("green")).json()
+    assert green["id"] == blue.json()["id"] and green["start_url"] == "/"
+    assert all("/green-" in icon["src"] for icon in green["icons"])
+    # Подставить в cookie путь к файлу нельзя.
+    assert asyncio.run(fetch("../../etc/passwd")).json()["icons"][0]["src"] == "/icons/icon-192.png"

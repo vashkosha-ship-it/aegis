@@ -80,6 +80,27 @@ function renderSettingsPersonalizationTab(c) {
     accentChoices.appendChild(button);
   });
 
+  // Пояснение, почему значок на экране «Домой» меняется не сразу: его
+  // запоминает система при установке, а не само приложение.
+  const appIconUpdateNote = () => {
+    const note = _accountNode('div', null);
+    note.className = 'app-icon-note';
+    note.setAttribute('role', 'note');
+    note.appendChild(_accountNode('p', null, 'Цвет значка на экране «Домой» меняется не сразу: значок запоминает телефон или компьютер при установке приложения.'));
+    const list = document.createElement('ul');
+    [
+      ['Android и компьютер (Chrome, Edge)', ' — значок сменится сам при очередной проверке приложения браузером: обычно в течение суток. Иногда браузер спросит разрешение на обновление.'],
+      ['iPhone и iPad', ' — сам не сменится. Удалите ярлык Aegis с экрана «Домой» и снова добавьте сайт через «Поделиться» → «На экран «Домой»».'],
+      ['Чтобы сменить сразу', ' на любом устройстве — удалите приложение и установите его заново после выбора цвета.'],
+    ].forEach(([title, text]) => {
+      const item = document.createElement('li');
+      item.append(_accountNode('strong', null, title), document.createTextNode(text));
+      list.appendChild(item);
+    });
+    note.appendChild(list);
+    return note;
+  };
+
   let appIconChoices = null;
   if (typeof APP_ICONS !== 'undefined' && typeof getAppIcon === 'function') {
     const currentIcon = getAppIcon();
@@ -229,11 +250,11 @@ function renderSettingsPersonalizationTab(c) {
     _accountNode('h3', 'a350', 'Персонализация'),
     createRow('Тема приложения', themeChoices),
     createRow('Цвет акцента', accentChoices, 'Кнопки, подписи и подсветка во всём приложении'),
-    ...(appIconChoices ? [createRow(
-      'Значок приложения',
-      appIconChoices,
-      'Значок на экране «Домой» система запоминает при установке. Android может заменить его сам, но не сразу (иногда через сутки и с подтверждением); на iPhone — только так: удалите ярлык и добавьте заново. Надёжный способ везде — переустановить приложение после выбора цвета',
-    )] : []),
+    ...(appIconChoices ? [(() => {
+      const row = createRow('Значок приложения', appIconChoices);
+      row.appendChild(appIconUpdateNote());
+      return row;
+    })()] : []),
     createRow('Карточек книг в ряд', gridChoices),
     createRow('Предпросмотр', preview, 'Изменения применяются ко всему каталогу'),
     createRow('Цель чтения (страниц в день)', readingGoalChoices, 'Цель отображается в профиле и тепловой карте'),
