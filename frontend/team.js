@@ -217,7 +217,8 @@ function renderAssignedForMe() {
 let _assignedLoadedAt = 0;
 function maybeRefreshAssignedForMe() {
   if (!state.currentUser) return;
-  if (Date.now() - _assignedLoadedAt < 60000 && state.myAssignments) { renderAssignedForMe(); return; }
+  // Назначения меняются редко: сверяемся с сервером не чаще раза в 5 минут.
+  if (Date.now() - _assignedLoadedAt < 5 * 60 * 1000 && state.myAssignments) { renderAssignedForMe(); return; }
   _assignedLoadedAt = Date.now();
   refreshAssignedForMe();
 }

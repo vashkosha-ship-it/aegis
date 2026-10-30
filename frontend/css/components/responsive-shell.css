@@ -19,61 +19,83 @@
   body.reader-active #app { margin-left: 0 !important; }
 }
 
-/* Подпись «Центр знаний по кибербезопасности» — под значком и названием,
-   во всю ширину: в боковом меню (ПК) и в шапке главной (телефон, планшет). */
-.sidebar-logo { flex-wrap: wrap; row-gap: 6px; }
-.sidebar-logo-tagline { flex: 1 1 100%; }
-.brand-tagline {
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: .02em;
+/* Название вместо логотипа: «Центр знаний по кибербезопасности» — в боковом
+   меню (ПК) и в шапке главной (телефон, планшет). Значка и «AEGIS» в самом
+   приложении больше нет. */
+.sidebar-logo { display: block; }
+.sidebar-brand-title {
+  display: block;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -.01em;
+  white-space: normal;
+  /* «кибербезопасности» длиннее узкого меню — переносим по слогам. */
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: break-word;
 }
-/* Шапка главной до 1280px (дальше логотип в боковом меню): значок,
-   название и кнопки — в одну строку, подпись — отдельной строкой под всем.
-   Раньше подпись стояла в одном блоке с логотипом и не давала ему сжаться:
-   у администратора (четыре кнопки) шапка вылезала за экран и страница
-   прокручивалась вбок. */
+/* Шапка главной до 1280px (дальше название в боковом меню): название и
+   кнопки в одну строку; длинное название переносится, а не выдавливает
+   кнопки за экран. */
 @media (max-width: 1279.98px) {
   #homeScreen .top-header {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      "icon name actions"
-      "tagline tagline tagline";
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name actions";
     align-items: center;
-    column-gap: 8px;
-    row-gap: 6px;
+    column-gap: 10px;
   }
   #homeScreen .top-header .header-left { display: contents; }
-  #homeScreen .top-header .logo-sm { grid-area: icon; }
-  #homeScreen .top-header .logo-name {
+  #homeScreen .top-header .home-brand-title {
     grid-area: name;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: block;
+    white-space: normal;
+    font-size: clamp(15px, 3.4vw, 22px);
+    line-height: 1.2;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    overflow-wrap: break-word;
   }
   #homeScreen .top-header .header-actions { grid-area: actions; min-width: 0; }
-  #homeScreen .top-header .home-logo-tagline { grid-area: tagline; }
+  /* Пустой заголовок-«хлебная крошка» не должен отодвигать название. */
+  #homeScreen .top-header::before { display: none; }
 }
-.home-logo-tagline { white-space: normal; }
 @media (max-width: 599.98px) {
   /* Четыре кнопки администратора по 44px помещаются и на узком телефоне. */
   #homeScreen .header-buttons-group { gap: 4px; }
 }
-
-/* Логотип главной с подписью виден, пока нет бокового меню (до 1280px);
-   с 1280px логотип и подпись — в боковом меню. Раньше на 1024–1279px
-   (планшет в альбомной ориентации) логотипа не было нигде. */
-@media (min-width: 1024px) and (max-width: 1279.98px) {
-  #homeScreen .top-header .header-left .logo-sm { display: flex; }
-  #homeScreen .top-header .header-left .logo-name { display: block; }
-  /* Пустой заголовок-«хлебная крошка» не должен отодвигать логотип вправо. */
-  #homeScreen .top-header::before { display: none; }
-}
 @media (min-width: 1280px) {
-  #homeScreen .top-header .header-left .logo-sm,
-  #homeScreen .top-header .header-left .logo-name,
-  #homeScreen .top-header .header-left .home-logo-tagline { display: none; }
+  #homeScreen .top-header .header-left .home-brand-title { display: none; }
+}
+
+/* Крестик очистки в строке поиска — слева от кнопки «искать». Виден, только
+   когда в поле что-то введено (пустое поле показывает подсказку). */
+.search-bar .search-clear {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.search-bar .search-clear:hover,
+.search-bar .search-clear:focus-visible { color: var(--text-primary); background: var(--bg-card-hover, rgba(127, 127, 127, .12)); }
+/* display у кнопок с иконкой задан глобально и форсированно, поэтому прячем
+   через visibility. */
+.search-bar input:placeholder-shown ~ .search-clear { visibility: hidden; pointer-events: none; }
+@media (pointer: coarse) {
+  .search-bar .search-clear { right: 46px; width: 38px; height: 38px; }
 }

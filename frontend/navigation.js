@@ -61,7 +61,8 @@ function _scheduleScreenScroll(screenName) {
 // кнопку в шапке, ИИ в читалке, «Объяснить»/«Словарь» у выделения.
 // Прятанием занимается CSS: html.ai-off [data-ai-entry] { display: none }.
 const ASSISTANT_ENABLED_KEY = 'aegis_assistant_enabled';
-const ASSISTANT_REFRESH_MS = 60 * 1000;
+// Настройку ассистента сверяем не чаще раза в 5 минут (при возвращении в приложение).
+const ASSISTANT_REFRESH_MS = 5 * 60 * 1000;
 let _assistantCheckedAt = 0;
 // Своя переменная, а не state: navigation.js подключается раньше app-state.js,
 // а состояние нужно уже при загрузке страницы.

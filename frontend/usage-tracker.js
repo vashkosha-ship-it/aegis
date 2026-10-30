@@ -10,7 +10,8 @@
 // Если в браузере включено «Не отслеживать» (Do Not Track), ничего не
 // отправляем.
 (function () {
-  const FLUSH_INTERVAL_MS = 30000;
+  // Статистика копится и уходит пачкой раз в 2 минуты (и при сворачивании).
+  const FLUSH_INTERVAL_MS = 2 * 60 * 1000;
   const FLUSH_AT_EVENTS = 40;
   const MAX_COUNT_PER_EVENT = 100;
   const NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_:.-]{0,63}$/;
