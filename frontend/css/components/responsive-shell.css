@@ -93,7 +93,7 @@
 }
 .search-bar .search-clear:hover,
 .search-bar .search-clear:focus-visible { color: var(--text-primary); background: var(--bg-card-hover, rgba(127, 127, 127, .12)); }
-/* display у кнопок с иконкой задан глобально с !important, поэтому прячем
+/* display у кнопок с иконкой задан глобально и форсированно, поэтому прячем
    через visibility. */
 .search-bar input:placeholder-shown ~ .search-clear { visibility: hidden; pointer-events: none; }
 @media (pointer: coarse) {
