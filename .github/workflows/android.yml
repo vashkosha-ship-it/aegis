@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-${{ github.ref }}
@@ -56,8 +56,24 @@ jobs:
           ( cd out && sha256sum app-release-unsigned.apk tools/apksigner.jar tools/zipalign > SHA256SUMS )
           cat out/SHA256SUMS
 
+      # Результат кладём и в артефакт, и в отдельную ветку android-build
+      # (перезаписывается при каждой сборке): из ветки его можно забрать
+      # обычным git fetch там, где скачивание артефактов недоступно.
       - uses: actions/upload-artifact@v4
         with:
           name: android-unsigned
           path: out/
           retention-days: 14
+
+      - name: Publish build to android-build branch
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          cd out
+          git init -q -b android-build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "${GITHUB_SHA}" > SOURCE_COMMIT
+          git add -A
+          git commit -q -m "Unsigned APK from ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" android-build
