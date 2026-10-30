@@ -27,7 +27,7 @@ for (const [, src] of appIcon.matchAll(/icon: '([^']+)'/g)) {
 }
 // Адрес manifest постоянный (сервер подставляет значок по cookie), скрипт
 // значка — сразу после него.
-assert.match(read('index.html'), /<link rel="manifest" href="\/api\/app\/manifest\.json">\s*<script src="app-icon\.js"><\/script>/);
+assert.match(read('index.html'), /<link rel="manifest" href="\/api\/app\/manifest">\s*<script src="app-icon\.js"><\/script>/);
 assert.doesNotMatch(appIcon, /setHref\('link\[rel="manifest"\]'/);
 assert.match(appIcon, /aegis_app_icon=/);
 assert.match(read('account-personalization.js'), /меняется не сразу/);

@@ -11,6 +11,13 @@ window.addEventListener('beforeinstallprompt', (e) => {
   showInstallBanner();
 });
 
+// В Mi Браузере и встроенных браузерах события beforeinstallprompt не бывает,
+// и плашка «Установить» не появлялась вовсе. Показываем её и там: кнопка
+// откроет инструкцию с «Открыть в Chrome».
+window.addEventListener('load', () => {
+  if (androidBrowserWithoutInstall()) setTimeout(showInstallBanner, 1500);
+});
+
 window.addEventListener('appinstalled', () => {
   _deferredInstallPrompt = null;
   const b = document.getElementById('installBanner');
@@ -26,6 +33,46 @@ function isIOS() {
 }
 function isMobile() {
   return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+}
+function isAndroid() {
+  return /android/i.test(navigator.userAgent);
+}
+
+// Браузер на Android, в котором установки в одно нажатие нет: встроенный
+// браузер Xiaomi (Mi Браузер), браузеры внутри Telegram/VK и т. п.
+// Samsung Internet, Яндекс и Edge установку поддерживают — их не трогаем.
+function androidBrowserWithoutInstall() {
+  const ua = navigator.userAgent || '';
+  if (!isAndroid()) return null;
+  if (/MiuiBrowser|XiaoMi\//i.test(ua)) return 'Mi Браузер';
+  if (/HeyTapBrowser|OppoBrowser/i.test(ua)) return 'браузер телефона';
+  if (/Telegram|Instagram|FBAN|FBAV|VKAndroidApp|; wv\)/i.test(ua)) return 'встроенный браузер приложения';
+  return null;
+}
+
+// Ссылка, которая открывает этот же сайт в Chrome (если он установлен).
+function chromeIntentUrl() {
+  const { host, pathname, search } = window.location;
+  return `intent://${host}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end`;
+}
+
+// Плашку «Установить» закрыли — не показываем её две недели, а не навсегда:
+// раньше закрытая один раз плашка больше не появлялась никогда.
+const INSTALL_DISMISS_KEY = 'aegis_install_dismissed';
+const INSTALL_DISMISS_DAYS = 14;
+function installBannerDismissed() {
+  let value = null;
+  try { value = localStorage.getItem(INSTALL_DISMISS_KEY); } catch (_) { return false; }
+  if (!value) return false;
+  const at = Number(value);
+  // Старое значение «1» — закрыто до этой версии: показываем снова.
+  if (!at || at < 1e12) return false;
+  return Date.now() - at < INSTALL_DISMISS_DAYS * 24 * 60 * 60 * 1000;
+}
+
+// Готово ли системное окно установки (Chrome, Samsung Internet, Яндекс).
+function installAvailable() {
+  return Boolean(_deferredInstallPrompt);
 }
 
 function installNode(tagName, text, staticStyle) {
@@ -47,7 +94,7 @@ function installInstructionItem(parts) {
 function showInstallBanner() {
   if (isStandalone() || document.getElementById('installBanner')) return;
   if (!isMobile()) return; // баннер только на мобильных
-  if (localStorage.getItem('aegis_install_dismissed') === '1') return;
+  if (installBannerDismissed()) return;
   const banner = document.createElement('div');
   banner.id = 'installBanner';
   banner.className = 'install-banner';
@@ -65,7 +112,7 @@ function showInstallBanner() {
   install.onclick = triggerInstall;
   close.onclick = () => {
     banner.remove();
-    localStorage.setItem('aegis_install_dismissed', '1');
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (_) { /* не запомним — покажем снова */ }
   };
 }
 
@@ -84,38 +131,88 @@ async function triggerInstall() {
     showAndroidInstallInstructions();
     return;
   }
+  // Главный путь: системное окно установки Chrome — одно нажатие «Установить».
   _deferredInstallPrompt.prompt();
   const { outcome } = await _deferredInstallPrompt.userChoice;
   _deferredInstallPrompt = null;
   const b = document.getElementById('installBanner');
   if (b) b.remove();
-  if (outcome === 'accepted') showToast('Устанавливаем приложение…');
+  if (outcome === 'accepted') {
+    showToast('Устанавливаем приложение…');
+    if (isAndroid()) showAndroidAfterInstallTips();
+  }
 }
 
-function showAndroidInstallInstructions() {
-  let m = document.getElementById('androidInstallModal');
+// Где искать значок после установки. На Xiaomi/Redmi/POCO оболочка по
+// умолчанию запрещает браузеру класть значки на рабочий стол — приложение
+// ставится, а значка не видно.
+function showAndroidAfterInstallTips() {
+  const m = _installModal('androidInstalledModal');
+  const panel = installNode('div', undefined, 'a512');
+  panel.append(
+    installNode('div', 'Приложение устанавливается', 'a513'),
+    installNode('p', 'Через несколько секунд значок «Aegis Lib» появится на рабочем столе или в списке всех приложений (свайп вверх).', 'a514'),
+  );
+  panel.appendChild(_xiaomiShortcutHint());
+  const close = installNode('button', 'Понятно', 'a517');
+  close.addEventListener('click', () => m.remove());
+  panel.appendChild(close);
+  m.replaceChildren(panel);
+}
+
+function _installModal(id) {
+  // Плашка «Установить» внизу экрана перекрывала окно — убираем её.
+  document.getElementById('installBanner')?.remove();
+  let m = document.getElementById(id);
   if (!m) {
     m = document.createElement('div');
-    m.id = 'androidInstallModal';
+    m.id = id;
     m.className = 'install-modal';
     document.body.appendChild(m);
   }
+  return m;
+}
+
+function _xiaomiShortcutHint() {
+  const hint = installNode('div', undefined, 'a516');
+  hint.className = 'install-xiaomi-hint';
+  hint.append(
+    installNode('strong', 'Xiaomi, Redmi, POCO: значка нет на рабочем столе?'),
+    installNode('p', 'Откройте Настройки → Приложения → Все приложения → Chrome → Другие разрешения → «Ярлыки на рабочем столе» → Разрешить. Затем установите приложение ещё раз.'),
+  );
+  return hint;
+}
+
+function showAndroidInstallInstructions() {
+  const m = _installModal('androidInstallModal');
   const panel = installNode('div', undefined, 'a512');
-  panel.append(
-    installNode('div', 'Установка приложения', 'a513'),
-    installNode('p', 'Если кнопка установки не сработала автоматически, установите вручную:', 'a514'),
-  );
-  const steps = installNode('ol', undefined, 'a515');
-  steps.append(
-    installInstructionItem(['Откройте сайт в браузере ', { strong: 'Chrome' }, ' (не в Mi Браузере)']),
-    installInstructionItem(['Нажмите меню ', { strong: '⋮' }, ' в правом верхнем углу']),
-    installInstructionItem(['Выберите ', { strong: '«Установить приложение»' }, ' или ', { strong: '«Добавить на главный экран»' }]),
-    installInstructionItem(['Подтвердите установку']),
-  );
-  const note = installNode('p', 'Если приложение не появилось на рабочем столе — проверьте список всех приложений (свайп вверх). В настройках Xiaomi включите «Добавлять значки на рабочий стол».', 'a516');
+  panel.appendChild(installNode('div', 'Установка приложения', 'a513'));
+  const browser = androidBrowserWithoutInstall();
+  if (browser) {
+    // Здесь установки нет вовсе — одна кнопка переносит сайт в Chrome,
+    // там появится кнопка «Установить».
+    panel.appendChild(installNode('p', `Сейчас сайт открыт в: ${browser}. Установить приложение отсюда нельзя — откройте сайт в Chrome, там будет кнопка «Установить».`, 'a514'));
+    const openChrome = installNode('a', 'Открыть в Chrome', 'a517');
+    openChrome.className = 'install-open-chrome';
+    openChrome.href = chromeIntentUrl();
+    openChrome.rel = 'noopener';
+    panel.appendChild(openChrome);
+    panel.appendChild(installNode('p', 'Если кнопка не сработала — скопируйте адрес сайта и вставьте его в Chrome.', 'a516'));
+  } else {
+    panel.appendChild(installNode('p', 'Кнопка установки сейчас недоступна — так бывает, если приложение уже установлено или страница только открылась. Установите через меню браузера:', 'a514'));
+    const steps = installNode('ol', undefined, 'a515');
+    steps.append(
+      installInstructionItem(['Нажмите меню ', { strong: '⋮' }, ' в правом верхнем углу Chrome']),
+      installInstructionItem(['Выберите ', { strong: '«Установить приложение»' }, ' или ', { strong: '«Добавить на главный экран»' }]),
+      installInstructionItem(['Подтвердите установку']),
+      installInstructionItem(['Значок ', { strong: '«Aegis Lib»' }, ' появится на рабочем столе или в списке приложений']),
+    );
+    panel.appendChild(steps);
+  }
+  panel.appendChild(_xiaomiShortcutHint());
   const close = installNode('button', 'Понятно', 'a517');
   close.addEventListener('click', () => m.remove());
-  panel.append(steps, note, close);
+  panel.appendChild(close);
   m.replaceChildren(panel);
 }
 

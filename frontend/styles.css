@@ -3579,6 +3579,10 @@ select[multiple] option:hover {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
 }
 
+.install-open-chrome { display: block; text-align: center; text-decoration: none; margin-bottom: 10px; }
+.install-xiaomi-hint { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; }
+.install-xiaomi-hint strong { display: block; margin-bottom: 4px; color: var(--text-primary); }
+.install-xiaomi-hint p { margin: 0; }
 .install-modal {
   position: fixed;
   inset: 0;
