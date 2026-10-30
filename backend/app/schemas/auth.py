@@ -87,6 +87,7 @@ class UserPublic(BaseModel):
     department: str | None = None
     # Отдел, которым пользователь руководит (None — обычный читатель).
     managed_department: str | None = None
+    must_change_password: bool = False
     profile_visibility: str = "public"
     is_approved: bool = True
     ui_theme: str | None = None
@@ -137,6 +138,13 @@ class UserUpdate(BaseModel):
         "a01", "a02", "a03", "a04", "a05", "a06", "a07", "a08",
         "a09", "a10", "a11", "a12", "a13", "a14", "a15",
     ] | None = None
+
+class PasswordHelpCreate(BaseModel):
+    """Заявка администратору: нет доступа к почте, нужно сменить пароль."""
+
+    username: str = Field(..., min_length=1, max_length=64)
+    contact: str = Field(..., min_length=3, max_length=200)
+
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

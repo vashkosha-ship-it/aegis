@@ -3,6 +3,11 @@ function renderRecommendations() {
   const container = document.getElementById('sectionRecommendations');
   const list = document.getElementById('recommendationsList');
   if (!container || !list) return;
+  // Во время поиска показываем только результаты поиска.
+  if (typeof isHomeSearching === 'function' && isHomeSearching()) {
+    container.style.display = 'none';
+    return;
+  }
 
   const recs = getRecommendations(5);
   if (recs.length === 0) {

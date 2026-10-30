@@ -248,6 +248,9 @@
       });
     },
 
+    passwordHelp(username, contact) {
+      return request('/auth/password-help', { method: 'POST', body: { username, contact }, auth: false });
+    },
     async forgotPassword(email) {
       return await request('/auth/forgot-password', {
         method: 'POST',
@@ -349,11 +352,18 @@
       }
       return full;
     },
-    changePassword(currentPassword, newPassword) {
+    changePassword(currentPassword, newPassword, reencryptedAnnotations = []) {
       return request('/me/password', {
         method: 'POST',
-        body: { current_password: currentPassword, new_password: newPassword },
+        body: {
+          current_password: currentPassword,
+          new_password: newPassword,
+          reencrypted_annotations: reencryptedAnnotations,
+        },
       });
+    },
+    myEncryptedAnnotations() {
+      return request('/me/annotations/encrypted');
     },
     requestEmailChange(newEmail, password) {
       return request('/me/email/request', { method: 'POST', body: { new_email: newEmail, password } });
@@ -559,6 +569,11 @@
       },
       setManagedDepartment(userId, department) {
         return request('/admin/users/' + userId + '/managed-department', { method: 'PUT', body: { department: department || null } });
+      },
+      adminPasswordHelp() { return request('/admin/password-help'); },
+      adminClosePasswordHelp(id) { return request('/admin/password-help/' + id + '/close', { method: 'POST' }); },
+      adminResetUserPassword(userId, password) {
+        return request('/admin/users/' + userId + '/password', { method: 'POST', body: { password } });
       },
       // Полнотекстовый поиск по содержимому и метаданным
       searchBooks(query, limit = 20) { return request('/search?q=' + encodeURIComponent(query) + '&limit=' + limit); },

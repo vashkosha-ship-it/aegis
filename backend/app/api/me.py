@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, StreamingResponse
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -21,12 +22,14 @@ from app.core.storage import (
     get_storage,
 )
 from app.db.session import get_db
+from app.models.library import Annotation
 from app.models.user import User, UserRole
 from app.schemas.auth import LegalConsentRequest, UserPublic, UserUpdate
 from app.schemas.me import (
     AccountDeleteRequest,
     EmailChangeConfirm,
     EmailChangeRequest,
+    EncryptedAnnotation,
     LeaderboardEntry,
     PasswordChangeRequest,
     PublicProfile,
@@ -120,8 +123,29 @@ async def accept_legal_documents(
 
 
 # ============================================================================
-# POST /api/me/password — смена пароля
+# GET /api/me/annotations/encrypted, POST /api/me/password — смена пароля
 # ============================================================================
+
+
+NOTE_ENC_PREFIX = "enc:v1:"
+
+
+@router.get("/me/annotations/encrypted", response_model=list[EncryptedAnnotation])
+async def my_encrypted_annotations(
+    current: User = Depends(get_current_user_any),
+    db: AsyncSession = Depends(get_db),
+) -> list[EncryptedAnnotation]:
+    """Все свои зашифрованные заметки — чтобы перешифровать их при смене пароля."""
+    rows = (await db.scalars(
+        select(Annotation).where(
+            Annotation.user_id == current.id,
+            or_(
+                Annotation.selected_text.startswith(NOTE_ENC_PREFIX),
+                Annotation.note_text.startswith(NOTE_ENC_PREFIX),
+            ),
+        ).order_by(Annotation.id)
+    )).all()
+    return [EncryptedAnnotation(id=r.id, selected_text=r.selected_text, note_text=r.note_text) for r in rows]
 
 
 @router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
@@ -148,9 +172,25 @@ async def change_my_password(
     if len(payload.new_password.strip()) < 8:
         raise HTTPException(status_code=400, detail="Пароль должен быть не короче 8 символов")
 
+    # Перешифрованные устройством заметки — только свои и только шифротекст
+    # (enc:v1:…): сервер их не читает и не должен принимать открытый текст.
+    if payload.reencrypted_annotations:
+        by_id = {item.id: item for item in payload.reencrypted_annotations}
+        rows = (await db.scalars(
+            select(Annotation).where(Annotation.user_id == current.id, Annotation.id.in_(list(by_id)))
+        )).all()
+        for row in rows:
+            item = by_id[row.id]
+            values = [item.selected_text] + ([item.note_text] if item.note_text else [])
+            if not all(v.startswith(NOTE_ENC_PREFIX) for v in values):
+                raise HTTPException(status_code=400, detail="Заметки должны быть зашифрованы")
+            row.selected_text = item.selected_text
+            row.note_text = item.note_text
+
     current.password_hash = hash_new_password(payload.new_password)
+    current.must_change_password = False
     # Смена пароля отзывает все ранее выданные токены (все другие устройства
-    # разлогиниваются). Текущему клиенту нужно перелогиниться.
+    # разлогиниваются). Текущее устройство сразу входит заново новым паролем.
     current.token_version = (current.token_version or 0) + 1
     await db.commit()
 
@@ -392,7 +432,7 @@ async def download_user_avatar(
 # ============================================================================
 # GET /api/users/{user_id}/profile — публичный профиль (#15 маскировка email)
 # ============================================================================
-from sqlalchemy import func, select  # noqa: E402
+from sqlalchemy import func  # noqa: E402
 
 from app.models.library import MyListEntry  # noqa: E402
 from app.models.quiz import QuizAttempt  # noqa: E402

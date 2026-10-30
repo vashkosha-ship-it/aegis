@@ -83,7 +83,47 @@ function openForgotPassword() {
   reset.id = 'fpResetBtn';
   reset.addEventListener('click', forgotPasswordReset);
   secondStep.append(codeHint, code, newPassword, reset);
-  panel.append(header, firstStep, secondStep, authNode('p', 'При потере пароля доступ к ранее зашифрованным заметкам не восстанавливается.', 'a281'));
+  // Нет почты (аккаунт заводил администратор) или нет к ней доступа —
+  // заявка администратору: он задаст временный пароль и передаст его.
+  const helpToggle = authNode('button', 'Нет доступа к почте? Обратиться к администратору');
+  helpToggle.type = 'button';
+  helpToggle.className = 'auth-legal-link password-help-toggle';
+  const helpStep = authNode('div');
+  helpStep.className = 'password-help-step hidden';
+  const helpHint = authNode('p', 'Укажите логин и как с вами связаться (телефон, мессенджер, рабочая почта). Администратор задаст временный пароль и передаст его вам — при входе вы смените его на свой.', 'a276');
+  const helpLogin = authNode('input', undefined, 'a277');
+  helpLogin.type = 'text';
+  helpLogin.id = 'fpHelpLogin';
+  helpLogin.placeholder = 'Логин';
+  helpLogin.autocomplete = 'username';
+  helpLogin.value = document.getElementById('authName')?.value.trim() || '';
+  const helpContact = authNode('input', undefined, 'a277');
+  helpContact.type = 'text';
+  helpContact.id = 'fpHelpContact';
+  helpContact.placeholder = 'Как с вами связаться';
+  helpContact.maxLength = 200;
+  const helpSend = authNode('button', 'Отправить заявку', 'a278');
+  helpSend.id = 'fpHelpSendBtn';
+  helpSend.addEventListener('click', async () => {
+    const username = helpLogin.value.trim();
+    const contact = helpContact.value.trim();
+    if (!username) { showToast('Введите логин'); return; }
+    if (contact.length < 3) { showToast('Укажите, как с вами связаться'); return; }
+    helpSend.disabled = true;
+    try {
+      const result = await api.passwordHelp(username, contact);
+      helpStep.replaceChildren(authNode('p', result.detail || 'Заявка отправлена администратору.', 'a276'));
+    } catch (e) {
+      helpSend.disabled = false;
+      showToast((e && e.detail) || 'Не удалось отправить заявку, попробуйте позже');
+    }
+  });
+  helpStep.append(helpHint, helpLogin, helpContact, helpSend);
+  helpToggle.addEventListener('click', () => {
+    helpStep.classList.toggle('hidden');
+    if (!helpStep.classList.contains('hidden')) (helpLogin.value ? helpContact : helpLogin).focus();
+  });
+  panel.append(header, firstStep, secondStep, helpToggle, helpStep, authNode('p', 'При потере пароля доступ к ранее зашифрованным заметкам не восстанавливается.', 'a281'));
   m.replaceChildren(panel);
 }
 
@@ -415,8 +455,87 @@ async function submitVerifyCode() {
   }
 }
 
+// ========== ВРЕМЕННЫЙ ПАРОЛЬ ОТ АДМИНИСТРАТОРА ==========
+// Пароль задал администратор — пока человек не сменит его сам, приложение
+// закрыто (сервер отвечает 403 на всё, кроме смены пароля). Окно нельзя
+// закрыть: только сменить пароль или выйти. Возвращает новый пароль.
+function requireNewPassword(user, knownTemporaryPassword) {
+  state.currentUser = { ...(state.currentUser || {}), id: user.id, name: user.username, role: user.role };
+  return new Promise(resolve => {
+    const { overlay, panel } = createDialogShell('forcePasswordModal', 'Придумайте свой пароль');
+    panel.classList.add('force-password-dialog');
+    // Системная «назад» это окно не закрывает (см. handleAppBack).
+    overlay.dataset.locked = 'true';
+    const form = document.createElement('form');
+    form.className = 'force-password-form';
+    form.noValidate = true;
+    const lead = document.createElement('p');
+    lead.className = 'force-password-lead';
+    lead.textContent = 'Администратор задал вам временный пароль. Чтобы продолжить, придумайте новый — его будете знать только вы.';
+    form.appendChild(lead);
+    const field = (label, autocomplete) => {
+      const wrap = document.createElement('label');
+      wrap.className = 'force-password-field';
+      const caption = document.createElement('span');
+      caption.textContent = label;
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.className = 'app-dialog-input';
+      input.autocomplete = autocomplete;
+      wrap.append(caption, input);
+      form.appendChild(wrap);
+      return input;
+    };
+    const temp = knownTemporaryPassword ? null : field('Временный пароль', 'current-password');
+    const next = field('Новый пароль (минимум 8 символов)', 'new-password');
+    const repeat = field('Повторите новый пароль', 'new-password');
+    const error = document.createElement('div');
+    error.className = 'force-password-error';
+    error.setAttribute('role', 'alert');
+    form.appendChild(error);
+    const actions = document.createElement('div');
+    actions.className = 'app-dialog-actions';
+    const exit = createDialogButton('forcePasswordLogout', 'Выйти', 'app-dialog-button app-dialog-button--cancel');
+    const save = createDialogButton('forcePasswordSave', 'Сохранить', 'app-dialog-button app-dialog-button--confirm');
+    save.type = 'submit';
+    actions.append(exit, save);
+    form.appendChild(actions);
+    panel.appendChild(form);
+    (temp || next).focus();
+
+    exit.addEventListener('click', async () => {
+      try { await api.logout(); } catch (_) { /* выходим локально в любом случае */ }
+      overlay.remove();
+      await clearLocalSession();
+      navigateTo('auth');
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      error.textContent = '';
+      const current = knownTemporaryPassword || temp.value;
+      if (!current) { error.textContent = 'Введите временный пароль'; return; }
+      if (next.value.length < 8) { error.textContent = 'Новый пароль — минимум 8 символов'; return; }
+      if (next.value !== repeat.value) { error.textContent = 'Пароли не совпадают'; return; }
+      if (next.value === current) { error.textContent = 'Новый пароль должен отличаться от временного'; return; }
+      save.disabled = true;
+      try {
+        await changeOwnPassword(current, next.value);
+        overlay.remove();
+        resolve(next.value);
+      } catch (err) {
+        save.disabled = false;
+        error.textContent = err && err.status === 401 ? 'Временный пароль неверный' : (err && err.detail) || 'Не удалось сменить пароль';
+      }
+    });
+  });
+}
+
 async function finishAuthenticatedLogin(password, username) {
-  const user = await api.me();
+  let user = await api.me();
+  if (user.must_change_password) {
+    password = await requireNewPassword(user, password);
+    user = await api.me();
+  }
   await deriveNoteKey(password, username || user.username);
   state.currentUser = {
     name: user.username,
@@ -647,8 +766,13 @@ async function tryAutoLogin() {
     }
   }
   try {
-    const user = await api.me();
+    let user = await api.me();
     if (loggedOutMeanwhile()) return false;
+    if (user.must_change_password) {
+      const newPassword = await requireNewPassword(user, null);
+      await deriveNoteKey(newPassword, user.username);
+      user = await api.me();
+    }
    state.currentUser = {
       name: user.username,
       role: user.role,

@@ -711,6 +711,112 @@ async def set_managed_department(
     )
 
 
+class AdminPasswordReset(BaseModel):
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+@router.post("/users/{user_id}/password", status_code=204)
+async def reset_user_password(
+    request: Request,
+    user_id: int,
+    payload: AdminPasswordReset,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> None:
+    """Задать пользователю временный пароль.
+
+    Пользователя разлогинивает на всех устройствах; при следующем входе он
+    обязан сменить пароль сам — до этого остальное приложение недоступно.
+    Сам временный пароль в журнал не пишется.
+    """
+    from app.core.security import PasswordPolicyError, validate_new_password
+
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Свой пароль меняйте в настройках профиля")
+    try:
+        validate_new_password(payload.password)
+    except PasswordPolicyError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from None
+    user.password_hash = hash_new_password(payload.password)
+    user.must_change_password = True
+    user.token_version = (user.token_version or 0) + 1
+    user.reset_code = None
+    user.reset_expires = None
+    # Открытые заявки этого пользователя на смену пароля закрываются.
+    from app.models.password_help import PasswordHelpRequest
+
+    for item in (await db.scalars(select(PasswordHelpRequest).where(
+        PasswordHelpRequest.user_id == user.id, PasswordHelpRequest.resolved_at.is_(None),
+    ))).all():
+        item.resolved_at = datetime.now(UTC)
+        item.resolved_by_id = admin.id
+    await log_admin_action(
+        db, admin, "user_password_reset", request=request,
+        target=f"user:{user.id}:{user.username}",
+        detail="Задан временный пароль, пользователь сменит его при входе",
+    )
+    await db.commit()
+
+
+class PasswordHelpView(BaseModel):
+    id: int
+    username: str
+    user_id: int | None
+    full_name: str | None = None
+    contact: str
+    created_at: str | None
+
+
+@router.get("/password-help", response_model=list[PasswordHelpView])
+async def list_password_help(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> list[PasswordHelpView]:
+    """Открытые заявки «нет доступа к почте — смените пароль»."""
+    from app.models.password_help import PasswordHelpRequest
+
+    rows = (await db.scalars(
+        select(PasswordHelpRequest).where(PasswordHelpRequest.resolved_at.is_(None))
+        .order_by(PasswordHelpRequest.created_at)
+    )).all()
+    users = {u.id: u for u in (await db.scalars(
+        select(User).where(User.id.in_([r.user_id for r in rows if r.user_id]))
+    )).all()} if rows else {}
+    return [
+        PasswordHelpView(
+            id=r.id, username=r.username, user_id=r.user_id,
+            full_name=users[r.user_id].full_name if r.user_id in users else None,
+            contact=r.contact, created_at=r.created_at.isoformat() if r.created_at else None,
+        )
+        for r in rows
+    ]
+
+
+@router.post("/password-help/{request_id}/close", status_code=204)
+async def close_password_help(
+    request: Request,
+    request_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> None:
+    from app.models.password_help import PasswordHelpRequest
+
+    item = await db.get(PasswordHelpRequest, request_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Заявка не найдена")
+    if item.resolved_at is None:
+        item.resolved_at = datetime.now(UTC)
+        item.resolved_by_id = admin.id
+        await log_admin_action(
+            db, admin, "password_help_close", request=request,
+            target=f"password_help:{item.id}", detail=f"Закрыта заявка на смену пароля: {item.username}",
+        )
+        await db.commit()
+
+
 @router.put("/users/{user_id}/department", response_model=AdminUserView)
 async def set_user_department(
     request: Request,

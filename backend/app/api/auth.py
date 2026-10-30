@@ -6,11 +6,12 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user_any
 from app.core.client_ip import get_client_ip
+from app.core.config import settings
 from app.core.cookies import (
     clear_auth_cookies,
     csrf_is_valid,
@@ -32,6 +33,7 @@ from app.models.user import User, UserRole
 from app.schemas.auth import (
     AccessTokenOnly,
     ForgotPasswordRequest,
+    PasswordHelpCreate,
     RegisterResponse,
     ResendCodeRequest,
     ResetPasswordRequest,
@@ -464,6 +466,49 @@ async def forgot_password(
     return {"detail": "Если такой email зарегистрирован, на него отправлен код восстановления"}
 
 
+@router.post("/password-help", status_code=status.HTTP_200_OK)
+async def request_password_help(
+    payload: PasswordHelpCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Попросить администратора сменить пароль (если нет доступа к почте).
+
+    Ответ всегда одинаковый: по нему нельзя узнать, есть ли такой логин.
+    Администратор видит заявку в админке и задаёт временный пароль.
+    """
+    from app.models.password_help import PasswordHelpRequest
+
+    username = payload.username.strip()
+    await _guard_email_send(f"help:{username.lower()}", request)
+    user = await db.scalar(select(User).where(func.lower(User.username) == username.lower()))
+    open_request = await db.scalar(
+        select(PasswordHelpRequest).where(
+            func.lower(PasswordHelpRequest.username) == username.lower(),
+            PasswordHelpRequest.resolved_at.is_(None),
+        )
+    )
+    contact = payload.contact.strip()
+    if open_request:
+        open_request.contact = contact
+    else:
+        db.add(PasswordHelpRequest(username=username, user_id=user.id if user else None, contact=contact))
+    await db.commit()
+    if not open_request and settings.ADMIN_NOTIFY_EMAIL.strip():
+        try:
+            from app.services.email_service import send_email
+            await send_email(
+                settings.ADMIN_NOTIFY_EMAIL.strip(),
+                "Aegis: просьба сменить пароль",
+                f"Пользователь просит сменить пароль (нет доступа к почте).\n"
+                f"Логин: {username}\nКак связаться: {contact}\n\n"
+                "Откройте Админку → Пользователи → «Заявки на смену пароля».",
+            )
+        except Exception:  # noqa: BLE001 — письмо не обязательно, заявка уже сохранена
+            logger.warning("Не удалось отправить письмо о заявке на смену пароля")
+    return {"detail": "Заявка отправлена администратору. Он свяжется с вами и передаст временный пароль."}
+
+
 @router.post(
     "/reset-password",
     response_model=AccessTokenOnly,
@@ -496,6 +541,7 @@ async def reset_password(
     user.password_hash = hash_new_password(payload.new_password)
     user.reset_code = None
     user.reset_expires = None
+    user.must_change_password = False
 
     # Успешный сброс подтверждает почту.
     #
