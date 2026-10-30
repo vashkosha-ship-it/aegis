@@ -78,6 +78,13 @@ async def get_current_user(current: User = Depends(get_current_user_any)) -> Use
     контенту библиотеки закрыт, пока админ не одобрил аккаунт. Админы одобрены
     всегда.
     """
+    if current.must_change_password:
+        # Пароль задал администратор. Пока человек не сменил его сам, доступна
+        # только смена пароля (она идёт через get_current_user_any).
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password change required",
+        )
     if current.role == UserRole.ADMIN:
         return current
     if not current.is_approved:

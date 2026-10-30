@@ -26,8 +26,9 @@ assert.equal(container.querySelector('img, script'), null);
 assert.match(container.textContent, /<script>x<\/script>/);
 assert.match(container.textContent, /<svg onload=x>/);
 assert.equal(container.querySelectorAll('tbody tr').length, 1);
-assert.equal(container.querySelectorAll('button').length, 4);
-container.querySelector('tbody button').click();
+assert.equal(container.querySelectorAll('button').length, 5); // + «Сбросить пароль»
+assert.ok(container.querySelector('button[title="Сбросить пароль"]'));
+container.querySelector('tbody button.danger').click();
 assert.deepEqual(calls[0], ['<img>', '<script>x</script>']);
 assert.doesNotMatch(source, /container\.innerHTML = actionsBar/);
 assert.doesNotMatch(source, /displayed\.map\(\(u, idx\)/);

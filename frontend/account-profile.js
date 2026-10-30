@@ -109,9 +109,10 @@ async function saveSettingsPassword() {
   if (newp !== confirm) { errEl.textContent = 'Новые пароли не совпадают'; return; }
   if (newp === current) { errEl.textContent = 'Новый пароль должен отличаться от текущего'; return; }
 
+  const saveBtn = document.getElementById('setPasswordSaveBtn');
+  if (saveBtn) saveBtn.disabled = true;
   try {
-    await api.changePassword(current, newp);
-    showToast('Пароль изменён');
+    await changeOwnPassword(current, newp);
     // Чистим поля для безопасности
     document.getElementById('setCurrentPassword').value = '';
     document.getElementById('setNewPassword').value = '';
@@ -125,7 +126,30 @@ async function saveSettingsPassword() {
       errEl.textContent = 'Не удалось изменить пароль. Попробуйте позже.';
       console.error(e);
     }
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
   }
+}
+
+// Смена своего пароля: заметки перешифровываются новым ключом в той же
+// операции, затем устройство сразу входит с новым паролем (старые сессии
+// сервер отзывает). Используется и в настройках, и при обязательной смене
+// временного пароля.
+async function changeOwnPassword(currentPassword, newPassword) {
+  const username = state.currentUser && state.currentUser.name;
+  let reencrypted = { items: [], lost: 0, newKey: null };
+  if (typeof reencryptNotesForNewPassword === 'function') {
+    reencrypted = await reencryptNotesForNewPassword(currentPassword, newPassword, username);
+  }
+  await api.changePassword(currentPassword, newPassword, reencrypted.items);
+  await api.login(username, newPassword);
+  if (typeof setNoteKey === 'function' && reencrypted.newKey) setNoteKey(reencrypted.newKey);
+  if (typeof annotationsCache !== 'undefined') Object.keys(annotationsCache).forEach(key => delete annotationsCache[key]);
+  if (state.currentUser) state.currentUser.must_change_password = false;
+  const saved = reencrypted.items.length;
+  showToast(saved
+    ? `Пароль изменён, заметки сохранены (${saved}). На других устройствах войдите заново`
+    : 'Пароль изменён. На других устройствах войдите заново');
 }
 
 function renderSettingsInfoTab(c) {

@@ -381,6 +381,7 @@ function goBackFromDetail() {
 }
 
 function handleAppBack() {
+  if (document.querySelector('.app-dialog-overlay[data-locked]')) return true;
   const dialog = document.querySelector('.app-dialog-overlay, .modal-overlay:not(.hidden)');
   if (dialog) {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

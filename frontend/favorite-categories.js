@@ -64,6 +64,7 @@ function renderFavCategories() {
   const section = document.getElementById('sectionFavCategories');
   const container = document.getElementById('favCategoriesChips');
   if (!section || !container) return;
+  if (typeof isHomeSearching === 'function' && isHomeSearching()) { section.style.display = 'none'; return; }
 
   container.replaceChildren();
   getFavCategories().forEach(category => {

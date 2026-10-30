@@ -100,6 +100,11 @@ class User(Base):
     token_version: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False, server_default="0"
     )
+    # Пароль задал администратор (сброс): до смены пароля самим пользователем
+    # доступна только смена пароля.
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

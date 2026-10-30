@@ -3,6 +3,7 @@ function renderBooksGoalWidget() {
   const section = document.getElementById('sectionBooksGoal');
   const wrap = document.getElementById('booksGoalWidget');
   if (!section || !wrap) return;
+  if (typeof isHomeSearching === 'function' && isHomeSearching()) { section.style.display = 'none'; return; }
   const goal = getBooksGoal();
   if (!goal) { section.style.display = 'none'; return; }
   section.style.display = 'block';

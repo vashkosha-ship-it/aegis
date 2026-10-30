@@ -420,6 +420,80 @@ async function loadAndRenderAdminUsers() {
   }
 }
 
+// Заявки «нет доступа к почте — смените пароль». Блок над таблицей
+// пользователей; пустой — не показывается.
+async function renderPasswordHelpRequests() {
+  const container = document.getElementById('adUsers');
+  if (!container) return;
+  let requests = [];
+  try {
+    requests = await api.library.adminPasswordHelp();
+  } catch (_) {
+    return;
+  }
+  container.querySelector('.password-help-admin')?.remove();
+  if (!requests.length) return;
+  const box = document.createElement('section');
+  box.className = 'password-help-admin';
+  const title = document.createElement('h4');
+  title.textContent = `Заявки на смену пароля (${requests.length})`;
+  const hint = document.createElement('p');
+  hint.className = 'password-help-admin-hint';
+  hint.textContent = 'У этих людей нет доступа к почте. Задайте временный пароль и передайте его по указанному контакту — при входе человек сменит его на свой.';
+  box.append(title, hint);
+  requests.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'password-help-admin-row';
+    const text = document.createElement('div');
+    text.className = 'password-help-admin-text';
+    const who = document.createElement('strong');
+    who.textContent = item.full_name ? `${item.full_name} (${item.username})` : item.username;
+    const contact = document.createElement('span');
+    contact.textContent = `Связаться: ${item.contact}`;
+    const date = document.createElement('span');
+    date.className = 'password-help-admin-date';
+    date.textContent = item.created_at ? new Date(item.created_at).toLocaleString('ru-RU') : '';
+    text.append(who, contact, date);
+    const actions = document.createElement('div');
+    actions.className = 'password-help-admin-actions';
+    if (item.user_id) {
+      const reset = document.createElement('button');
+      reset.type = 'button';
+      reset.className = 'admin-tool admin-tool--primary';
+      reset.textContent = 'Сбросить пароль';
+      reset.addEventListener('click', () => {
+        const user = (state._adminUsers || []).find(u => u.id === item.user_id)
+          || { id: item.user_id, username: item.username, full_name: item.full_name };
+        openAdminResetPasswordModal(user, { onDone: renderPasswordHelpRequests });
+      });
+      actions.appendChild(reset);
+    } else {
+      const unknown = document.createElement('span');
+      unknown.className = 'password-help-admin-date';
+      unknown.textContent = 'Такого логина нет';
+      actions.appendChild(unknown);
+    }
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'admin-tool admin-tool--quiet';
+    closeBtn.textContent = 'Закрыть';
+    closeBtn.addEventListener('click', async () => {
+      closeBtn.disabled = true;
+      try {
+        await api.library.adminClosePasswordHelp(item.id);
+        renderPasswordHelpRequests();
+      } catch (_) {
+        closeBtn.disabled = false;
+        showToast('Не удалось закрыть заявку');
+      }
+    });
+    actions.appendChild(closeBtn);
+    row.append(text, actions);
+    box.appendChild(row);
+  });
+  container.prepend(box);
+}
+
 function appendAdminMetric(container, value, label, valueStyle) {
   const card = document.createElement('div');
   card.setAttribute('data-static-style', 'a553');
@@ -569,6 +643,17 @@ function renderAdminUsersWithFilter() {
     appendTrustedIcon(active, user.is_active ? ICONS.check : ICONS.x);
     row.appendChild(active);
     const userActions = document.createElement('td');
+    // Сброс пароля — любому, кроме себя (свой меняют в настройках).
+    if (!state.currentUser || user.id !== state.currentUser.id) {
+      const resetPassword = document.createElement('button');
+      resetPassword.type = 'button';
+      resetPassword.className = 'btn-sm';
+      resetPassword.title = 'Сбросить пароль';
+      resetPassword.setAttribute('aria-label', `Сбросить пароль: ${user.username}`);
+      appendTrustedIcon(resetPassword, ICONS.iconLock);
+      resetPassword.addEventListener('click', () => openAdminResetPasswordModal(user));
+      userActions.appendChild(resetPassword);
+    }
     if (user.role !== 'admin') {
       const remove = document.createElement('button');
       remove.type = 'button';
@@ -576,7 +661,7 @@ function renderAdminUsersWithFilter() {
       appendTrustedIcon(remove, ICONS.trash);
       remove.addEventListener('click', () => deleteAdminUser(user.id, user.username));
       userActions.appendChild(remove);
-    } else {
+    } else if (!userActions.hasChildNodes()) {
       userActions.textContent = '—';
     }
     row.appendChild(userActions);
@@ -587,6 +672,8 @@ function renderAdminUsersWithFilter() {
   fragment.appendChild(wrap);
   container.replaceChildren(fragment);
   refreshPendingBadge();
+  // Таблица перерисовывается целиком — блок заявок добавляем заново.
+  renderPasswordHelpRequests();
 }
 
 function onAdminUsersFilterChange() {
@@ -599,6 +686,90 @@ function onAdminUsersLimitChange() {
   const sel = document.getElementById('adminUsersLimit');
   state._adminUsersLimit = parseInt(sel.value, 10) || 10;
   renderAdminUsersWithFilter();
+}
+
+// Временный пароль: понятные символы, без похожих (0/O, 1/l/I).
+function generateTemporaryPassword(length = 10) {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  let value = '';
+  bytes.forEach(byte => { value += alphabet[byte % alphabet.length]; });
+  // Гарантируем хотя бы одну цифру.
+  return /\d/.test(value) ? value : value.slice(0, -1) + '7';
+}
+
+function openAdminResetPasswordModal(user, { onDone = null } = {}) {
+  const name = user.full_name ? `${user.full_name} (${user.username})` : user.username;
+  const { overlay, panel } = createDialogShell('adminResetPasswordModal', 'Сбросить пароль');
+  panel.classList.add('admin-reset-password-dialog');
+  const node = (tag, className, text) => {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined) el.textContent = text;
+    return el;
+  };
+  const form = node('form', 'force-password-form');
+  form.noValidate = true;
+  form.appendChild(node('p', 'force-password-lead', `Пользователь: ${name}. Задайте временный пароль и передайте его человеку — при входе он обязан будет сменить его на свой.`));
+  const label = node('label', 'force-password-field');
+  label.appendChild(node('span', null, 'Временный пароль'));
+  const input = node('input', 'app-dialog-input');
+  input.type = 'text';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.value = generateTemporaryPassword();
+  label.appendChild(input);
+  form.appendChild(label);
+  form.appendChild(node('p', 'admin-reset-password-warning', 'Пользователя выкинет из аккаунта на всех устройствах. Его зашифрованные заметки станут недоступны: их ключ зависит от старого пароля, которого не знает никто, кроме него.'));
+  const error = node('div', 'force-password-error');
+  error.setAttribute('role', 'alert');
+  form.appendChild(error);
+  const actions = node('div', 'app-dialog-actions');
+  const cancel = createDialogButton('adminResetPasswordCancel', 'Отмена', 'app-dialog-button app-dialog-button--cancel');
+  const save = createDialogButton('adminResetPasswordSave', 'Сбросить пароль', 'app-dialog-button app-dialog-button--confirm');
+  save.type = 'submit';
+  actions.append(cancel, save);
+  form.appendChild(actions);
+  panel.appendChild(form);
+
+  let keyHandler;
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', keyHandler); };
+  keyHandler = event => { if (event.key === 'Escape') close(); };
+  document.addEventListener('keydown', keyHandler);
+  cancel.addEventListener('click', close);
+  bindDialogClose(overlay, close);
+  input.focus();
+  input.select();
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    error.textContent = '';
+    const password = input.value.trim();
+    if (password.length < 8) { error.textContent = 'Минимум 8 символов'; return; }
+    save.disabled = true;
+    try {
+      await api.library.adminResetUserPassword(user.id, password);
+    } catch (err) {
+      save.disabled = false;
+      error.textContent = err && err.detail ? String(err.detail) : 'Не удалось сбросить пароль';
+      return;
+    }
+    // Готово: показываем пароль ещё раз и даём скопировать.
+    form.replaceChildren(
+      node('p', 'force-password-lead', `Пароль сброшен. Временный пароль для пользователя ${name} — передайте его, при входе человек задаст свой.`),
+      node('div', 'admin-reset-password-value', password),
+    );
+    const done = node('div', 'app-dialog-actions');
+    const copy = createDialogButton('adminResetPasswordCopy', 'Скопировать', 'app-dialog-button app-dialog-button--cancel');
+    const ok = createDialogButton('adminResetPasswordDone', 'Готово', 'app-dialog-button app-dialog-button--confirm');
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(password); showToast('Пароль скопирован'); } catch (_) { showToast('Не удалось скопировать — выделите пароль вручную'); }
+    });
+    ok.addEventListener('click', close);
+    if (typeof onDone === 'function') onDone();
+    done.append(copy, ok);
+    form.appendChild(done);
+  });
 }
 
 async function deleteAdminUser(userId, username) {

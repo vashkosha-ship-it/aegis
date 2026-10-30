@@ -119,6 +119,11 @@ async function loadBooksFromApi() {
 }
 
 // ========== HOME ==========
+// Идёт поиск — на главной только результаты, без рекомендаций, целей и т. п.
+function isHomeSearching() {
+  return (document.getElementById('searchInput')?.value || '').trim().length > 0;
+}
+
 function renderHome() {
   if (!state.currentUser) return;
   updateAvatar('avatarHome');
