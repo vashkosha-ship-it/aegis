@@ -52,3 +52,10 @@ assert.match(read('reader-selection-ai.js'), /classList\.add\('is-docked'\)/);
 assert.match(read('styles.css'), /\.selection-toolbar\.is-docked \{/);
 
 console.log('app icon, reader zoom and selection toolbar tests passed');
+
+// Подпись под значком установленного приложения — «Aegis Lib» во всех
+// вариантах значка и на iPhone.
+for (const file of ['manifest.json', ...variants]) {
+  assert.equal(JSON.parse(read(file)).short_name, 'Aegis Lib', `${file}: short_name`);
+}
+assert.match(read('index.html'), /<meta name="apple-mobile-web-app-title" content="Aegis Lib">/);
