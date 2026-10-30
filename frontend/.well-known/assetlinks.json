@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ru.aegis_sec_library.app",
+      "sha256_cert_fingerprints": [
+        "4B:32:39:E4:AA:FF:35:13:56:66:1B:DF:D1:5A:02:A4:18:68:62:EC:F1:CC:98:D2:B4:73:64:BC:DC:15:FE:C2"
+      ]
+    }
+  }
+]

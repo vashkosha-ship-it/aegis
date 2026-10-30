@@ -1,0 +1,79 @@
+name: android
+
+# Сборка Android-приложения (Trusted Web Activity) из папки android/.
+# Приложение открывает сайт aegis-sec-library.ru во весь экран, поэтому
+# новые книги и правки сайта появляются в нём без пересборки APK.
+#
+# Workflow собирает НЕподписанный APK. Подпись делается отдельно ключом
+# владельца: ключ не хранится ни в репозитории, ни в настройках GitHub.
+# Вместе с APK выкладываются apksigner и zipalign из Android SDK раннера,
+# которыми его подписывают.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build unsigned release APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Collect APK and signing tools
+        run: |
+          set -euo pipefail
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BT"
+          mkdir -p out/tools
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk out/
+          cp "$BT/lib/apksigner.jar" out/tools/
+          cp "$BT/zipalign" out/tools/
+          [ -d "$BT/lib64" ] && cp -r "$BT/lib64" out/tools/ || true
+          basename "$BT" > out/tools/BUILD_TOOLS_VERSION
+          ( cd out && sha256sum app-release-unsigned.apk tools/apksigner.jar tools/zipalign > SHA256SUMS )
+          cat out/SHA256SUMS
+
+      # Результат кладём и в артефакт, и в отдельную ветку android-build
+      # (перезаписывается при каждой сборке): из ветки его можно забрать
+      # обычным git fetch там, где скачивание артефактов недоступно.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-unsigned
+          path: out/
+          retention-days: 14
+
+      - name: Publish build to android-build branch
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          cd out
+          git init -q -b android-build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "${GITHUB_SHA}" > SOURCE_COMMIT
+          git add -A
+          git commit -q -m "Unsigned APK from ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" android-build
