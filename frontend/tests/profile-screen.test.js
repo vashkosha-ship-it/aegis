@@ -31,7 +31,6 @@ const state = {
     name: 'reader',
     full_name: 'Reader Name',
     role: 'user',
-    department: 'Security',
     cyber_level: null,
     has_avatar: false,
   },
@@ -73,7 +72,7 @@ vm.runInContext(source, context);
 context.renderProfile();
 assert.equal(dom.window.document.getElementById('profileDisplayName').textContent, 'Reader Name');
 assert.equal(dom.window.document.getElementById('profileUsernameLine').textContent, '@reader');
-assert.equal(dom.window.document.getElementById('profileDepartmentLine').textContent, 'Security');
+assert.equal(dom.window.document.getElementById('profileDepartmentLine'), null);
 assert.equal(dom.window.document.getElementById('profileRoleTag').textContent, 'Читатель');
 assert.match(dom.window.document.getElementById('profileTakeQuizBtn').textContent, /Пройти тест уровня/);
 assert.equal(dom.window.document.getElementById('statBooks').textContent, '2');
@@ -99,7 +98,6 @@ state.currentUser = {
   name: 'admin',
   full_name: '',
   role: 'admin',
-  department: null,
   cyber_level: 'advanced',
   has_avatar: true,
 };

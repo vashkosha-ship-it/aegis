@@ -9,7 +9,7 @@ const { readGroup } = require('./helpers/module-source');
 
 const source = readGroup('admin');
 const dom = new JSDOM(`
-  <div id="categories"></div><div id="adminRecommendDepts"></div>
+  <div id="categories"></div>
   <div id="bulkUploadList"></div><div id="bulkUploadActions"></div>
   <div id="bulkUploadCategoryPanel"></div><div id="bulkUploadProgress"></div>
   <button id="adminSaveFieldsBtn"></button><button id="adminUploadFileBtn"></button>
@@ -18,11 +18,9 @@ const dom = new JSDOM(`
   <button id="adminDeleteCoverBtn"></button><button id="adminDeleteBookBtn"></button>
   <button id="saveBookBtn"></button>
 `);
-const requiredCalls = [];
 const context = {
   document: dom.window.document,
   console,
-  DEPARTMENT_TOPICS: { SOC: ['security'] },
   replaceWithStaticText: () => {},
   dynamicStyleToken: (parts, ...values) => parts.reduce((out, part, index) => out + part + (values[index] ?? ''), ''),
   api: { books: { categories: async () => ['Safe', '<img src=x onerror=alert(1)>'] } },
@@ -30,7 +28,6 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(source, context);
-context.markRequiredForDept = (...args) => requiredCalls.push(args);
 
 context.initCategoryTags('categories', ['<script>alert(1)</script>']);
 const categoryContainer = dom.window.document.getElementById('categories');
@@ -45,11 +42,7 @@ assert.equal(categoryContainer.querySelector('.cat-tag-chip'), null);
   assert.equal(suggestion.dataset.name, '<img src=x onerror=alert(1)>');
   assert.equal(categoryContainer.querySelector('img'), null);
 
-  context.renderRecommendDepts({ id: '<img>', title: 'Security', description: '', categories: [] });
-  const dept = dom.window.document.getElementById('adminRecommendDepts');
-  assert.equal(dept.querySelector('img, script'), null);
-  dept.querySelector('button').click();
-  assert.deepEqual(requiredCalls[0].slice(0, 2), ['<img>', 'SOC']);
+  assert.equal(typeof context.renderRecommendDepts, 'undefined');
 
   vm.runInContext(`bulkUploadQueue = [{
     file: { name: '<img src=x onerror=alert(1)>.pdf' },

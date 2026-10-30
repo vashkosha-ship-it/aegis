@@ -52,7 +52,6 @@ class PublicProfile(BaseModel):
     id: int
     username: str
     full_name: str | None
-    department: str | None
     cyber_level: str | None
     xp: int
     streak_count: int

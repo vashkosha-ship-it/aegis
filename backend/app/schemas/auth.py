@@ -14,7 +14,6 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     email: EmailStr  # обязателен — на него приходит код подтверждения
     full_name: str | None = Field(default=None, max_length=128)
-    department: str | None = Field(default=None, max_length=64)
     # Две отдельные отметки: принятие Соглашения и Политики и согласие на
     # обработку персональных данных (152-ФЗ требует, чтобы согласие на
     # обработку ПДн было отдельным, а не частью другого документа).
@@ -84,9 +83,6 @@ class UserPublic(BaseModel):
     cyber_level: str | None = None
     topic_scores: dict | None = None
     level_assessed_at: datetime | None = None
-    department: str | None = None
-    # Отдел, которым пользователь руководит (None — обычный читатель).
-    managed_department: str | None = None
     must_change_password: bool = False
     profile_visibility: str = "public"
     is_approved: bool = True
@@ -123,7 +119,6 @@ class UserUpdate(BaseModel):
     Username и email менять не разрешаем — это отдельные большие истории
     (уникальность, верификация email и т.д.). Только display name."""
     full_name: str | None = Field(default=None, max_length=128)
-    department: str | None = Field(default=None, max_length=64)
     profile_visibility: Literal["public", "private"] | None = None
     # Оформление аккаунта: выбирается на экране первого входа и в настройках,
     # применяется на всех устройствах пользователя.

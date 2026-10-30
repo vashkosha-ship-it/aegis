@@ -351,12 +351,11 @@ function startNewChat() {
 }
 
 // Структурированный контекст для бэкенда: книга/страница (#8), библиотека (#9),
-// подразделение и уровень (#10). Все поля опциональны.
+// уровень знаний (#10). Все поля опциональны.
 function buildAssistantContext(text) {
   const ctx = {};
 
   // #10 — профиль
-  if (state.currentUser?.department) ctx.department = state.currentUser.department;
   if (state.currentUser?.cyber_level) ctx.level = state.currentUser.cyber_level;
 
   // #8 — текущая книга/страница (только в читалке)
@@ -393,12 +392,7 @@ function assistantHandleQuick(surface, action) {
   const book = state.currentBook;
 
   if (action === 'recommend') {
-    const dep = state.currentUser && state.currentUser.department;
-    const depPart = (dep && departmentTopicKeywords())
-      ? ` Я работаю в подразделении «${dep}» — учитывай его специфику.`
-      : '';
-    const prompt = `Посоветуй, что мне почитать из моей библиотеки с учётом моего уровня.${depPart}`;
-    assistantSend(surface, prompt);
+    assistantSend(surface, 'Посоветуй, что мне почитать из моей библиотеки с учётом моего уровня.');
     return;
   }
   if (action === 'vacation') {
@@ -406,9 +400,7 @@ function assistantHandleQuick(surface, action) {
     return;
   }
   if (action === 'exam') {
-    const dep = state.currentUser && state.currentUser.department;
-    const depPart = dep ? ` Мой профиль — «${dep}».` : '';
-    assistantSend(surface, `Мне скоро сдавать экзамен/аттестацию по информационной безопасности.${depPart} Составь из моей библиотеки план интенсивной подготовки: какие книги читать в первую очередь и на что обратить внимание.`);
+    assistantSend(surface, `Мне скоро сдавать экзамен/аттестацию по информационной безопасности. Составь из моей библиотеки план интенсивной подготовки: какие книги читать в первую очередь и на что обратить внимание.`);
     return;
   }
   if (action === 'summary') {

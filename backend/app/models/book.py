@@ -117,9 +117,6 @@ class Book(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    # E4: подразделение, для которого книга обязательна (None — необязательная)
-    required_for_department: Mapped[str | None] = mapped_column(String(64), nullable=True)
-
     # Связи
     categories: Mapped[list["Category"]] = relationship(
         secondary=book_categories,

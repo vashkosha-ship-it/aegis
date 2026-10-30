@@ -19,7 +19,6 @@ const context = {
       name: '<img src=x onerror=alert(1)>',
       full_name: 'Иван <script>alert(1)</script>',
       email: 'safe@example.test',
-      department: '<svg onload=alert(1)>',
       profile_visibility: 'public',
     },
   },
@@ -37,14 +36,12 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(source, context);
-// Список подразделений строит org-structure.js из справочника.
-context.state.orgUnits = [{ id: 1, code: 'УЭК', name: null, kind: 'directorate', parent_id: null }];
-vm.runInContext(fs.readFileSync(path.join(frontend, 'org-structure.js'), 'utf8'), context);
 
 const content = dom.window.document.getElementById('settingsContent');
 
 context.renderSettingsPrivacyTab(content);
-assert.equal(content.querySelectorAll('button').length, 4);
+assert.equal(content.querySelectorAll('button').length, 3);
+assert.doesNotMatch(content.textContent, /коллег|подразделен/);
 assert.equal(content.querySelectorAll('[data-onclick], [data-nonce]').length, 0);
 
 context.renderSettingsSecurityTab(content);
@@ -55,11 +52,8 @@ assert.equal(content.querySelectorAll('[data-onclick]').length, 0);
 context.renderSettingsInfoTab(content);
 assert.equal(content.querySelector('#setUsername').value, '<img src=x onerror=alert(1)>');
 assert.equal(content.querySelector('#setFullName').value, 'Иван <script>alert(1)</script>');
-// Подразделение из старых данных, которого нет в справочнике, остаётся выбранным — текстом.
-const departmentSelect = content.querySelector('#setDepartment');
-assert.equal(departmentSelect.value, '<svg onload=alert(1)>');
-assert.match(departmentSelect.selectedOptions[0].textContent, /нет в справочнике/);
-assert.ok([...departmentSelect.options].some(option => option.value === 'УЭК'));
+// Поля «Подразделение» больше нет.
+assert.equal(content.querySelector('#setDepartment'), null);
 assert.equal(content.querySelector('script, svg[onload], img[onerror]'), null);
 assert.equal(content.querySelectorAll('[data-onclick], [data-onchange]').length, 0);
 

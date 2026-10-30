@@ -10,7 +10,7 @@ const dom = new JSDOM('<div id="adUsers"></div><button id="adminSaveFieldsBtn"><
 const calls = [];
 const context = {
   document: dom.window.document, console,
-  state: { _adminUsers: [{ id: '<img>', username: '<script>x</script>', full_name: '<svg onload=x>', department: 'SOC', email: 'x@example.test', role: 'user', cyber_level: null, xp: 1, streak_count: 2, completed_books: 3, quiz_attempts: 4, perfect_quizzes: 5, total_pages_read: 6, is_active: true }] },
+  state: { _adminUsers: [{ id: '<img>', username: '<script>x</script>', full_name: '<svg onload=x>', email: 'x@example.test', role: 'user', cyber_level: null, xp: 1, streak_count: 2, completed_books: 3, quiz_attempts: 4, perfect_quizzes: 5, total_pages_read: 6, is_active: true }] },
   ICONS: { check: '<svg data-icon="check"></svg>', x: '<svg></svg>', trash: '<svg data-icon="trash"></svg>' },
   appendTrustedIcon: (node, markup) => { const parsed = new dom.window.DOMParser().parseFromString(markup, 'image/svg+xml'); node.appendChild(dom.window.document.importNode(parsed.documentElement, true)); },
   replaceSelectOptions: (select, items) => items.forEach(item => { const option=dom.window.document.createElement('option'); option.value=String(item.value); option.textContent=String(item.label); option.selected=Boolean(item.selected); select.appendChild(option); }),

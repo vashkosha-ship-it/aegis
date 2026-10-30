@@ -22,11 +22,9 @@ from app.api import (
     library,
     me,
     onboarding,
-    org,
     quizzes,
     search,
     settings,
-    team,
 )
 
 api_router = APIRouter(prefix="/api")
@@ -44,9 +42,6 @@ api_router.include_router(onboarding.router)
 api_router.include_router(books.router)
 api_router.include_router(library.router)
 api_router.include_router(collections.router)
-api_router.include_router(team.router)
-api_router.include_router(org.router)
-api_router.include_router(org.admin_router)
 api_router.include_router(search.router)
 api_router.include_router(discussions.router)
 

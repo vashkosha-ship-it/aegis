@@ -12,7 +12,7 @@ const onboardingSource = fs.readFileSync(path.join(frontend, 'onboarding.js'), '
 
 const authDom = new JSDOM(`
   <form id="authForm"></form>
-  <select id="authDepartment"></select><input id="authDepartmentOther">
+  
   <input id="authPass" type="password"><svg id="eyeIcon"></svg>
 `);
 const authCalls = [];

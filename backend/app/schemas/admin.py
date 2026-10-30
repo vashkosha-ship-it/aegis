@@ -88,8 +88,6 @@ class AdminUserView(BaseModel):
     email: str | None
     role: UserRole
     full_name: str | None = None
-    department: str | None = None
-    managed_department: str | None = None
     xp: int
     streak_count: int = 0
     cyber_level: str | None = None
@@ -109,7 +107,6 @@ class PendingUserView(BaseModel):
     username: str
     email: str | None
     full_name: str | None
-    department: str | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -119,7 +116,6 @@ class CreateUserRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64, pattern=r"^[a-zA-Z0-9_]+$")
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=128)
-    department: str | None = Field(default=None, max_length=64)
 
     @field_validator("password")
     @classmethod

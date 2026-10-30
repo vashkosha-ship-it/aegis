@@ -135,7 +135,6 @@ from sqlalchemy import select  # noqa: E402
 from app.models.admin_log import AdminLog  # noqa: E402
 from app.models.collection import Collection, collection_books  # noqa: E402
 from app.models.library import MyListEntry, MyListStatus, ReadingProgress  # noqa: E402
-from app.models.team import ReadingAssignment  # noqa: E402
 from app.services.duplicates import title_key  # noqa: E402
 from tests.conftest import make_user, utcnow  # noqa: E402
 
@@ -216,7 +215,6 @@ async def test_merge_moves_user_data_and_deletes_copy(client, db, admin_user, st
                         last_read_at=now - timedelta(days=3)),
         ReadingProgress(user_id=both.id, book_id=dup.id, current_page=70, total_pages=100, last_read_at=now),
         MyListEntry(user_id=only_dup.id, book_id=dup.id, status=MyListStatus.READING),
-        ReadingAssignment(department="CVV", book_id=dup.id),
         collection,
     ])
     await db.commit()
@@ -239,7 +237,6 @@ async def test_merge_moves_user_data_and_deletes_copy(client, db, admin_user, st
     }
     assert progress == {only_dup_id: 40, both_id: 70}
     assert (await db.scalar(select(MyListEntry.book_id).where(MyListEntry.user_id == only_dup_id))) == keep_id
-    assert (await db.scalar(select(ReadingAssignment.book_id).where(ReadingAssignment.department == "CVV"))) == keep_id
     assert (await db.scalar(select(collection_books.c.book_id))) == keep_id
     assert (await db.get(Book, keep_id)).views == 8
     assert "books/dup.pdf" not in storage.files and "books/keep.pdf" in storage.files

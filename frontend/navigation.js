@@ -16,7 +16,6 @@ const SCREEN_IDS = {
   admin: 'adminScreen',
   training: 'trainingScreen',
   onboarding: 'onboardingScreen',
-  team: 'teamScreen',
 };
 
 const screens = new Proxy({}, {
@@ -194,7 +193,6 @@ function navigateTo(s) {
   if (s === 'settings') { renderSettingsScreen(); }
   if (s === 'assistant') { renderAssistantScreen(); }
   if (s === 'admin') { renderAdminPanel(); refreshPendingBadge(); }
-  if (s === 'team' && typeof renderTeamScreen === 'function') renderTeamScreen();
   if (s === 'reader') { ensureReaderHasBook(); }
   updateFabVisibility();
   _scheduleScreenScroll(s);
@@ -287,7 +285,7 @@ function updateFabVisibility() {
 const UI_STATE_KEY_PREFIX = 'aegis_ui_state_v1:';
 const UI_STATE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const RESTORABLE_SCREENS = new Set([
-  'home', 'detail', 'reader', 'mylist', 'profile', 'assistant', 'settings', 'admin', 'training', 'team',
+  'home', 'detail', 'reader', 'mylist', 'profile', 'assistant', 'settings', 'admin', 'training',
 ]);
 
 function _uiStateKey() {
@@ -325,7 +323,6 @@ function readUiState() {
 function _canRestoreScreen(screen) {
   const user = state.currentUser || {};
   if (screen === 'admin') return user.role === 'admin';
-  if (screen === 'team') return user.role === 'admin' || Boolean(user.managed_department);
   if (screen === 'assistant') return typeof isAssistantEnabled !== 'function' || isAssistantEnabled();
   return true;
 }

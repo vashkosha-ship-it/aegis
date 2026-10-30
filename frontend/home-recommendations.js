@@ -15,15 +15,6 @@ function renderRecommendations() {
     return;
   }
 
-  // Заголовок секции: если есть подразделение — подсказываем, что подборка под него
-  const titleEl = container.querySelector('.section-title');
-  if (titleEl) {
-    const dep = state.currentUser && state.currentUser.department;
-    titleEl.textContent = (dep && departmentTopicKeywords())
-      ? `Рекомендуем для вашего подразделения`
-      : 'Рекомендации';
-  }
-
   container.style.display = 'block';
   replaceWithAppMarkup(list, recs.map(b => `
     <button type="button" class="recommendation-card" data-onclick="openBookDetail(${b.id})">

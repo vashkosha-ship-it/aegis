@@ -151,19 +151,6 @@ class BookIndexingStatus(BaseModel):
     indexed_at: datetime | None = None
     indexed_sections: int = 0
 
-class RequiredBookSet(BaseModel):
-    """Пометить книгу обязательной для подразделения. None — снять пометку."""
-
-    department: str | None = None
-
-
-class RequiredBookBrief(BaseModel):
-    id: int
-    title: str
-    author: str
-    required_for_department: str | None = None
-
-
 class MatchArTopicsRequest(BaseModel):
     """Список тем AR-схем, к которым AI подбирает книги."""
 

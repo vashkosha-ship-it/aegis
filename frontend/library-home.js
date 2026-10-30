@@ -130,7 +130,6 @@ function renderHome() {
   const isAdmin = state.currentUser.role === 'admin';
   document.getElementById('badgeHome').classList.toggle('hidden', !isAdmin);
   document.getElementById('btnAdminGo').classList.toggle('hidden', !isAdmin);
-  if (typeof updateTeamEntryPoints === 'function') updateTeamEntryPoints();
   updateFabVisibility();
   const sorted = getFilteredBooks(), q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   const isSearching = q.trim().length > 0;
@@ -174,7 +173,6 @@ function renderHome() {
   renderBooksGoalWidget();
   renderFavCategories();
   renderRecommendations();
-  if (typeof maybeRefreshAssignedForMe === 'function') maybeRefreshAssignedForMe();
 }
 
 function setHomeBooksTab(tab) {
@@ -313,14 +311,6 @@ function renderBookInfo() {
     info.appendChild(rating);
   }
   info.appendChild(_libraryNode('div', 'detail-category', `${bookCategoriesText(book)} • ${formatLabel}`));
-  const assigned = typeof assignmentForBook === 'function' ? assignmentForBook(book.id) : null;
-  if (assigned) {
-    const due = teamDueLabel(assigned.due_date, false);
-    const badge = _libraryNode('div', 'detail-assigned');
-    badge.textContent = `Назначено отделом ${assigned.department} · ${due.text}`;
-    if (assigned.note) badge.title = assigned.note;
-    info.appendChild(badge);
-  }
 
   if (isAdmin) {
     const stats = _libraryNode('div', 'admin-book-stats');
@@ -374,17 +364,6 @@ function renderBookInfo() {
       saveOfflineButton.setAttribute('aria-label', 'Сохранить книгу для чтения без сети');
       actions.appendChild(saveOfflineButton);
     }
-  }
-
-  if (typeof isTeamManager === 'function' && isTeamManager()) {
-    const assign = _libraryAction(
-      ICONS.users,
-      'Назначить сотрудникам',
-      () => openAssignBookModal({ bookId: book.id }),
-      'btn-detail detail-action-secondary',
-    );
-    assign.title = 'Назначить книгу сотрудникам своего отдела со сроком';
-    actions.appendChild(assign);
   }
 
   const schemeMatch = findSchemeStageForBook(book);

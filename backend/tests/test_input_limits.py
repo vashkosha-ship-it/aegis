@@ -41,7 +41,6 @@ def test_book_update_rejects_empty_required_text(field):
         {"username": "valid_name", "password": "short"},
         {"username": "valid_name", "password": "x" * 129},
         {"username": "valid_name", "password": "long-enough", "full_name": "x" * 129},
-        {"username": "valid_name", "password": "long-enough", "department": "x" * 65},
     ],
 )
 def test_admin_create_user_rejects_invalid_or_oversized_input(payload):
@@ -54,7 +53,6 @@ def test_admin_create_user_accepts_supported_input():
         username="reader_01",
         password="a-long-development-password",
         full_name="Иван Иванов",
-        department="ИБ",
     )
     assert request.username == "reader_01"
 

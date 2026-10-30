@@ -17,6 +17,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import Response, StreamingResponse
+from pydantic import BaseModel as _BaseModel
 from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import update as sa_update
@@ -40,7 +41,6 @@ from app.core.storage import (
 )
 from app.db.session import get_db
 from app.models.book import Book, Category
-from app.models.team import ReadingAssignment
 from app.models.user import User
 from app.schemas.book import (
     BookCreate,
@@ -260,85 +260,6 @@ async def also_read(
     order = {bid: i for i, bid in enumerate(book_ids)}
     books_sorted = sorted(books, key=lambda b: order.get(b.id, 999))
     return [books_service.to_public(b) for b in books_sorted]
-
-
-# ---- E4: обязательные книги для подразделения ----
-from pydantic import BaseModel as _BaseModel  # noqa: E402
-
-
-class RequiredBookSet(_BaseModel):
-    department: str | None = None  # None — снять обязательность
-
-
-class RequiredBookBrief(_BaseModel):
-    id: int
-    title: str
-    author: str
-    required_for_department: str | None = None
-
-
-@router.post("/{book_id}/required", response_model=RequiredBookBrief)
-async def set_required(
-    request: Request,
-    book_id: int,
-    payload: RequiredBookSet,
-    db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_current_admin),
-) -> RequiredBookBrief:
-    """Admin only: пометить книгу обязательной для подразделения (или снять)."""
-    book = await _get_book_or_404(db, book_id)
-    book.required_for_department = (payload.department or None)
-    # Обязательная книга — это назначение отделу (см. app/api/team.py).
-    if book.required_for_department:
-        exists = await db.scalar(select(ReadingAssignment.id).where(
-            ReadingAssignment.department == book.required_for_department,
-            ReadingAssignment.book_id == book.id,
-        ))
-        if not exists:
-            db.add(ReadingAssignment(
-                department=book.required_for_department, book_id=book.id, assigned_by_id=admin.id,
-            ))
-    await log_admin_action(
-        db, admin, "book_required_update", request=request,
-        target=f"book:{book.id}",
-        detail=f"Обязательное подразделение: {book.required_for_department or 'снято'}",
-    )
-    await db.commit()
-    await db.refresh(book)
-    return RequiredBookBrief(
-        id=book.id, title=book.title, author=book.author,
-        required_for_department=book.required_for_department,
-    )
-
-
-@router.get("/required/mine", response_model=list[RequiredBookBrief])
-async def my_required_books(
-    db: AsyncSession = Depends(get_db),
-    current: User = Depends(get_current_user),
-) -> list[RequiredBookBrief]:
-    """Книги, обязательные для подразделения текущего пользователя."""
-    if not current.department:
-        return []
-    from app.services.org import load_tree
-
-    # Руководитель своего подразделения назначения не получает — он их выдаёт.
-    if (await load_tree(db)).leads(current, current.department):
-        return []
-    rows = (
-        await db.scalars(
-            select(Book)
-            .join(ReadingAssignment, ReadingAssignment.book_id == Book.id)
-            .where(ReadingAssignment.department == current.department)
-        )
-    ).all()
-    return [
-        RequiredBookBrief(
-            id=b.id, title=b.title, author=b.author,
-            required_for_department=b.required_for_department,
-        )
-        for b in rows
-    ]
-
 
 
 @router.post("", response_model=BookPublic, status_code=status.HTTP_201_CREATED)

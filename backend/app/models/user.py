@@ -39,11 +39,6 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     # Аватар из готового набора (a01…a15). Загрузка своих фото отключена.
     avatar_preset: Mapped[str | None] = mapped_column(String(8), nullable=True)
-    # Подразделение (выбирается при регистрации)
-    department: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # Отдел, которым человек руководит (назначает администратор). Руководитель
-    # назначает отделу книги и видит, как сотрудники их читают.
-    managed_department: Mapped[str | None] = mapped_column(String(64), nullable=True)
     profile_visibility: Mapped[str] = mapped_column(
         String(32), default="public", nullable=False, server_default="public"
     )

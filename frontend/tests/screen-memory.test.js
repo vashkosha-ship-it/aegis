@@ -9,7 +9,7 @@ const { JSDOM } = require('jsdom');
 
 const frontend = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(frontend, file), 'utf8');
-const ids = ['auth', 'home', 'detail', 'reader', 'mylist', 'profile', 'assistant', 'settings', 'admin', 'training', 'onboarding', 'team'];
+const ids = ['auth', 'home', 'detail', 'reader', 'mylist', 'profile', 'assistant', 'settings', 'admin', 'training', 'onboarding'];
 const dom = new JSDOM(
   ids.map(id => `<section id="${id}Screen"></section>`).join('')
     + '<nav id="bottomNav"></nav><aside id="sidebarNav"></aside><input id="searchInput">',

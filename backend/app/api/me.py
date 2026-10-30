@@ -35,7 +35,6 @@ from app.schemas.me import (
     PublicProfile,
 )
 from app.schemas.usage import UsageReport
-from app.services.org import is_known_unit
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["me"])
@@ -52,7 +51,7 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> UserPublic:
-    """Изменить отображаемое имя и подразделение в профиле.
+    """Изменить отображаемое имя и настройки профиля.
 
     Username и email не меняются через этот эндпоинт — они требуют
     дополнительных проверок (уникальность, верификация почты).
@@ -60,12 +59,6 @@ async def update_me(
     if payload.full_name is not None:
         fn = payload.full_name.strip()
         current.full_name = fn if fn else None
-
-    if payload.department is not None:
-        dep = payload.department.strip()
-        if dep and dep != current.department and not await is_known_unit(db, dep):
-            raise HTTPException(status_code=422, detail="Выберите подразделение из списка")
-        current.department = dep if dep else None
 
     if payload.profile_visibility is not None:
         current.profile_visibility = payload.profile_visibility
@@ -529,7 +522,6 @@ async def get_public_profile(
         id=user.id,
         username=user.username,
         full_name=user.full_name if show_name else None,
-        department=user.department,
         cyber_level=user.cyber_level,
         xp=user.xp,
         streak_count=user.streak_count,
