@@ -70,40 +70,52 @@ window.addEventListener('offline', () => {
 });
 
 // ========== ПЕРИОДИЧЕСКАЯ СИНХРОНИЗАЦИЯ (polling) ==========
-// Раз в 30 сек, когда вкладка активна, подтягиваем свежий прогресс с сервера
-// (на случай чтения с другого устройства) и досылаем очередь.
+// Свежий прогресс с сервера нужен, только если читали на другом устройстве.
+// Раньше запрос шёл каждые 30 секунд и главная каждый раз перерисовывалась
+// целиком — на планшете это выглядело как постоянное «обновление». Теперь:
+// раз в 5 минут, пока приложение на экране, и при возвращении в приложение
+// (не чаще раза в минуту); главная перерисовывается, только если прогресс
+// действительно изменился.
 let _syncPollTimer = null;
-const SYNC_POLL_MS = 30000;
+const SYNC_POLL_MS = 5 * 60 * 1000;
+const SYNC_ON_RETURN_MIN_MS = 60 * 1000;
+let _lastProgressLoadAt = 0;
+
+async function _syncProgressInBackground() {
+  if (document.hidden || !api.isAuthenticated() || !navigator.onLine) return;
+  await flushSyncQueue();
+  const before = JSON.stringify(state.readingProgress || {});
+  try {
+    await loadProgressFromApi(false, { quiet: true });
+  } catch (_) {
+    return; // Следующая синхронизация повторит попытку.
+  }
+  const changed = JSON.stringify(state.readingProgress || {}) !== before;
+  if (changed && state.currentScreen === 'home' && typeof renderHome === 'function') renderHome();
+}
 
 function startSyncPolling() {
   if (_syncPollTimer) return;
-  _syncPollTimer = setInterval(async () => {
-    if (document.hidden || !api.isAuthenticated() || !navigator.onLine) return;
-    // не мешаем активному чтению — синхронизируем прогресс в фоне
-    await flushSyncQueue();
-    try {
-      await loadProgressFromApi();
-      // обновим экран «Продолжить чтение», если пользователь на главной
-      if (state.currentScreen === 'home' && typeof renderHome === 'function') renderHome();
-    } catch (_) { /* Следующий polling повторит синхронизацию. */ }
-  }, SYNC_POLL_MS);
+  _syncPollTimer = setInterval(_syncProgressInBackground, SYNC_POLL_MS);
 }
 
 function stopSyncPolling() {
   if (_syncPollTimer) { clearInterval(_syncPollTimer); _syncPollTimer = null; }
 }
 
-// При возврате на вкладку — сразу синхронизируем
+// При возврате в приложение — досылаем очередь и, если давно не сверялись,
+// подтягиваем прогресс (могли читать на другом устройстве).
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && api.isAuthenticated()) {
-    flushSyncQueue();
-  }
+  if (document.hidden || !api.isAuthenticated()) return;
+  if (Date.now() - _lastProgressLoadAt >= SYNC_ON_RETURN_MIN_MS) _syncProgressInBackground();
+  else flushSyncQueue();
 });
 
-async function loadProgressFromApi(flushQueue = true) {
+async function loadProgressFromApi(flushQueue = true, { quiet = false } = {}) {
   if (api.isAuthBootstrapPending?.() && !state.currentUser) return false;
   try {
     const entries = await api.library.progress();
+    _lastProgressLoadAt = Date.now();
     const serverProgress = {};
     entries.forEach(p => {
       serverProgress[p.book_id] = {
@@ -133,7 +145,8 @@ async function loadProgressFromApi(flushQueue = true) {
     return true;
   } catch (err) {
     console.error('Не удалось загрузить прогресс с API:', err);
-    showToast('Не удалось загрузить прогресс чтения');
+    // Фоновая сверка не должна пугать всплывающими ошибками.
+    if (!quiet) showToast('Не удалось загрузить прогресс чтения');
     return false;
   }
 }

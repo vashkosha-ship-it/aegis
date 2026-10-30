@@ -81,6 +81,7 @@ async function clearUserScopedData(userId = currentOfflineUserId() || getCachedU
   state.completedQuizzes = {};
   state.books = [];
   offlineBookIds.clear();
+  _releaseOfflineCovers();
 
   if (userId) {
     try {
@@ -121,6 +122,7 @@ async function loadOfflineBookIds() {
   if (state.currentUser) cacheUserForOffline(state.currentUser);
   const userId = currentOfflineUserId();
   offlineBookIds.clear();
+  _releaseOfflineCovers();
   if (!userId) return;
   try {
     const ids = await offlineStorage.listIds(userId);
@@ -128,6 +130,49 @@ async function loadOfflineBookIds() {
   } catch (error) {
     console.error('Не удалось получить список оффлайн-книг:', error);
   }
+  await _prepareOfflineCovers(userId);
+}
+
+// ========== ОБЛОЖКИ СОХРАНЁННЫХ КНИГ БЕЗ СЕТИ ==========
+// Обложка сохраняется на устройство вместе с книгой, но карточки берут её
+// с сервера — без интернета картинка не грузилась. Готовим ссылки на
+// сохранённые обложки заранее (обработчик ошибки должен сработать сразу,
+// пока картинку не заменила заглушка) и подставляем их, если сервер
+// недоступен.
+const _offlineCoverUrls = new Map();
+const COVER_PATH = /\/books\/(\d+)\/cover(?:[?#]|$)/;
+
+function _releaseOfflineCovers() {
+  _offlineCoverUrls.forEach(url => { try { URL.revokeObjectURL(url); } catch (_) { /* не критично */ } });
+  _offlineCoverUrls.clear();
+}
+
+async function _prepareOfflineCovers(userId) {
+  for (const bookId of offlineBookIds) {
+    try {
+      const url = await offlineStorage.getCoverUrl(userId, bookId);
+      if (url) _offlineCoverUrls.set(bookId, url);
+    } catch (_) { /* без обложки — останется заглушка */ }
+  }
+}
+
+function offlineCoverUrl(bookId) {
+  return _offlineCoverUrls.get(Number(bookId)) || null;
+}
+
+// Слушаем на window в фазе перехвата: так этот обработчик срабатывает раньше
+// общего обработчика ошибок картинок (он подменяет картинку заглушкой).
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('error', event => {
+    const img = event.target;
+    if (!img || img.tagName !== 'IMG' || img.dataset.offlineCover === '1') return;
+    const match = (img.getAttribute('src') || '').match(COVER_PATH);
+    const url = match && offlineCoverUrl(match[1]);
+    if (!url) return;
+    img.dataset.offlineCover = '1';
+    img.src = url;
+    event.stopImmediatePropagation();
+  }, true);
 }
 
 async function saveBookOffline(bookId, silent) {
@@ -158,6 +203,11 @@ async function saveBookOffline(bookId, silent) {
     }
 
     await offlineStorage.save(userId, book, fileBlob, fileType, coverBlob);
+    if (coverBlob) {
+      const previous = _offlineCoverUrls.get(bookId);
+      if (previous) { try { URL.revokeObjectURL(previous); } catch (_) { /* не критично */ } }
+      _offlineCoverUrls.set(bookId, URL.createObjectURL(coverBlob));
+    }
     offlineBookIds.add(bookId);
     // Сохранённая офлайн книга читается из своего хранилища, копия в кэше
     // только занимала бы место.
@@ -192,6 +242,9 @@ async function removeBookOffline(bookId) {
   try {
     await offlineStorage.remove(userId, bookId);
     offlineBookIds.delete(bookId);
+    const coverUrl = _offlineCoverUrls.get(bookId);
+    if (coverUrl) { try { URL.revokeObjectURL(coverUrl); } catch (_) { /* не критично */ } }
+    _offlineCoverUrls.delete(bookId);
     showToast('Удалено из оффлайн');
     if (state.currentScreen === 'detail' && currentBookId === bookId) renderBookInfo();
     if (state.currentScreen === 'home') renderHome();

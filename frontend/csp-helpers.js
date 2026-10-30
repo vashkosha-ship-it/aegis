@@ -198,6 +198,13 @@ function onSearchInput() {
   _searchInputTimer = setTimeout(() => runFullTextSearch({ silent: true }), 350);
 }
 
+// Крестик в строке поиска: очистить и сразу дать ввести новый запрос.
+function clearSearchInput() {
+  clearTimeout(_searchInputTimer);
+  clearFullTextSearch();
+  document.getElementById('searchInput')?.focus();
+}
+
 function onSearchKeydown(ev) {
   if (ev.key === 'Enter') {
     clearTimeout(_searchInputTimer);

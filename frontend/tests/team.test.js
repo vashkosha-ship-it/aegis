@@ -270,8 +270,11 @@ const iso = days => {
   assert.match(light, /:root\[data-theme="light"\] \{ --on-accent: #ffffff; \}/);
   assert.match(read('desktop-stability.css'), /theme-light\.css/);
   assert.ok(read('sw.js').includes("'/css/components/theme-light.css'"));
-  assert.match(index, /class="sidebar-logo-tagline brand-tagline">Центр знаний по кибербезопасности</);
-  assert.match(index, /class="home-logo-tagline brand-tagline">Центр знаний по кибербезопасности</);
+  // Вместо логотипа — название «Центр знаний по кибербезопасности».
+  assert.match(index, /class="sidebar-brand-title">Центр знаний по кибер&shy;безопасности</);
+  assert.match(index, /class="logo-name home-brand-title">Центр знаний по кибер&shy;безопасности</);
+  assert.doesNotMatch(index, /sidebar-logo-text|<span class="gradient-text">AEGIS<\/span>.*home/);
+  assert.doesNotMatch(index.slice(index.indexOf('id="homeScreen"'), index.indexOf('id="homeScreen"') + 1500), /class="logo-sm"|>\s*AEGIS\s*</);
   assert.match(source, /setAttribute\('data-title', text\)/);
 
   // Подключение.

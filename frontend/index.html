@@ -42,14 +42,7 @@
   <!-- ======================== БОКОВАЯ НАВИГАЦИЯ (desktop) ======================== -->
   <nav class="sidebar-nav hidden-on-auth" id="sidebarNav">
     <div class="sidebar-logo">
-      <div class="sidebar-logo-icon">
-        <svg width="20" height="24" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z" stroke="white" stroke-width="2" fill="none"/>
-          <path d="M13 6L8 15H11L10 21L16 11H12.5L13 6Z" fill="white"/>
-        </svg>
-      </div>
-      <span class="sidebar-logo-text">AEGIS</span>
-      <span class="sidebar-logo-tagline brand-tagline">Центр знаний по кибербезопасности</span>
+      <span class="sidebar-brand-title">Центр знаний по кибер&shy;безопасности</span>
     </div>
     <div class="sidebar-items">
       <button type="button" class="sidebar-item" data-screen="home" data-onclick="navigateTo('home')">
@@ -176,17 +169,7 @@
     <!-- Хедер -->
     <div class="top-header">
       <div class="header-left">
-        <div class="logo-sm">
-          <!-- Мини-логотип: щит с молнией -->
-          <svg width="18" height="22" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 1L2 5V13C2 19.5 6.5 25.5 12 27C17.5 25.5 22 19.5 22 13V5L12 1Z" stroke="white" stroke-width="2" fill="none"/>
-            <path d="M13 6L8 15H11L10 21L16 11H12.5L13 6Z" fill="white"/>
-          </svg>
-        </div>
-        <div class="logo-name">
-          AEGIS
-        </div>
-        <div class="home-logo-tagline brand-tagline">Центр знаний по кибербезопасности</div>
+        <div class="logo-name home-brand-title">Центр знаний по кибер&shy;безопасности</div>
       </div>
       <div class="header-actions">
         <span class="hidden static-style-005" id="badgeHome">ADMIN</span>
@@ -222,6 +205,9 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </span>
         <input type="text" id="searchInput" placeholder="Поиск по названию, автору и тексту книг" data-oninput="onSearchInput()" data-onkeydown="onSearchKeydown()" data-args-keydown="event">
+        <button type="button" class="search-clear" data-onclick="clearSearchInput()" title="Очистить поиск" aria-label="Очистить поиск">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
         <button class="static-style-007" data-onclick="runFullTextSearch()" title="Искать по содержимому книг">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
