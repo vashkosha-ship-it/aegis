@@ -1,0 +1,3 @@
+94cc0033e617a71cedb361695ca213d4dfe8c494c2299cfe26abe7120efe63f8  app-release-unsigned.apk
+2defad215d7ff52968a409cde528cdaef7918b115e276b8e3378ca7a178e4180  tools/apksigner.jar
+0859ed6e59d3ded7519cd6e6409c0d9ce914af0e09dadc2dce7965ee2e991852  tools/zipalign
