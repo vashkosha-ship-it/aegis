@@ -34,7 +34,6 @@ class ChatRequest(BaseModel):
     # Доп. контекст — опционально, чтобы старый клиент тоже работал
     book_context: BookContext | None = None
     library: list[LibraryBook] | None = Field(None, max_length=100)
-    department: str | None = Field(None, max_length=120)
     level: str | None = Field(None, max_length=60)
 
 

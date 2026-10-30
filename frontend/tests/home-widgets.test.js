@@ -48,7 +48,6 @@ const context = {
   ICONS: { bookCover: '<span>cover</span>', star: '<span>star</span>', cloudCheck: '<span>cloud</span>' },
   offlineBookIds: new Set(),
   getRecommendations: limit => recommendations.slice(0, limit),
-  departmentTopicKeywords: () => ['security'],
   getBooksGoal: () => goal,
   booksCompletedInPeriod: () => completed,
   getFilteredBooks: () => filteredBooks,
@@ -66,9 +65,9 @@ context.renderRecommendations();
 assert.equal(dom.window.document.getElementById('sectionRecommendations').style.display, 'none');
 
 recommendations = [{ id: 7, title: '<Unsafe>', author: 'A & B', rating: 4.8, has_cover: true }];
-state.currentUser = { department: 'security' };
+state.currentUser = { cyber_level: 'scout' };
 context.renderRecommendations();
-assert.equal(dom.window.document.querySelector('.section-title').textContent, 'Рекомендуем для вашего подразделения');
+assert.doesNotMatch(dom.window.document.querySelector('.section-title').textContent, /подразделен/);
 assert.match(dom.window.document.getElementById('recommendationsList').innerHTML, /&lt;Unsafe&gt;/);
 assert.match(dom.window.document.getElementById('recommendationsList').innerHTML, /A &amp; B/);
 assert.match(dom.window.document.getElementById('recommendationsList').innerHTML, /\/covers\/7/);

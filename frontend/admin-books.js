@@ -160,8 +160,6 @@ initCategoryTags('adminCategoriesContainer', book.categories || []);
   document.getElementById('adminBookFileInput').value = '';
   document.getElementById('adminCoverFile').value = '';
 
-  renderRecommendDepts(book);
-
   document.getElementById('adminBookModal').classList.remove('hidden');
   try {
     const detailedStatus = await api.books.indexStatus(book.id);
@@ -170,59 +168,6 @@ initCategoryTags('adminCategoriesContainer', book.categories || []);
     }
   } catch (err) {
     console.warn('Не удалось получить статус индексации книги', err);
-  }
-}
-
-// Вычисляет, каким подразделениям релевантна книга (по совпадению категорий/названия с темами)
-function renderRecommendDepts(book) {
-  const el = document.getElementById('adminRecommendDepts');
-  if (!el) return;
-  const hay = ((book.categories || []).join(' ') + ' ' + (book.title || '') + ' ' + (book.description || '')).toLowerCase();
-  const matches = [];
-  for (const [code, keywords] of Object.entries(DEPARTMENT_TOPICS)) {
-    const hits = keywords.filter(keyword => hay.includes(keyword.toLowerCase())).length;
-    if (hits > 0) matches.push({ code, hits });
-  }
-  matches.sort((a, b) => b.hits - a.hits);
-
-  if (!matches.length) {
-    replaceWithStaticText(el, 'Нет явных совпадений по темам. Книга подходит для общего доступа.', 'a243');
-    return;
-  }
-
-  const title = document.createElement('div');
-  title.setAttribute('data-static-style', 'a347');
-  title.textContent = 'Книга релевантна подразделениям:';
-  const list = document.createElement('div');
-  list.setAttribute('data-static-style', 'a089');
-  matches.forEach(match => {
-    const item = document.createElement('span');
-    item.setAttribute('data-static-style', 'a528');
-    const code = document.createElement('span');
-    code.setAttribute('data-static-style', 'a191');
-    code.textContent = String(match.code);
-    const hits = document.createElement('span');
-    hits.setAttribute('data-static-style', 'a099');
-    hits.textContent = String(match.hits);
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.title = `Сделать обязательной для ${match.code}`;
-    button.setAttribute('data-static-style', 'a529');
-    button.textContent = '★ обязательная';
-    button.addEventListener('click', () => markRequiredForDept(book.id, match.code, button));
-    item.append(code, hits, button);
-    list.appendChild(item);
-  });
-  el.replaceChildren(title, list);
-}
-
-async function markRequiredForDept(bookId, deptCode, btn) {
-  try {
-    await api.library.setRequiredBook(bookId, deptCode);
-    if (btn) { btn.textContent = '✓ отмечена'; btn.disabled = true; btn.style.opacity = '0.6'; }
-    showToast(`Книга обязательна для ${deptCode}`);
-  } catch (e) {
-    showToast(e && e.detail ? e.detail : 'Не удалось отметить');
   }
 }
 

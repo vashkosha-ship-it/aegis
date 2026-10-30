@@ -559,7 +559,7 @@ async function exportAllUserData() {
     format: 'aegis-user-data-v1',
     profile: {
       username: u.name, full_name: u.full_name || null, email: u.email || null,
-      department: u.department || null, role: u.role || null,
+      role: u.role || null,
       cyber_level: u.cyber_level || null, xp: state.gamification?.xp || 0,
       streak: state.gamification?.streakCount || 0,
     },

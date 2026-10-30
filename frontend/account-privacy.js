@@ -236,7 +236,6 @@ function renderSettingsPrivacyTab(c) {
   const current = state.currentUser.profile_visibility || 'public';
   const options = [
     { value: 'public', label: 'Публичный', desc: 'Профиль доступен всем авторизованным пользователям' },
-    { value: 'colleagues', label: 'Только для коллег', desc: 'Видят только пользователи твоего подразделения' },
     { value: 'private', label: 'Приватный', desc: 'Профиль скрыт от всех, кроме тебя' },
   ];
 

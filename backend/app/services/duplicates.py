@@ -24,7 +24,6 @@ from app.models.collection import collection_books
 from app.models.library import Annotation, MyListEntry, ReadingProgress, Review
 from app.models.quiz import QuizAttempt
 from app.models.quiz_session import QuizSession
-from app.models.team import ReadingAssignment
 
 Confidence = Literal["certain", "likely"]
 
@@ -329,20 +328,6 @@ async def merge_books(db: AsyncSession, keep: Book, duplicates: list[Book]) -> M
         for model in (Annotation, BookComment, QuizAttempt, QuizSession):
             await db.execute(update(model).where(model.book_id == dup.id).values(book_id=keep.id))
 
-        assigned = set(
-            (await db.scalars(
-                select(ReadingAssignment.department).where(ReadingAssignment.book_id == keep.id)
-            )).all()
-        )
-        for assignment in (await db.scalars(
-            select(ReadingAssignment).where(ReadingAssignment.book_id == dup.id)
-        )).all():
-            if assignment.department in assigned:
-                await db.delete(assignment)
-            else:
-                assignment.book_id = keep.id
-                assigned.add(assignment.department)
-
         in_collections = set(
             (await db.scalars(
                 select(collection_books.c.collection_id).where(collection_books.c.book_id == keep.id)
@@ -359,8 +344,6 @@ async def merge_books(db: AsyncSession, keep: Book, duplicates: list[Book]) -> M
 
         keep.views = (keep.views or 0) + (dup.views or 0)
         keep.downloads = (keep.downloads or 0) + (dup.downloads or 0)
-        if not keep.required_for_department and dup.required_for_department:
-            keep.required_for_department = dup.required_for_department
 
         keep_keys = {keep.pdf_storage_key, keep.epub_storage_key, keep.cover_storage_key}
         stats.storage_keys += [

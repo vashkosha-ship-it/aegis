@@ -13,7 +13,7 @@ const assistantSource = fs.readFileSync(path.join(frontend, 'assistant-chat.js')
 const readerSource = fs.readFileSync(path.join(frontend, 'reader-core.js'), 'utf8');
 const userSource = fs.readFileSync(path.join(frontend, 'user-features.js'), 'utf8');
 
-const authDom = new JSDOM('<form id="authForm"></form><select id="authDepartment"></select><input id="authDepartmentOther"><input id="authPass" type="password"><svg id="eyeIcon"></svg>');
+const authDom = new JSDOM('<form id="authForm"></form><input id="authPass" type="password"><svg id="eyeIcon"></svg>');
 const authContext = { document: authDom.window.document, console };
 vm.createContext(authContext);
 vm.runInContext(authSource, authContext);

@@ -20,12 +20,10 @@ from app.models.library import (
     ReadingProgress,
     Review,
 )
-from app.models.org_unit import OrgUnit
 from app.models.password_help import PasswordHelpRequest
 from app.models.quiz import QuizAttempt, QuizQuestion
 from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
-from app.models.team import ReadingAssignment
 from app.models.usage import UsageCounter
 from app.models.user import User, UserRole
 
@@ -36,8 +34,6 @@ __all__ = [
     "Annotation",
     "AnnotationType",
     "Book",
-    "ReadingAssignment",
-    "OrgUnit",
     "PasswordHelpRequest",
     "BookComment",
     "BookMetadataChange",

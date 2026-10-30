@@ -19,27 +19,31 @@
   body.reader-active #app { margin-left: 0 !important; }
 }
 
-/* Название вместо логотипа: «Центр знаний по кибербезопасности» — в боковом
-   меню (ПК) и в шапке главной (телефон, планшет). Значка и «AEGIS» в самом
-   приложении больше нет. */
+/* Название вместо логотипа — ровно две строки: «Центр знаний» и
+   «по кибербезопасности», без переносов внутри слов. Размер шрифта
+   подстраивается под ширину места (container query): на узком телефоне
+   с четырьмя кнопками — мельче, на планшете и в меню ПК — крупнее.
+   Самая длинная строка «по кибербезопасности» ≈ 14,8 em шрифта Unbounded
+   (≈ 11,8 em Manrope — им набрано название в узком боковом меню ПК). */
 .sidebar-logo { display: block; }
-.sidebar-brand-title {
-  display: block;
+.sidebar-brand-title.brand-title { display: block; font-family: var(--font-body); font-weight: 800; letter-spacing: 0; }
+.brand-title {
+  container-type: inline-size;
+  min-width: 0;
   color: var(--text-primary);
   font-family: var(--font-display);
-  font-size: 13px;
   font-weight: 700;
-  line-height: 1.25;
   letter-spacing: -.01em;
-  white-space: normal;
-  /* «кибербезопасности» длиннее узкого меню — переносим по слогам. */
-  hyphens: auto;
-  -webkit-hyphens: auto;
-  overflow-wrap: break-word;
+  line-height: 1.15;
 }
+.brand-title > span {
+  display: block;
+  white-space: nowrap;
+  font-size: clamp(10px, calc(100cqi / 15.2), 24px);
+}
+.sidebar-brand-title.brand-title > span { font-size: clamp(10px, calc(100cqi / 12.2), 18px); }
 /* Шапка главной до 1280px (дальше название в боковом меню): название и
-   кнопки в одну строку; длинное название переносится, а не выдавливает
-   кнопки за экран. */
+   кнопки в одну строку. */
 @media (max-width: 1279.98px) {
   #homeScreen .top-header {
     display: grid;
@@ -49,17 +53,7 @@
     column-gap: 10px;
   }
   #homeScreen .top-header .header-left { display: contents; }
-  #homeScreen .top-header .home-brand-title {
-    grid-area: name;
-    min-width: 0;
-    display: block;
-    white-space: normal;
-    font-size: clamp(15px, 3.4vw, 22px);
-    line-height: 1.2;
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    overflow-wrap: break-word;
-  }
+  #homeScreen .top-header .home-brand-title { grid-area: name; display: block; white-space: normal; }
   #homeScreen .top-header .header-actions { grid-area: actions; min-width: 0; }
   /* Пустой заголовок-«хлебная крошка» не должен отодвигать название. */
   #homeScreen .top-header::before { display: none; }

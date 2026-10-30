@@ -216,13 +216,13 @@
       return data;
     },
 
-    async register(username, password, email = null, full_name = null, department = null, consents = {}) {
+    async register(username, password, email = null, full_name = null, consents = {}) {
       // Регистрация больше НЕ выдаёт токены — аккаунт ждёт подтверждения email.
       // consents: { accept_terms, pd_consent } — две отдельные отметки формы.
       return await request('/auth/register', {
         method: 'POST',
         body: {
-          username, password, email, full_name, department,
+          username, password, email, full_name,
           accept_terms: consents.accept_terms === true,
           pd_consent: consents.pd_consent === true,
         },
@@ -549,28 +549,6 @@
       syncChatMessages(id, messages) { return request('/me/chats/' + id + '/messages', { method: 'PUT', body: messages }); },
       renameChat(id, title) { return request('/me/chats/' + id, { method: 'PATCH', body: { title } }); },
       deleteChat(id) { return request('/me/chats/' + id, { method: 'DELETE' }); },
-      // E4: обязательные книги
-      setRequiredBook(bookId, department) { return request('/books/' + bookId + '/required', { method: 'POST', body: { department } }); },
-      myRequiredBooks() { return request('/books/required/mine'); },
-      // Назначенное чтение отдела (руководитель отдела и читатель)
-      myAssignments() { return request('/team/me/assignments'); },
-      teamOverview(department) {
-        return request('/team/overview' + (department ? '?department=' + encodeURIComponent(department) : ''));
-      },
-      createAssignment(payload) { return request('/team/assignments', { method: 'POST', body: payload }); },
-      updateAssignment(id, payload) { return request('/team/assignments/' + id, { method: 'PATCH', body: payload }); },
-      deleteAssignment(id) { return request('/team/assignments/' + id, { method: 'DELETE' }); },
-      orgUnits() { return request('/org/units', { auth: false }); },
-      adminOrgUnits() { return request('/admin/org/units'); },
-      createOrgUnit(payload) { return request('/admin/org/units', { method: 'POST', body: payload }); },
-      updateOrgUnit(id, payload) { return request('/admin/org/units/' + id, { method: 'PATCH', body: payload }); },
-      deleteOrgUnit(id) { return request('/admin/org/units/' + id, { method: 'DELETE' }); },
-      setUserDepartment(userId, department) {
-        return request('/admin/users/' + userId + '/department', { method: 'PUT', body: { department: department || null } });
-      },
-      setManagedDepartment(userId, department) {
-        return request('/admin/users/' + userId + '/managed-department', { method: 'PUT', body: { department: department || null } });
-      },
       adminPasswordHelp() { return request('/admin/password-help'); },
       adminClosePasswordHelp(id) { return request('/admin/password-help/' + id + '/close', { method: 'POST' }); },
       adminResetUserPassword(userId, password) {

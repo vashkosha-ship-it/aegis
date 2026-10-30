@@ -180,27 +180,11 @@ function renderSettingsInfoTab(c) {
   const fullName = _accountFormInput('text', 'setFullName', 'Иванов Иван Иванович', null, 128);
   fullName.value = user.full_name || '';
 
-  const department = document.createElement('select');
-  department.id = 'setDepartment';
-  // Подразделения — из справочника, который ведёт администратор.
-  if (typeof fillOrgSelect === 'function') {
-    fillOrgSelect(department, { value: user.department || '', placeholder: '— Не указано —' });
-  }
-  if (typeof loadOrgUnits === 'function') {
-    loadOrgUnits().then(() => {
-      if (document.body.contains(department)) {
-        fillOrgSelect(department, { value: user.department || '', placeholder: '— Не указано —' });
-      }
-    });
-  }
-  const departmentRow = _accountLabeledInput('Подразделение', department);
-
   c.replaceChildren(
     _accountNode('h3', 'a350', 'Информация о профиле'),
     avatarSection,
     usernameRow,
     _accountLabeledInput('ФИО', fullName),
-    departmentRow,
     _accountSaveButton('Сохранить изменения', saveSettingsInfo),
   );
 
@@ -210,18 +194,13 @@ function renderSettingsInfoTab(c) {
 
 async function saveSettingsInfo() {
   const fullName = (document.getElementById('setFullName').value || '').trim();
-  const department = document.getElementById('setDepartment').value || null;
 
   try {
     const updated = await api.updateMe({
       full_name: fullName || null,
-      department: department || null,
     });
     // Обновим state
     state.currentUser.full_name = updated.full_name;
-    state.currentUser.department = updated.department;
-    // Другое подразделение — другие назначенные книги.
-    if (typeof refreshAssignedForMe === 'function') refreshAssignedForMe();
     showToast('Изменения сохранены');
     renderProfile();
   } catch (e) {

@@ -130,8 +130,6 @@ def _build_system_prompt(payload: ChatRequest) -> str | None:
 
     extra: list[str] = []
 
-    if payload.department:
-        extra.append(f"Подразделение пользователя: {payload.department}.")
     if payload.level:
         extra.append(f"Уровень знаний пользователя: {payload.level}.")
 

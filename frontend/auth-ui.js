@@ -8,11 +8,9 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   state.currentTab = this.dataset.tab;
   const isRegister = state.currentTab === 'register';
   document.getElementById('registerEmailField').classList.toggle('hidden', !isRegister);
-  document.getElementById('registerDepartmentField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerRequiredHint')?.classList.toggle('hidden', !isRegister);
   const emailInput = document.getElementById('authEmail');
   if (emailInput) emailInput.required = isRegister;
-  if (isRegister && typeof initRegistrationDepartments === 'function') initRegistrationDepartments();
   document.getElementById('registerFirstNameField').classList.toggle('hidden', !isRegister);
   document.getElementById('registerLastNameField').classList.toggle('hidden', !isRegister);
   // Согласие нужно только при регистрации. Раньше блок висел и на вкладке
@@ -214,7 +212,7 @@ function formatApiError(err) {
   if (Array.isArray(err.detail) && err.detail.length > 0) {
     const first = err.detail[0];
     const field = first.loc?.[first.loc.length - 1] || 'поле';
-    const fieldRu = { username: 'логин', password: 'пароль', email: 'email', full_name: 'имя', department: 'подразделение' }[field] || field;
+    const fieldRu = { username: 'логин', password: 'пароль', email: 'email', full_name: 'имя' }[field] || field;
     return `${fieldRu}: ${first.msg}`;
   }
 
@@ -420,8 +418,6 @@ async function submitVerifyCode() {
       name: user.username, role: user.role, id: user.id, email: user.email,
       full_name: user.full_name, has_avatar: user.has_avatar, cyber_level: user.cyber_level,
       topic_scores: user.topic_scores, level_assessed_at: user.level_assessed_at,
-      department: user.department || null,
-      managed_department: user.managed_department || null,
       is_approved: user.is_approved !== false,
       ui_theme: user.ui_theme || null,
       ui_accent: user.ui_accent || null,
@@ -547,8 +543,6 @@ async function finishAuthenticatedLogin(password, username) {
     cyber_level: user.cyber_level,
     topic_scores: user.topic_scores,
     level_assessed_at: user.level_assessed_at,
-    department: user.department || null,
-    managed_department: user.managed_department || null,
     is_approved: user.is_approved !== false,
     ui_theme: user.ui_theme || null,
     ui_accent: user.ui_accent || null,
@@ -612,10 +606,7 @@ document.getElementById('authForm').addEventListener('submit', async e => {
       const firstName = document.getElementById('authFirstName').value.trim();
       const lastName = document.getElementById('authLastName').value.trim();
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || null;
-      // Собираем подразделение
-      // Подразделение — только из справочника (вкладка «Структура» в админке).
-      const department = document.getElementById('authDepartment').value || null;
-      await api.register(n, p, email, fullName, department, {
+      await api.register(n, p, email, fullName, {
         accept_terms: Boolean(document.getElementById('registerConsent')?.checked),
         pd_consent: Boolean(document.getElementById('registerPdConsent')?.checked),
       });
@@ -784,8 +775,6 @@ async function tryAutoLogin() {
       topic_scores: user.topic_scores,
       level_assessed_at: user.level_assessed_at,
       profile_visibility: user.profile_visibility || 'public',
-      department: user.department || null,
-      managed_department: user.managed_department || null,
       is_approved: user.is_approved !== false,
       ui_theme: user.ui_theme || null,
       ui_accent: user.ui_accent || null,

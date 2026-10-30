@@ -42,7 +42,7 @@
   <!-- ======================== БОКОВАЯ НАВИГАЦИЯ (desktop) ======================== -->
   <nav class="sidebar-nav hidden-on-auth" id="sidebarNav">
     <div class="sidebar-logo">
-      <span class="sidebar-brand-title">Центр знаний по кибер&shy;безопасности</span>
+      <span class="sidebar-brand-title brand-title"><span>Центр знаний</span> <span>по кибербезопасности</span></span>
     </div>
     <div class="sidebar-items">
       <button type="button" class="sidebar-item" data-screen="home" data-onclick="navigateTo('home')">
@@ -63,10 +63,6 @@
       </button>
     </div>
     <div class="sidebar-footer">
-      <button type="button" class="sidebar-item hidden" id="sidebarTeam" data-screen="team" data-onclick="navigateTo('team')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span class="item-label">Мой отдел</span>
-      </button>
       <button type="button" class="sidebar-item" data-screen="assistant" data-ai-entry data-onclick="navigateTo('assistant')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
         <span class="item-label">AI Ассистент</span>
@@ -126,22 +122,6 @@
             <input type="email" id="authEmail" placeholder="your@email.com">
           </div>
         </div>
-        <div id="registerDepartmentField" class="form-group hidden">
-          <label>Подразделение</label>
-          <select id="authDepartment">
-            <option value="">— Выбери —</option>
-            <option value="ЦКЗ">ЦКЗ</option>
-            <option value="ДПМ">ДПМ</option>
-            <option value="УБД">УБД</option>
-            <option value="УКИИ">УКИИ</option>
-            <option value="УКАИ">УКАИ</option>
-            <option value="УМК">УМК</option>
-            <option value="УЭК">УЭК</option>
-            <option value="ЦКГ">ЦКГ</option>
-            <option value="ЦУПКБ">ЦУПКБ</option>
-            <option value="ЦВВ">ЦВВ</option>
-          </select>
-        </div>
         <div id="registerConsentField" class="auth-consent-field hidden"><label class="auth-consent-label"><input type="checkbox" id="registerConsent"><span>Принимаю <button type="button" class="auth-legal-link" data-onclick="openUserAgreement()">Пользовательское соглашение</button> и <button type="button" class="auth-legal-link" data-onclick="openPrivacyPolicy()">Политику конфиденциальности</button>.</span></label><label class="auth-consent-label"><input type="checkbox" id="registerPdConsent"><span>Даю <button type="button" class="auth-legal-link" data-onclick="openPdConsent()">согласие на обработку персональных данных</button>, в том числе на их передачу поставщику ИИ-ассистента.</span></label></div>
         <div class="form-group">
           <label for="authPass">Пароль <span class="required-mark" aria-hidden="true">*</span></label>
@@ -169,7 +149,7 @@
     <!-- Хедер -->
     <div class="top-header">
       <div class="header-left">
-        <div class="logo-name home-brand-title">Центр знаний по кибер&shy;безопасности</div>
+        <div class="logo-name home-brand-title brand-title"><span>Центр знаний</span> <span>по кибербезопасности</span></div>
       </div>
       <div class="header-actions">
         <span class="hidden static-style-005" id="badgeHome">ADMIN</span>
@@ -181,10 +161,6 @@
           <button class="header-icon-btn btn-shortcuts-icon" data-onclick="openShortcutsModal()" title="Горячие клавиши" aria-label="Горячие клавиши">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7H17A2 2 0 0 1 19 9V17A2 2 0 0 1 17 19H7A2 2 0 0 1 5 17V9A2 2 0 0 1 7 7H9"/><rect x="10" y="2" width="4" height="6" rx="2"/><line x1="12" y1="13" x2="12" y2="16"/></svg>
             <span class="header-btn-label">Клавиши</span>
-          </button>
-          <button class="header-icon-btn btn-team-icon hidden" id="btnTeamGo" data-onclick="navigateTo('team')" title="Мой отдел" aria-label="Мой отдел">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span class="header-btn-label">Мой отдел</span>
           </button>
           <button class="header-icon-btn btn-admin-icon hidden" id="btnAdminGo" data-onclick="navigateTo('admin')" title="Админ-панель" aria-label="Админ-панель">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
@@ -246,13 +222,6 @@
     </div>
 
     <!-- Секции книг -->
-    <div class="home-section assigned-section hidden" id="sectionAssigned">
-      <div class="assigned-head">
-        <div class="section-title">Назначено вам</div>
-        <span class="assigned-counter" id="assignedCounter"></span>
-      </div>
-      <div class="assigned-list" id="assignedList"></div>
-    </div>
     <div class="home-section static-style-009" id="sectionRecommendations">
       <div class="section-title">Рекомендации</div>
       <div class="static-style-010" id="recommendationsList"></div>
@@ -600,7 +569,6 @@
       <div class="admin-tab-btn active" data-atab="dashboard">Дашборд</div>
       <div class="admin-tab-btn" data-atab="books">Книги</div>
       <div class="admin-tab-btn" data-atab="users">Пользователи</div>
-      <div class="admin-tab-btn" data-atab="org">Структура</div>
       <div class="admin-tab-btn" data-atab="reviews">Отзывы</div>
       <div class="admin-tab-btn" data-atab="analytics">Аналитика</div>
       <div class="admin-tab-btn" data-atab="usage">Использование</div>
@@ -609,7 +577,6 @@
     <div id="adDashboard" class="admin-panel-section show"></div>
     <div id="adBooks" class="admin-panel-section"></div>
     <div id="adUsers" class="admin-panel-section"></div>
-    <div id="adOrg" class="admin-panel-section"></div>
     <div id="adReviews" class="admin-panel-section"></div>
     <div id="adUsage" class="admin-panel-section"></div>
     <div id="adAnalytics" class="admin-panel-section">
@@ -660,17 +627,6 @@
     <div id="detailTabDiscussion" class="detail-tab-content hidden" role="tabpanel"></div>
     <div id="detailTabTraining" class="detail-tab-content hidden" role="tabpanel"></div>
     <div id="detailTabNotes" class="detail-tab-content hidden" role="tabpanel"></div>
-  </div>
-
-  <!-- ======================== МОЙ ОТДЕЛ (руководитель) ======================== -->
-  <div id="teamScreen" class="screen">
-    <div class="top-header" data-title="Мой отдел">
-      <div class="header-left">
-        <button class="btn-back" data-onclick="navigateTo('home')" aria-label="Назад">←</button>
-        <div class="logo-name">Мой отдел</div>
-      </div>
-    </div>
-    <div id="teamContent" class="team-screen"></div>
   </div>
 
   <!-- ======================== ЧИТАЛКА (PDF + EPUB) ======================== -->
@@ -1041,11 +997,6 @@
     </div>
     
     <div class="settings-section static-style-111">
-      <h3 class="static-style-104">Кому порекомендовать</h3>
-      <div class="static-style-112" id="adminRecommendDepts"></div>
-    </div>
-
-    <div class="settings-section static-style-111">
       <h3 class="static-style-113">Опасная зона</h3>
       <button class="btn-logout" id="adminDeleteBookBtn">Удалить книгу полностью</button>
     </div>
@@ -1136,9 +1087,7 @@
 <script defer src="onboarding-tour.js"></script>
 <script defer src="appearance-onboarding.js"></script>
 <script defer src="avatar-picker.js"></script>
-<script defer src="org-structure.js"></script>
 <script defer src="admin-duplicates.js"></script>
-<script defer src="team.js"></script>
 <script defer src="analytics.js"></script>
 <script defer src="profile-insights.js"></script>
 <script defer src="profile-screen.js"></script>

@@ -18,20 +18,6 @@ function renderProfile() {
   }
   usernameLine.textContent = '@' + u.name;
 
-  // Подразделение под username
-  let depLine = document.getElementById('profileDepartmentLine');
-  if (u.department) {
-    if (!depLine) {
-      depLine = document.createElement('div');
-      depLine.id = 'profileDepartmentLine';
-      depLine.style.cssText = 'font-size:11px;color:var(--accent);margin-bottom:4px;font-weight:600;';
-      usernameLine.parentNode.insertBefore(depLine, usernameLine.nextSibling);
-    }
-    depLine.textContent = u.department;
-  } else if (depLine) {
-    depLine.remove();
-  }
-
   // Тег роли + бейдж уровня кибербезопасности (если пройден тест)
   const roleTag = document.getElementById('profileRoleTag');
   roleTag.textContent = u.role === 'admin' ? 'Администратор' : 'Читатель';
