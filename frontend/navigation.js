@@ -381,7 +381,7 @@ function goBackFromDetail() {
 // Окна, которые живут в разметке index.html: их прячут классом hidden,
 // удалять нельзя — иначе второй раз они не откроются.
 const STATIC_MODAL_IDS = new Set([
-  'arSchemeMenuModal', 'addModal', 'editProfileModal', 'bookAnalyticsModal', 'adminBookModal', 'bulkUploadModal',
+  'arSchemeMenuModal', 'addModal', 'bookAnalyticsModal', 'adminBookModal', 'bulkUploadModal',
 ]);
 // Все виды окон приложения: общие диалоги, старые modal-overlay и окна,
 // которые создаются на лету (оценка книги, восстановление пароля, установка).

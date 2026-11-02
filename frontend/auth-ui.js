@@ -11,8 +11,6 @@ document.querySelectorAll('.auth-tab').forEach(t => t.addEventListener('click', 
   document.getElementById('registerRequiredHint')?.classList.toggle('hidden', !isRegister);
   const emailInput = document.getElementById('authEmail');
   if (emailInput) emailInput.required = isRegister;
-  document.getElementById('registerFirstNameField').classList.toggle('hidden', !isRegister);
-  document.getElementById('registerLastNameField').classList.toggle('hidden', !isRegister);
   // Согласие нужно только при регистрации. Раньше блок висел и на вкладке
   // «Вход», а required у чекбокса не давал отправить форму входа.
   document.getElementById('registerConsentField').classList.toggle('hidden', !isRegister);
@@ -212,7 +210,7 @@ function formatApiError(err) {
   if (Array.isArray(err.detail) && err.detail.length > 0) {
     const first = err.detail[0];
     const field = first.loc?.[first.loc.length - 1] || 'поле';
-    const fieldRu = { username: 'логин', password: 'пароль', email: 'email', full_name: 'имя' }[field] || field;
+    const fieldRu = { username: 'логин', password: 'пароль', email: 'email' }[field] || field;
     return `${fieldRu}: ${first.msg}`;
   }
 
@@ -416,7 +414,7 @@ async function submitVerifyCode() {
     const user = await api.me();
     state.currentUser = {
       name: user.username, role: user.role, id: user.id, email: user.email,
-      full_name: user.full_name, has_avatar: user.has_avatar, cyber_level: user.cyber_level,
+      has_avatar: user.has_avatar, cyber_level: user.cyber_level,
       topic_scores: user.topic_scores, level_assessed_at: user.level_assessed_at,
       is_approved: user.is_approved !== false,
       ui_theme: user.ui_theme || null,
@@ -538,7 +536,6 @@ async function finishAuthenticatedLogin(password, username) {
     role: user.role,
     id: user.id,
     email: user.email,
-    full_name: user.full_name,
     has_avatar: user.has_avatar,
     cyber_level: user.cyber_level,
     topic_scores: user.topic_scores,
@@ -603,10 +600,7 @@ document.getElementById('authForm').addEventListener('submit', async e => {
 
   try {
     if (state.currentTab === 'register') {
-      const firstName = document.getElementById('authFirstName').value.trim();
-      const lastName = document.getElementById('authLastName').value.trim();
-      const fullName = [firstName, lastName].filter(Boolean).join(' ') || null;
-      await api.register(n, p, email, fullName, {
+      await api.register(n, p, email, {
         accept_terms: Boolean(document.getElementById('registerConsent')?.checked),
         pd_consent: Boolean(document.getElementById('registerPdConsent')?.checked),
       });
@@ -769,7 +763,6 @@ async function tryAutoLogin() {
       role: user.role,
       id: user.id,
       email: user.email,
-      full_name: user.full_name,
       has_avatar: user.has_avatar,
       cyber_level: user.cyber_level,
       topic_scores: user.topic_scores,

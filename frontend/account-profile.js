@@ -177,108 +177,16 @@ function renderSettingsInfoTab(c) {
     _accountNode('div', 'a410', 'Изменение никнейма пока не поддерживается'),
   );
 
-  const fullName = _accountFormInput('text', 'setFullName', 'Иванов Иван Иванович', null, 128);
-  fullName.value = user.full_name || '';
-
   c.replaceChildren(
     _accountNode('h3', 'a350', 'Информация о профиле'),
     avatarSection,
     usernameRow,
-    _accountLabeledInput('ФИО', fullName),
-    _accountSaveButton('Сохранить изменения', saveSettingsInfo),
   );
 
   renderSettingsAvatarPreview();
 
 }
 
-async function saveSettingsInfo() {
-  const fullName = (document.getElementById('setFullName').value || '').trim();
-
-  try {
-    const updated = await api.updateMe({
-      full_name: fullName || null,
-    });
-    // Обновим state
-    state.currentUser.full_name = updated.full_name;
-    showToast('Изменения сохранены');
-    renderProfile();
-  } catch (e) {
-    console.error(e);
-    showToast('Ошибка: ' + (e.detail || e.message));
-  }
-}
-
-// ========== EDIT PROFILE MODAL ==========
-function openEditProfileModal() {
-  if (!state.currentUser) return;
-  const currentName = state.currentUser.full_name || '';
-  document.getElementById('editFullName').value = currentName;
-  // Кнопка «Удалить аватар» только если он есть
-  const avatarSection = document.getElementById('editAvatarSection');
-  if (avatarSection) {
-    avatarSection.style.display = state.currentUser.has_avatar ? 'block' : 'none';
-  }
-  document.getElementById('editProfileModal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('editFullName').focus(), 100);
-}
-
-function closeEditProfileModal() {
-  document.getElementById('editProfileModal').classList.add('hidden');
-}
-
-async function saveProfileEdits() {
-  const fullName = document.getElementById('editFullName').value.trim();
-  const btn = document.getElementById('saveProfileBtn');
-  btn.disabled = true;
-  btn.textContent = 'Сохранение...';
-  try {
-    const updated = await api.updateMe({ full_name: fullName || null });
-    // Обновляем state.currentUser
-    state.currentUser.full_name = updated.full_name;
-    state.currentUser.has_avatar = updated.has_avatar;
-    closeEditProfileModal();
-    renderProfile();
-    updateAvatar('avatarHome');
-    updateAvatar('avatarMylist');
-    updateAvatar('avatarTraining');
-    showToast('Имя обновлено');
-  } catch (err) {
-    if (err instanceof api.ApiError) {
-      showToast('Ошибка: ' + (err.detail || err.status));
-    } else {
-      showToast('Сервер недоступен');
-    }
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Сохранить';
-  }
-}
-async function deleteCurrentAvatar() {
-  if (!confirm('Удалить аватар? Будет показываться буква.')) return;
-  const btn = document.getElementById('deleteAvatarBtn');
-  btn.disabled = true;
-  btn.textContent = 'Удаление...';
-  try {
-    const updated = await api.deleteAvatar();
-    state.currentUser.has_avatar = updated.has_avatar;
-    closeEditProfileModal();
-    renderProfile();
-    updateAvatar('avatarHome');
-    updateAvatar('avatarMylist');
-    updateAvatar('avatarTraining');
-    showToast('Аватар удалён');
-  } catch (err) {
-    if (err instanceof api.ApiError) {
-      showToast('Ошибка: ' + (err.detail || err.status));
-    } else {
-      showToast('Сервер недоступен');
-    }
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Удалить аватар';
-  }
-}
 async function showMyStatsModal() {
   const ex = document.getElementById('myStatsModal');
   if (ex) ex.remove();
@@ -438,7 +346,7 @@ function updateAvatar(id) {
   const el = document.getElementById(id);
   if (!el || !state.currentUser) return;
   const u = state.currentUser;
-  const displayName = u.full_name || u.name;
+  const displayName = u.name || 'U';
   const img = document.createElement('img');
   img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
   img.alt = '';

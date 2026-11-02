@@ -51,15 +51,11 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> UserPublic:
-    """Изменить отображаемое имя и настройки профиля.
+    """Изменить настройки профиля.
 
     Username и email не меняются через этот эндпоинт — они требуют
     дополнительных проверок (уникальность, верификация почты).
     """
-    if payload.full_name is not None:
-        fn = payload.full_name.strip()
-        current.full_name = fn if fn else None
-
     if payload.profile_visibility is not None:
         current.profile_visibility = payload.profile_visibility
 
@@ -466,17 +462,13 @@ async def leaderboard(
     )
 
     out: list[LeaderboardEntry] = []
-    is_admin = current.role.value == "admin"
     for place, u in enumerate(rows.all(), start=1):
         is_self = u.id == current.id
         hidden = (u.profile_visibility or "public") != "public" and not is_self
-        # ФИО видит только администратор (и сам человек); остальным — логин.
-        show_name = not hidden and (is_self or is_admin)
         out.append(
             LeaderboardEntry(
                 place=place,
                 username="" if hidden else u.username,
-                full_name=u.full_name if show_name else None,
                 xp=u.xp,
                 streak_count=u.streak_count,
                 is_hidden=hidden,
@@ -516,12 +508,9 @@ async def get_public_profile(
         )
     ) or 0
 
-    # ФИО видит только администратор (и сам владелец профиля).
-    show_name = is_owner or current.role.value == "admin"
     return PublicProfile(
         id=user.id,
         username=user.username,
-        full_name=user.full_name if show_name else None,
         cyber_level=user.cyber_level,
         xp=user.xp,
         streak_count=user.streak_count,

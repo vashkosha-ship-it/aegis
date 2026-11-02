@@ -29,5 +29,3 @@ class SubmitExamResponse(BaseModel):
     passed: bool
     correct_count: int
     total: int
-    # Экзамен сдан, но в профиле нет ФИО — сертификат не на кого выписать
-    needs_full_name: bool = False

@@ -101,7 +101,7 @@ async def send_verification_code(to: str, code: str) -> None:
     await send_email(to, subject, body)
 
 
-async def send_admin_new_registration(username: str, email: str, full_name: str | None) -> None:
+async def send_admin_new_registration(username: str, email: str) -> None:
     """Уведомить администратора о новом пользователе, ожидающем одобрения."""
     admin_to = settings.ADMIN_NOTIFY_EMAIL.strip()
     if not admin_to:
@@ -110,23 +110,20 @@ async def send_admin_new_registration(username: str, email: str, full_name: str 
         )
         return
     subject = "Aegis — новая заявка на регистрацию"
-    fio = full_name or "(не указано)"
     body = (
         "Новый пользователь подтвердил email и ожидает одобрения:\n\n"
         f"Логин: {username}\n"
-        f"ФИО: {fio}\n"
         f"Email: {email}\n\n"
         "Зайдите в админ-панель → вкладка «Пользователи» → «Заявки», чтобы одобрить или отклонить."
     )
     await send_email(admin_to, subject, body)
 
 
-async def send_approval_notification(to: str, full_name: str | None) -> None:
+async def send_approval_notification(to: str, username: str) -> None:
     """Уведомить пользователя, что его регистрация одобрена и доступ открыт."""
-    name = full_name or "пользователь"
     subject = "Aegis — доступ к библиотеке открыт"
     body = (
-        f"Здравствуйте, {name}!\n\n"
+        f"Здравствуйте, {username}!\n\n"
         "Ваша регистрация в Aegis одобрена администратором. "
         "Теперь вам доступна вся библиотека материалов по кибербезопасности.\n\n"
         f"Войти: {settings.FRONTEND_BASE_URL}\n\n"

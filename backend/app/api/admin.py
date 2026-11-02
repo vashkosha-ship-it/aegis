@@ -589,7 +589,6 @@ async def list_all_users(
             username=u.username,
             email=u.email,
             role=u.role,
-            full_name=u.full_name,
             xp=u.xp,
             streak_count=u.streak_count or 0,
             cyber_level=u.cyber_level,
@@ -664,7 +663,7 @@ async def approve_user(
     if user.email:
         try:
             from app.services.email_service import EmailError, send_approval_notification
-            await send_approval_notification(user.email, user.full_name)
+            await send_approval_notification(user.email, user.username)
         except EmailError:
             pass
 
@@ -725,7 +724,6 @@ class PasswordHelpView(BaseModel):
     id: int
     username: str
     user_id: int | None
-    full_name: str | None = None
     contact: str
     created_at: str | None
 
@@ -742,13 +740,9 @@ async def list_password_help(
         select(PasswordHelpRequest).where(PasswordHelpRequest.resolved_at.is_(None))
         .order_by(PasswordHelpRequest.created_at)
     )).all()
-    users = {u.id: u for u in (await db.scalars(
-        select(User).where(User.id.in_([r.user_id for r in rows if r.user_id]))
-    )).all()} if rows else {}
     return [
         PasswordHelpView(
             id=r.id, username=r.username, user_id=r.user_id,
-            full_name=users[r.user_id].full_name if r.user_id in users else None,
             contact=r.contact, created_at=r.created_at.isoformat() if r.created_at else None,
         )
         for r in rows
@@ -827,7 +821,6 @@ async def admin_create_user(
         username=username,
         email=None,
         password_hash=hash_new_password(payload.password),
-        full_name=(payload.full_name or "").strip() or None,
         role=UserRole.READER,
         is_verified=True,
         is_approved=True,
@@ -851,7 +844,7 @@ async def export_reading_xlsx(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    """Выгрузка в Excel: ФИО, прочитанные книги за период.
+    """Выгрузка в Excel: логин, прочитанные книги за период.
 
     Период считается по постоянной дате первого завершения книги.
     """
@@ -873,7 +866,7 @@ async def export_reading_xlsx(
         .join(MyListEntry, MyListEntry.user_id == User.id)
         .join(Book, Book.id == MyListEntry.book_id)
         .where(and_(*conds))
-        .order_by(User.full_name.asc().nulls_last(), MyListEntry.completed_at.asc())
+        .order_by(User.username.asc(), MyListEntry.completed_at.asc())
     )
     rows = (await db.execute(stmt)).all()
 
@@ -883,7 +876,7 @@ async def export_reading_xlsx(
         s = summary.setdefault(
             user.id,
             {
-                "fio": user.full_name or user.username,
+                "login": user.username,
                 "count": 0,
             },
         )
@@ -909,12 +902,12 @@ async def export_users_xlsx(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_admin),
 ):
-    """Выгрузка в Excel списка пользователей: ФИО, логин, почта и т.д.
+    """Выгрузка в Excel списка пользователей: логин, почта и т.д.
 
     Пароли в выгрузку не попадают: хранится только их хеш.
     """
     users = (await db.scalars(
-        select(User).order_by(User.full_name.asc().nulls_last(), User.username.asc())
+        select(User).order_by(User.username.asc())
     )).all()
     try:
         buf = excel_export.build_users_report(list(users))
@@ -1010,7 +1003,6 @@ async def book_analytics(
         readers_list.append(BookReaderRow(
             user_id=user.id,
             username=user.username,
-            full_name=user.full_name,
             current_page=progress.current_page,
             total_pages=progress.total_pages,
             progress_pct=pct,

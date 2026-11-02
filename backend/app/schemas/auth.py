@@ -13,7 +13,6 @@ class UserRegister(BaseModel):
     username: str = Field(min_length=3, max_length=64, pattern=r"^[a-zA-Z0-9_]+$")
     password: str = Field(min_length=8, max_length=128)
     email: EmailStr  # обязателен — на него приходит код подтверждения
-    full_name: str | None = Field(default=None, max_length=128)
     # Две отдельные отметки: принятие Соглашения и Политики и согласие на
     # обработку персональных данных (152-ФЗ требует, чтобы согласие на
     # обработку ПДн было отдельным, а не частью другого документа).
@@ -74,7 +73,6 @@ class UserPublic(BaseModel):
     username: str
     email: str | None
     role: UserRole
-    full_name: str | None
     avatar_url: str | None
     avatar_preset: str | None = None
     has_avatar: bool = False
@@ -117,8 +115,7 @@ class UserPublic(BaseModel):
 class UserUpdate(BaseModel):
     """Поля, которые юзер может менять у себя сам.
     Username и email менять не разрешаем — это отдельные большие истории
-    (уникальность, верификация email и т.д.). Только display name."""
-    full_name: str | None = Field(default=None, max_length=128)
+    (уникальность, верификация email и т.д.)."""
     profile_visibility: Literal["public", "private"] | None = None
     # Оформление аккаунта: выбирается на экране первого входа и в настройках,
     # применяется на всех устройствах пользователя.

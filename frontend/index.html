@@ -101,20 +101,6 @@
             <input type="text" id="authName" placeholder="Введите логин" required>
           </div>
         </div>
-        <div id="registerFirstNameField" class="form-group hidden">
-          <label>Имя</label>
-          <div class="input-icon-wrap">
-            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
-            <input type="text" id="authFirstName" placeholder="Иван">
-          </div>
-        </div>
-        <div id="registerLastNameField" class="form-group hidden">
-          <label>Фамилия</label>
-          <div class="input-icon-wrap">
-            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21V19A4 4 0 0 0 16 15H8A4 4 0 0 0 4 19V21"/><circle cx="12" cy="7" r="4"/></svg>
-            <input type="text" id="authLastName" placeholder="Иванов">
-          </div>
-        </div>
         <div id="registerEmailField" class="form-group hidden">
           <label for="authEmail">Email <span class="required-mark" aria-hidden="true">*</span></label>
           <div class="input-icon-wrap">
@@ -139,6 +125,7 @@
         </button>
         <div class="static-style-002" id="forgotPasswordHint">
           <button class="static-style-003" type="button" data-onclick="openForgotPassword()">Забыли пароль?</button>
+          <p class="auth-login-help" id="authLoginHelp">Если вы забыли логин и/или пароль, напишите на почту <a href="mailto:support@aegis-sec-library.ru">support@aegis-sec-library.ru</a></p>
         </div>
       </form>
     </div>
@@ -481,7 +468,7 @@
       <h3>Сертификация</h3>
       <div class="settings-card">
         <div class="static-style-043">
-          <p class="static-style-044">Пройдите аттестацию по теме (тест из 50 вопросов, нужно 85% правильных) и получите именной сертификат.</p>
+          <p class="static-style-044">Пройдите аттестацию по теме (тест из 50 вопросов, нужно 85% правильных) и получите сертификат на ваш логин.</p>
           <div class="static-style-045" id="certMineList"></div>
           <button class="static-style-046" data-onclick="openCertificationModal()">Пройти аттестацию</button>
         </div>
@@ -892,29 +879,6 @@
       <div class="static-style-088">
         <button class="static-style-089" data-onclick="closeAddModal()">Отмена</button>
         <button class="static-style-090" id="saveBookBtn">Добавить</button>
-      </div>
-    </div>
-  </div>
-<!-- Редактирование профиля -->
-  <div class="modal-overlay hidden static-style-091" id="editProfileModal">
-    <div class="static-style-092">
-      <div class="static-style-079">
-        <h3 class="static-style-093">Редактировать профиль</h3>
-        <button class="btn-back static-style-018" data-onclick="closeEditProfileModal()">✕</button>
-      </div>
-      <div class="form-group">
-        <label>Отображаемое имя</label>
-        <input type="text" id="editFullName" placeholder="Введите имя" maxlength="128">
-      </div>
-      <div class="static-style-094">
-        Логин (username) изменить нельзя.
-      </div>
-      <div class="static-style-095" id="editAvatarSection">
-        <button class="static-style-096" data-onclick="deleteCurrentAvatar()" data-nonce="${sensitiveNonce()}" id="deleteAvatarBtn">Удалить аватар</button>
-      </div>
-      <div class="static-style-097">
-        <button class="static-style-098" data-onclick="closeEditProfileModal()">Отмена</button>
-        <button class="static-style-099" data-onclick="saveProfileEdits()" id="saveProfileBtn">Сохранить</button>
       </div>
     </div>
   </div>
