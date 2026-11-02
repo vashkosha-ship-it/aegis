@@ -25,7 +25,7 @@ async function loadAndRenderLeaderboard() {
       place.textContent = String(user.place || index + 1);
       const name = document.createElement('td');
       if (user.is_hidden) name.setAttribute('data-static-style', 'a243');
-      name.textContent = `${user.is_hidden ? 'Участник' : (user.full_name || user.username || '')}${user.is_self ? ' (вы)' : ''}`;
+      name.textContent = `${user.is_hidden ? 'Участник' : (user.username || '')}${user.is_self ? ' (вы)' : ''}`;
       const xp = document.createElement('td');
       xp.textContent = String(user.xp ?? 0);
       const streak = document.createElement('td');

@@ -105,7 +105,7 @@ function openAvatarPicker() {
   grid.setAttribute('aria-label', 'Аватары');
 
   const current = user.avatar_preset || (user.has_avatar ? '__photo__' : '');
-  const letter = ((user.full_name || user.name || 'U').charAt(0) || 'U').toUpperCase();
+  const letter = ((user.name || 'U').charAt(0) || 'U').toUpperCase();
 
   const letterOption = document.createElement('button');
   letterOption.type = 'button';

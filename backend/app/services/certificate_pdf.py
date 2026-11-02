@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 
 
-def build_certificate_pdf(full_name: str, category: str, score: int, issued_at: datetime) -> bytes:
+def build_certificate_pdf(holder: str, category: str, score: int, issued_at: datetime) -> bytes:
     """Генерирует PDF-сертификат с поддержкой кириллицы."""
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.units import mm
@@ -54,10 +54,10 @@ def build_certificate_pdf(full_name: str, category: str, score: int, issued_at: 
     c.setFillColorRGB(0.3, 0.3, 0.3)
     c.drawCentredString(w / 2, h - 68 * mm, "подтверждает, что")
 
-    # ФИО
+    # Логин владельца
     c.setFont(bold_font, 26)
     c.setFillColorRGB(0.1, 0.1, 0.1)
-    c.drawCentredString(w / 2, h - 88 * mm, full_name)
+    c.drawCentredString(w / 2, h - 88 * mm, holder)
 
     # Текст
     c.setFont(font_name, 14)

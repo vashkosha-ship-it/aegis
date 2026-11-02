@@ -41,7 +41,7 @@ async function loadComments() {
 }
 
 function _commentBubble(c, isReply) {
-  const name = eh(c.author.full_name || c.author.username);
+  const name = eh(c.author.username);
   const when = _formatCommentDate(c.created_at);
   const avatar = c.author.has_avatar
     ? `<img src="${api.users.avatarUrl(c.author.id)}" data-static-style="a210">`

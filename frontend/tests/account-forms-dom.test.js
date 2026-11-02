@@ -17,7 +17,6 @@ const context = {
   state: {
     currentUser: {
       name: '<img src=x onerror=alert(1)>',
-      full_name: 'Иван <script>alert(1)</script>',
       email: 'safe@example.test',
       profile_visibility: 'public',
     },
@@ -51,7 +50,8 @@ assert.equal(content.querySelectorAll('[data-onclick]').length, 0);
 
 context.renderSettingsInfoTab(content);
 assert.equal(content.querySelector('#setUsername').value, '<img src=x onerror=alert(1)>');
-assert.equal(content.querySelector('#setFullName').value, 'Иван <script>alert(1)</script>');
+assert.equal(content.querySelector('#setFullName'), null);
+assert.doesNotMatch(content.textContent, /ФИО/);
 // Поля «Подразделение» больше нет.
 assert.equal(content.querySelector('#setDepartment'), null);
 assert.equal(content.querySelector('script, svg[onload], img[onerror]'), null);

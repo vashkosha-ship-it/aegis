@@ -51,7 +51,6 @@ class PublicProfile(BaseModel):
 
     id: int
     username: str
-    full_name: str | None
     cyber_level: str | None
     xp: int
     streak_count: int
@@ -71,7 +70,6 @@ class LeaderboardEntry(BaseModel):
 
     place: int
     username: str
-    full_name: str | None
     xp: int
     streak_count: int
     # Профиль скрыт настройками приватности — имя не показываем

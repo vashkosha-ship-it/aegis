@@ -12,15 +12,15 @@ from tests.conftest import auth_headers, make_user
 class TestExcelFormulaInjection:
     """Ячейка, начинающаяся с =, +, -, @, исполняется при открытии файла."""
 
-    async def test_malicious_full_name_is_escaped(self, client, db, admin_user):
+    async def test_malicious_book_title_is_escaped(self, client, db, admin_user):
         """Выгрузка строится по дочитанным книгам, поэтому нужен MyListEntry."""
         from app.models.book import Book
         from app.models.library import MyListEntry, MyListStatus
 
         payload = '=cmd|\' /C calc\'!A0'
-        evil = await make_user(db, username="evil", full_name=payload)
+        evil = await make_user(db, username="evil")
 
-        book = Book(title="=HYPERLINK(\"http://evil\")", author="A", description="")
+        book = Book(title=payload, author="A", description="")
         db.add(book)
         await db.commit()
         await db.refresh(book)

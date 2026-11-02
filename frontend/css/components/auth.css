@@ -1,0 +1,39 @@
+/* ---------- Экран входа и помощь с доступом ---------- */
+/* Подсказка для тех, кто забыл логин или пароль: куда написать. */
+.auth-login-help {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.auth-login-help a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  /* Не рвём адрес по дефису («aegis-sec-» / «library.ru»). */
+  white-space: nowrap;
+}
+
+/* ---------- Админка: поиск пользователя и временный пароль ---------- */
+.admin-user-lookup {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--border-light, var(--border));
+  border-radius: var(--radius-sm, 10px);
+  background: var(--bg-card);
+}
+.admin-user-lookup-label { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.admin-user-lookup-input { max-width: 420px; }
+.admin-user-lookup-hint,
+.admin-user-lookup-empty { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+.admin-user-lookup-empty { margin: 8px 0; text-align: center; }
+.admin-temp-password-btn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}

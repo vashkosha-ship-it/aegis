@@ -481,30 +481,7 @@ async function submitCertExam() {
   certModalShell('<div data-static-style="a152">Проверяем ответы…</div>');
   try {
     const res = await api.library.certSubmitExam(ex.token, ex.answers);
-    if (res.needs_full_name) {
-      certModalShell(`
-        <h3 data-static-style="a163">Заполните ФИО</h3>
-        <p data-static-style="a147">Вы прошли тест (${res.score}%)! Для сертификата укажите ФИО — оно появится в документе.</p>
-        <input type="text" id="certFullName" placeholder="Фамилия Имя Отчество" data-static-style="a164">
-        <button id="certSaveNameBtn" data-static-style="a165">Сохранить и получить сертификат</button>
-      `);
-      document.getElementById('certSaveNameBtn').onclick = async () => {
-        const fio = document.getElementById('certFullName').value.trim();
-        if (fio.length < 3) return showToast('Введите ФИО');
-        try {
-          await api.updateMe({ full_name: fio });
-          if (state.currentUser) state.currentUser.full_name = fio;
-          // повторно отправляем экзамен — теперь ФИО есть
-          const res2 = await api.library.certSubmitExam(ex.token, ex.answers);
-          if (res2.passed && !res2.needs_full_name) {
-            showCertResult(res2.score, ex.category);
-          } else {
-            showToast('Экзамен истёк, пройдите заново');
-            closeCertModal();
-          }
-        } catch (e) { showToast('Не удалось сохранить'); }
-      };
-    } else if (res.passed) {
+    if (res.passed) {
       showCertResult(res.score, ex.category);
     } else {
       certModalShell(`
@@ -558,7 +535,7 @@ async function exportAllUserData() {
     exported_at: new Date().toISOString(),
     format: 'aegis-user-data-v1',
     profile: {
-      username: u.name, full_name: u.full_name || null, email: u.email || null,
+      username: u.name, email: u.email || null,
       role: u.role || null,
       cyber_level: u.cyber_level || null, xp: state.gamification?.xp || 0,
       streak: state.gamification?.streakCount || 0,

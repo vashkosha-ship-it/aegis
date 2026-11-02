@@ -248,35 +248,38 @@ class TestExamSession:
         )
         assert r.status_code == 404
 
-    async def test_certificate_issued_after_name_filled(self, client, db):
-        """Легитимный сценарий: прошёл без ФИО, заполнил, отправил повторно."""
-        user = await make_user(db, username="noname", full_name=None)
+    async def test_certificate_issued_to_login(self, client, db):
+        """ФИО не спрашивается: сдал экзамен — сертификат сразу, на логин."""
+        user = await make_user(db, username="cert_login")
         await self._make_exam(db, user, correct=[0] * 50)
 
-        r1 = await client.post(
+        r = await client.post(
             "/certificates/exam/submit",
             headers=auth_headers(user),
             json={"exam_token": "testtoken123", "answers": [0] * 50},
         )
-        assert r1.status_code == 200
-        assert r1.json()["passed"] is True
-        assert r1.json()["needs_full_name"] is True
-
-        user.full_name = "Иванов Иван"
-        await db.commit()
-
-        r2 = await client.post(
-            "/certificates/exam/submit",
-            headers=auth_headers(user),
-            json={"exam_token": "testtoken123", "answers": [0] * 50},
-        )
-        assert r2.status_code == 200
-        assert r2.json()["needs_full_name"] is False
+        assert r.status_code == 200
+        assert r.json()["passed"] is True
+        assert "needs_full_name" not in r.json()
 
         cert = await db.scalar(
             select(Certificate).where(Certificate.user_id == user.id)
         )
-        assert cert is not None, "Сертификат должен выдаться после заполнения ФИО"
+        assert cert is not None
+
+        from app.services import certificate_pdf
+
+        printed = []
+        original = certificate_pdf.build_certificate_pdf
+        certificate_pdf.build_certificate_pdf = lambda holder, *a: printed.append(holder) or b"%PDF-"
+        try:
+            pdf = await client.get(
+                f"/certificates/{cert.category}/pdf", headers=auth_headers(user),
+            )
+        finally:
+            certificate_pdf.build_certificate_pdf = original
+        assert pdf.status_code == 200
+        assert printed == ["cert_login"]
 
 
 @pytest.mark.asyncio

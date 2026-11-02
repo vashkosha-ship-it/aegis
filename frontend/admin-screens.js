@@ -443,7 +443,7 @@ async function renderPasswordHelpRequests() {
     const text = document.createElement('div');
     text.className = 'password-help-admin-text';
     const who = document.createElement('strong');
-    who.textContent = item.full_name ? `${item.full_name} (${item.username})` : item.username;
+    who.textContent = item.username;
     const contact = document.createElement('span');
     contact.textContent = `Связаться: ${item.contact}`;
     const date = document.createElement('span');
@@ -459,7 +459,7 @@ async function renderPasswordHelpRequests() {
       reset.textContent = 'Сбросить пароль';
       reset.addEventListener('click', () => {
         const user = (state._adminUsers || []).find(u => u.id === item.user_id)
-          || { id: item.user_id, username: item.username, full_name: item.full_name };
+          || { id: item.user_id, username: item.username };
         openAdminResetPasswordModal(user, { onDone: renderPasswordHelpRequests });
       });
       actions.appendChild(reset);
@@ -585,8 +585,34 @@ function renderAdminUsersWithFilter() {
     filters.append(limitLabel, limitSelect);
   }
 
+  // Поиск по логину: к администратору пришёл человек, который забыл пароль, —
+  // находим его и выдаём временный пароль. Сами пароли нигде не хранятся в
+  // открытом виде, поэтому «показать пароль» нельзя, только задать новый.
+  const lookup = document.createElement('div');
+  lookup.className = 'admin-user-lookup';
+  const lookupLabel = document.createElement('label');
+  lookupLabel.className = 'admin-user-lookup-label';
+  lookupLabel.htmlFor = 'adminUsersSearch';
+  lookupLabel.textContent = 'Найти пользователя';
+  const lookupInput = document.createElement('input');
+  lookupInput.type = 'search';
+  lookupInput.id = 'adminUsersSearch';
+  lookupInput.className = 'admin-user-lookup-input';
+  lookupInput.placeholder = 'Логин или почта';
+  lookupInput.autocomplete = 'off';
+  lookupInput.spellcheck = false;
+  lookupInput.value = state._adminUsersQuery || '';
+  const lookupHint = document.createElement('p');
+  lookupHint.className = 'admin-user-lookup-hint';
+  lookupHint.textContent = 'Забыл пароль? Найдите логин и нажмите «Временный пароль»: передайте его человеку, при входе он сменит пароль на свой. Сами пароли не хранятся в открытом виде, посмотреть их нельзя.';
+  const lookupEmpty = document.createElement('p');
+  lookupEmpty.className = 'admin-user-lookup-empty';
+  lookupEmpty.hidden = true;
+  lookupEmpty.textContent = 'Никого не найдено';
+  lookup.append(lookupLabel, lookupInput, lookupHint);
+
   const fragment = document.createDocumentFragment();
-  fragment.append(actions, dashboard, filters);
+  fragment.append(actions, dashboard, lookup, filters);
   if (title) {
     const heading = document.createElement('div');
     heading.setAttribute('data-static-style', 'a559');
@@ -599,7 +625,7 @@ function renderAdminUsersWithFilter() {
   const table = document.createElement('table');
   const thead = document.createElement('thead');
   const header = document.createElement('tr');
-  const headers = ['ID', 'Логин', 'ФИО', 'Email', 'Роль', 'Уровень', 'XP', 'Стрик', 'Книг прочит.', 'Тестов', 'На 100%', 'Страниц', 'Активен', 'Действия'];
+  const headers = ['ID', 'Логин', 'Email', 'Действия', 'Роль', 'Уровень', 'XP', 'Стрик', 'Книг прочит.', 'Тестов', 'На 100%', 'Страниц', 'Активен'];
   if (filter !== 'all') headers.unshift('#');
   headers.forEach(label => {
     const th = document.createElement('th');
@@ -610,28 +636,26 @@ function renderAdminUsersWithFilter() {
   const tbody = document.createElement('tbody');
   displayed.forEach((user, index) => {
     const row = document.createElement('tr');
+    row.dataset.search = `${user.username || ''} ${user.email || ''}`.toLowerCase();
     if (filter !== 'all') {
       const place = appendAdminCell(row, index + 1);
       place.setAttribute('data-static-style', 'a560');
     }
     const levelInfo = user.cyber_level ? getCyberLevelInfo(user.cyber_level) : null;
-    [user.id, user.username, user.full_name || '—'].forEach(value => appendAdminCell(row, value));
+    [user.id, user.username].forEach(value => appendAdminCell(row, value));
     appendAdminCell(row, user.email || '—');
-    appendAdminCell(row, user.role === 'admin' ? 'Администратор' : 'Читатель');
-    [levelInfo ? levelInfo.name : '—', user.xp, user.streak_count, user.completed_books,
-      user.quiz_attempts, user.perfect_quizzes, user.total_pages_read].forEach(value => appendAdminCell(row, value));
-    const active = document.createElement('td');
-    appendTrustedIcon(active, user.is_active ? ICONS.check : ICONS.x);
-    row.appendChild(active);
+    // Действия — сразу после логина и почты: на планшете таблица шире экрана,
+    // а «Временный пароль» должен быть виден без прокрутки вбок.
     const userActions = document.createElement('td');
     // Сброс пароля — любому, кроме себя (свой меняют в настройках).
     if (!state.currentUser || user.id !== state.currentUser.id) {
       const resetPassword = document.createElement('button');
       resetPassword.type = 'button';
-      resetPassword.className = 'btn-sm';
-      resetPassword.title = 'Сбросить пароль';
-      resetPassword.setAttribute('aria-label', `Сбросить пароль: ${user.username}`);
+      resetPassword.className = 'btn-sm admin-temp-password-btn';
+      resetPassword.title = 'Выдать временный пароль';
+      resetPassword.setAttribute('aria-label', `Выдать временный пароль: ${user.username}`);
       appendTrustedIcon(resetPassword, ICONS.iconLock);
+      resetPassword.appendChild(document.createTextNode('Временный пароль'));
       resetPassword.addEventListener('click', () => openAdminResetPasswordModal(user));
       userActions.appendChild(resetPassword);
     }
@@ -646,11 +670,30 @@ function renderAdminUsersWithFilter() {
       userActions.textContent = '—';
     }
     row.appendChild(userActions);
+    appendAdminCell(row, user.role === 'admin' ? 'Администратор' : 'Читатель');
+    [levelInfo ? levelInfo.name : '—', user.xp, user.streak_count, user.completed_books,
+      user.quiz_attempts, user.perfect_quizzes, user.total_pages_read].forEach(value => appendAdminCell(row, value));
+    const active = document.createElement('td');
+    appendTrustedIcon(active, user.is_active ? ICONS.check : ICONS.x);
+    row.appendChild(active);
     tbody.appendChild(row);
   });
   table.append(thead, tbody);
   wrap.appendChild(table);
-  fragment.appendChild(wrap);
+  fragment.append(wrap, lookupEmpty);
+  const applyLookup = () => {
+    const query = lookupInput.value.trim().toLowerCase();
+    state._adminUsersQuery = lookupInput.value;
+    let shown = 0;
+    tbody.querySelectorAll('tr').forEach(tr => {
+      const match = !query || tr.dataset.search.includes(query);
+      tr.hidden = !match;
+      if (match) shown += 1;
+    });
+    lookupEmpty.hidden = shown > 0;
+  };
+  lookupInput.addEventListener('input', applyLookup);
+  applyLookup();
   container.replaceChildren(fragment);
   refreshPendingBadge();
   // Таблица перерисовывается целиком — блок заявок добавляем заново.
@@ -680,7 +723,7 @@ function generateTemporaryPassword(length = 10) {
 }
 
 function openAdminResetPasswordModal(user, { onDone = null } = {}) {
-  const name = user.full_name ? `${user.full_name} (${user.username})` : user.username;
+  const name = user.username;
   const { overlay, panel } = createDialogShell('adminResetPasswordModal', 'Сбросить пароль');
   panel.classList.add('admin-reset-password-dialog');
   const node = (tag, className, text) => {

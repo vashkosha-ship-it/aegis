@@ -55,7 +55,7 @@ const context = {
   getComputedStyle: dom.window.getComputedStyle,
   state,
   api: { library: {
-    leaderboard: async () => [{ place: 1, full_name: '<Alice>', xp: 100, streak_count: 3 }],
+    leaderboard: async () => [{ place: 1, username: '<Alice>', xp: 100, streak_count: 3 }],
     heatmap: async () => ({ days: [{ date: '2026-09-07"><img src=x>', pages: 32 }] }),
     dayStats: async () => ({
       pages_read: 5, quiz_attempts: 0, annotations_count: 1,

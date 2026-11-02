@@ -104,7 +104,7 @@ async def submit_exam(
     db: AsyncSession = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> SubmitExamResponse:
-    """Проверить ответы. При >=85% выдать сертификат (если ФИО заполнено)."""
+    """Проверить ответы. При >=85% выдать сертификат на логин пользователя."""
     # FOR UPDATE: два одновременных submit с одним токеном иначе оба увидят
     # submitted_at = None, оба посчитают результат и оба выдадут сертификат.
     # Вторая транзакция теперь ждёт, пока первая зафиксирует результат.
@@ -143,9 +143,8 @@ async def submit_exam(
         exam.passed = passed
         await db.commit()
     else:
-        # Повторный вызов — возвращаем зафиксированный результат. Легитимный
-        # сценарий: пользователь прошёл, но не было заполнено ФИО, заполнил и
-        # отправил форму ещё раз.
+        # Повторный вызов — возвращаем зафиксированный результат, ответы
+        # заново не проверяем.
         score = exam.score or 0
         correct_count = exam.correct_count or 0
         total = exam.total
@@ -154,13 +153,6 @@ async def submit_exam(
     if not passed:
         return SubmitExamResponse(
             score=score, passed=False, correct_count=correct_count, total=total
-        )
-
-    # Прошёл — нужно ФИО
-    if not current.full_name or not current.full_name.strip():
-        return SubmitExamResponse(
-            score=score, passed=True, correct_count=correct_count, total=total,
-            needs_full_name=True,
         )
 
     # Выдаём сертификат (или обновляем, если уже был по этой теме с меньшим
@@ -172,13 +164,11 @@ async def submit_exam(
         user_id=current.id,
         category=exam.category,
         score=score,
-        full_name=current.full_name.strip(),
     )
     stmt = stmt.on_conflict_do_update(
         constraint="uq_certificates_user_category",
         set_={
             "score": stmt.excluded.score,
-            "full_name": stmt.excluded.full_name,
             "issued_at": func.now(),
         },
         # Понижать балл и перевыдавать дату при худшей попытке не нужно.
@@ -207,7 +197,8 @@ async def download_certificate(
     if not cert:
         raise HTTPException(status_code=404, detail="Сертификат по этой теме не получен")
 
-    pdf_bytes = cert_pdf.build_certificate_pdf(cert.full_name, cert.category, cert.score, cert.issued_at)
+    # Сертификат выписывается на логин: ФИО в приложении не хранится.
+    pdf_bytes = cert_pdf.build_certificate_pdf(current.username, cert.category, cert.score, cert.issued_at)
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

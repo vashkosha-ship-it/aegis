@@ -2,21 +2,11 @@
 function renderProfile() {
   if (!state.currentUser) return;
   const u = state.currentUser;
-  const displayName = u.full_name || u.name;
+  const displayName = u.name || 'U';
 
-  // Заголовок: имя + кнопка-карандаш
+  // Заголовок — логин (ФИО в приложении не хранится).
   const header = document.getElementById('profileDisplayName');
   header.textContent = displayName;
-
-  // Под заголовком — username (он не меняется)
-  let usernameLine = document.getElementById('profileUsernameLine');
-  if (!usernameLine) {
-    usernameLine = document.createElement('div');
-    usernameLine.id = 'profileUsernameLine';
-    usernameLine.style.cssText = 'font-size:11px;color:var(--text-muted);margin-bottom:4px;';
-    header.parentNode.insertBefore(usernameLine, header.nextSibling);
-  }
-  usernameLine.textContent = '@' + u.name;
 
   // Тег роли + бейдж уровня кибербезопасности (если пройден тест)
   const roleTag = document.getElementById('profileRoleTag');

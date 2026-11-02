@@ -102,7 +102,6 @@ class TestExamSessionsRace:
         self, parallel_client, db, approved_user
     ):
         """Два экзамена по одной теме — один сертификат, а не два."""
-        approved_user.full_name = "Иванов Иван"
         for token in ("race-a", "race-b"):
             db.add(ExamSession(
                 token=token,

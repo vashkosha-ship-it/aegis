@@ -12,7 +12,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 # Символы, с которых Excel и LibreOffice начинают трактовать содержимое ячейки
-# как формулу. ФИО и названия книг вводят пользователи, поэтому значение
+# как формулу. Логины и названия книг вводят пользователи, поэтому значение
 # нужно обезвредить, иначе выгрузку можно превратить в средство атаки на
 # машину администратора.
 _FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
@@ -52,18 +52,18 @@ def build_reading_report(rows: list[tuple], summary: dict[int, dict]) -> io.Byte
     # Лист 1: сводка по пользователям
     ws1 = wb.active
     ws1.title = "Сводка"
-    _write_header(ws1, ["ФИО", "Прочитано книг"])
+    _write_header(ws1, ["Логин", "Прочитано книг"])
     for i, s in enumerate(sorted(summary.values(), key=lambda x: -x["count"]), start=2):
-        ws1.cell(row=i, column=1, value=xl_safe(s["fio"]))
+        ws1.cell(row=i, column=1, value=xl_safe(s["login"]))
         ws1.cell(row=i, column=2, value=s["count"])
     ws1.column_dimensions["A"].width = 30
     ws1.column_dimensions["B"].width = 16
 
     # Лист 2: детализация (каждая прочитанная книга)
     ws2 = wb.create_sheet("Детализация")
-    _write_header(ws2, ["ФИО", "Книга", "Дата завершения"])
+    _write_header(ws2, ["Логин", "Книга", "Дата завершения"])
     for i, (user, book, when) in enumerate(rows, start=2):
-        ws2.cell(row=i, column=1, value=xl_safe(user.full_name or user.username))
+        ws2.cell(row=i, column=1, value=xl_safe(user.username))
         ws2.cell(row=i, column=2, value=xl_safe(book.title))
         ws2.cell(row=i, column=3, value=when.strftime("%Y-%m-%d %H:%M") if when else "")
     ws2.column_dimensions["A"].width = 30
@@ -112,7 +112,7 @@ def build_users_report(users: list) -> io.BytesIO:
     ws = wb.active
     ws.title = "Пользователи"
     headers = [
-        "ФИО", "Логин", "Почта", "Роль",
+        "Логин", "Почта", "Роль",
         "Статус", "Почта подтверждена", "Дата регистрации",
     ]
     for col, name in enumerate(headers, start=1):
@@ -123,17 +123,16 @@ def build_users_report(users: list) -> io.BytesIO:
 
     for i, u in enumerate(users, start=2):
         role = getattr(u.role, "value", u.role)
-        ws.cell(row=i, column=1, value=xl_safe(u.full_name or ""))
-        ws.cell(row=i, column=2, value=xl_safe(u.username))
-        ws.cell(row=i, column=3, value=xl_safe(u.email or ""))
-        ws.cell(row=i, column=4, value="Администратор" if role == "admin" else "Читатель")
-        ws.cell(row=i, column=5, value="Активен" if u.is_active else "Не активен")
-        ws.cell(row=i, column=6, value="Да" if u.is_verified else "Нет")
+        ws.cell(row=i, column=1, value=xl_safe(u.username))
+        ws.cell(row=i, column=2, value=xl_safe(u.email or ""))
+        ws.cell(row=i, column=3, value="Администратор" if role == "admin" else "Читатель")
+        ws.cell(row=i, column=4, value="Активен" if u.is_active else "Не активен")
+        ws.cell(row=i, column=5, value="Да" if u.is_verified else "Нет")
         ws.cell(
-            row=i, column=7,
+            row=i, column=6,
             value=u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "",
         )
-    for col, width in zip("ABCDEFG", (32, 20, 30, 16, 12, 18, 18), strict=True):
+    for col, width in zip("ABCDEF", (24, 30, 16, 12, 18, 18), strict=True):
         ws.column_dimensions[col].width = width
     ws.freeze_panes = "A2"
     ws.auto_filter.ref = ws.dimensions

@@ -26,7 +26,6 @@ class Certificate(Base):
     )
     category: Mapped[str] = mapped_column(String(128), nullable=False)
     score: Mapped[int] = mapped_column(Integer, nullable=False)  # процент, 0-100
-    full_name: Mapped[str] = mapped_column(String(128), nullable=False)  # ФИО на момент выдачи
     issued_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

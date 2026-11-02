@@ -20,7 +20,7 @@ for (const symbol of ['openForgotPassword', 'showVerifyEmailScreen', 'tryAutoLog
   assert.match(auth, new RegExp(`function ${symbol}\\s*\\(`));
   assert.doesNotMatch(app, new RegExp(`function ${symbol}\\s*\\(`));
 }
-for (const symbol of ['renderSettingsScreen', 'renderSettingsSecurityTab', 'openEditProfileModal', 'updateAvatar']) {
+for (const symbol of ['renderSettingsScreen', 'renderSettingsSecurityTab', 'updateAvatar']) {
   assert.match(account, new RegExp(`function ${symbol}\\s*\\(`));
   assert.doesNotMatch(app, new RegExp(`function ${symbol}\\s*\\(`));
 }

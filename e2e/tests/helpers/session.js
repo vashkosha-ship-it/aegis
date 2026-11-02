@@ -33,8 +33,6 @@ async function login(page, account = credentials.reader) {
       name: current.username,
       email: current.email,
       role: current.role,
-      full_name: current.full_name,
-      department: current.department,
     };
     cacheUserForOffline(state.currentUser);
   }, user);

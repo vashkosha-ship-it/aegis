@@ -210,13 +210,11 @@ async def make_user(
     is_approved: bool = True,
     is_active: bool = True,
     role: UserRole = UserRole.READER,
-    full_name: str | None = "Тест Тестович",
 ) -> User:
     user = User(
         username=username,
         email=email or f"{username}@example.com",
         password_hash=hash_password(password),
-        full_name=full_name,
         role=role,
         is_verified=is_verified,
         is_approved=is_approved,

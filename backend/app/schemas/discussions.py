@@ -10,7 +10,6 @@ class CommentCreate(BaseModel):
 class CommentAuthor(BaseModel):
     id: int
     username: str
-    full_name: str | None = None
     has_avatar: bool = False
 
 

@@ -35,7 +35,6 @@ function replaceWithStaticText(document, container, text, style) {
   const pendingUser = {
     id: 7,
     username: '<img src=x>',
-    full_name: '<Admin>',
     email: 'mail@example.test"><script>',
   };
   const adminContext = {
@@ -65,7 +64,7 @@ function replaceWithStaticText(document, container, text, style) {
 
   await adminContext.openPendingUsersModal();
   const pending = adminDom.window.document.getElementById('pendingUsersList');
-  assert.match(pending.textContent, /<Admin>/);
+  assert.match(pending.textContent, /<img src=x>/);
   assert.doesNotMatch(pending.textContent, /подразделен/);
   assert.equal(pending.querySelector('script, img'), null);
   assert.equal(pending.querySelector('[data-onclick]'), null);

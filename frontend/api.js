@@ -216,13 +216,13 @@
       return data;
     },
 
-    async register(username, password, email = null, full_name = null, consents = {}) {
+    async register(username, password, email = null, consents = {}) {
       // Регистрация больше НЕ выдаёт токены — аккаунт ждёт подтверждения email.
       // consents: { accept_terms, pd_consent } — две отдельные отметки формы.
       return await request('/auth/register', {
         method: 'POST',
         body: {
-          username, password, email, full_name,
+          username, password, email,
           accept_terms: consents.accept_terms === true,
           pd_consent: consents.pd_consent === true,
         },
@@ -292,7 +292,7 @@
     },
 
     updateMe(payload) {
-      // payload: {full_name?: string|null}
+      // payload: {profile_visibility?, ui_theme?, ui_accent?, ...}
       return request('/me', { method: 'PATCH', body: payload });
     },
     // Принять текущую редакцию правовых документов (обе отметки обязательны).

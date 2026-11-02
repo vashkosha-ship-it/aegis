@@ -153,7 +153,6 @@ async def register(
         username=payload.username,
         email=payload.email,
         password_hash=hash_new_password(payload.password),
-        full_name=payload.full_name,
         role=UserRole.READER,
         is_verified=False,
         verify_code=hash_otp(code),
@@ -220,7 +219,7 @@ async def verify_email(
     if not user.is_approved:
         try:
             from app.services.email_service import send_admin_new_registration
-            await send_admin_new_registration(user.username, user.email, user.full_name)
+            await send_admin_new_registration(user.username, user.email)
         except EmailError:
             pass  # письмо админу не критично — не ломаем регистрацию
 
