@@ -897,6 +897,7 @@ async def ai_match_ar_topics(
     соответствующие категории, чтобы книги появлялись в рекомендациях AR-режима."""
     import json as _json
 
+    from app.services import ai_provider
     from app.services.deepseek_client import DeepSeekError, chat_completion
 
     topics = [t.strip() for t in payload.topics if t and t.strip()]
@@ -952,6 +953,7 @@ async def ai_match_ar_topics(
                 ),
                 max_tokens=2000,
                 timeout=120.0,
+                task=ai_provider.BOOKS,
             )
         except DeepSeekError:
             continue

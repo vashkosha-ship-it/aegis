@@ -230,6 +230,28 @@ say "Миграции"
 say "Фронтенд"
 rsync -a --delete "$FRONTEND_SRC" "$FRONTEND_DST"
 
+# --- сертификат для GigaChat ---------------------------------------------------
+#
+# Серверы GigaChat подписаны корневым сертификатом НУЦ Минцифры, которого нет
+# в стандартных хранилищах: без него запросы падают с CERTIFICATE_VERIFY_FAILED.
+# Скачиваем один раз с Госуслуг; приложение само доверяет этому файлу вместе с
+# системными сертификатами. Не скачался — не мешаем выкладке, только сообщаем.
+RU_ROOT="$BACKEND_DIR/certs/russian_trusted_root_ca.pem"
+RU_ROOT_URL="https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt"
+if [ ! -s "$RU_ROOT" ]; then
+  say "Сертификат Минцифры для GigaChat"
+  install -d "$BACKEND_DIR/certs"
+  tmp_cert="$(mktemp)"
+  if curl -fsS --max-time 20 "$RU_ROOT_URL" -o "$tmp_cert" \
+    && openssl x509 -in "$tmp_cert" -noout -subject 2>/dev/null | grep -q "Russian Trusted Root CA"; then
+    install -m 0644 "$tmp_cert" "$RU_ROOT"
+    echo "  сохранён: $RU_ROOT"
+  else
+    echo "  не удалось скачать или проверить $RU_ROOT_URL — GigaChat может не работать"
+  fi
+  rm -f "$tmp_cert"
+fi
+
 # --- конфигурация nginx -----------------------------------------------------
 #
 # Снипет с заголовками безопасности копируется, потому что certbot его не

@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.book import Book, Category, book_categories
+from app.services import ai_provider
 from app.services.book_descriptions import (
     generate_book_description,
     load_book_content_excerpt,
@@ -151,6 +152,7 @@ async def extract_book_metadata(
         [{"role": "user", "content": prompt}],
         system_prompt=METADATA_SYSTEM_PROMPT,
         max_tokens=300,
+        task=ai_provider.BOOKS,
         timeout=60.0,
     )
     data = _parse_json_object(raw)
@@ -293,6 +295,7 @@ async def review_book_metadata(
         [{"role": "user", "content": prompt}],
         system_prompt=REVIEW_SYSTEM_PROMPT,
         max_tokens=300,
+        task=ai_provider.BOOKS,
         timeout=60.0,
     )
     data = _parse_json_object(raw)

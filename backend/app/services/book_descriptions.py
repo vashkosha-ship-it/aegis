@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book_page import BookPage
+from app.services import ai_provider
 from app.services.deepseek_client import chat_completion
 
 DESCRIPTION_CONTEXT_MAX_CHARS = 6000
@@ -74,6 +75,7 @@ async def generate_book_description(
         [{"role": "user", "content": prompt}],
         system_prompt=DESCRIPTION_SYSTEM_PROMPT,
         max_tokens=450,
+        task=ai_provider.BOOKS,
         timeout=90.0,
     )
     cleaned = result.strip().strip('`').strip()

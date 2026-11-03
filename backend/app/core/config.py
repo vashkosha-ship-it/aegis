@@ -114,9 +114,11 @@ class Settings(BaseSettings):
     # Минцифры). Пусто — системное хранилище сертификатов.
     GIGACHAT_CA_BUNDLE: str = ""
 
-    # Какой ИИ используется, пока администратор не выбрал в админке:
-    # deepseek или gigachat.
-    AI_PROVIDER: str = "deepseek"
+    # Какой ИИ что делает, пока администратор не выбрал в админке
+    # (deepseek или gigachat): общение с пользователями и тесты — GigaChat,
+    # обработка книг (описания, карточки, темы) — DeepSeek.
+    AI_PROVIDER_ASSISTANT: str = "gigachat"
+    AI_PROVIDER_BOOKS: str = "deepseek"
 
     # --- Сбор ошибок (Sentry / GlitchTip) ----------------------------------
     # DSN проекта вида https://<key>@<host>/<project_id>. Пусто — ошибки только

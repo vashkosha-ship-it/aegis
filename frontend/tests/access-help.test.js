@@ -25,7 +25,7 @@ assert.match(privacy, /ни администратор, ни кто-либо е�
 assert.match(privacy, /сертификаты выписываются на логин/);
 
 // В админке: поиск по логину и кнопка временного пароля.
-const admin = read('admin-screens.js');
+const admin = read('admin-screens.js') + read('admin-settings.js');
 assert.match(admin, /lookupInput\.id = 'adminUsersSearch'/);
 assert.match(admin, /'Временный пароль'/);
 
@@ -33,9 +33,12 @@ console.log('access help tests passed');
 
 // Выбор ИИ-сервиса в админке и тексты документов про обоих поставщиков.
 assert.match(read('api.js'), /aiSettings\(\) \{ return request\('\/admin\/settings\/ai'\); \}/);
-assert.match(admin, /async function renderAiProviderSetting\(container\)/);
+assert.match(read('admin-settings.js'), /async function renderAiProviderSetting\(container\)/);
+assert.match(read('index.html'), /<script defer src="admin-settings\.js"><\/script>/);
+assert.ok(read('sw.js').includes("'/admin-settings.js'"));
 assert.match(admin, /await renderAiProviderSetting\(container\);/);
-assert.match(admin, /api\.updateSettings\(\{ ai_provider: option\.id \}\)/);
+assert.match(admin, /api\.updateSettings\(\{ \[AI_TASK_FIELDS\[task\.task\]\]: option\.id \}\)/);
+assert.match(admin, /books: 'ai_provider_books'/);
 for (const doc of [privacy, consent]) {
   assert.match(doc, /GigaChat/);
   assert.match(doc, /DeepSeek/);
