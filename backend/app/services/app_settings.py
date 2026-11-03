@@ -12,9 +12,11 @@ from app.models.app_setting import AppSetting
 # (описания книг, тесты по тексту книги) от настройки не зависят: в них
 # уходит текст книг, а не данные пользователей.
 ASSISTANT_ENABLED = "assistant_enabled"
-# Какой ИИ используется: deepseek или gigachat (см. app/services/ai_provider.py).
-# Нет записи — берётся AI_PROVIDER из настроек сервера.
-AI_PROVIDER = "ai_provider"
+# Какой ИИ какую работу делает: deepseek или gigachat
+# (см. app/services/ai_provider.py). Нет записи — берутся
+# AI_PROVIDER_ASSISTANT / AI_PROVIDER_BOOKS из настроек сервера.
+AI_PROVIDER_ASSISTANT = "ai_provider_assistant"
+AI_PROVIDER_BOOKS = "ai_provider_books"
 
 DEFAULTS: dict[str, object] = {
     ASSISTANT_ENABLED: True,

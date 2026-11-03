@@ -1,9 +1,9 @@
-"""Вызов ИИ: DeepSeek или GigaChat — какой выбран в админке.
+"""Вызов ИИ: DeepSeek или GigaChat — какой выбран в админке для этой работы.
 
 Модуль исторически назывался по DeepSeek, и весь код импортирует отсюда
 chat_completion, chat_completion_stream и DeepSeekError. Эти имена остались:
-теперь они сами выбирают провайдера (app/services/ai_provider.py), а
-DeepSeekError — общая ошибка любого провайдера.
+теперь они сами выбирают провайдера по виду работы (task, см.
+app/services/ai_provider.py), а DeepSeekError — общая ошибка любого провайдера.
 """
 import logging
 
@@ -40,12 +40,14 @@ async def chat_completion(
     system_prompt: str | None = None,
     max_tokens: int = 1024,
     timeout: float = 60.0,
+    task: str = ai_provider.ASSISTANT,
 ) -> str:
-    """Отправить диалог выбранному ИИ, вернуть текст ответа.
+    """Отправить диалог ИИ, выбранному для работы task, вернуть текст ответа.
 
     messages: [{"role": "user"|"assistant", "content": "..."}]
+    task: ai_provider.ASSISTANT (общение, тесты) или ai_provider.BOOKS (книги).
     """
-    if await ai_provider.current() == ai_provider.GIGACHAT:
+    if await ai_provider.current(task) == ai_provider.GIGACHAT:
         return await gigachat_client.chat_completion(
             _with_system(messages, system_prompt), max_tokens=max_tokens, timeout=timeout,
         )
@@ -55,8 +57,8 @@ async def chat_completion(
 
 
 async def chat_completion_stream(messages: list[dict], *, system_prompt: str | None = None):
-    """Стримить ответ выбранного ИИ по кускам (async-генератор строк-дельт)."""
-    if await ai_provider.current() == ai_provider.GIGACHAT:
+    """Стримить ответ ассистента по кускам (async-генератор строк-дельт)."""
+    if await ai_provider.current(ai_provider.ASSISTANT) == ai_provider.GIGACHAT:
         stream = gigachat_client.chat_completion_stream(
             _with_system(messages, system_prompt), max_tokens=1024,
         )

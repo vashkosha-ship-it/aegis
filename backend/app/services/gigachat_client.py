@@ -10,9 +10,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import ssl
 import time
 import uuid
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import httpx
 
@@ -33,8 +35,34 @@ def is_configured() -> bool:
     return bool(settings.GIGACHAT_AUTH_KEY.strip())
 
 
-def _verify() -> str | bool:
-    return settings.GIGACHAT_CA_BUNDLE.strip() or True
+# Серверы GigaChat подписаны корневым сертификатом НУЦ Минцифры, которого
+# нет в стандартных хранилищах. deploy.sh скачивает его сюда; можно указать
+# и свой файл в GIGACHAT_CA_BUNDLE. Доверяем системным сертификатам ПЛЮС этому
+# файлу — так работают и OAuth-сервер Сбера, и обычные адреса.
+DEFAULT_RU_ROOT = Path(__file__).resolve().parents[2] / "certs" / "russian_trusted_root_ca.pem"
+
+
+def _extra_ca_files() -> list[Path]:
+    files = []
+    custom = settings.GIGACHAT_CA_BUNDLE.strip()
+    if custom:
+        files.append(Path(custom))
+    if DEFAULT_RU_ROOT.is_file():
+        files.append(DEFAULT_RU_ROOT)
+    return [f for f in files if f.is_file()]
+
+
+def _verify() -> ssl.SSLContext | bool:
+    extra = _extra_ca_files()
+    if not extra:
+        return True
+    context = ssl.create_default_context()
+    for path in extra:
+        try:
+            context.load_verify_locations(cafile=str(path))
+        except (OSError, ssl.SSLError):
+            logger.warning("Не удалось загрузить сертификаты из %s", path)
+    return context
 
 
 def _reset_token() -> None:
