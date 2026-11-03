@@ -101,6 +101,23 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = "deepseek-chat"
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
 
+    # GigaChat (Сбер). Ключ авторизации — из личного кабинета проекта на
+    # developers.sber.ru («Ключ авторизации», уже в base64). Scope:
+    # GIGACHAT_API_PERS — физлицо, GIGACHAT_API_B2B — ИП/юрлицо с пакетами,
+    # GIGACHAT_API_CORP — ИП/юрлицо с оплатой по факту.
+    GIGACHAT_AUTH_KEY: str = ""
+    GIGACHAT_SCOPE: str = "GIGACHAT_API_PERS"
+    GIGACHAT_MODEL: str = "GigaChat-2-Pro"
+    GIGACHAT_OAUTH_URL: str = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+    GIGACHAT_BASE_URL: str = "https://api.giga.chat/v1"
+    # Путь к файлу корневых сертификатов (например, с сертификатом НУЦ
+    # Минцифры). Пусто — системное хранилище сертификатов.
+    GIGACHAT_CA_BUNDLE: str = ""
+
+    # Какой ИИ используется, пока администратор не выбрал в админке:
+    # deepseek или gigachat.
+    AI_PROVIDER: str = "deepseek"
+
     # --- Сбор ошибок (Sentry / GlitchTip) ----------------------------------
     # DSN проекта вида https://<key>@<host>/<project_id>. Пусто — ошибки только
     # пишутся в журнал. Сервер и браузерные ошибки уходят в один проект.

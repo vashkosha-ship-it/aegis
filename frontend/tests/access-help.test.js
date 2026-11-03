@@ -30,3 +30,14 @@ assert.match(admin, /lookupInput\.id = 'adminUsersSearch'/);
 assert.match(admin, /'Временный пароль'/);
 
 console.log('access help tests passed');
+
+// Выбор ИИ-сервиса в админке и тексты документов про обоих поставщиков.
+assert.match(read('api.js'), /aiSettings\(\) \{ return request\('\/admin\/settings\/ai'\); \}/);
+assert.match(admin, /async function renderAiProviderSetting\(container\)/);
+assert.match(admin, /await renderAiProviderSetting\(container\);/);
+assert.match(admin, /api\.updateSettings\(\{ ai_provider: option\.id \}\)/);
+for (const doc of [privacy, consent]) {
+  assert.match(doc, /GigaChat/);
+  assert.match(doc, /DeepSeek/);
+}
+console.log('ai provider tests passed');
