@@ -1,15 +1,22 @@
-"""Тонкий клиент для DeepSeek API (OpenAI-совместимый протокол)."""
+"""Вызов ИИ: DeepSeek или GigaChat — какой выбран в админке.
+
+Модуль исторически назывался по DeepSeek, и весь код импортирует отсюда
+chat_completion, chat_completion_stream и DeepSeekError. Эти имена остались:
+теперь они сами выбирают провайдера (app/services/ai_provider.py), а
+DeepSeekError — общая ошибка любого провайдера.
+"""
 import logging
 
 import httpx
 
 from app.core.config import settings
+from app.services import ai_provider, gigachat_client
+from app.services.ai_errors import AIProviderError
 
 logger = logging.getLogger(__name__)
 
-
-class DeepSeekError(Exception):
-    """Ошибка вызова DeepSeek API."""
+# Старое имя общей ошибки: его ловит весь вызывающий код.
+DeepSeekError = AIProviderError
 
 
 # Системный промпт — задаёт «характер» ассистента
@@ -23,7 +30,43 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
+def _with_system(messages: list[dict], system_prompt: str | None) -> list[dict]:
+    return [{"role": "system", "content": system_prompt or DEFAULT_SYSTEM_PROMPT}, *messages]
+
+
 async def chat_completion(
+    messages: list[dict],
+    *,
+    system_prompt: str | None = None,
+    max_tokens: int = 1024,
+    timeout: float = 60.0,
+) -> str:
+    """Отправить диалог выбранному ИИ, вернуть текст ответа.
+
+    messages: [{"role": "user"|"assistant", "content": "..."}]
+    """
+    if await ai_provider.current() == ai_provider.GIGACHAT:
+        return await gigachat_client.chat_completion(
+            _with_system(messages, system_prompt), max_tokens=max_tokens, timeout=timeout,
+        )
+    return await _deepseek_completion(
+        messages, system_prompt=system_prompt, max_tokens=max_tokens, timeout=timeout,
+    )
+
+
+async def chat_completion_stream(messages: list[dict], *, system_prompt: str | None = None):
+    """Стримить ответ выбранного ИИ по кускам (async-генератор строк-дельт)."""
+    if await ai_provider.current() == ai_provider.GIGACHAT:
+        stream = gigachat_client.chat_completion_stream(
+            _with_system(messages, system_prompt), max_tokens=1024,
+        )
+    else:
+        stream = _deepseek_stream(messages, system_prompt=system_prompt)
+    async for piece in stream:
+        yield piece
+
+
+async def _deepseek_completion(
     messages: list[dict],
     *,
     system_prompt: str | None = None,
@@ -37,10 +80,7 @@ async def chat_completion(
     if not settings.DEEPSEEK_API_KEY:
         raise DeepSeekError("DeepSeek API key is not configured on the server")
 
-    payload_messages = [
-        {"role": "system", "content": system_prompt or DEFAULT_SYSTEM_PROMPT},
-        *messages,
-    ]
+    payload_messages = _with_system(messages, system_prompt)
 
     headers = {
         "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
@@ -77,7 +117,8 @@ async def chat_completion(
     except (KeyError, IndexError, ValueError) as e:
         raise DeepSeekError("Неожиданный формат ответа DeepSeek") from e
 
-async def chat_completion_stream(
+
+async def _deepseek_stream(
     messages: list[dict], *, system_prompt: str | None = None
 ):
     """Стримить ответ DeepSeek по кускам (async-генератор строк-дельт).
@@ -91,10 +132,7 @@ async def chat_completion_stream(
     if not settings.DEEPSEEK_API_KEY:
         raise DeepSeekError("DeepSeek API key is not configured on the server")
 
-    payload_messages = [
-        {"role": "system", "content": system_prompt or DEFAULT_SYSTEM_PROMPT},
-        *messages,
-    ]
+    payload_messages = _with_system(messages, system_prompt)
     headers = {
         "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
         "Content-Type": "application/json",

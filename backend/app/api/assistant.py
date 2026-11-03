@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 async def require_assistant_enabled(db: AsyncSession = Depends(get_db)) -> None:
-    """Ассистент выключен администратором — запрос в DeepSeek не уходит.
+    """Ассистент выключен администратором — запрос в ИИ-сервис не уходит.
 
     Проверка стоит до лимита запросов: выключенный ассистент не должен
     расходовать попытки пользователя.
@@ -60,7 +60,7 @@ async def chat(
             detail=f"Слишком много запросов. Попробуйте через {minutes} мин.",
         )
 
-    # Конвертация в формат DeepSeek
+    # Сообщения в формате chat completions (так принимают и DeepSeek, и GigaChat)
     deepseek_messages = [{"role": m.role, "content": m.content} for m in payload.messages]
 
     # Собираем дополнительный контекст в системный промпт (#8, #9, #10)
@@ -69,7 +69,7 @@ async def chat(
     try:
         reply = await chat_completion(deepseek_messages, system_prompt=system_prompt)
     except DeepSeekError as e:
-        logger.error("DeepSeek error for user %s: %s", current.id, e)
+        logger.error("AI error for user %s: %s", current.id, e)
         raise HTTPException(status_code=502, detail=f"Не удалось получить ответ от AI: {e}") from None
 
     logger.info("Assistant request from user %s", current.id)
@@ -110,7 +110,7 @@ async def chat_stream(
                 yield f"data: {_json.dumps({'delta': piece}, ensure_ascii=False)}\n\n"
             yield f"data: {_json.dumps({'done': True})}\n\n"
         except DeepSeekError as e:
-            logger.error("DeepSeek stream error for user %s: %s", current.id, e)
+            logger.error("AI stream error for user %s: %s", current.id, e)
             yield f"data: {_json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(

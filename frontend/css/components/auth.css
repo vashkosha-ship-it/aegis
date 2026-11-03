@@ -1,4 +1,4 @@
-/* ---------- Экран входа и помощь с доступом ---------- */
+/* ---------- Экран входа, помощь с доступом и настройки админки ---------- */
 /* Подсказка для тех, кто забыл логин или пароль: куда написать. */
 .auth-login-help {
   margin: 10px 0 0;
@@ -37,3 +37,18 @@
   align-items: center;
   white-space: nowrap;
 }
+/* ---------- Админка: выбор ИИ-сервиса ---------- */
+.ai-provider-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-provider-choice {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 140px;
+  min-height: 48px;
+  text-align: left;
+}
+.ai-provider-choice:disabled:not([aria-checked="true"]) { opacity: .55; cursor: not-allowed; }
+.ai-provider-choice[aria-checked="true"] { cursor: default; opacity: 1; }
+.ai-provider-name { font-weight: 700; font-size: 14px; }
+.ai-provider-meta { font-size: 11px; opacity: .8; }

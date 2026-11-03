@@ -7,11 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.app_setting import AppSetting
 
 # ИИ-ассистент для читателей: чат и «Объяснить» в читалке. Это единственное
-# место, где в DeepSeek уходит то, что пишет сам человек, поэтому
+# место, где в ИИ-сервис уходит то, что пишет сам человек, поэтому
 # администратор может его выключить. Фоновые задачи администратора
 # (описания книг, тесты по тексту книги) от настройки не зависят: в них
 # уходит текст книг, а не данные пользователей.
 ASSISTANT_ENABLED = "assistant_enabled"
+# Какой ИИ используется: deepseek или gigachat (см. app/services/ai_provider.py).
+# Нет записи — берётся AI_PROVIDER из настроек сервера.
+AI_PROVIDER = "ai_provider"
 
 DEFAULTS: dict[str, object] = {
     ASSISTANT_ENABLED: True,

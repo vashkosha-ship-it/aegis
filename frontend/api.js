@@ -302,9 +302,11 @@
         body: { accept_terms: true, pd_consent: true },
       });
     },
-    // Настройки сервиса: { assistant_enabled }.
+    // Настройки сервиса: { assistant_enabled, ai_provider }.
     settings() { return request('/settings'); },
     updateSettings(payload) { return request('/admin/settings', { method: 'PATCH', body: payload }); },
+    // Выбор ИИ-сервиса: { current, options: [{ id, label, model, configured }] }.
+    aiSettings() { return request('/admin/settings/ai'); },
     assistantChat(messages, context = {}) {
           return request('/me/assistant/chat', {
             method: 'POST',

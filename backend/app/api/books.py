@@ -360,7 +360,7 @@ async def generate_description(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
                 "Не удалось сгенерировать описание. "
-                "Проверьте настройки DeepSeek и повторите позже."
+                "Проверьте настройки ИИ-сервиса в админке и повторите позже."
             ),
         ) from exc
 

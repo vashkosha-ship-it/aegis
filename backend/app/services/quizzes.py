@@ -262,7 +262,7 @@ async def load_quiz_excerpt(db: AsyncSession, book_id: int) -> str:
 
 
 async def generate_ai_quiz(book: Book, content_excerpt: str = "") -> list[dict] | None:
-    """Сгенерировать тест через DeepSeek. None при любой неудаче.
+    """Сгенерировать тест через выбранный ИИ. None при любой неудаче.
 
     ``content_excerpt`` — фрагменты проиндексированного текста книги: с ними
     вопросы опираются на содержание, а не только на название.

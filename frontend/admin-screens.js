@@ -59,9 +59,10 @@ async function renderDashboard() {
     return;
   }
   await renderAssistantSetting(container);
+  await renderAiProviderSetting(container);
 }
 
-// Выключатель ИИ-ассистента для читателей. В DeepSeek уходит то, что пишут
+// Выключатель ИИ-ассистента для читателей. В ИИ-сервис уходит то, что пишут
 // сами пользователи, поэтому администратор должен иметь возможность это
 // прекратить одним действием, не трогая сервер.
 async function renderAssistantSetting(container) {
@@ -74,7 +75,7 @@ async function renderAssistantSetting(container) {
   title.textContent = 'ИИ-ассистент для читателей';
   const hint = document.createElement('div');
   hint.className = 'admin-setting-hint';
-  hint.textContent = 'Чат и «Объяснить» в читалке. Сообщения читателей передаются в DeepSeek. Тесты и описания книг от настройки не зависят.';
+  hint.textContent = 'Чат и «Объяснить» в читалке. Сообщения читателей передаются в выбранный ниже ИИ-сервис. Тесты и описания книг от настройки не зависят.';
   text.append(title, hint);
   const button = document.createElement('button');
   button.type = 'button';
@@ -114,6 +115,80 @@ async function renderAssistantSetting(container) {
     }
     show();
   });
+}
+
+// Какой ИИ-сервис работает: DeepSeek или GigaChat. Отвечает за ассистента,
+// составление тестов, описания и автозаполнение карточек книг. Сервис без
+// ключа на сервере выбрать нельзя — кнопка неактивна и подписана.
+async function renderAiProviderSetting(container) {
+  const card = document.createElement('div');
+  card.className = 'admin-setting-card';
+  const text = document.createElement('div');
+  text.className = 'admin-setting-text';
+  const title = document.createElement('div');
+  title.className = 'admin-setting-title';
+  title.textContent = 'ИИ-сервис';
+  const hint = document.createElement('div');
+  hint.className = 'admin-setting-hint';
+  hint.textContent = 'Отвечает в ассистенте, составляет тесты, пишет описания и заполняет карточки книг. Переключение действует для всех сразу.';
+  text.append(title, hint);
+  const choices = document.createElement('div');
+  choices.className = 'ai-provider-choices';
+  choices.setAttribute('role', 'radiogroup');
+  choices.setAttribute('aria-label', 'ИИ-сервис');
+  card.append(text, choices);
+  container.appendChild(card);
+
+  let data;
+  try {
+    data = await api.aiSettings();
+  } catch (err) {
+    console.error('Не удалось загрузить выбор ИИ:', err);
+    hint.textContent = 'Не удалось загрузить настройку.';
+    return;
+  }
+  const buttons = new Map();
+  const show = () => {
+    const current = data.options.find(option => option.id === data.current);
+    title.textContent = `ИИ-сервис: ${current ? current.label : data.current}`;
+    buttons.forEach((button, id) => {
+      const option = data.options.find(item => item.id === id);
+      const active = id === data.current;
+      button.classList.toggle('admin-tool--primary', active);
+      button.setAttribute('aria-checked', String(active));
+      button.disabled = active || !option.configured;
+    });
+  };
+  data.options.forEach(option => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'admin-tool ai-provider-choice';
+    button.setAttribute('role', 'radio');
+    const name = document.createElement('span');
+    name.className = 'ai-provider-name';
+    name.textContent = option.label;
+    const meta = document.createElement('span');
+    meta.className = 'ai-provider-meta';
+    meta.textContent = option.configured ? option.model : 'не подключён';
+    button.append(name, meta);
+    if (!option.configured) button.title = 'На сервере не задан ключ этого сервиса';
+    button.addEventListener('click', async () => {
+      if (!confirm(`Переключить ИИ на ${option.label}?`)) return;
+      buttons.forEach(item => { item.disabled = true; });
+      try {
+        const updated = await api.updateSettings({ ai_provider: option.id });
+        data.current = updated.ai_provider;
+        showToast(`ИИ-сервис: ${option.label}`);
+      } catch (err) {
+        console.error('Не удалось переключить ИИ:', err);
+        showToast(err && err.detail ? err.detail : 'Не удалось переключить');
+      }
+      show();
+    });
+    buttons.set(option.id, button);
+    choices.appendChild(button);
+  });
+  show();
 }
 
 function appendAdminCell(row, value) {
