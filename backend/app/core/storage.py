@@ -39,6 +39,15 @@ class StorageObject:
 # --- интерфейс --------------------------------------------------------------
 
 
+# Миниатюра обложки лежит рядом с обложкой под этим суффиксом
+# (см. app/services/books.ensure_cover_thumb).
+COVER_THUMB_SUFFIX = ".thumb.jpg"
+
+
+def cover_thumb_key(key: str) -> str:
+    return key + COVER_THUMB_SUFFIX
+
+
 class StorageBackend(ABC):
     """Абстракция над хранилищем бинарных файлов.
 

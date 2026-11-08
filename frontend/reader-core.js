@@ -72,6 +72,7 @@ async function loadEpub(b) {
     }
     const book = ePub(epubData);
     epubBook = book;
+    if (typeof refreshTocAvailability === 'function') refreshTocAvailability();
     epubLocationsReady = false;
     // Убираем спиннер до renderTo: очистка после renderTo удаляет созданный
     // epub.js iframe и оставляет rendition в неконсистентном состоянии.
@@ -407,6 +408,7 @@ async function loadPdf(b) {
     pdfDoc = loadedDoc;
 
     pdfTotalPages = pdfDoc.numPages;
+    if (typeof refreshTocAvailability === 'function') refreshTocAvailability();
     const prevProgress = state.readingProgress[b.id];
     if (!prevProgress) {
       state.readingProgress[b.id] = { currentPage: 1, totalPages: pdfTotalPages, started: false };
@@ -562,7 +564,8 @@ function stopPdfRendering() {
 function schedulePdfNeighbourPrerender(pn, dpr, targetWidth, token) {
   const doc = pdfDoc;
   const run = async () => {
-    for (const next of [pn + 1, pn - 1]) {
+    // На слабом устройстве готовим только следующую страницу.
+    for (const next of PDF_WEAK_DEVICE ? [pn + 1] : [pn + 1, pn - 1]) {
       if (token !== _pdfRenderToken || doc !== pdfDoc) return;
       if (next < 1 || next > pdfTotalPages) continue;
       const cache = _pdfCacheFor(doc);
@@ -598,6 +601,104 @@ function showPdfPageLoading(visible) {
   }
   if (spinner) spinner.classList.toggle('is-visible', Boolean(visible));
   viewportEl.classList.toggle('is-page-loading', Boolean(visible));
+}
+
+// ========== ТЁМНАЯ ТЕМА PDF БЕЗ ИНВЕРСИИ КАРТИНОК ==========
+// Раньше вся страница инвертировалась CSS-фильтром — вместе с фотографиями
+// и схемами (негатив). Теперь инвертируем страницу, а прямоугольники, где
+// pdf.js рисовал картинки, возвращаем из исходной отрисовки.
+function _pdfMul(m, n) {
+  return [
+    m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
+    m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
+    m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5],
+  ];
+}
+
+async function pdfImageRects(page, viewport, dpr) {
+  const OPS = pdfjsLib.OPS;
+  const list = await page.getOperatorList();
+  const rects = [];
+  const stack = [];
+  let ctm = [1, 0, 0, 1, 0, 0];
+  for (let i = 0; i < list.fnArray.length; i++) {
+    const fn = list.fnArray[i];
+    const args = list.argsArray[i];
+    if (fn === OPS.save) stack.push(ctm);
+    else if (fn === OPS.restore) ctm = stack.pop() || ctm;
+    else if (fn === OPS.transform) ctm = _pdfMul(ctm, args);
+    else if (fn === OPS.paintFormXObjectBegin) {
+      stack.push(ctm);
+      if (Array.isArray(args?.[0]) && args[0].length === 6) ctm = _pdfMul(ctm, args[0]);
+    } else if (fn === OPS.paintFormXObjectEnd) ctm = stack.pop() || ctm;
+    else if (fn === OPS.paintImageXObject || fn === OPS.paintInlineImageXObject || fn === OPS.paintJpegXObject) {
+      // Картинка рисуется в единичный квадрат текущей системы координат.
+      const m = _pdfMul(viewport.transform, ctm);
+      const xs = [m[4], m[0] + m[4], m[2] + m[4], m[0] + m[2] + m[4]];
+      const ys = [m[5], m[1] + m[5], m[3] + m[5], m[1] + m[3] + m[5]];
+      // Внутрь на пиксель: иначе по краю картинки остаётся светлая полоса фона.
+      const x = Math.ceil(Math.min(...xs) * dpr) + 1;
+      const y = Math.ceil(Math.min(...ys) * dpr) + 1;
+      const w = Math.floor(Math.max(...xs) * dpr) - 1 - x;
+      const h = Math.floor(Math.max(...ys) * dpr) - 1 - y;
+      if (w > 2 && h > 2) rects.push({ x, y, w, h });
+    }
+  }
+  return rects;
+}
+
+// Инверсия светлоты с сохранением оттенка — то же, что invert + hue-rotate(180°).
+function _invertLightness(ctx, width, height) {
+  const image = ctx.getImageData(0, 0, width, height);
+  const d = image.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const shift = 255 - Math.max(r, g, b) - Math.min(r, g, b);
+    d[i] = r + shift; d[i + 1] = g + shift; d[i + 2] = b + shift;
+  }
+  ctx.putImageData(image, 0, 0);
+}
+
+function paintPdfDark(ctx, rendered, rects) {
+  const width = rendered.width;
+  const height = rendered.height;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.filter = 'invert(1) hue-rotate(180deg)';
+  if (ctx.filter && ctx.filter !== 'none') {
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(rendered, 0, 0);
+    ctx.filter = 'none';
+  } else {
+    _invertLightness(ctx, width, height);
+  }
+  rects.forEach(r => {
+    const x = Math.max(0, r.x);
+    const y = Math.max(0, r.y);
+    const w = Math.min(width - x, r.w - (x - r.x));
+    const h = Math.min(height - y, r.h - (y - r.y));
+    if (w > 0 && h > 0) ctx.drawImage(rendered, x, y, w, h, x, y, w, h);
+  });
+  ctx.restore();
+}
+
+// Слабое устройство: мало ядер или памяти (дешёвые планшеты).
+const PDF_WEAK_DEVICE = typeof navigator !== 'undefined' && (
+  (navigator.hardwareConcurrency || 8) <= 4
+  || (typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 3));
+
+// Плотность отрисовки. Выше 2 на глаз не отличается, а память съедает втрое.
+// Кроме того, ограничиваем число точек холста: на большом планшете в
+// горизонтальной ориентации страница при 2x — больше 9 млн точек, и
+// дешёвый планшет рисует её секундами. На слабых устройствах — максимум 1.5x
+// и 3 млн точек: текст остаётся чётким, страница появляется в разы быстрее.
+function pdfRenderDpr(viewport) {
+  const deviceDpr = window.devicePixelRatio || 1;
+  let dpr = Math.min(deviceDpr, PDF_WEAK_DEVICE ? 1.5 : 2);
+  const maxPixels = PDF_WEAK_DEVICE ? 3e6 : 8e6;
+  const area = Math.max(1, viewport.width * viewport.height);
+  dpr = Math.min(dpr, Math.sqrt(maxPixels / area));
+  return Math.max(1, Math.round(dpr * 100) / 100);
 }
 
 async function renderPdfPage(pn) {
@@ -648,15 +749,14 @@ async function renderPdfPage(pn) {
   const fontScale = (parseInt(localStorage.getItem('aegis_reader_font') || '100', 10)) / 100;
   targetWidth = Math.floor(Math.min(targetWidth * fontScale, containerWidth - (isMobile ? 0 : 12)));
   // Увеличение щипком: страница шире экрана, по ней можно водить пальцем.
-  if (pdfZoom > 1) targetWidth = Math.floor(targetWidth * pdfZoom);
+  // Меньше 100 % — страница уже экрана (видна целиком в горизонтальной ориентации).
+  if (pdfZoom !== 1) targetWidth = Math.floor(targetWidth * pdfZoom);
   container.classList.toggle('is-zoomed', pdfZoom > 1);
   if (typeof updatePdfZoomControls === 'function') updatePdfZoomControls();
 
-  // Плотность выше 2 на глаз не отличается, а память на телефоне съедает
-  // втрое (страница в кэше при 3x — около 60 МБ).
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const scale = targetWidth / viewport1.width;
   const viewport = page.getViewport({ scale });
+  const dpr = pdfRenderDpr(viewport);
 
   // Страница рисуется во внеэкранный холст, а на экране до этого остаётся
   // предыдущая. Раньше видимый холст очищался сразу, и пока тяжёлая страница
@@ -683,12 +783,20 @@ async function renderPdfPage(pn) {
   canvas.style.height = 'auto';
   canvas.style.display = 'block';
   canvas.style.margin = pdfZoom > 1 ? '0' : '0 auto';
-  // Первая страница (обложка) не инвертируется в тёмной теме
-  if (pn === 1) canvas.classList.add('no-invert');
-  else canvas.classList.remove('no-invert');
   const ctx = canvas.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(rendered, 0, 0);
+  // Тёмная тема: светлый фон и тёмный текст меняются местами, а картинки
+  // остаются как есть. Первая страница (обложка) не меняется вовсе.
+  if (pn !== 1 && typeof getReaderTheme === 'function' && getReaderTheme() === 'dark') {
+    try {
+      const rects = await pdfImageRects(page, viewport, dpr);
+      if (myToken !== _pdfRenderToken) return;
+      paintPdfDark(ctx, rendered, rects);
+    } catch (err) {
+      console.warn('Тёмная тема страницы не применилась:', err);
+    }
+  }
 
   // Соседние страницы готовим заранее — листание становится мгновенным.
   // Если страница рисовалась дольше полутора секунд (тяжёлая картинка или

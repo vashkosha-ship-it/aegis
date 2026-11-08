@@ -7,6 +7,10 @@ class CommentCreate(BaseModel):
     parent_id: int | None = None
 
 
+class CommentUpdate(BaseModel):
+    text: str = Field(..., min_length=1, max_length=4000)
+
+
 class CommentAuthor(BaseModel):
     id: int
     username: str
@@ -20,5 +24,8 @@ class CommentPublic(BaseModel):
     author: CommentAuthor
     # can_delete считается на сервере: автор комментария или админ
     can_delete: bool = False
+    # Править текст может только сам автор (администратор — нет).
+    can_edit: bool = False
+    edited: bool = False
     # Ответы вложены рекурсивно — дерево строится в роутере
     replies: list["CommentPublic"] = Field(default_factory=list)

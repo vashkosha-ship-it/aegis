@@ -66,6 +66,7 @@ async function fetchQuizForBook(bookId) {
 }
 
 async function startQuiz(bookId) {
+  if (typeof testsBlockedOffline === 'function' && testsBlockedOffline()) return;
   // Показываем спиннер, пока грузятся/генерируются вопросы (может быть долго при AI-генерации)
   const c = document.getElementById('detailTabTraining');
   renderLoadingSpinner(c, 'Готовим тест…');

@@ -71,3 +71,97 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
 /* Шапка панели этапа закреплена сверху при прокрутке. Фон был «inherit»
    от полупрозрачной панели — прокрученный текст просвечивал сквозь шапку. */
 #arStageDetails > :first-child { background:#0b0b0d; z-index:3; box-shadow:0 6px 14px rgba(0,0,0,.45); }
+
+/* ---------- Панель этапа: только по выбору, целиком, раскладка — CSS ----------
+   Раньше закрытая панель торчала внизу пустой полосой с «язычком», её можно
+   было вытянуть пальцем, а размеры задавались скриптом при открытии — после
+   поворота планшета панель оказывалась не на месте. */
+#arSchemeRoot #arStageDetails {
+  display: none;
+  position: absolute;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  width: auto;
+  height: auto;
+  max-height: min(68dvh, 78%);
+  flex-direction: column;
+  overflow: hidden;
+  transform: none;
+  transition: none;
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid rgba(255,255,255,.2);
+  border-left: 0;
+  background: rgba(10,11,16,.97);
+  pointer-events: auto;
+}
+#arSchemeRoot #arStageDetails.is-open { display: flex; animation: arDetailsIn .22s ease-out; }
+#arSchemeRoot #arStageDetails > .ar-details-header {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px 12px 18px;
+  touch-action: pan-x;
+}
+#arSchemeRoot #arStageDetails #arStageDetailTitle { flex: 1; min-width: 0; padding-left: 0; }
+#arSchemeRoot #arStageDetails #arStageDetailContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.ar-details-close {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 50%;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+.ar-details-close:hover, .ar-details-close:focus-visible { background: rgba(255,255,255,.2); }
+#arSchemeRoot.ar-details-open #arStageHint { display: none; }
+@keyframes arDetailsIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+/* Широкий экран и планшет в горизонтальной ориентации — панель справа,
+   схема остаётся по центру оставшейся части экрана. */
+@media (min-width: 900px), (orientation: landscape) and (min-width: 700px) {
+  #arSchemeRoot { --ar-details-width: min(420px, 42vw); }
+  #arSchemeRoot #arStageDetails {
+    top: 0;
+    left: auto;
+    width: var(--ar-details-width);
+    max-height: none;
+    border-radius: 0;
+    border-top: 0;
+    border-left: 1px solid rgba(255,255,255,.2);
+  }
+  @keyframes arDetailsIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+  #arSchemeRoot.ar-details-open #killChainScrollContainer { width: auto; margin-right: var(--ar-details-width); }
+  #arSchemeRoot.ar-details-open > .ar-zoom-controls { right: calc(var(--ar-details-width) + 12px); }
+  /* Карточки сужаются под оставшуюся часть экрана, а не уходят под панель. */
+  #arSchemeRoot.ar-details-open {
+    --ar-nodes-width: min(760px, calc(100vw - var(--ar-details-width) - 48px));
+    --ar-stage-width: var(--ar-nodes-width);
+  }
+}
+
+/* Схема — по центру экрана (по обеим осям), пока помещается; крупная —
+   прокручивается. Раньше «Эшелонированная защита» в горизонтальной
+   ориентации прижималась к левому краю. */
+#arSchemeRoot #killChainScrollContainer { display: flex; }
+#arSchemeRoot #killChainScrollContainer > * { margin: auto; flex: none; }
+/* Вертикально: схема центрируется над открытой нижней панелью, а не под ней. */
+@media not all and (min-width: 900px) {
+  #arSchemeRoot.ar-details-open #killChainScrollContainer { margin-bottom: min(68dvh, 78%); }
+}
+#arSchemeRoot .ar-zoom-controls button:disabled { opacity: .4; cursor: default; }

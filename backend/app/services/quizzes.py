@@ -55,7 +55,9 @@ _AI_QUIZ_PROMPT = (
     "- НЕ задавай вопросов о самой книге: о её цели, авторе, аудитории, "
     "структуре, главах или о том, чему она посвящена;\n"
     "- неверные варианты должны быть правдоподобными: из той же области, "
-    "похожие по длине и стилю на правильный. Не используй заведомо нелепые "
+    "той же длины и стиля, что и правильный. Правильный ответ НЕ должен "
+    "быть самым длинным и самым подробным: примерно в половине вопросов "
+    "самым длинным пусть будет один из неверных. Не используй заведомо нелепые "
     "варианты и варианты «все перечисленное» / «ни один из вариантов»;\n"
     "- тест должен быть СЛОЖНЫМ — для специалиста, а не для новичка. Не больше "
     "3 вопросов на простое определение термина; остальные — на применение и "
@@ -113,8 +115,16 @@ _CATCH_ALL_OPTION_RE = re.compile(
     re.IGNORECASE,
 )
 # Правильный ответ длиннее самого длинного неверного во столько раз —
-# подсказка: такой вариант выбирают, не читая вопрос.
-_GIVEAWAY_LENGTH_RATIO = 2.5
+# подсказка: такой вариант выбирают, не читая вопрос. Такой вопрос не берём.
+_GIVEAWAY_LENGTH_RATIO = 1.6
+# Правильный ответ заметно длиннее всех неверных (на 10 % и больше) — слабая
+# подсказка. Такие вопросы допустимы, но в одной выдаче их не больше
+# четверти: столько же, сколько вышло бы при случайной длине вариантов.
+_LONGEST_HINT_RATIO = 1.1
+_LONGEST_HINT_SHARE = 0.25
+# Меньше вопросов не выдаём, даже если для этого придётся взять лишние
+# вопросы с подсказкой длиной.
+_MIN_SERVE_COUNT = 10
 
 
 def shuffle_options(item: dict) -> dict:
@@ -145,15 +155,38 @@ def session_order(token: str, question_id: int, count: int) -> list[int]:
     return order
 
 
+def correct_is_longest(options: list[str], correct_index: int) -> bool:
+    """Правильный вариант заметно длиннее каждого неверного."""
+    try:
+        correct = len(options[correct_index])
+        longest_wrong = max(len(o) for i, o in enumerate(options) if i != correct_index)
+    except (IndexError, ValueError, TypeError):
+        return False
+    return correct > longest_wrong * _LONGEST_HINT_RATIO
+
+
 def select_questions(questions: list) -> list:
     """Случайная выборка до QUIZ_SERVE_COUNT вопросов в перемешанном порядке.
 
     За счёт случайной выборки каждый повторный запрос теста («Пройти заново»)
     даёт новый набор/порядок вопросов, пока пул в БД больше QUIZ_SERVE_COUNT.
+
+    Модели часто делают правильный ответ самым длинным, и его угадывают, не
+    читая вопрос. Вопросов, где правильный ответ заметно длиннее остальных,
+    в выдаче не больше четверти; остальные такие вопросы отбрасываем, пока
+    в тесте остаётся хотя бы _MIN_SERVE_COUNT вопросов.
     """
-    pool = list(questions)
-    random.shuffle(pool)
-    return pool[:QUIZ_SERVE_COUNT]
+    plain = [q for q in questions if not correct_is_longest(q.options, q.correct_index)]
+    hinted = [q for q in questions if correct_is_longest(q.options, q.correct_index)]
+    random.shuffle(plain)
+    random.shuffle(hinted)
+    picked = plain[:QUIZ_SERVE_COUNT]
+    quota = round(QUIZ_SERVE_COUNT * _LONGEST_HINT_SHARE)
+    quota = min(quota, QUIZ_SERVE_COUNT - len(picked))
+    quota = max(quota, _MIN_SERVE_COUNT - len(picked))
+    picked += hinted[:max(quota, 0)]
+    random.shuffle(picked)
+    return picked
 
 
 def extract_json_questions(raw: str) -> list | None:

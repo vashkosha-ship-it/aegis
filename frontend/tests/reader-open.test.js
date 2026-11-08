@@ -82,12 +82,19 @@ assert.equal(dom.window.document.getElementById('readerBookName').textContent, '
 assert.equal(dom.window.document.getElementById('readerFormatBadge').textContent, 'PDF');
 assert.deepEqual(calls.at(-1), ['pdf', 1]);
 
-// Книга уже в списке с другим статусом — открытие его не перетирает.
+// «В планах» + открыли книгу — значит начали читать: «Читаю».
 context.state.mylist[2] = 'planned';
 context.state.currentScreen = 'reader';
 context.openReader(2);
-assert.equal(context.state.mylist[2], 'planned');
-assert.equal(mylistCalls.length, 1);
+assert.equal(context.state.mylist[2], 'reading');
+assert.deepEqual(mylistCalls.at(-1), [2, 'reading']);
+
+// «Прочитано» — открытие для перечитывания статус не меняет.
+context.state.mylist[2] = 'completed';
+const before = mylistCalls.length;
+context.openReader(2);
+assert.equal(context.state.mylist[2], 'completed');
+assert.equal(mylistCalls.length, before);
 assert.equal(context.state._readerReturnTo, 'home');
 assert.deepEqual(calls.at(-1), ['epub', 2]);
 assert.equal(dom.window.document.getElementById('readerFormatBadge').textContent, 'EPUB');

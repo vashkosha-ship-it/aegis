@@ -3,6 +3,20 @@ const offlineBookIds = new Set();
 const CACHED_USER_KEY = 'aegis_cached_user';
 // Последнее место чтения EPUB на устройстве: { bookId: CFI }.
 const EPUB_CFI_KEY = 'aegis_epub_cfi';
+// Копии каталога, «Моего списка» и прогресса на устройстве: без сети
+// главная и списки показывают то же, что при последнем входе, а не только
+// скачанные книги.
+const CATALOG_CACHE_KEY = 'aegis_catalog_cache';
+const MYLIST_CACHE_KEY = 'aegis_mylist_cache';
+const PROGRESS_CACHE_KEY = 'aegis_progress_cache';
+
+function cacheForOffline(key, value) {
+  try { lsSet(key, JSON.stringify(value)); } catch (_) { /* Места нет — офлайн будет беднее, не страшно. */ }
+}
+
+function readOfflineCache(key) {
+  try { return JSON.parse(lsGet(key) || 'null'); } catch (_) { return null; }
+}
 
 function currentOfflineUserId() {
   const id = Number(state.currentUser && state.currentUser.id);
@@ -59,7 +73,10 @@ function userScopedKeys() {
     CACHED_USER_KEY,
     SYNC_QUEUE_KEY,
     PAGE_BOOKMARKS_KEY,
-    SRS_KEY,
+    'aegis_srs', // карточки повторения убраны — чистим старые данные
+    CATALOG_CACHE_KEY,
+    MYLIST_CACHE_KEY,
+    PROGRESS_CACHE_KEY,
     TOC_READ_KEY,
     FAV_CATS_KEY,
     READING_GOAL_KEY,
@@ -95,6 +112,14 @@ async function clearUserScopedData(userId = currentOfflineUserId() || getCachedU
 async function loadBooksFromOffline() {
   const userId = currentOfflineUserId();
   if (!userId) return false;
+  // Сначала — весь каталог с прошлого входа (с описаниями и обложками);
+  // скачанные книги в нём отмечены значком и открываются без сети.
+  const catalog = readOfflineCache(CATALOG_CACHE_KEY);
+  if (Array.isArray(catalog) && catalog.length) {
+    state.books = catalog.map(adaptBookFromApi);
+    state.books.forEach(book => ensureProgress(book));
+    return true;
+  }
   try {
     const saved = (await offlineStorage.listAll(userId)) || [];
     state.books = saved.map(metadata => adaptBookFromApi({

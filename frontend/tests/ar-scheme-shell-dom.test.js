@@ -80,7 +80,11 @@ for (const renderer of [
   assert.equal(container.querySelector('img'), null);
   assert.ok(container.textContent.includes(setup.malicious));
   assert.equal(container.querySelectorAll('#arStageDetails').length, 1);
-  assert.equal(container.querySelectorAll('#arStageToggleBtn svg polyline').length, 1);
+  // «Язычка» шторки и кнопки сброса масштаба больше нет; есть кнопка закрытия.
+  assert.equal(container.querySelector('#arStageToggleBtn'), null);
+  assert.equal(container.querySelectorAll('#arStageCloseBtn').length, 1);
+  assert.equal(container.querySelectorAll('.ar-zoom-controls button').length, 2);
+  assert.equal(container.querySelector('#arStageDetails').classList.contains('is-open'), false);
   assert.equal(container.querySelectorAll('#killChainNodes button').length >= 1, true);
   const controls = [...container.querySelectorAll('.ar-stage-control')];
   assert.equal(controls.length >= 1, true);
@@ -107,7 +111,11 @@ for (const renderer of [
   assert.equal(container.querySelector('img'), null);
   assert.ok(container.textContent.includes(setup.malicious));
   assert.equal(container.querySelectorAll('#killChainNodes svg').length, 1);
-  assert.equal(container.querySelectorAll('#arStageToggleBtn svg polyline').length, 1);
+  // «Язычка» шторки и кнопки сброса масштаба больше нет; есть кнопка закрытия.
+  assert.equal(container.querySelector('#arStageToggleBtn'), null);
+  assert.equal(container.querySelectorAll('#arStageCloseBtn').length, 1);
+  assert.equal(container.querySelectorAll('.ar-zoom-controls button').length, 2);
+  assert.equal(container.querySelector('#arStageDetails').classList.contains('is-open'), false);
   const controls = [...container.querySelectorAll('.ar-stage-control')];
   assert.equal(controls.length, 2);
   controls.forEach(control => {

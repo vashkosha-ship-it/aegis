@@ -1,5 +1,6 @@
 """Book discussions endpoints — комментарии к книгам с ответами."""
 import logging
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -12,7 +13,7 @@ from app.db.session import get_db
 from app.models.book import Book
 from app.models.book_comment import BookComment
 from app.models.user import User
-from app.schemas.discussions import CommentAuthor, CommentCreate, CommentPublic
+from app.schemas.discussions import CommentAuthor, CommentCreate, CommentPublic, CommentUpdate
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["discussions"])
@@ -39,6 +40,8 @@ def _to_public(c: BookComment, current: User) -> CommentPublic:
         created_at=c.created_at.isoformat(),
         author=_author(c.user, current),
         can_delete=(c.user_id == current.id or is_admin),
+        can_edit=c.user_id == current.id,
+        edited=c.updated_at is not None,
         replies=[],
     )
 
@@ -115,6 +118,32 @@ async def add_comment(
     c = BookComment(book_id=book_id, user_id=current.id, parent_id=parent_id, text=payload.text.strip())
     db.add(c)
     await db.commit()
+    await db.refresh(c, ["user"])
+    return _to_public(c, current)
+
+
+@router.patch("/{book_id}/comments/{comment_id}", response_model=CommentPublic)
+async def edit_comment(
+    book_id: int,
+    comment_id: int,
+    payload: CommentUpdate,
+    db: AsyncSession = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> CommentPublic:
+    """Исправить текст своего комментария. Чужие — нельзя, даже администратору."""
+    c = await db.get(BookComment, comment_id)
+    if not c or c.book_id != book_id:
+        raise HTTPException(status_code=404, detail="Комментарий не найден")
+    if c.user_id != current.id:
+        raise HTTPException(status_code=403, detail="Можно изменять только свои комментарии")
+
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="Комментарий не может быть пустым")
+    if text != c.text:
+        c.text = text
+        c.updated_at = datetime.now(UTC)
+        await db.commit()
     await db.refresh(c, ["user"])
     return _to_public(c, current)
 

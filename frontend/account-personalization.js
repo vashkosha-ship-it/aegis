@@ -80,56 +80,6 @@ function renderSettingsPersonalizationTab(c) {
     accentChoices.appendChild(button);
   });
 
-  // Пояснение, почему значок на экране «Домой» меняется не сразу: его
-  // запоминает система при установке, а не само приложение.
-  const appIconUpdateNote = () => {
-    const note = _accountNode('div', null);
-    note.className = 'app-icon-note';
-    note.setAttribute('role', 'note');
-    note.appendChild(_accountNode('p', null, 'Цвет значка на экране «Домой» меняется не сразу: значок запоминает телефон или компьютер при установке приложения.'));
-    const list = document.createElement('ul');
-    [
-      ['Android и компьютер (Chrome, Edge)', ' — значок сменится сам при очередной проверке приложения браузером: обычно в течение суток. Иногда браузер спросит разрешение на обновление.'],
-      ['iPhone и iPad', ' — сам не сменится. Удалите ярлык Aegis с экрана «Домой» и снова добавьте сайт через «Поделиться» → «На экран «Домой»».'],
-      ['Чтобы сменить сразу', ' на любом устройстве — удалите приложение и установите его заново после выбора цвета.'],
-    ].forEach(([title, text]) => {
-      const item = document.createElement('li');
-      item.append(_accountNode('strong', null, title), document.createTextNode(text));
-      list.appendChild(item);
-    });
-    note.appendChild(list);
-    return note;
-  };
-
-  let appIconChoices = null;
-  if (typeof APP_ICONS !== 'undefined' && typeof getAppIcon === 'function') {
-    const currentIcon = getAppIcon();
-    appIconChoices = document.createElement('div');
-    appIconChoices.className = 'accent-choices app-icon-choices';
-    appIconChoices.setAttribute('role', 'radiogroup');
-    appIconChoices.setAttribute('aria-label', 'Значок приложения');
-    APP_ICONS.forEach(item => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'accent-choice app-icon-choice' + (currentIcon === item.id ? ' active' : '');
-      button.setAttribute('role', 'radio');
-      button.setAttribute('aria-checked', String(currentIcon === item.id));
-      button.title = item.label;
-      const image = document.createElement('img');
-      image.className = 'app-icon-preview';
-      image.src = item.icon;
-      image.alt = '';
-      image.width = 40;
-      image.height = 40;
-      button.append(image, _accountNode('span', null, item.label));
-      button.addEventListener('click', () => {
-        setAppIcon(item.id);
-        renderSettingsPersonalizationTab(document.getElementById('settingsContent'));
-      });
-      appIconChoices.appendChild(button);
-    });
-  }
-
   const gridChoices = _accountNode('div', 'a407');
   [2, 3, 4].forEach(count => {
     gridChoices.appendChild(
@@ -250,11 +200,6 @@ function renderSettingsPersonalizationTab(c) {
     _accountNode('h3', 'a350', 'Персонализация'),
     createRow('Тема приложения', themeChoices),
     createRow('Цвет акцента', accentChoices, 'Кнопки, подписи и подсветка во всём приложении'),
-    ...(appIconChoices ? [(() => {
-      const row = createRow('Значок приложения', appIconChoices);
-      row.appendChild(appIconUpdateNote());
-      return row;
-    })()] : []),
     createRow('Карточек книг в ряд', gridChoices),
     createRow('Предпросмотр', preview, 'Изменения применяются ко всему каталогу'),
     createRow('Цель чтения (страниц в день)', readingGoalChoices, 'Цель отображается в профиле и тепловой карте'),

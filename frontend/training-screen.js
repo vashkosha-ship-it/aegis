@@ -12,12 +12,34 @@ document.getElementById('trainingTabs').addEventListener('click', e => {
 const TRAINING_PAGE_SIZE = 60;
 let trainingVisibleCount = TRAINING_PAGE_SIZE;
 
+// Тесты проверяются на сервере — без интернета их не открыть.
+const OFFLINE_TESTS_MESSAGE = 'Нет подключения к интернету. Тесты доступны только онлайн.';
+
+function testsBlockedOffline() {
+  if (typeof navigator === 'undefined' || navigator.onLine !== false) return false;
+  showToast(OFFLINE_TESTS_MESSAGE);
+  return true;
+}
+
 function renderTrainingScreen() {
   updateAvatar('avatarTraining');
   document.querySelectorAll('.training-tab').forEach(t => t.classList.toggle('active', t.dataset.ttab === state.trainingTab));
 
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    replaceWithAppMarkup(document.getElementById('trainingList'),
+      `<div class="mylist-empty training-offline"><div class="icon" data-static-style="a239">${ICONS.warningTriangle}</div>`
+      + `<p>${eh(OFFLINE_TESTS_MESSAGE)}</p><p class="training-offline-hint">Подключитесь к сети — список тестов появится сам.</p></div>`);
+    return;
+  }
+
   const completed = state.currentUser ? (state.completedQuizzes[state.currentUser.name] || []) : [];
-  let all = state.books.map(b => ({
+  // Тесты — только по книгам, которые человек читает или уже прочитал
+  // (и по тем, что он уже сдавал). Тест по случайной книге из каталога —
+  // шум: его не с чем сверить.
+  const mine = new Set(Object.entries(state.mylist || {})
+    .filter(([, status]) => status === 'reading' || status === 'completed')
+    .map(([id]) => Number(id)));
+  let all = state.books.filter(b => mine.has(b.id) || completed.includes(b.id)).map(b => ({
     bookId: b.id,
     book: b,
     completed: completed.includes(b.id),
@@ -90,7 +112,9 @@ function renderTrainingScreen() {
         <div class="meta">${eh(bookCategoriesText(t.book))}</div>
         <span class="status ${t.completed ? 'status-completed' : 'status-pending'}">${t.completed ? ICONS.check + ' Пройдено' : ICONS.clock + ' Не пройдено'}</span>
       </button>`).join('') + moreHtml
-    : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.education}</div><p>Нет тестов</p></div>`;
+    : `<div class="mylist-empty"><div class="icon" data-static-style="a239">${ICONS.education}</div><p>${state.trainingTab === 'completed'
+      ? 'Пройденных тестов пока нет'
+      : 'Здесь появятся тесты по книгам, которые вы читаете. Откройте книгу — и тест по ней будет ждать здесь.'}</p></div>`;
 
   replaceWithAppMarkup(document.getElementById('trainingList'), cyberLevelBlock + listHtml);
   document.getElementById('trainingMoreBtn')?.addEventListener('click', () => {
@@ -114,6 +138,7 @@ function restartOnboardingFromTraining() {
 // Тест уровня из раздела «Тестирование»: сразу к вопросам, без экрана
 // выбора «знаю свой уровень / хочу тест».
 function startCyberLevelTest() {
+  if (testsBlockedOffline()) return;
   if (state.currentUser && state.currentUser.cyber_level) {
     if (!confirm('Пройти тест заново? Текущий результат будет заменён новым.')) return;
   }
@@ -123,6 +148,14 @@ function startCyberLevelTest() {
 }
 
 function startQuizFromTraining(bid) {
+  if (testsBlockedOffline()) return;
   openBookDetail(bid);
   setTimeout(() => document.querySelector('.detail-tab[data-dtab="training"]')?.click(), 100);
+}
+
+// Пропала или появилась сеть, пока открыт экран тестов, — перерисовываем.
+if (typeof window !== 'undefined' && window.addEventListener) {
+  ['online', 'offline'].forEach(type => window.addEventListener(type, () => {
+    if (state.currentScreen === 'training') renderTrainingScreen();
+  }));
 }

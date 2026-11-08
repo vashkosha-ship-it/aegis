@@ -34,6 +34,7 @@ async function loadComments() {
     }
     list.style.textAlign = 'left';
     list.style.padding = '0';
+    _rememberCommentTexts(comments);
     replaceWithAppMarkup(list, comments.map(renderCommentNode).join(''));
   } catch (e) {
     replaceWithStaticText(list, 'Не удалось загрузить обсуждение.', 'a137');
@@ -52,11 +53,12 @@ function _commentBubble(c, isReply) {
       <div data-static-style="a015">
         <div data-static-style="a212">
           <span data-static-style="a213">${name}</span>
-          <span data-static-style="a099">${when}</span>
+          <span data-static-style="a099">${when}${c.edited ? ' · изменено' : ''}</span>
         </div>
         <div data-static-style="a214">${eh(c.text)}</div>
         <div data-static-style="a215">
           ${!isReply ? `<button data-onclick="startReply(${c.id}, '${name.replace(/'/g, "\\'")}')" data-static-style="a216">Ответить</button>` : ''}
+          ${c.can_edit ? `<button data-onclick="editComment(${c.id})" data-static-style="a216">Изменить</button>` : ''}
           ${c.can_delete ? `<button data-onclick="deleteComment(${c.id})" data-nonce="${sensitiveNonce()}" data-static-style="a217">Удалить</button>` : ''}
         </div>
       </div>
@@ -111,6 +113,57 @@ async function submitComment() {
   } catch (e) {
     showToast(e && e.detail ? e.detail : 'Не удалось отправить');
   }
+}
+
+// Тексты загруженных комментариев: по ним заполняется окно правки.
+let _commentTexts = new Map();
+
+function _rememberCommentTexts(comments) {
+  _commentTexts = new Map();
+  (comments || []).forEach(c => {
+    _commentTexts.set(c.id, c.text);
+    (c.replies || []).forEach(r => _commentTexts.set(r.id, r.text));
+  });
+}
+
+function editComment(commentId) {
+  const { overlay, panel } = createDialogShell('commentEditModal', 'Изменить комментарий');
+  const area = document.createElement('textarea');
+  area.className = 'comment-edit-input';
+  area.maxLength = 4000;
+  area.rows = 5;
+  area.value = _commentTexts.get(commentId) || '';
+  area.setAttribute('aria-label', 'Текст комментария');
+  const footer = document.createElement('div');
+  footer.className = 'app-dialog-actions';
+  const cancel = createDialogButton('commentEditCancel', 'Отмена', 'app-dialog-button app-dialog-button--cancel');
+  const save = createDialogButton('commentEditSave', 'Сохранить', 'app-dialog-button');
+  footer.append(cancel, save);
+  panel.append(area, footer);
+
+  let keyHandler;
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', keyHandler);
+  };
+  keyHandler = event => { if (event.key === 'Escape') close(); };
+  document.addEventListener('keydown', keyHandler);
+  cancel.addEventListener('click', close);
+  bindDialogClose(overlay, close);
+  save.addEventListener('click', async () => {
+    const text = area.value.trim();
+    if (!text) { showToast('Комментарий не может быть пустым'); return; }
+    save.disabled = true;
+    try {
+      await api.library.editBookComment(currentBookId, commentId, text);
+      close();
+      loadComments();
+    } catch (e) {
+      save.disabled = false;
+      showToast(e && e.detail ? e.detail : 'Не удалось сохранить');
+    }
+  });
+  setTimeout(() => { area.focus(); area.setSelectionRange(area.value.length, area.value.length); }, 0);
 }
 
 async function deleteComment(commentId) {

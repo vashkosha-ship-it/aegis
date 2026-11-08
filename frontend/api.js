@@ -425,7 +425,8 @@
       delete(id) { return request('/books/' + id, { method: 'DELETE' }); },
 
       // URL'ы для прямой подстановки в <img src> и в pdf.js
-      coverUrl(id) { return BASE + '/books/' + id + '/cover'; },
+      // small — уменьшенная копия для карточек (быстрее на слабых планшетах).
+      coverUrl(id, size) { return BASE + '/books/' + id + '/cover' + (size === 'small' ? '?size=small' : ''); },
       pdfUrl(id) { return BASE + '/books/' + id + '/pdf'; },
       epubUrl(id) { return BASE + '/books/' + id + '/epub'; },
 
@@ -569,6 +570,7 @@
       bookComments(bookId) { return request('/books/' + bookId + '/comments'); },
       addBookComment(bookId, text, parentId) { return request('/books/' + bookId + '/comments', { method: 'POST', body: { text, parent_id: parentId || null } }); },
       deleteBookComment(bookId, commentId) { return request('/books/' + bookId + '/comments/' + commentId, { method: 'DELETE' }); },
+      editBookComment(bookId, commentId, text) { return request('/books/' + bookId + '/comments/' + commentId, { method: 'PATCH', body: { text } }); },
       // sessionToken обязателен: набор вопросов знает только сервер.
       submitQuiz(bookId, answers, sessionToken) {
         const body = { answers, session_token: sessionToken };

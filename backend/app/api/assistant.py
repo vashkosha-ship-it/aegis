@@ -124,6 +124,20 @@ async def chat_stream(
     )
 
 
+# Советовать можно только то, что есть в библиотеке: читатель должен суметь
+# открыть книгу. Названия — точно как в списке и в «ёлочках», по ним интерфейс
+# делает кнопки перехода к книге. «Твоя/ваша библиотека» — неверно: библиотека
+# общая, не личная.
+LIBRARY_RULES = (
+    "Правила про книги: советуй и упоминай ТОЛЬКО книги из списка «Книги "
+    "библиотеки сервиса». Никогда не называй книги, которых в этом списке нет, "
+    "даже известные. Название пиши точно как в списке, в кавычках-«ёлочках». "
+    "Если подходящих книг нет или списка нет, так и скажи: «В библиотеке пока "
+    "нет подходящих книг» — без слов «твоей», «вашей» или «моей» перед словом "
+    "«библиотека»."
+)
+
+
 def _build_system_prompt(payload: ChatRequest) -> str | None:
     """Дополняем базовый системный промпт контекстом, если клиент его прислал."""
     from app.services.deepseek_client import DEFAULT_SYSTEM_PROMPT
@@ -151,17 +165,15 @@ def _build_system_prompt(payload: ChatRequest) -> str | None:
 
     if payload.library:
         lines = []
-        for b in payload.library[:60]:
-            cat = f" [{', '.join(b.categories)}]" if b.categories else ""
+        for b in payload.library[:300]:
+            cat = f" [{', '.join(b.categories[:3])}]" if b.categories else ""
             st = f" — {b.status}" if b.status else ""
             author = f" — {b.author}" if b.author else ""
             lines.append(f"• {b.title}{author}{cat}{st}")
         extra.append(
-            "Библиотека пользователя (рекомендуй книги ТОЛЬКО из этого списка, "
-            "если просит совет что почитать; указывай точные названия):\n"
+            "Книги библиотеки сервиса (в скобках — отметка пользователя, если есть):\n"
             + "\n".join(lines)
         )
+    extra.append(LIBRARY_RULES)
 
-    if not extra:
-        return None  # старое поведение
     return DEFAULT_SYSTEM_PROMPT + "\n\n" + "\n\n".join(extra)

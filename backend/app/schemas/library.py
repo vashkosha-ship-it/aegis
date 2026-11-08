@@ -17,6 +17,8 @@ class ReadingProgressPublic(BaseModel):
     total_pages: int
     started: bool
     last_read_at: datetime
+    # Сервер засчитал дочитывание (книга перешла в «Прочитано»).
+    finished_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

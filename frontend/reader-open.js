@@ -11,7 +11,8 @@ function openReader(id) {
   hideReaderEmptyStub();
   if (!state.readingProgress[id]) state.readingProgress[id] = { currentPage: 1, totalPages: 10, started: false };
   state.readingProgress[id].started = true;
-  if (!state.mylist[id]) {
+  // Не в списке или «В планах» — начали читать, значит «Читаю».
+  if (!state.mylist[id] || state.mylist[id] === 'planned') {
     state.mylist[id] = 'reading';
     // Раньше статус «Читаю» ставился только в памяти вкладки. После
     // перезагрузки книга с прогрессом оказывалась «Не в списке», а «Мой

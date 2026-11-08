@@ -20,11 +20,21 @@ assert.ok(
 // После медленной страницы соседние не готовим заранее.
 assert.match(core, /performance\.now\(\) - renderStartedAt < 1500/);
 
-// Панель этапа на схемах: содержимое открытой панели прокручивается,
-// шторку тянут за шапку или вниз от верха списка.
+// Панель этапа на схемах: появляется только при выборе этапа, раскладку
+// задаёт CSS (не скрипт) — поворот экрана её не ломает; закрывается ✕,
+// касанием мимо, смахиванием вниз и Esc.
 const ar = read('ar-schemes-interactions.js');
-assert.match(ar, /function _isInDetailsHeader\s*\(/);
-assert.match(ar, /detailsPanelOpen && !detailsTouchFromHeader && deltaY < 0/);
-assert.match(ar, /detailsPanelIsDragging = !\(detailsPanelOpen && scrolled && !detailsTouchFromHeader\)/);
+const arCss = read('ar-schemes.css');
+assert.match(ar, /panel\.classList\.add\('is-open'\)/);
+assert.doesNotMatch(ar, /panel\.style\.(top|width|maxHeight|transform) =/);
+assert.match(ar, /if \(dy > 50\) closeKillChainStage\(\)/);
+assert.match(ar, /e\.target\.closest\('\.ar-stage-control, button, a'\)/);
+assert.match(ar, /event\.key !== 'Escape'/);
+assert.match(ar, /target\.style\.zoom = String\(currentARSchemeZoom\)/);
+assert.match(arCss, /#arSchemeRoot #arStageDetails\.is-open \{ display: flex;/);
+assert.match(arCss, /\(orientation: landscape\) and \(min-width: 700px\)/);
+// Книга из схемы — «назад» возвращает в схему.
+assert.match(ar, /state\._detailReturnTo = 'scheme';/);
+assert.match(read('navigation.js'), /target === 'scheme' && state\._schemeReturn/);
 
 console.log('reader exit and AR scroll tests passed');

@@ -1,11 +1,6 @@
 // Gestures, zoom and stage details for AR cybersecurity schemes.
 // Loaded before the AR controller; handlers intentionally remain global.
 
-let detailsPanelStartY = 0;
-let detailsPanelCurrentY = 0;
-let detailsPanelIsDragging = false;
-let detailsPanelOpen = false;
-let detailsPanelDidDrag = false;
 
 // Панорамирование схемы: нативный скролл (тачпад/колесо) + drag мышью
 function initARPan() {
@@ -42,270 +37,118 @@ function initARPan() {
   window.addEventListener('mouseup', () => { dragging = false; sc.style.cursor = ''; });
 }
 
+// Панель с информацией об этапе. Раньше это была шторка с «язычком»: в
+// закрытом виде торчала пустой полосой внизу, тянулась пальцем, а её
+// размеры задавались в момент открытия и ломались при повороте экрана.
+// Теперь: панели нет, пока этап не выбран; открывается целиком; где ей
+// быть (сбоку или снизу), решает CSS. Закрыть — ✕, касание мимо панели,
+// смахивание вниз, Esc или «назад».
+function arDetailsIsOpen() {
+  const panel = document.getElementById('arStageDetails');
+  return Boolean(panel && panel.classList.contains('is-open'));
+}
+
 function initStageDetailsSwipe() {
   const panel = document.getElementById('arStageDetails');
-  if (!panel) return;
-
-  panel.removeEventListener('touchstart', onDetailsTouchStart);
-  panel.removeEventListener('touchmove', onDetailsTouchMove);
-  panel.removeEventListener('touchend', onDetailsTouchEnd);
-  panel.removeEventListener('mousedown', onDetailsMouseDown);
-
-  panel.addEventListener('touchstart', onDetailsTouchStart, { passive: false });
-  panel.addEventListener('touchmove', onDetailsTouchMove, { passive: false });
-  panel.addEventListener('touchend', onDetailsTouchEnd);
-  panel.addEventListener('mousedown', onDetailsMouseDown);
-
-  // Клик по панели (для ПК/тачпада): переключает открыто/закрыто.
-  // Игнорируем клики по кнопкам и случаи, когда было перетаскивание.
-  panel.removeEventListener('click', onDetailsClick);
-  panel.addEventListener('click', onDetailsClick);
-}
-
-function toggleStageDetailsPanel(e) {
-  if (e) { e.stopPropagation(); e.preventDefault(); }
-  const panel = document.getElementById('arStageDetails');
-  if (!panel) { console.warn('AR: панель arStageDetails не найдена'); return; }
-  if (getComputedStyle(panel).display === 'none') panel.style.display = 'block';
-  panel.style.transition = 'transform 0.3s ease';
-  const arrow = document.getElementById('arStageToggleBtn');
-  const svg = arrow ? arrow.querySelector('svg') : null;
-
-  const isDesktop = window.innerWidth >= 768;
-  const xPart = isDesktop ? 'translateX(-50%) ' : '';
-
-  // Определяем реальное состояние по положению панели на экране,
-  // а не по флагу (флаг рассинхронизируется при выборе этапа).
-  const rect = panel.getBoundingClientRect();
-  const winH = window.innerHeight;
-  // Если видимая часть панели меньше ~40% её высоты — считаем закрытой → открываем
-  const visibleHeight = winH - rect.top;
-  const isCurrentlyOpen = visibleHeight > rect.height * 0.55;
-  const willOpen = !isCurrentlyOpen;
-
-  if (willOpen) {
-    panel.style.setProperty('transform', xPart + 'translateY(0px)', 'important');
-  } else {
-    const ph = panel.offsetHeight || 300;
-    panel.style.setProperty('transform', xPart + `translateY(${ph - 60}px)`, 'important');
+  const scroll = document.getElementById('killChainScrollContainer');
+  if (panel && !panel.dataset.ready) {
+    panel.dataset.ready = '1';
+    // Смахивание вниз по шапке панели закрывает её.
+    const header = panel.querySelector('.ar-details-header');
+    let startY = null;
+    header?.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+    header?.addEventListener('touchend', e => {
+      if (startY === null) return;
+      const dy = (e.changedTouches[0]?.clientY ?? startY) - startY;
+      startY = null;
+      if (dy > 50) closeKillChainStage();
+    });
   }
-  detailsPanelOpen = willOpen;
-  if (svg) svg.style.transform = willOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-}
-
-function _isInDetailsHeader(target) {
-  const panel = document.getElementById('arStageDetails');
-  const header = panel && panel.firstElementChild;
-  return Boolean(header && target && header.contains(target));
-}
-
-function onDetailsClick(e) {
-  if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-  if (detailsPanelDidDrag) { detailsPanelDidDrag = false; return; } // это было перетаскивание
-  // Открытую панель сворачивает только нажатие на шапку: клик по тексту
-  // или списку книг раньше захлопывал панель.
-  if (detailsPanelOpen && !_isInDetailsHeader(e.target)) return;
-  const panel = document.getElementById('arStageDetails');
-  if (!panel) return;
-  panel.style.transition = 'transform 0.3s ease';
-  if (detailsPanelOpen) {
-    const ph = panel.offsetHeight;
-    panel.style.transform = `translateY(${ph - 60}px)`;
-    detailsPanelOpen = false;
-  } else {
-    panel.style.transform = 'translateY(0)';
-    detailsPanelOpen = true;
+  // Касание по пустому месту схемы (не по этапу) закрывает панель.
+  if (scroll && !scroll.dataset.closeReady) {
+    scroll.dataset.closeReady = '1';
+    scroll.addEventListener('click', e => {
+      if (!arDetailsIsOpen()) return;
+      if (e.target.closest('.ar-stage-control, button, a')) return;
+      closeKillChainStage();
+    });
   }
+  initARPinchZoom();
 }
 
-function onDetailsMouseDown(e) {
-  // Игнорируем клики по кнопкам внутри панели
-  if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-  detailsPanelStartY = e.clientY;
-  detailsPanelIsDragging = true;
-  const panel = document.getElementById('arStageDetails');
-  if (panel) panel.style.transition = 'none';
-  const onMove = (ev) => {
-    if (!detailsPanelIsDragging) return;
-    const p = document.getElementById('arStageDetails');
-    if (!p) return;
-    const delta = ev.clientY - detailsPanelStartY;
-    if (Math.abs(delta) > 5) detailsPanelDidDrag = true;
-    const ph = p.offsetHeight;
-    const base = detailsPanelOpen ? 0 : ph - 60;
-    const nt = Math.max(0, Math.min(base + delta, ph - 60));
-    p.style.transform = `translateY(${nt}px)`;
-    detailsPanelCurrentY = nt;
-  };
-  const onUp = () => {
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup', onUp);
-    onDetailsTouchEnd({ touches: [] });
-  };
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
-}
-
-// Панель одновременно шторка (тянется вверх-вниз) и прокручиваемый список.
-// Раньше любое касание тянуло шторку и отменяло прокрутку — до книг по теме
-// было не долистать. Теперь у открытой панели содержимое прокручивается
-// как обычно, а шторку тянут за шапку или вниз, когда список уже вверху.
-let detailsTouchDecided = false;
-let detailsTouchFromHeader = false;
-
-function onDetailsTouchStart(e) {
-  detailsPanelStartY = e.touches[0].clientY;
-  detailsTouchDecided = false;
-  detailsTouchFromHeader = _isInDetailsHeader(e.target);
-  const panel = document.getElementById('arStageDetails');
-  const scrolled = panel ? panel.scrollTop > 0 : false;
-  // Открыта и уже пролистана, касание не по шапке — это прокрутка списка.
-  detailsPanelIsDragging = !(detailsPanelOpen && scrolled && !detailsTouchFromHeader);
-}
-
-function onDetailsTouchMove(e) {
-  if (!detailsPanelIsDragging) return;
-
-  const currentY = e.touches[0].clientY;
-  const deltaY = currentY - detailsPanelStartY;
-  const panel = document.getElementById('arStageDetails');
-  if (!panel) return;
-
-  if (!detailsTouchDecided) {
-    if (Math.abs(deltaY) < 6) return;
-    // Палец вверх по содержимому открытой панели — листаем список.
-    if (detailsPanelOpen && !detailsTouchFromHeader && deltaY < 0) {
-      detailsPanelIsDragging = false;
-      return;
-    }
-    detailsTouchDecided = true;
-    detailsPanelDidDrag = true;
-    panel.style.transition = 'none';
-  }
-  e.preventDefault();
-
-  const panelHeight = panel.offsetHeight;
-  const currentTransform = detailsPanelOpen ? 0 : panelHeight - 60;
-  let newTransform = currentTransform + deltaY;
-
-  // Ограничиваем диапазон
-  newTransform = Math.max(0, Math.min(newTransform, panelHeight - 60));
-
-  panel.style.transform = `translateY(${newTransform}px)`;
-  detailsPanelCurrentY = newTransform;
-}
-
-function onDetailsTouchEnd(e) {
-  if (!detailsPanelIsDragging) return;
-  detailsPanelIsDragging = false;
-  // Касание без движения — это нажатие, его обработает click.
-  if (e && e.touches && !detailsTouchDecided && e.type === 'touchend') return;
-
-  const panel = document.getElementById('arStageDetails');
-  if (!panel) return;
-
-  const panelHeight = panel.offsetHeight;
-  const threshold = panelHeight * 0.3;
-
-  // Решаем, открыть или закрыть
-  if (detailsPanelCurrentY < threshold) {
-    // Открыть полностью
-    panel.style.transform = 'translateY(0)';
-    detailsPanelOpen = true;
-  } else if (detailsPanelCurrentY > panelHeight - 60 - threshold) {
-    // Закрыть до минимального размера
-    panel.style.transform = `translateY(${panelHeight - 60}px)`;
-    detailsPanelOpen = false;
-  } else {
-    // Вернуться к предыдущему состоянию
-    if (detailsPanelOpen) {
-      panel.style.transform = 'translateY(0)';
-    } else {
-      panel.style.transform = `translateY(${panelHeight - 60}px)`;
-    }
-  }
-
-  panel.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1)';
-}
+// Масштаб схемы — CSS zoom на всём содержимом: одинаково для списка этапов,
+// колец, таблиц; прокрутка знает новый размер. Раньше «+» менял размеры
+// только кружков старой Kill Chain и на карточках этапов давал обратный
+// эффект, а на остальных схемах не делал ничего.
 let currentARSchemeZoom = 1;
-const AR_ZOOM_MIN = 0.5;
+const AR_ZOOM_MIN = 0.6;
 const AR_ZOOM_MAX = 2.5;
+const AR_ZOOM_STEP = 0.2;
 
-function zoomARScheme(direction) {
-  const nodesContainer = document.getElementById('killChainNodes');
-  if (!nodesContainer) return;
-
-  if (direction === 'in') {
-    currentARSchemeZoom = Math.min(currentARSchemeZoom + 0.15, AR_ZOOM_MAX);
-  } else if (direction === 'out') {
-    currentARSchemeZoom = Math.max(currentARSchemeZoom - 0.15, AR_ZOOM_MIN);
-  }
-
-  applyARSchemeZoom();
-  showZoomIndicator(Math.round(currentARSchemeZoom * 100));
+function _arZoomTarget() {
+  return document.getElementById('killChainWrapper') || document.getElementById('killChainNodes');
 }
 
 function applyARSchemeZoom() {
-  // Меняем размеры всех нод и соединителей реальными CSS-свойствами,
-  // а не transform: scale(). Это позволяет скроллу понимать новый размер.
-  const isVertical = window.innerWidth < 768;
-  const baseNodeSize = isVertical ? 80 : 64;
-  const baseGap = isVertical ? 12 : 8;
-  const baseConnectorMain = isVertical ? 24 : 24;       // длина по основной оси
-  const baseConnectorCross = 2;                         // толщина
-  const baseFontNum = isVertical ? 22 : 18;
-  const baseFontLabel = isVertical ? 9 : 7;
-
-  const z = currentARSchemeZoom;
-  const nodeSize = Math.round(baseNodeSize * z);
-  const gap = Math.round(baseGap * z);
-  const connectorMain = Math.round(baseConnectorMain * z);
-  const fontNum = Math.round(baseFontNum * z);
-  const fontLabel = Math.round(baseFontLabel * z);
-
-  const nodesContainer = document.getElementById('killChainNodes');
-  if (nodesContainer) {
-    nodesContainer.style.gap = gap + 'px';
-    nodesContainer.style.transform = 'none';  // на всякий случай очищаем старый scale
-  }
-
-  // Обновляем все ноды
-  activeScheme().stages.forEach(s => {
-    const node = document.getElementById('arNode' + s.id);
-    if (!node) return;
-    node.style.width = nodeSize + 'px';
-    node.style.height = nodeSize + 'px';
-    const num = node.querySelector('div:first-child');
-    const lbl = node.querySelector('div:last-child');
-    if (num) num.style.fontSize = fontNum + 'px';
-    if (lbl) lbl.style.fontSize = fontLabel + 'px';
-  });
-
-  // Обновляем соединители (тонкие линии между нодами)
-  document.querySelectorAll('#killChainNodes > div:not([id])').forEach(c => {
-    if (isVertical) {
-      c.style.width = baseConnectorCross + 'px';
-      c.style.height = connectorMain + 'px';
-    } else {
-      c.style.width = connectorMain + 'px';
-      c.style.height = baseConnectorCross + 'px';
-    }
-  });
+  const target = _arZoomTarget();
+  if (!target) return;
+  target.style.zoom = String(currentARSchemeZoom);
+  target.style.transform = 'none';
 }
+
+function setARSchemeZoom(value, { indicator = true } = {}) {
+  const next = Math.round(Math.min(AR_ZOOM_MAX, Math.max(AR_ZOOM_MIN, value)) * 100) / 100;
+  const scroll = document.getElementById('killChainScrollContainer');
+  // Центр видимой области остаётся на месте.
+  let cx = 0.5, cy = 0.5;
+  if (scroll && scroll.scrollWidth && scroll.scrollHeight) {
+    cx = (scroll.scrollLeft + scroll.clientWidth / 2) / scroll.scrollWidth;
+    cy = (scroll.scrollTop + scroll.clientHeight / 2) / scroll.scrollHeight;
+  }
+  currentARSchemeZoom = next;
+  applyARSchemeZoom();
+  if (scroll) {
+    scroll.scrollLeft = Math.max(0, cx * scroll.scrollWidth - scroll.clientWidth / 2);
+    scroll.scrollTop = Math.max(0, cy * scroll.scrollHeight - scroll.clientHeight / 2);
+  }
+  const controls = document.querySelectorAll('.ar-zoom-controls button');
+  if (controls[0]) controls[0].disabled = next >= AR_ZOOM_MAX;
+  if (controls[1]) controls[1].disabled = next <= AR_ZOOM_MIN;
+  if (indicator) showZoomIndicator(Math.round(next * 100));
+}
+
+function zoomARScheme(direction) {
+  setARSchemeZoom(currentARSchemeZoom + (direction === 'in' ? AR_ZOOM_STEP : -AR_ZOOM_STEP));
+}
+
 function resetARSchemeZoom() {
-  currentARSchemeZoom = 1;
-  const nodesContainer = document.getElementById('killChainNodes');
-  const scrollContainer = document.getElementById('killChainScrollContainer');
-  if (nodesContainer) {
-    nodesContainer.style.transform = 'scale(1)';
-    nodesContainer.style.transition = 'transform 0.2s ease';
-  }
-  if (scrollContainer) {
-    scrollContainer.scrollTop = 0;
-    scrollContainer.scrollLeft = 0;
-  }
-  if (typeof applyARSchemeZoom === 'function') applyARSchemeZoom();
-  showZoomIndicator(100);
+  setARSchemeZoom(1, { indicator: false });
+}
+
+// Щипок двумя пальцами — масштаб схемы (браузерный масштаб в приложении выключен).
+function initARPinchZoom() {
+  const scroll = document.getElementById('killChainScrollContainer');
+  if (!scroll || scroll.dataset.pinchReady) return;
+  scroll.dataset.pinchReady = '1';
+  let startDist = 0;
+  let startZoom = 1;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  scroll.addEventListener('touchstart', e => {
+    if (e.touches.length !== 2) return;
+    startDist = dist(e.touches) || 1;
+    startZoom = currentARSchemeZoom;
+  }, { passive: true });
+  scroll.addEventListener('touchmove', e => {
+    if (e.touches.length !== 2 || !startDist) return;
+    e.preventDefault();
+    setARSchemeZoom(startZoom * dist(e.touches) / startDist, { indicator: false });
+  }, { passive: false });
+  scroll.addEventListener('touchend', e => {
+    if (e.touches.length < 2 && startDist) {
+      startDist = 0;
+      showZoomIndicator(Math.round(currentARSchemeZoom * 100));
+    }
+  }, { passive: true });
 }
 
 function showZoomIndicator(percent) {
@@ -536,53 +379,16 @@ function selectKillChainStage(stageId) {
   // Обновляем содержимое панели безопасными DOM-операциями
   _renderKillChainStageDetails(stage, relatedBooks, stageId);
 
-  // Показываем панель и СРАЗУ открываем полностью (без свайпа)
+  // Показываем панель целиком; где — сбоку или снизу — решает CSS.
   const panel = document.getElementById('arStageDetails');
   if (panel) {
-    panel.style.display = 'block';
-    const isWide = window.innerWidth >= 900;
-    void panel.offsetHeight; // reflow для transition
-    if (isWide) {
-      // Правый сайдбар
-      panel.style.top = '0';
-      panel.style.bottom = '0';
-      panel.style.left = 'auto';
-      panel.style.right = '0';
-      panel.style.width = 'min(420px, 42vw)';
-      panel.style.maxHeight = '100%';
-      panel.style.height = '100%';
-      panel.style.borderRadius = '0';
-      panel.style.borderTop = 'none';
-      panel.style.borderLeft = '1px solid rgba(255,255,255,0.2)';
-      panel.style.transform = 'translateX(0)';
-      panel.classList.add('open');
-    } else {
-      // Узкий экран: нижняя шторка, СРАЗУ открыта полностью
-      panel.classList.remove('open');
-      panel.style.top = 'auto';
-      panel.style.bottom = '0';
-      panel.style.left = '0';
-      panel.style.right = '0';
-      panel.style.width = '100%';
-      panel.style.height = 'auto';
-      panel.style.maxHeight = '78%';
-      panel.style.borderRadius = '20px 20px 0 0';
-      panel.style.borderTop = '1px solid rgba(255,255,255,0.2)';
-      panel.style.borderLeft = 'none';
-      panel.style.transform = 'translateY(0)';
-    }
-    detailsPanelOpen = true;
-
-    // Кнопка закрытия (добавляем один раз)
-    if (!document.getElementById('arПанельCloseBtn')) {
-      const cb = document.createElement('button');
-      cb.id = 'arПанельCloseBtn';
-      cb.textContent = '✕';
-      cb.onclick = (e) => { e.stopPropagation(); closeKillChainStage(); };
-      cb.style.cssText = 'position:absolute;top:10px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:16px;cursor:pointer;z-index:30;display:flex;align-items:center;justify-content:center;';
-      panel.appendChild(cb);
-    }
+    panel.classList.add('is-open');
+    panel.scrollTop = 0;
+    const content = document.getElementById('arStageDetailContent');
+    if (content) content.scrollTop = 0;
   }
+  const root = document.getElementById('arSchemeRoot');
+  if (root) root.classList.add('ar-details-open');
 }
 function switchKillChainTab(tab) {
   ['attack', 'defense', 'tools'].forEach(t => {
@@ -683,15 +489,10 @@ function closeKillChainStage() {
     node.classList.remove('is-selected');
     node.setAttribute('aria-pressed', 'false');
   });
-  const detailPanel = document.getElementById('arStageDetails');
-  if (detailPanel) {
-    detailPanel.classList.remove('open');
-    detailPanel.style.display = 'none';
-    // полный сброс инлайнов сайдбара
-    ['top','bottom','left','right','width','maxHeight','height','borderRadius','borderTop','borderLeft','transform'].forEach(p => detailPanel.style[p] = '');
-  }
-  const root = document.getElementById('arSchemeRoot');
-  if (root) root.classList.remove('panel-visible');
+  document.getElementById('arStageDetails')?.classList.remove('is-open');
+  document.getElementById('arSchemeRoot')?.classList.remove('ar-details-open');
+  const hint = document.getElementById('arStageHint');
+  if (hint) hint.style.display = '';
 }
 
 function prevKillChainStage() {
@@ -706,8 +507,25 @@ function nextKillChainStage() {
   }
 }
 
+// Книга из схемы: «назад» из книги возвращает в ту же схему и к тому же
+// этапу, а не на главную.
 function openBookFromAR(bookId) {
-  // Закрываем AR-экран и переходим на детальную страницу книги
+  const back = arCurrentScheme ? { scheme: arCurrentScheme, stage: arSelectedStage } : null;
   closeAR();
   openBookDetail(bookId);
+  if (back) {
+    state._detailReturnTo = 'scheme';
+    state._schemeReturn = back;
+  }
+}
+
+// Esc: сначала закрывает панель этапа, затем схему.
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const modal = document.getElementById('arModal');
+    if (!modal || !modal.classList.contains('active')) return;
+    if (arDetailsIsOpen()) closeKillChainStage();
+    else closeAR();
+  });
 }

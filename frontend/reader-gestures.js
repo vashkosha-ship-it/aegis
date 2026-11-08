@@ -117,7 +117,9 @@ function updatePageIndicator() {
 // Масштаб браузера в приложении выключен (иначе ломается интерфейс), поэтому
 // страницу PDF увеличиваем сами: во время жеста — быстрым CSS-масштабом,
 // после — перерисовкой в чёткости под новый размер.
-const PDF_ZOOM_MIN = 1;
+// Меньше 100 % — чтобы в горизонтальной ориентации планшета страница
+// помещалась на экран целиком.
+const PDF_ZOOM_MIN = 0.5;
 const PDF_ZOOM_MAX = 3;
 const pdfPinch = { active: false, startDist: 0, startZoom: 1, ratio: 1, originX: 0, originY: 0, recent: false };
 
@@ -166,7 +168,8 @@ function initPdfPinchZoom() {
     setTimeout(() => { pdfPinch.recent = false; }, 350);
     const canvas = document.getElementById('pdfCanvas');
     const newZoom = Math.round(pdfPinch.startZoom * pdfPinch.ratio * 100) / 100;
-    const zoom = newZoom < 1.08 ? 1 : Math.min(PDF_ZOOM_MAX, newZoom);
+    // Около 100 % — ровно 100 %: так страница снова точно по ширине.
+    const zoom = Math.abs(newZoom - 1) < 0.08 ? 1 : Math.min(PDF_ZOOM_MAX, Math.max(PDF_ZOOM_MIN, newZoom));
     // Точка под пальцами остаётся на месте после перерисовки.
     const factor = zoom / pdfPinch.startZoom;
     const anchorX = pdfPinch.originX * factor;
@@ -194,7 +197,7 @@ function initPdfPinchZoom() {
     const now = Date.now();
     if (now - lastTap < 300) {
       lastTap = 0;
-      setPdfZoom(pdfZoom > 1 ? 1 : 2);
+      setPdfZoom(pdfZoom !== 1 ? 1 : 2);
     } else {
       lastTap = now;
     }
@@ -202,7 +205,7 @@ function initPdfPinchZoom() {
 }
 
 // Кнопки масштаба: на ПК щипка нет, а на телефоне не все знают про жест.
-const PDF_ZOOM_STEPS = [1, 1.25, 1.5, 2, 2.5, 3];
+const PDF_ZOOM_STEPS = [0.5, 0.6, 0.75, 0.9, 1, 1.25, 1.5, 2, 2.5, 3];
 
 function updatePdfZoomControls() {
   const controls = document.getElementById('pdfZoomControls');

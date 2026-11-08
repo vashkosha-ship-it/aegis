@@ -33,7 +33,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1, max_length=20)
     # Доп. контекст — опционально, чтобы старый клиент тоже работал
     book_context: BookContext | None = None
-    library: list[LibraryBook] | None = Field(None, max_length=100)
+    library: list[LibraryBook] | None = Field(None, max_length=300)
     level: str | None = Field(None, max_length=60)
 
 

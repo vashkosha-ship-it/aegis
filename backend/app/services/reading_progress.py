@@ -39,6 +39,8 @@ XP_FOR_FINISHING_BOOK = 25
 
 # Какую долю книги нужно пройти, чтобы завершение засчиталось.
 MIN_PROGRESS_RATIO = 0.5
+# С какого процента страниц книга считается дочитанной.
+FINISHED_PERCENT = 99
 
 # Сколько страниц продвижения засчитывается за одно обновление. Это ключевое
 # ограничение: раньше «дочитал» определялось по позиции, а позицию присылает
@@ -228,6 +230,17 @@ async def _mark_completed_in_list(
         )
 
 
+async def _move_planned_to_reading(db: AsyncSession, user: User, book_id: int) -> None:
+    entry = await db.scalar(
+        select(MyListEntry).where(
+            MyListEntry.user_id == user.id,
+            MyListEntry.book_id == book_id,
+        )
+    )
+    if entry is not None and entry.status == MyListStatus.PLANNED:
+        entry.status = MyListStatus.READING
+
+
 async def update_reading_progress(
     db: AsyncSession,
     user: User,
@@ -310,6 +323,9 @@ async def update_reading_progress(
             is_first_start = True
         await _apply_update(db, user, progress, current_page, total_pages, now)
 
+    # Книга из «В планах», которую начали читать, переезжает в «Читаю».
+    await _move_planned_to_reading(db, user, book_id)
+
     if is_first_start:
         await add_xp(db, user, XP_FOR_STARTING_BOOK)
         await update_streak(db, user)
@@ -318,7 +334,9 @@ async def update_reading_progress(
     # Книга считается дочитанной по факту дохода до последней страницы, а не
     # по отметке в списке — её можно поставить не открывая книгу. Но одного
     # попадания на последнюю страницу мало: см. _may_count_as_finished.
-    reached_end = total_pages > 1 and current_page >= total_pages
+    # «Дочитано» — с 99 %: последние страницы часто пустые или приложения, и
+    # книга на 99 % не должна висеть в «Читаю».
+    reached_end = total_pages > 1 and current_page * 100 >= total_pages * FINISHED_PERCENT
     if reached_end and not progress.finished_at:
         allowed, reason = _may_count_as_finished(progress, total_pages, total_verified)
         if allowed:

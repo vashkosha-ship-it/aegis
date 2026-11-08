@@ -20,7 +20,14 @@ function populateCatalog() {
   document.getElementById('filterSort').value = state.filters.sort;
 }
 function toggleCategoryFilter(c) { const idx = state.filters.categories.indexOf(c); if (idx === -1) state.filters.categories.push(c); else state.filters.categories.splice(idx, 1); populateCatalog(); applyFilters(); }
-function applyFilters() { state.booksPage = 1; state.filters.sort = document.getElementById('filterSort').value; renderHome(); showToast('Применено'); }
+function applyFilters() {
+  state.booksPage = 1;
+  state.filters.sort = document.getElementById('filterSort').value;
+  renderHome();
+  // Панель закрываем: результат должен быть виден сразу, без лишнего нажатия.
+  if (typeof closeCatalogPanel === 'function') closeCatalogPanel();
+  showToast('Применено');
+}
 function resetFilters() { state.filters = { categories: [], sort: 'default' }; populateCatalog(); renderHome(); showToast('Сброшено'); }
 function getFilteredBooks() {
   // Строка поиска каталог не фильтрует: у поиска один вид результатов —

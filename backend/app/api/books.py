@@ -1409,15 +1409,22 @@ async def upload_book_cover(
 @router.get("/{book_id}/cover")
 async def download_book_cover(
     book_id: int,
+    size: Literal["full", "small"] = "full",
     db: AsyncSession = Depends(get_db),
     storage: StorageBackend = Depends(get_storage),
 ) -> StreamingResponse:
-    """Публично: получить обложку книги. Используется в карточках на фронте."""
+    """Публично: получить обложку книги. Используется в карточках на фронте.
+
+    size=small — уменьшенная копия для карточек каталога (делается один раз
+    и хранится рядом с обложкой); не вышло — отдаём полную.
+    """
     book = await _get_book_or_404(db, book_id)
     if not book.cover_storage_key:
         raise HTTPException(status_code=404, detail="Book has no cover")
 
     key = book.cover_storage_key
+    if size == "small":
+        key = await books_service.ensure_cover_thumb(storage, key) or key
 
     # MIME выводим из расширения ключа — оно проставлено при загрузке.
     ext_to_mime = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}

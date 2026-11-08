@@ -1,5 +1,10 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v368';
+const CACHE_NAME = 'aegis-cache-v369';
+// Обложки книг — отдельный кэш, не сбрасывается при обновлении приложения:
+// раз увиденная обложка показывается и без интернета.
+const COVERS_CACHE = 'aegis-covers-v1';
+const COVERS_MAX = 2000;
+const COVER_PATH_RE = /^\/api\/books\/\d+\/cover$/;
 
 // Ресурсы для предварительного кэширования.
 // Только лёгкая критичная статика для старта. Тяжёлые vendor-библиотеки
@@ -29,6 +34,9 @@ const PRECACHE_URLS = [
   '/css/components/appearance-onboarding.css',
   '/css/components/duplicates.css',
   '/css/components/auth.css',
+  '/css/components/assistant-books.css',
+  '/css/components/mylist-actions.css',
+  '/css/components/reader-tablet.css',
   '/css/components/theme-light.css',
   '/fonts/jetbrains-mono-cyrillic-400-normal.woff2',
   '/fonts/jetbrains-mono-cyrillic-500-normal.woff2',
@@ -46,7 +54,6 @@ const PRECACHE_URLS = [
   '/fonts/unbounded-cyrillic-700-normal.woff2',
   '/fonts/unbounded-latin-500-normal.woff2',
   '/fonts/unbounded-latin-700-normal.woff2',
-  '/print-notes.css',
   '/error-reporter.js',
   '/dynamic-styles.js',
   '/handler-allowlist.js',
@@ -141,7 +148,6 @@ const PRECACHE_URLS = [
   '/training-screen.js',
   '/reader-theme.js',
   '/reading-progress-sync.js',
-  '/flashcards.js',
   '/reader-gestures.js',
   '/page-bookmarks.js',
   '/reader-toc.js',
@@ -244,7 +250,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name !== CACHE_NAME && name !== COVERS_CACHE)
           .map((name) => {
             console.log('[SW] Удаляю старый кэш:', name);
             return caches.delete(name);
@@ -255,10 +261,42 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+async function trimCovers(cache) {
+  const keys = await cache.keys();
+  for (let i = 0; i < keys.length - COVERS_MAX; i += 1) await cache.delete(keys[i]);
+}
+
+async function serveCover(event) {
+  const cache = await caches.open(COVERS_CACHE);
+  // Ключ — путь и размер (?size=small — миниатюра для карточек).
+  const url = new URL(event.request.url);
+  const key = new Request(url.pathname + (url.searchParams.get('size') === 'small' ? '?size=small' : ''));
+  const cached = await cache.match(key);
+  const network = fetch(event.request).then(async (response) => {
+    const type = response.headers.get('Content-Type') || '';
+    if (response.ok && type.startsWith('image/')) {
+      await cache.put(key, response.clone());
+      trimCovers(cache).catch(() => {});
+    }
+    return response;
+  });
+  if (cached) {
+    event.waitUntil(network.catch(() => {}));
+    return cached;
+  }
+  return network.catch(() => new Response('', { status: 504, statusText: 'Offline' }));
+}
+
 // Перехват запросов
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const isApiRequest = url.pathname.startsWith('/api/') || url.port === '8000';
+
+  // Обложки: сразу из кэша (если есть), в фоне — обновление из сети.
+  if (event.request.method === 'GET' && COVER_PATH_RE.test(url.pathname)) {
+    event.respondWith(serveCover(event));
+    return;
+  }
 
   // API-запросы — пропускаем через сеть; фронт сам обработает ошибку
   // и покажет баннер «Нет связи» через свой online/offline-детектор.
