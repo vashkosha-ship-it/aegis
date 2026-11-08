@@ -39,6 +39,32 @@ async def test_book_finished_at_99_percent_moves_to_completed(client, db, approv
     assert entry.status == MyListStatus.COMPLETED
 
 
+async def test_fast_flip_to_end_moves_list_but_gives_no_xp(client, db, approved_user):
+    """Пролистал до конца быстро — опыта нет, но книга в «Прочитано», и если
+    вернуть её в «Читаю», повторное сохранение той же страницы её не трогает."""
+    book = await _book(db, 300)
+    book_id, user_id = book.id, approved_user.id
+    db.add(MyListEntry(user_id=user_id, book_id=book_id, status=MyListStatus.READING))
+    await db.commit()
+    xp_before = approved_user.xp or 0
+    await _put_progress(client, approved_user, book_id, 5)
+    r = await _put_progress(client, approved_user, book_id, 300)
+    body = r.json()
+    assert body["finished_at"] is None
+    assert body["list_status"] == "completed"
+    entry = await db.scalar(select(MyListEntry).where(
+        MyListEntry.user_id == user_id, MyListEntry.book_id == book_id))
+    await db.refresh(entry)
+    assert entry.status == MyListStatus.COMPLETED
+
+    entry.status = MyListStatus.READING
+    await db.commit()
+    r = await _put_progress(client, approved_user, book_id, 300)
+    assert r.json()["list_status"] == "reading"
+    await db.refresh(approved_user)
+    assert (approved_user.xp or 0) - xp_before < rp.XP_FOR_FINISHING_BOOK
+
+
 async def test_98_percent_is_not_finished(client, db, approved_user):
     book = await _book(db, 300)
     book_id, user_id = book.id, approved_user.id

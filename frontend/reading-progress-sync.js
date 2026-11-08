@@ -213,13 +213,17 @@ function applyServerListStatus(bookId, saved) {
   if (!saved || !state.mylist) return;
   const before = state.mylist[bookId];
   let after = before;
-  if (saved.finished_at) after = 'completed';
+  if (saved.list_status) after = saved.list_status;
+  else if (saved.finished_at) after = 'completed';
   else if (before === 'planned') after = 'reading';
   if (after === before) return;
   state.mylist[bookId] = after;
   saveState();
   if (after === 'completed' && typeof showToast === 'function') {
     showToast('Книга дочитана и перешла в «Прочитано»');
+  }
+  if (typeof renderMyList === 'function' && state.currentScreen === 'mylist') {
+    renderMyList();
   }
 }
 

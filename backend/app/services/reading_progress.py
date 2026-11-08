@@ -282,6 +282,7 @@ async def update_reading_progress(
     )
 
     is_first_start = False
+    previous_page = progress.current_page if progress else 0
     if not progress:
         progress = ReadingProgress(
             user_id=user.id,
@@ -336,7 +337,10 @@ async def update_reading_progress(
     # попадания на последнюю страницу мало: см. _may_count_as_finished.
     # «Дочитано» — с 99 %: последние страницы часто пустые или приложения, и
     # книга на 99 % не должна висеть в «Читаю».
-    reached_end = total_pages > 1 and current_page * 100 >= total_pages * FINISHED_PERCENT
+    def _at_end(page: int) -> bool:
+        return total_pages > 1 and page * 100 >= total_pages * FINISHED_PERCENT
+
+    reached_end = _at_end(current_page)
     if reached_end and not progress.finished_at:
         allowed, reason = _may_count_as_finished(progress, total_pages, total_verified)
         if allowed:
@@ -350,9 +354,23 @@ async def update_reading_progress(
                 "засчитано: %s",
                 user.id, book_id, reason,
             )
+            # Опыт и достижения — только за честное дочитывание, а вот место в
+            # списке — нет: «Прочитано» можно выбрать и вручную, так что
+            # прятать книгу в «Читаю» после перелистывания до конца незачем.
+            # Переносим один раз — в момент прихода на последние страницы, чтобы
+            # не спорить с пользователем, если он вернёт книгу в «Читаю».
+            if not _at_end(previous_page):
+                await _mark_completed_in_list(db, user, book_id, now)
 
     await db.commit()
     await db.refresh(progress)
+    entry_status = await db.scalar(
+        select(MyListEntry.status).where(
+            MyListEntry.user_id == user.id, MyListEntry.book_id == book_id,
+        )
+    )
+    # Не колонка таблицы — ответ клиенту, куда книга попала в списке.
+    progress.list_status = entry_status.value if entry_status else None
     return progress
 
 

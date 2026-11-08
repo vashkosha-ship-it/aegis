@@ -510,7 +510,9 @@ function nextKillChainStage() {
 // Книга из схемы: «назад» из книги возвращает в ту же схему и к тому же
 // этапу, а не на главную.
 function openBookFromAR(bookId) {
-  const back = arCurrentScheme ? { scheme: arCurrentScheme, stage: arSelectedStage } : null;
+  const back = arCurrentScheme
+    ? { scheme: arCurrentScheme, stage: arSelectedStage, returnToMenu: arReturnToMenu }
+    : null;
   closeAR();
   openBookDetail(bookId);
   if (back) {
@@ -526,6 +528,6 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     const modal = document.getElementById('arModal');
     if (!modal || !modal.classList.contains('active')) return;
     if (arDetailsIsOpen()) closeKillChainStage();
-    else closeAR();
+    else closeARToMenu();
   });
 }

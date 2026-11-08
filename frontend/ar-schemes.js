@@ -7,6 +7,8 @@
 // камеру убрали, схемы открываются на обычном фоне).
 let arActive = false;
 let arCurrentScheme = null;          // 'killchain' | 'owasp' | ...
+// Схему открыли из списка схем — крестик возвращает к списку, а не на главную.
+let arReturnToMenu = false;
 
 // Открытие меню выбора схемы из кнопки в хедере
 function openARSchemeMenu() {
@@ -18,8 +20,11 @@ function closeARSchemeMenu() {
 }
 
 // Открытие AR-экрана с конкретной схемой
-async function openARWithScheme(schemeCode, initialStageId = null) {
+async function openARWithScheme(schemeCode, initialStageId = null, options = {}) {
   if (typeof trackUsage === 'function') trackUsage('action', 'scheme:' + schemeCode);
+  const menu = document.getElementById('arSchemeMenuModal');
+  if (typeof options.returnToMenu === 'boolean') arReturnToMenu = options.returnToMenu;
+  else arReturnToMenu = Boolean(menu && !menu.classList.contains('hidden'));
   closeARSchemeMenu();
   arCurrentScheme = schemeCode;
   arActiveSchemeCode = AR_SCHEMES[schemeCode] ? schemeCode : 'killchain';
@@ -48,6 +53,15 @@ async function openARWithScheme(schemeCode, initialStageId = null) {
   if (initialStageId) {
     setTimeout(() => selectKillChainStage(initialStageId), 100);
   }
+}
+
+// Крестик, Esc и «назад»: схема закрывается, а если её выбрали из списка
+// схем — список открывается снова.
+function closeARToMenu() {
+  const backToMenu = arReturnToMenu;
+  closeAR();
+  arReturnToMenu = false;
+  if (backToMenu) openARSchemeMenu();
 }
 
 function closeAR() {

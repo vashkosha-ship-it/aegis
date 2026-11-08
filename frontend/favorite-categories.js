@@ -68,14 +68,22 @@ function renderFavCategories() {
 
   container.replaceChildren();
   getFavCategories().forEach(category => {
-    container.appendChild(
-      createFavCategoryButton(category, true, () => filterByCategory(category)),
+    const button = createFavCategoryButton(
+      category, isOnlyCategoryFilter(category), () => filterByCategory(category),
     );
+    button.setAttribute('aria-pressed', String(isOnlyCategoryFilter(category)));
+    container.appendChild(button);
   });
-  container.appendChild(
-    createFavCategoryButton('+ Тема', false, openFavCatsPicker),
-  );
+  const add = createFavCategoryButton('+ Тема', false, openFavCatsPicker);
+  add.classList.add('fav-category-add');
+  container.appendChild(add);
   section.style.display = 'block';
+}
+
+// Тема выбрана — фильтр каталога стоит ровно на ней.
+function isOnlyCategoryFilter(category) {
+  const selected = state.filters?.categories || [];
+  return selected.length === 1 && selected[0] === category;
 }
 
 function filterByCategory(category) {
@@ -83,10 +91,13 @@ function filterByCategory(category) {
   // объединения поиска это стало бы поиском по тексту книг.
   const input = document.getElementById('searchInput');
   if (input && input.value) clearFullTextSearch();
-  state.filters.categories = [category];
+  // Повторное нажатие на выбранную тему снимает фильтр — снова все книги.
+  state.filters.categories = isOnlyCategoryFilter(category) ? [] : [category];
+  state.booksPage = 1;
   if (typeof populateCatalog === 'function') populateCatalog();
   setHomeBooksTab('all');
   renderHome();
+  renderFavCategories();
   document.getElementById('scrollAll')?.scrollIntoView({
     behavior: 'smooth',
     block: 'start',

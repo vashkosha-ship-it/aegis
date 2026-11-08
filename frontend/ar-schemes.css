@@ -146,7 +146,12 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
     border-left: 1px solid rgba(255,255,255,.2);
   }
   @keyframes arDetailsIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
-  #arSchemeRoot.ar-details-open #killChainScrollContainer { width: auto; margin-right: var(--ar-details-width); }
+  #arSchemeRoot.ar-details-open #killChainScrollContainer {
+    width: auto;
+    max-width: none;
+    margin-left: 0;
+    margin-right: var(--ar-details-width);
+  }
   #arSchemeRoot.ar-details-open > .ar-zoom-controls { right: calc(var(--ar-details-width) + 12px); }
   /* Карточки сужаются под оставшуюся часть экрана, а не уходят под панель. */
   #arSchemeRoot.ar-details-open {

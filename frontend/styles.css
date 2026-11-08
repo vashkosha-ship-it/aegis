@@ -3439,14 +3439,19 @@ select[multiple] option:hover {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border: 1px dashed var(--border);
+  border: 1px solid var(--border);
   border-radius: 20px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.fav-category-chip.fav-category-add {
+  border-style: dashed;
+  color: var(--text-secondary);
 }
 
 .fav-category-chip.is-active {

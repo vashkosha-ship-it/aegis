@@ -128,6 +128,7 @@ setTimeout(initCategoryButtons, 500);
 
 window.LEVEL_CHOICES = LEVEL_CHOICES;
 window.openARSchemeMenu = openARSchemeMenu;
+window.closeARToMenu = closeARToMenu;
 window.closeARSchemeMenu = closeARSchemeMenu;
 window.openARWithScheme = openARWithScheme;
 window.closeAR = closeAR;

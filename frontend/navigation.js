@@ -390,7 +390,7 @@ function goBackFromDetail() {
     const back = state._schemeReturn;
     state._schemeReturn = null;
     navigateTo('home');
-    openARWithScheme(back.scheme, back.stage || null);
+    openARWithScheme(back.scheme, back.stage || null, { returnToMenu: Boolean(back.returnToMenu) });
     return;
   }
   navigateTo(target && target !== 'detail' && SCREEN_IDS[target] ? target : 'home');
@@ -438,7 +438,7 @@ function handleAppBack() {
   const scheme = document.getElementById('arModal');
   if (scheme && scheme.classList.contains('active')) {
     if (typeof arDetailsIsOpen === 'function' && arDetailsIsOpen()) closeKillChainStage();
-    else closeAR();
+    else closeARToMenu();
     return true;
   }
   const screen = state.currentScreen;
