@@ -659,13 +659,59 @@ function _invertLightness(ctx, width, height) {
   ctx.putImageData(image, 0, 0);
 }
 
+// Картинка «как бумага»: светлый бесцветный фон с тёмными штрихами — скан
+// страницы, схема или таблица на белом. Её, как и текст, перекрашиваем; цветные
+// иллюстрации и фотографии оставляем как есть. Без этого скан целиком считался
+// картинкой и в тёмной теме оставался белым.
+function _looksLikePaper(source, r) {
+  const side = 48;
+  const probe = document.createElement('canvas');
+  probe.width = side;
+  probe.height = side;
+  const pctx = probe.getContext('2d', { willReadFrequently: true });
+  pctx.drawImage(source, r.x, r.y, r.w, r.h, 0, 0, side, side);
+  const d = pctx.getImageData(0, 0, side, side).data;
+  let light = 0, colorful = 0;
+  const total = side * side;
+  for (let i = 0; i < d.length; i += 4) {
+    const max = Math.max(d[i], d[i + 1], d[i + 2]);
+    const min = Math.min(d[i], d[i + 1], d[i + 2]);
+    if (max > 200 && max - min < 40) light++;
+    if (max - min > 60) colorful++;
+  }
+  return light / total > 0.55 && colorful / total < 0.08;
+}
+
+// Работает ли фильтр холста на самом деле. Safari принимает ctx.filter, но
+// при рисовании его игнорирует — страница оставалась белой. Проверяем делом:
+// белая точка через invert должна стать чёрной.
+let _canvasFilterOk = null;
+function canvasFilterWorks() {
+  if (_canvasFilterOk !== null) return _canvasFilterOk;
+  _canvasFilterOk = false;
+  try {
+    const src = document.createElement('canvas');
+    src.width = src.height = 1;
+    const sctx = src.getContext('2d');
+    sctx.fillStyle = '#fff';
+    sctx.fillRect(0, 0, 1, 1);
+    const dst = document.createElement('canvas');
+    dst.width = dst.height = 1;
+    const dctx = dst.getContext('2d', { willReadFrequently: true });
+    dctx.filter = 'invert(1)';
+    dctx.drawImage(src, 0, 0);
+    _canvasFilterOk = dctx.getImageData(0, 0, 1, 1).data[0] < 128;
+  } catch (_) { /* остаёмся на ручной перекраске */ }
+  return _canvasFilterOk;
+}
+
 function paintPdfDark(ctx, rendered, rects) {
   const width = rendered.width;
   const height = rendered.height;
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.filter = 'invert(1) hue-rotate(180deg)';
-  if (ctx.filter && ctx.filter !== 'none') {
+  if (canvasFilterWorks()) {
+    ctx.filter = 'invert(1) hue-rotate(180deg)';
     ctx.clearRect(0, 0, width, height);
     ctx.drawImage(rendered, 0, 0);
     ctx.filter = 'none';
@@ -673,11 +719,17 @@ function paintPdfDark(ctx, rendered, rects) {
     _invertLightness(ctx, width, height);
   }
   rects.forEach(r => {
+    // Прямоугольник — строго внутри холста: Safari молча не рисует, если
+    // исходная область выходит за край.
     const x = Math.max(0, r.x);
     const y = Math.max(0, r.y);
     const w = Math.min(width - x, r.w - (x - r.x));
     const h = Math.min(height - y, r.h - (y - r.y));
-    if (w > 0 && h > 0) ctx.drawImage(rendered, x, y, w, h, x, y, w, h);
+    if (w <= 0 || h <= 0) return;
+    try {
+      if (_looksLikePaper(rendered, { x, y, w, h })) return;
+    } catch (_) { /* не смогли оценить — оставляем картинку как есть */ }
+    ctx.drawImage(rendered, x, y, w, h, x, y, w, h);
   });
   ctx.restore();
 }

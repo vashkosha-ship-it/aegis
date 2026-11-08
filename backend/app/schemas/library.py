@@ -19,6 +19,8 @@ class ReadingProgressPublic(BaseModel):
     last_read_at: datetime
     # Сервер засчитал дочитывание (книга перешла в «Прочитано»).
     finished_at: datetime | None = None
+    # Раздел «Моего списка» после обновления (reading / planned / completed).
+    list_status: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

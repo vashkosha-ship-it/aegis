@@ -2,8 +2,10 @@
 @media (min-width: 1024px) {
   #detailScreen .detail-content {
     display: grid !important; grid-template-columns: minmax(0, 1fr) !important; align-items: start;
-    gap: clamp(22px, 2vw, 32px) !important; width: min(100%, 1120px); max-width: 1120px;
-    margin-inline: auto;
+    gap: clamp(22px, 2vw, 32px) !important; width: 100%; max-width: 1200px;
+    /* Та же левая граница, что у вкладок и «Также читают»: раньше блок был
+       уже и центрировался — обложка и «О книге» съезжали вправо. */
+    margin-inline: 0;
   }
   #detailScreen .detail-hero {
     display: grid !important; grid-template-columns: clamp(190px, 18vw, 267px) minmax(0, 1fr);

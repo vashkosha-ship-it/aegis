@@ -64,7 +64,7 @@ document.addEventListener('keydown', e => {
     closeAIPanel();
     closeCatalogPanel();
     closeShortcutsModal();
-    if (arActive) closeAR();
+    // Схему по Esc закрывает её собственный обработчик (сначала панель этапа).
     const selectionToolbar = document.getElementById('selectionToolbar');
     if (selectionToolbar) selectionToolbar.style.display = 'none';
     document.querySelectorAll('.note-tooltip').forEach(el => el.remove());
