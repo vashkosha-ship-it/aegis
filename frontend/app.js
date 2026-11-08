@@ -136,4 +136,3 @@ window.closeKillChainStage = closeKillChainStage;
 window.prevKillChainStage = prevKillChainStage;
 window.nextKillChainStage = nextKillChainStage;
 window.openBookFromAR = openBookFromAR;
-window.toggleStageDetailsPanel = toggleStageDetailsPanel;

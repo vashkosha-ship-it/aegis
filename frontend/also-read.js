@@ -11,7 +11,7 @@ async function loadAlsoRead(bookId) {
         ${books.map(book => `
           <button type="button" data-onclick="openBookDetail(${book.id})" data-static-style="a474" aria-label="Открыть книгу">
             <div data-static-style="a475">
-              ${book.has_cover ? `<img src="${api.books.coverUrl(book.id)}" alt="" data-static-style="a118">` : '<div data-static-style="a476">📕</div>'}
+              ${book.has_cover ? `<img src="${api.books.coverUrl(book.id, 'small')}" alt="" data-static-style="a118">` : '<div data-static-style="a476">📕</div>'}
             </div>
             <div data-static-style="a477">${eh(book.title)}</div>
             <div data-static-style="a344">${eh(book.author)}</div>

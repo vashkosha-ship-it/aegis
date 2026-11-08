@@ -91,6 +91,7 @@ async function loadBooksFromApi() {
       }
     }));
     const all = pages.flat().filter(Boolean);
+    if (typeof cacheForOffline === 'function') cacheForOffline(CATALOG_CACHE_KEY, all);
     state.books = all.map(adaptBookFromApi);
     state.books.forEach(b => { ensureProgress(b); });
     saveState();
@@ -100,9 +101,9 @@ async function loadBooksFromApi() {
       console.error('Не удалось загрузить книги с API:', err);
     }
     // Нет сети — показываем скачанные книги из оффлайн-хранилища вместо пустого экрана
-    if (!navigator.onLine) {
+    if (!navigator.onLine || api.isNetworkError?.(err)) {
       const ok = await loadBooksFromOffline();
-      if (ok) { showToast('Офлайн-режим: показаны скачанные книги'); return true; }
+      if (ok) { showToast('Нет интернета: показана библиотека с прошлого входа'); return true; }
     }
     if (typeof showActionToast === 'function') {
       showActionToast(

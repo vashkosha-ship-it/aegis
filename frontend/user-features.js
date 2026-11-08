@@ -150,12 +150,18 @@ function renderAchievementsInProfile() {
   const allowedTiers = new Set(['bronze', 'silver', 'gold', 'platinum']);
   const fragment = document.createDocumentFragment();
   [...owned, ...lockedList].forEach((achievement, index) => {
-    const badge = document.createElement('span');
+    // Кнопка: по нажатию — описание, за что выдаётся (на планшете нет
+    // всплывающей подсказки при наведении).
+    const badge = document.createElement('button');
+    badge.type = 'button';
     badge.classList.add('achievement-badge');
     const tier = String(achievement.tier ?? '');
     if (allowedTiers.has(tier)) badge.classList.add(tier);
-    if (index >= owned.length) badge.classList.add('locked');
+    const locked = index >= owned.length;
+    if (locked) badge.classList.add('locked');
     badge.title = String(achievement.description ?? '');
+    badge.setAttribute('aria-label', `${achievement.name ?? ''}: подробнее`);
+    badge.addEventListener('click', () => showAchievementInfo(achievement, locked));
     const badgeIcon = document.createElement('span');
     badgeIcon.setAttribute('data-static-style', 'a100');
     appendTrustedIcon(badgeIcon, getAchievementIcon(achievement.code));
@@ -163,6 +169,45 @@ function renderAchievementsInProfile() {
     fragment.appendChild(badge);
   });
   l.replaceChildren(fragment);
+}
+
+function showAchievementInfo(achievement, locked) {
+  const { overlay, panel } = createDialogShell('achievementInfo', String(achievement.name ?? 'Достижение'));
+  panel.classList.add('achievement-info-dialog');
+  const tier = String(achievement.tier ?? '');
+  const icon = document.createElement('div');
+  icon.className = `achievement-info-icon ${['bronze', 'silver', 'gold', 'platinum'].includes(tier) ? tier : ''}`;
+  if (locked) icon.classList.add('locked');
+  appendTrustedIcon(icon, getAchievementIcon(achievement.code));
+  const text = document.createElement('p');
+  text.className = 'achievement-info-text';
+  text.textContent = String(achievement.description || 'Описание пока не добавлено.');
+  const status = document.createElement('p');
+  status.className = 'achievement-info-status';
+  if (locked) {
+    status.textContent = 'Ещё не получено';
+  } else {
+    const date = achievement.awarded_at ? new Date(achievement.awarded_at) : null;
+    status.textContent = date && !Number.isNaN(date.getTime())
+      ? `Получено ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}`
+      : 'Получено';
+  }
+  const footer = document.createElement('div');
+  footer.className = 'app-dialog-actions';
+  const ok = createDialogButton('achievementInfoClose', 'Понятно', 'app-dialog-button');
+  footer.appendChild(ok);
+  panel.append(icon, text, status, footer);
+
+  let keyHandler;
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', keyHandler);
+  };
+  keyHandler = event => { if (event.key === 'Escape') close(); };
+  document.addEventListener('keydown', keyHandler);
+  ok.addEventListener('click', close);
+  bindDialogClose(overlay, close);
+  setTimeout(() => ok.focus(), 0);
 }
 
 // ===== Полнотекстовый поиск по содержимому книг (H) =====
@@ -249,7 +294,7 @@ function renderFullTextResults(res) {
     cover.setAttribute('data-static-style', 'a117');
     if (hit.has_cover) {
       const image = document.createElement('img');
-      image.src = api.books.coverUrl(hit.book_id);
+      image.src = api.books.coverUrl(hit.book_id, 'small');
       image.alt = '';
       image.setAttribute('data-static-style', 'a118');
       cover.appendChild(image);
@@ -602,7 +647,7 @@ async function exportNotes() {
   header.append(heading, close);
   panel.appendChild(header);
   for (const [fmt, label, desc] of [
-    ['pdf', 'PDF документ', 'Для печати и чтения'],
+    ['pdf', 'PDF документ', 'Файл сохранится на устройство'],
     ['md', 'Markdown', 'Текст с разметкой'],
     ['json', 'JSON', 'Для импорта в другие приложения'],
     ['csv', 'CSV', 'Таблица для Excel'],
@@ -660,33 +705,88 @@ async function doExportNotes(fmt) {
     });
     _downloadBlob(md, `notes_${safe}.md`, 'text/markdown');
   } else if (fmt === 'pdf') {
-    exportNotesPdf(title, b?.author, sorted);
+    await exportNotesPdf(title, b?.author, sorted, `notes_${safe}.pdf`);
   }
   if (navigator.vibrate) navigator.vibrate(12);
   if (fmt !== 'pdf') showToast('Заметки экспортированы!');
 }
 
-function exportNotesPdf(title, author, sorted) {
-  const rows = sorted.map(a => `
-    <div class="print-note">
-      <div class="print-note-page">Страница ${a.page} &middot; ${a.type === 'note' ? 'Заметка' : 'Выделение'}</div>
-      <div class="print-note-text">${eh(a.text)}</div>
-      ${a.type === 'note' && a.note ? `<div class="print-note-comment"><b>Заметка:</b> ${eh(a.note)}</div>` : ''}
-    </div>`).join('');
-  const stylesheet = new URL('/print-notes.css', location.href).href;
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Заметки: ${eh(title)}</title>
-    <link rel="stylesheet" href="${stylesheet}"></head>
-    <body><h1>Заметки: ${eh(title)}</h1>
-    <div class="meta">${author ? eh(author) + ' &middot; ' : ''}Экспорт: ${new Date().toLocaleDateString('ru-RU')}</div>
-    ${rows}</body></html>`;
-  const w = window.open('', '_blank');
-  if (!w) { showToast('Разрешите всплывающие окна для PDF'); return; }
-  w.document.write(html);
-  w.document.close();
-  const link = w.document.querySelector('link[rel="stylesheet"]');
-  const print = () => w.print();
-  if (link && !link.sheet) link.addEventListener('load', print, { once: true });
-  else print();
+// PDF собирается прямо на устройстве и сохраняется файлом (раньше открывалось
+// окно печати). На сервер заметки не уходят: они зашифрованы паролем
+// пользователя.
+function _arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+async function _loadPdfFont(doc, file, name, style) {
+  const response = await fetch(`vendor/fonts/${file}`);
+  if (!response.ok) throw new Error('Шрифт не загрузился');
+  doc.addFileToVFS(file, _arrayBufferToBase64(await response.arrayBuffer()));
+  doc.addFont(file, name, style);
+}
+
+async function buildNotesPdf(title, author, sorted) {
+  const lib = await ensureJsPdfLoaded();
+  const doc = new lib.jsPDF({ unit: 'mm', format: 'a4' });
+  await _loadPdfFont(doc, 'DejaVuSans.ttf', 'DejaVu', 'normal');
+  await _loadPdfFont(doc, 'DejaVuSans-Bold.ttf', 'DejaVu', 'bold');
+
+  const margin = 18;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const width = pageWidth - margin * 2;
+  let y = margin;
+
+  const ensureSpace = height => {
+    if (y + height > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  };
+  const write = (text, { size = 11, bold = false, color = [20, 20, 20], gap = 1.5 } = {}) => {
+    doc.setFont('DejaVu', bold ? 'bold' : 'normal');
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
+    const lineHeight = size * 0.45;
+    doc.splitTextToSize(String(text || ''), width).forEach(line => {
+      ensureSpace(lineHeight);
+      doc.text(line, margin, y + lineHeight * 0.8);
+      y += lineHeight;
+    });
+    y += gap;
+  };
+
+  write(`Заметки: ${title}`, { size: 17, bold: true, gap: 2 });
+  write(`${author ? author + ' · ' : ''}Экспорт: ${new Date().toLocaleDateString('ru-RU')}`, { size: 10, color: [110, 110, 110], gap: 6 });
+  sorted.forEach(a => {
+    ensureSpace(14);
+    write(`Страница ${a.page} · ${a.type === 'note' ? 'Заметка' : 'Выделение'}`, { size: 9, bold: true, color: [37, 99, 235], gap: 1 });
+    write(a.text, { size: 11, gap: a.type === 'note' && a.note ? 1.5 : 4 });
+    if (a.type === 'note' && a.note) write(`Заметка: ${a.note}`, { size: 10, color: [70, 70, 70], gap: 4 });
+    doc.setDrawColor(225, 225, 225);
+    doc.line(margin, y - 2, pageWidth - margin, y - 2);
+    y += 2;
+  });
+  return doc;
+}
+
+async function exportNotesPdf(title, author, sorted, filename) {
+  showToast('Готовлю PDF…');
+  try {
+    const doc = await buildNotesPdf(title, author, sorted);
+    doc.save(filename || 'notes.pdf');
+    showToast('PDF сохранён');
+  } catch (err) {
+    console.error('Не удалось сохранить заметки в PDF:', err);
+    showToast(navigator.onLine === false
+      ? 'Для первого сохранения в PDF нужен интернет'
+      : 'Не удалось сохранить PDF');
+  }
 }
 
 async function renderDetailNotes() {

@@ -290,7 +290,6 @@ function _createArSchemeShell({
   wrapperStyle = null,
   rootStyle = 'a008',
   zoomButtonStyle = 'a028',
-  resetButtonStyle = 'a029',
   detailStyle = 'a035',
   detailHeaderStyle = 'a036',
   detailTitleStyle = 'a037',
@@ -299,11 +298,14 @@ function _createArSchemeShell({
   const container = document.getElementById('arSchemeContainer');
   if (!container) return null;
 
-  const controls = _arDetailNode('div', { staticStyle: 'a009' }, [
+  // Масштаб: «+» и «−». Кнопка сброса со стрелкой убрана — масштаб
+  // сбрасывается при каждом открытии схемы.
+  const controls = _arDetailNode('div', { staticStyle: 'a009', className: 'ar-zoom-controls' }, [
     _arDetailNode('button', { staticStyle: zoomButtonStyle, text: '+', onClick: () => zoomARScheme('in') }),
     _arDetailNode('button', { staticStyle: zoomButtonStyle, text: '−', onClick: () => zoomARScheme('out') }),
-    _arDetailNode('button', { staticStyle: resetButtonStyle, text: '⟳', onClick: resetARSchemeZoom }),
   ]);
+  controls.children[0].setAttribute('aria-label', 'Увеличить схему');
+  controls.children[1].setAttribute('aria-label', 'Уменьшить схему');
 
   const nodes = _arDetailNode('div', {
     id: 'killChainNodes',
@@ -319,46 +321,39 @@ function _createArSchemeShell({
   }
   const scroll = _arDetailNode('div', {
     id: 'killChainScrollContainer',
+    className: 'ar-scheme-scroll',
     staticStyle: scrollStyle,
   }, [scrollChild]);
 
-  const toggleIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  toggleIcon.setAttribute('width', '18');
-  toggleIcon.setAttribute('height', '18');
-  toggleIcon.setAttribute('viewBox', '0 0 24 24');
-  toggleIcon.setAttribute('fill', 'none');
-  toggleIcon.setAttribute('stroke', 'currentColor');
-  toggleIcon.setAttribute('stroke-width', '2.5');
-  toggleIcon.setAttribute('stroke-linecap', 'round');
-  toggleIcon.setAttribute('stroke-linejoin', 'round');
-  toggleIcon.dataset.staticStyle = 'a022';
-  const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-  chevron.setAttribute('points', '18 15 12 9 6 15');
-  toggleIcon.appendChild(chevron);
-
-  const toggle = _arDetailNode('button', {
-    id: 'arStageToggleBtn',
-    staticStyle: 'a021',
-    onClick: toggleStageDetailsPanel,
-  }, [toggleIcon]);
-  toggle.title = 'Развернуть/свернуть';
+  // Панель с информацией: скрыта, пока не выбран этап; появляется целиком,
+  // без «язычка», который можно вытянуть. Расположение задаёт CSS
+  // (ar-schemes.css): сбоку на широком экране, снизу на узком — поэтому
+  // поворот устройства её не ломает.
+  const close = _arDetailNode('button', {
+    id: 'arStageCloseBtn',
+    className: 'ar-details-close',
+    text: '✕',
+    onClick: event => { event.stopPropagation(); closeKillChainStage(); },
+  });
+  close.setAttribute('aria-label', 'Закрыть');
 
   const details = _arDetailNode('div', {
     id: 'arStageDetails',
     className: 'ar-stage-details-panel',
     staticStyle: detailStyle,
   }, [
-    _arDetailNode('div', { staticStyle: detailHeaderStyle }, [
-      _arDetailNode('div', { staticStyle: 'a020' }),
-      toggle,
+    _arDetailNode('div', { staticStyle: detailHeaderStyle, className: 'ar-details-header' }, [
       _arDetailNode('div', {
         id: 'arStageDetailTitle',
         staticStyle: detailTitleStyle,
         text: title,
       }),
+      close,
     ]),
     _arDetailNode('div', { id: 'arStageDetailContent', staticStyle: 'a024' }),
   ]);
+  details.setAttribute('role', 'dialog');
+  details.setAttribute('aria-labelledby', 'arStageDetailTitle');
 
   const root = _arDetailNode('div', { id: 'arSchemeRoot', staticStyle: rootStyle }, [
     controls,
@@ -718,7 +713,6 @@ function renderKillChainScheme() {
   const nodes = _createArSchemeShell({
     rootStyle: 'a066',
     zoomButtonStyle: 'a067',
-    resetButtonStyle: 'a068',
     scrollStyle: 'a069',
     wrapperStyle: 'a013',
     nodesDynamicStyle: dynamicStyleToken`display:flex;flex-direction:${isVertical ? 'column' : 'row'};align-items:center;justify-content:center;gap:${isVertical ? '12px' : '8px'};transition:transform 0.2s ease;transform-origin:center center;`,

@@ -42,6 +42,15 @@ async function ensureEpubLoaded() {
   }
 }
 
+// jsPDF — для сохранения заметок в PDF-файл. Шрифт с кириллицей (DejaVu Sans)
+// подгружается отдельно, только при экспорте.
+async function ensureJsPdfLoaded() {
+  if (typeof window.jspdf === 'undefined') {
+    await _loadScript('vendor/jspdf.umd.min.js');
+  }
+  return window.jspdf;
+}
+
 async function ensureChartLoaded() {
   if (typeof Chart === 'undefined') {
     await _loadScript('vendor/chart.umd.min.js');

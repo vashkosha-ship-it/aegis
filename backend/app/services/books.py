@@ -17,6 +17,7 @@ from sqlalchemy import func as sqlfunc
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.storage import cover_thumb_key
 from app.models.book import Book, Category
 from app.schemas.book import BookPublic
 
@@ -38,6 +39,45 @@ class InvalidStorageKey(BookServiceError):
 # ---------------------------------------------------------------------------
 # Хранилище
 # ---------------------------------------------------------------------------
+
+# Уменьшенная обложка для карточек каталога: карточка ~150 px, а обложка
+# хранится до 800 px. На слабом планшете декодировать десятки больших
+# картинок — секунды; маленькие — в разы быстрее.
+COVER_THUMB_SIDE = 360
+COVER_THUMB_MAX_BYTES = 2 * 1024 * 1024
+
+
+def make_cover_thumb(raw: bytes) -> bytes:
+    """JPEG не больше COVER_THUMB_SIDE по большей стороне."""
+    from io import BytesIO
+
+    from PIL import Image
+
+    img = Image.open(BytesIO(raw))
+    img = img.convert("RGB")
+    img.thumbnail((COVER_THUMB_SIDE, COVER_THUMB_SIDE), Image.LANCZOS)
+    out = BytesIO()
+    img.save(out, format="JPEG", quality=80, optimize=True)
+    return out.getvalue()
+
+
+async def ensure_cover_thumb(storage, key: str) -> str | None:
+    """Ключ уменьшенной обложки; создаём при первом запросе. None — не вышло."""
+    thumb = cover_thumb_key(key)
+    try:
+        if await storage.exists(thumb):
+            return thumb
+        raw = b"".join([chunk async for chunk in await storage.open_stream(key)])
+        data = make_cover_thumb(raw)
+
+        async def _payload():
+            yield data
+
+        await storage.save_stream(thumb, _payload(), COVER_THUMB_MAX_BYTES)
+        return thumb
+    except Exception:  # noqa: BLE001 — нет миниатюры: отдадим полную обложку
+        logger.exception("Не удалось сделать миниатюру обложки %s", key)
+        return None
 
 
 def accel_path_for_key(key: str) -> str:

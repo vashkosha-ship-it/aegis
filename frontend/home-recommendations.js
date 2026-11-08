@@ -19,7 +19,7 @@ function renderRecommendations() {
   replaceWithAppMarkup(list, recs.map(b => `
     <button type="button" class="recommendation-card" data-onclick="openBookDetail(${b.id})">
       <div data-static-style="a309">
-        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id)}" alt="" data-static-style="a310" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}
+        ${b.has_cover ? `<img src="${api.books.coverUrl(b.id, 'small')}" alt="" data-static-style="a310" data-onerror="replaceWithFallback()" data-args="this" data-fallback="cover">` : ICONS.bookCover}
       </div>
       <div>
         <div data-static-style="a311">${eh(b.title)}</div>

@@ -33,6 +33,20 @@ async function buildTOC() {
   return items;
 }
 
+// Кнопка «Оглавление» — только у книг со встроенным оглавлением. Раньше
+// она была всегда и у большинства книг открывала «нет оглавления».
+let _tocCheckToken = 0;
+async function refreshTocAvailability() {
+  const button = document.getElementById('btnTOC');
+  if (!button) return;
+  const token = ++_tocCheckToken;
+  button.classList.add('hidden');
+  const items = await buildTOC();
+  if (token !== _tocCheckToken) return;
+  _currentTOC = items;
+  button.classList.toggle('hidden', !items.length);
+}
+
 const TOC_READ_KEY = 'aegis_toc_read';
 function getTocRead(bookId) {
   try { return JSON.parse(lsGet(TOC_READ_KEY) || '{}')[bookId] || []; } catch (_) { return []; }

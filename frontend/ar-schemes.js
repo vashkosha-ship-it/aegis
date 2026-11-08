@@ -40,10 +40,12 @@ async function openARWithScheme(schemeCode, initialStageId = null) {
   document.getElementById('arModal').classList.add('active');
 
   arActive = true;
+  currentARSchemeZoom = 1;
   renderARScheme(schemeCode);
+  applyARSchemeZoom();
 
   // Если передали этап — сразу его подсветить и открыть детали
-  if (initialStageId && schemeCode === 'killchain') {
+  if (initialStageId) {
     setTimeout(() => selectKillChainStage(initialStageId), 100);
   }
 }

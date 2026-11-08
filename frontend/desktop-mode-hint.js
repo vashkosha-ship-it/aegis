@@ -16,10 +16,24 @@ function isTouchPrimaryDevice() {
   return Boolean(coarse || ((navigator.maxTouchPoints || 0) > 0 && !fine));
 }
 
+// Ширина экрана в текущей ориентации. Раньше бралась короткая сторона, и
+// планшет в горизонтальной ориентации (1280×800) принимался за телефон в
+// режиме «Версия для ПК»: страница 1280 «шире» экрана 800.
+function currentScreenWidth() {
+  const w = window.screen?.width || 0;
+  const h = window.screen?.height || 0;
+  if (!w || !h) return w || h;
+  const landscape = window.matchMedia
+    ? window.matchMedia('(orientation: landscape)').matches
+    : window.innerWidth > window.innerHeight;
+  return landscape ? Math.max(w, h) : Math.min(w, h);
+}
+
 function isPhoneInDesktopMode() {
   if (!isTouchPrimaryDevice()) return false;
-  const screenWidth = Math.min(window.screen?.width || 0, window.screen?.height || Infinity);
-  if (!screenWidth || screenWidth > 900) return false;
+  const shortSide = Math.min(window.screen?.width || 0, window.screen?.height || Infinity);
+  if (!shortSide || shortSide > 900) return false;
+  const screenWidth = currentScreenWidth();
   // Страница заметно шире экрана — браузер рисует «компьютерную» версию.
   return window.innerWidth >= screenWidth * 1.25 && window.innerWidth >= 900;
 }
@@ -31,8 +45,7 @@ function showDesktopModeHint() {
 
   // Страница уменьшена браузером — увеличиваем подсказку во столько же раз,
   // чтобы её можно было прочитать.
-  const screenWidth = Math.min(window.screen.width, window.screen.height);
-  const scale = Math.max(1, Math.min(3, window.innerWidth / screenWidth));
+  const scale = Math.max(1, Math.min(3, window.innerWidth / (currentScreenWidth() || window.innerWidth)));
 
   const box = document.createElement('div');
   box.id = 'desktopModeHint';

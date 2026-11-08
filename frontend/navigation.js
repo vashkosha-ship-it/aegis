@@ -241,8 +241,10 @@ function ensureReaderHasBook() {
   if (restoreReaderBook()) return; // книга открыта — возвращаемся к ней
   // После перезагрузки страницы открытой книги нет, но начатые есть —
   // открываем последнюю вместо «Вы ещё не начали читать».
+  // Без сети открываем только скачанную книгу: остальные всё равно не загрузятся.
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
   const resumeId = lastStartedBookId();
-  if (resumeId !== null) { openReader(resumeId); return; }
+  if (resumeId !== null && (!offline || offlineBookIds.has(resumeId))) { openReader(resumeId); return; }
   const screen = document.getElementById('readerScreen');
   if (!screen) return;
   // убираем режим читалки, чтобы было видно меню и можно было выйти
@@ -257,7 +259,15 @@ function ensureReaderHasBook() {
   stub.style.display = 'flex';
   // Стрелки листания и «1 / 1» поверх пустого экрана только путают.
   screen.classList.add('reader-empty');
-  replaceWithAppMarkup(stub, `
+  // Без сети — в «Мой список»: там видно, какие книги скачаны и открываются.
+  replaceWithAppMarkup(stub, offline ? `
+    <div data-static-style="a269">📶</div>
+    <div data-static-style="a270">
+      Нет интернета. Без сети открываются только скачанные книги — они отмечены значком облака.
+    </div>
+    <button data-onclick="navigateTo('mylist')" data-static-style="a271">
+      Мой список
+    </button>` : `
     <div data-static-style="a269">📖</div>
     <div data-static-style="a270">
       Вы ещё не начали читать ни одну книгу.
@@ -375,6 +385,14 @@ function installBackGuard() {
 function goBackFromDetail() {
   const target = state._detailReturnTo;
   state._detailReturnTo = null;
+  // Книгу открыли из схемы — возвращаемся в схему, к тому же этапу.
+  if (target === 'scheme' && state._schemeReturn) {
+    const back = state._schemeReturn;
+    state._schemeReturn = null;
+    navigateTo('home');
+    openARWithScheme(back.scheme, back.stage || null);
+    return;
+  }
   navigateTo(target && target !== 'detail' && SCREEN_IDS[target] ? target : 'home');
 }
 
@@ -414,6 +432,13 @@ function handleAppBack() {
       else if (STATIC_MODAL_IDS.has(dialog.id)) dialog.classList.add('hidden');
       else dialog.remove();
     }
+    return true;
+  }
+  // Открыта схема: «назад» сначала закрывает панель этапа, потом схему.
+  const scheme = document.getElementById('arModal');
+  if (scheme && scheme.classList.contains('active')) {
+    if (typeof arDetailsIsOpen === 'function' && arDetailsIsOpen()) closeKillChainStage();
+    else closeAR();
     return true;
   }
   const screen = state.currentScreen;

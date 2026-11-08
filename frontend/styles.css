@@ -1547,9 +1547,6 @@ button:has(svg), .btn:has(svg) {
   }
 }
 /* Панель деталей с возможностью свайпа */
-.ar-stage-details-panel {
-  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-}
 
 .ar-stage-details-panel::-webkit-scrollbar {
   width: 3px;
@@ -1846,10 +1843,8 @@ select[multiple] option:hover {
 
 /* === Тёмная тема читалки === */
 
-/* PDF — инверсия canvas */
-#readerScreen.reader-theme-dark #pdfCanvas:not(.no-invert) {
-  filter: invert(1) hue-rotate(180deg);
-}
+/* PDF: тёмная тема рисуется в самом холсте (reader-core.js → paintPdfDark):
+   текст и фон инвертируются, картинки — нет. */
 
 /* EPUB iframe — в нём своя страница, ему ниже даём CSS через epubjs.themes */
 /* (применяется через JS — см. ниже) */
@@ -2043,31 +2038,8 @@ select[multiple] option:hover {
   position: relative;
 }
 
-/* ПК: панель деталей — правый сайдбар */
+/* ПК: схемы — панель этапа размечена в ar-schemes.css */
 @media (min-width: 1024px) {
-  .ar-stage-details-panel {
-    top: 0 !important;
-    bottom: 0 !important;
-    left: auto !important;
-    right: 0 !important;
-    width: min(400px, 38vw) !important;
-    max-height: 100% !important;
-    overflow-y: auto !important;
-    border-radius: 0 !important;
-    border-top: none !important;
-    border-left: 1px solid rgba(255,255,255,0.15) !important;
-    transform: translateX(110%);
-    transition: transform 0.35s cubic-bezier(0.2,0.9,0.4,1.1) !important;
-  }
-  .ar-stage-details-panel.open {
-    transform: translateX(0);
-  }
-
-  /* Контент схемы не перекрывается панелью */
-  #killChainScrollContainer { padding-right: 24px !important; }
-  #arSchemeRoot.panel-visible #killChainScrollContainer,
-  #arSchemeRoot.panel-visible #killChainWrapper { margin-right: min(400px, 38vw); }
-
   /* Ноды крупнее */
   .ar-killchain-node { width: 96px !important; height: 96px !important; font-size: 15px !important; }
 

@@ -54,5 +54,9 @@ function toggleReaderTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   localStorage.setItem(READER_THEME_KEY, next);
   applyReaderTheme(next);
+  // PDF: тёмная тема рисуется в холсте страницы — перерисовываем.
+  if (typeof pdfDoc !== 'undefined' && pdfDoc && typeof isEpubMode !== 'undefined' && !isEpubMode) {
+    renderPdfPage(pdfCurrentPage);
+  }
   showToast(next === 'dark' ? 'Тёмная тема' : 'Светлая тема');
 }

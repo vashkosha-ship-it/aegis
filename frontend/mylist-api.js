@@ -3,6 +3,7 @@ async function loadMyListFromApi() {
   if (api.isAuthBootstrapPending?.() && !state.currentUser) return false;
   try {
     const entries = await api.library.mylist();
+    if (typeof cacheForOffline === 'function') cacheForOffline(MYLIST_CACHE_KEY, entries);
     state.mylist = {};
     state.mylistCompletedAt = {};
     entries.forEach(e => {
@@ -11,6 +12,17 @@ async function loadMyListFromApi() {
     });
     return true;
   } catch (err) {
+    // Без сети — списки «Читаю», «В планах», «Прочитано» с прошлого входа.
+    const cached = typeof readOfflineCache === 'function' ? readOfflineCache(MYLIST_CACHE_KEY) : null;
+    if (Array.isArray(cached) && (!navigator.onLine || api.isNetworkError?.(err))) {
+      state.mylist = {};
+      state.mylistCompletedAt = {};
+      cached.forEach(e => {
+        state.mylist[e.book_id] = e.status;
+        if (e.completed_at) state.mylistCompletedAt[e.book_id] = e.completed_at;
+      });
+      return true;
+    }
     console.error('Не удалось загрузить MyList с API:', err);
     showToast('Не удалось загрузить ваши закладки');
     return false;

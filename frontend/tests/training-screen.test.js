@@ -32,9 +32,13 @@ const context = {
     trainingTab: 'all',
     currentUser: { name: 'alice', cyber_level: 'scout' },
     completedQuizzes: { alice: [1] },
+    // Тесты — только по книгам из «Читаю»/«Прочитано» (и уже сданным).
+    mylist: { 2: 'reading', 3: 'planned' },
     books: [
       { id: 1, title: 'Пройденная', categories: ['SOC'] },
       { id: 2, title: '<img src=x>', categories: ['GRC'] },
+      { id: 3, title: 'Только в планах', categories: ['GRC'] },
+      { id: 4, title: 'Не в списке', categories: ['GRC'] },
     ],
   },
   ICONS: { target: '<svg width="22" height="22"></svg>', check: 'OK', clock: 'TIME', education: 'EDU' },
@@ -57,6 +61,7 @@ let list = dom.window.document.getElementById('trainingList');
 assert.equal(list.querySelectorAll('.training-card').length, 2);
 assert.equal(list.querySelector('img'), null);
 assert.match(list.innerHTML, /&lt;img src=x&gt;/);
+assert.doesNotMatch(list.textContent, /Только в планах|Не в списке/);
 
 dom.window.document.querySelector('[data-ttab="completed"]').click();
 assert.equal(context.state.trainingTab, 'completed');

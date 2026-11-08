@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.storage import StorageBackend, StorageObject
+from app.core.storage import COVER_THUMB_SUFFIX, StorageBackend, StorageObject
 from app.models.book import Book
 from app.models.user import User
 
@@ -67,6 +67,12 @@ async def referenced_storage_keys(db: AsyncSession) -> set[str]:
     return keys
 
 
+def _is_live_thumb(key: str, referenced: set[str]) -> bool:
+    """Миниатюра обложки — необязательная копия: сиротой она становится только
+    вместе с самой обложкой, а её отсутствие пропажей не считается."""
+    return key.endswith(COVER_THUMB_SUFFIX) and key[: -len(COVER_THUMB_SUFFIX)] in referenced
+
+
 async def audit_storage(
     db: AsyncSession,
     storage: StorageBackend,
@@ -79,7 +85,10 @@ async def audit_storage(
     objects = await storage.list_objects(MANAGED_PREFIXES)
     stored = {item.key: item for item in objects}
     cutoff = (now or datetime.now(UTC)) - timedelta(hours=grace_hours)
-    unreferenced = [item for item in objects if item.key not in referenced]
+    unreferenced = [
+        item for item in objects
+        if item.key not in referenced and not _is_live_thumb(item.key, referenced)
+    ]
     orphans = tuple(item for item in unreferenced if item.modified_at <= cutoff)
     recent = tuple(item for item in unreferenced if item.modified_at > cutoff)
     return StorageAudit(
@@ -105,7 +114,7 @@ async def delete_orphaned_storage(
     deleted: list[str] = []
     failed: list[str] = []
     for item in audit.orphan_objects:
-        if item.key in current_references:
+        if item.key in current_references or _is_live_thumb(item.key, current_references):
             continue
         try:
             await storage.delete(item.key)

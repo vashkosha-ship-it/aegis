@@ -1000,22 +1000,8 @@
 
 @media (min-width: 768px) and (max-width: 1023px) {
 
-  /* Навигация: pill чуть крупнее и с отступом снизу */
-  .bottom-nav {
-    max-width: 373px;
-    height: 41px;
-    bottom: 5px;
-  }
-
-  .nav-item {
-    padding: 7px 12px;
-    min-width: 48px;
-    flex: initial;
-  }
-
-  .nav-item .nav-label {
-    font-size: 7px;
-  }
+  /* Нижнее меню на вертикальном планшете — той же высоты, что на телефоне:
+     раньше здесь оно сжималось до 41px с подписями 7px и выглядело криво. */
 
   /* Все книги — 4 колонки */
   #sectionAll .books-scroll,
@@ -1595,14 +1581,6 @@
     font-size: 13px !important;
   }
 
-  /* Панель деталей этапа — крупнее */
-  #arStageDetails {
-    max-width: 480px;
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) translateY(calc(100% - 48px)) !important;
-    border-radius: 16px 16px 0 0 !important;
-  }
   #arStageDetailTitle { font-size: 10px !important; }
   #arStageDetailContent { padding: 16px 21px 24px !important; font-size: 11px !important; line-height: 1.7; }
   #arStageDetailContent h1,
@@ -1808,13 +1786,18 @@
   #app {
     margin-left: 0 !important;
     width: 100% !important;
-    max-width: 760px !important;
+    max-width: var(--app-max-width, 760px) !important;
     margin-right: auto !important;
     margin-left: auto !important;
     padding-left: 16px !important;
     padding-right: 16px !important;
   }
   body { padding-bottom: 72px !important; }
+  /* Горизонтальный планшет: контент на всю ширину, а не узкой колонкой
+     посередине с пустыми полями по бокам. */
+  @media (orientation: landscape) and (min-width: 900px) {
+    :root { --app-max-width: 1120px; }
+  }
   body.reader-active #app { max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
 
   /* Нижнее меню — нормальный «телефонный» размер на всех экранах до ПК.

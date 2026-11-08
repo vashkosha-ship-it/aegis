@@ -47,7 +47,34 @@ function renderPaginatedBooks(id, books, query) {
     </div>
     <div data-static-style="a322">
       Страница ${page} из ${totalPages} · всего книг: ${total}
-    </div>`);
+    </div>
+    ${totalPages > 3 ? `<div class="books-pager-jump">
+      <label for="booksPageJump">Перейти на страницу</label>
+      <input type="number" id="booksPageJump" inputmode="numeric" min="1" max="${totalPages}" placeholder="${page}"
+        data-onkeydown="onBooksPageJumpKey()" data-args="event">
+      <button type="button" class="books-pager-jump-go" data-onclick="jumpToBooksPage()">Перейти</button>
+    </div>` : ''}`);
+}
+
+// «Перейти на страницу N»: на планшете к 7-й странице иначе листать по одной.
+function jumpToBooksPage() {
+  const input = document.getElementById('booksPageJump');
+  if (!input) return;
+  const total = Math.max(1, Math.ceil(getFilteredBooks().length / BOOKS_PER_PAGE));
+  const value = Number.parseInt(input.value, 10);
+  if (!Number.isInteger(value) || value < 1 || value > total) {
+    showToast(`Введите номер от 1 до ${total}`);
+    input.focus();
+    return;
+  }
+  goToBooksPage(value);
+}
+
+function onBooksPageJumpKey(event) {
+  if (event && event.key === 'Enter') {
+    event.preventDefault();
+    jumpToBooksPage();
+  }
 }
 
 function goToBooksPage(p) {
@@ -72,7 +99,7 @@ function cardHTML(b, query, options) {
   const pct = p?.started ? Math.min(Math.round(p.currentPage / p.totalPages * 100), 100) : 0;
 
   const coverInner = b.has_cover
-    ? `<img src="${api.books.coverUrl(b.id)}" alt="" loading="lazy"
+    ? `<img src="${api.books.coverUrl(b.id, 'small')}" alt="" loading="lazy" decoding="async"
             data-static-style="a118"
             data-onerror="replaceWithFallback()" data-args="this" data-fallback="coverBg">`
     : `<div class="cover-bg">${ICONS.bookCover}</div>`;
@@ -94,5 +121,6 @@ function cardHTML(b, query, options) {
     </div>
     </button>
     ${opts.removable ? `<button type="button" class="book-card-remove" data-onclick="hideFromResume(${b.id})" title="Убрать из «Продолжить»" aria-label="Убрать из «Продолжить»">&times;</button>` : ''}
+    ${opts.listMenu ? `<button type="button" class="book-card-move" data-onclick="openMylistMoveMenu(${b.id})" title="Переместить или убрать" aria-label="Переместить или убрать: ${eh(b.title)}">${ICONS.moreHorizontal}</button>` : ''}
   </article>`;
 }

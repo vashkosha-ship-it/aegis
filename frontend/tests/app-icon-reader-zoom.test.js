@@ -8,31 +8,15 @@ const frontend = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(frontend, file), 'utf8');
 
 // --- Значок приложения ---
+// Выбор цвета значка убран: остаётся синий, прежний выбор сбрасывается.
 const appIcon = read('app-icon.js');
-const base = JSON.parse(read('manifest.json'));
-const variants = [...appIcon.matchAll(/manifest: '\/(manifest[^']*\.json)'/g)].map(m => m[1]);
-assert.ok(variants.length >= 4, 'должно быть несколько вариантов значка');
-for (const file of variants) {
-  const manifest = JSON.parse(read(file));
-  // Одинаковые id и start_url: иначе браузер посчитает выбор значка другим приложением.
-  assert.equal(manifest.id, base.id, `${file}: id`);
-  assert.equal(manifest.start_url, base.start_url, `${file}: start_url`);
-  assert.ok(manifest.icons.some(icon => icon.purpose === 'maskable'), `${file}: нет maskable`);
-  for (const icon of manifest.icons) {
-    assert.ok(fs.existsSync(path.join(frontend, icon.src)), `${file}: нет файла ${icon.src}`);
-  }
-}
-for (const [, src] of appIcon.matchAll(/icon: '([^']+)'/g)) {
-  assert.ok(fs.existsSync(path.join(frontend, src)), `нет превью ${src}`);
-}
-// Адрес manifest постоянный (сервер подставляет значок по cookie), скрипт
-// значка — сразу после него.
 assert.match(read('index.html'), /<link rel="manifest" href="\/api\/app\/manifest" crossorigin="use-credentials">\s*<script src="app-icon\.js"><\/script>/);
-assert.doesNotMatch(appIcon, /setHref\('link\[rel="manifest"\]'/);
-assert.match(appIcon, /aegis_app_icon=/);
-assert.match(read('account-personalization.js'), /меняется не сразу/);
+assert.match(appIcon, /function resetAppIcon\(\)/);
+assert.match(appIcon, /localStorage\.removeItem\(APP_ICON_KEY\)/);
+assert.match(appIcon, /Max-Age=0/);
+assert.doesNotMatch(read('account-personalization.js'), /Значок приложения|APP_ICONS/);
 assert.match(read('sw.js'), /'\/app-icon\.js'/);
-assert.match(read('account-personalization.js'), /Значок приложения/);
+const variants = [];
 
 // --- Масштаб страницы в читалке ---
 const html = read('index.html');
@@ -46,6 +30,9 @@ assert.match(gestures, /getElementById\('readerGestureZone'\) \|\| viewport/);
 assert.match(gestures, /zone\.addEventListener\('touchstart'/);
 assert.match(gestures, /function setPdfZoom\s*\(/);
 assert.match(read('reader-ux-fix.css'), /is-pdf-zoomed \.tap-zone \{ display: none; \}/);
+// Масштаб меньше 100 % — страница целиком в горизонтальной ориентации.
+assert.match(gestures, /const PDF_ZOOM_MIN = 0\.5;/);
+assert.match(gestures, /PDF_ZOOM_STEPS = \[0\.5,/);
 
 // --- Панель выделения на телефоне внизу экрана ---
 assert.match(read('reader-selection-ai.js'), /classList\.add\('is-docked'\)/);

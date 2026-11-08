@@ -115,6 +115,7 @@ async function loadProgressFromApi(flushQueue = true, { quiet = false } = {}) {
   if (api.isAuthBootstrapPending?.() && !state.currentUser) return false;
   try {
     const entries = await api.library.progress();
+    if (typeof cacheForOffline === 'function') cacheForOffline(PROGRESS_CACHE_KEY, entries);
     _lastProgressLoadAt = Date.now();
     const serverProgress = {};
     entries.forEach(p => {
@@ -144,6 +145,27 @@ async function loadProgressFromApi(flushQueue = true, { quiet = false } = {}) {
     startSyncPolling();
     return true;
   } catch (err) {
+    // Без сети — прогресс с прошлого входа, поверх него — то, что прочитано
+    // на устройстве и ещё не отправлено.
+    const cached = typeof readOfflineCache === 'function' ? readOfflineCache(PROGRESS_CACHE_KEY) : null;
+    if (Array.isArray(cached) && (!navigator.onLine || api.isNetworkError?.(err))) {
+      const local = state.readingProgress || {};
+      const merged = {};
+      cached.forEach(p => {
+        merged[p.book_id] = {
+          currentPage: p.current_page,
+          totalPages: p.total_pages,
+          started: p.started,
+          lastReadAt: p.last_read_at || null,
+        };
+      });
+      Object.keys(local).forEach(bid => {
+        const lp = local[bid];
+        if (lp && (!merged[bid] || (lp.currentPage || 0) > (merged[bid].currentPage || 0))) merged[bid] = lp;
+      });
+      state.readingProgress = merged;
+      return true;
+    }
     console.error('Не удалось загрузить прогресс с API:', err);
     // Фоновая сверка не должна пугать всплывающими ошибками.
     if (!quiet) showToast('Не удалось загрузить прогресс чтения');
@@ -177,10 +199,27 @@ async function flushPendingProgress() {
   if (!p) return;
 
   try {
-    await api.library.updateProgress(bookId, p.currentPage, p.totalPages);
+    const saved = await api.library.updateProgress(bookId, p.currentPage, p.totalPages);
+    applyServerListStatus(bookId, saved);
   } catch (err) {
     console.error('Не удалось сохранить прогресс, ставим в очередь:', err);
     queueProgress(bookId, p.currentPage, p.totalPages);
+  }
+}
+
+// Сервер сам переводит книгу: «В планах» → «Читаю» при чтении и в
+// «Прочитано» с 99 % страниц. Повторяем это в интерфейсе без перезагрузки.
+function applyServerListStatus(bookId, saved) {
+  if (!saved || !state.mylist) return;
+  const before = state.mylist[bookId];
+  let after = before;
+  if (saved.finished_at) after = 'completed';
+  else if (before === 'planned') after = 'reading';
+  if (after === before) return;
+  state.mylist[bookId] = after;
+  saveState();
+  if (after === 'completed' && typeof showToast === 'function') {
+    showToast('Книга дочитана и перешла в «Прочитано»');
   }
 }
 

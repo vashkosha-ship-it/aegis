@@ -129,6 +129,8 @@ function assistantRenderBubble(m, surfaceKind, idx) {
     ).join('') + `</div>`;
   }
 
+  if (!isUser) inner += assistantBookLinks(m.content);
+
   if (m._action === 'goto_quiz' && m._bookId != null) {
     inner += `<button class="ai-action-btn" data-onclick="assistantGotoQuiz(${m._bookId})">` +
       `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>` +
@@ -370,17 +372,15 @@ function buildAssistantContext(text) {
     };
   }
 
-  // #9 — библиотеку шлём, когда вопрос про рекомендации/выбор книги
-  const t = (text || '').toLowerCase();
-  if (/рекоменд|посоветуй|что почитать|какую книг|подбери|с чего начать|порекоменд|почитат/.test(t)) {
-    const statusRu = { reading: 'читаю', planned: 'в планах', completed: 'прочитано' };
-    ctx.library = (state.books || []).slice(0, 60).map(b => ({
-      title: b.title,
-      author: b.author || null,
-      categories: b.categories || [],
-      status: state.mylist[b.id] ? (statusRu[state.mylist[b.id]] || state.mylist[b.id]) : null,
-    }));
-  }
+  // Список книг шлём всегда: ассистент советует только из библиотеки и
+  // должен знать, что в ней есть, о чём бы ни спросили.
+  const statusRu = { reading: 'читаю', planned: 'в планах', completed: 'прочитано' };
+  ctx.library = (state.books || []).slice(0, 300).map(b => ({
+    title: b.title,
+    author: b.author || null,
+    categories: (b.categories || []).slice(0, 3),
+    status: state.mylist[b.id] ? (statusRu[state.mylist[b.id]] || state.mylist[b.id]) : null,
+  }));
 
   return ctx;
 }
@@ -392,15 +392,15 @@ function assistantHandleQuick(surface, action) {
   const book = state.currentBook;
 
   if (action === 'recommend') {
-    assistantSend(surface, 'Посоветуй, что мне почитать из моей библиотеки с учётом моего уровня.');
+    assistantSend(surface, 'Посоветуй, что мне почитать из библиотеки с учётом моего уровня.');
     return;
   }
   if (action === 'vacation') {
-    assistantSend(surface, 'Я уезжаю в отпуск и хочу взять с собой что-то лёгкое и интересное по кибербезопасности из моей библиотеки. Посоветуй 2-3 книги, которые приятно читать без напряжения, и кратко объясни почему.');
+    assistantSend(surface, 'Я уезжаю в отпуск и хочу взять с собой что-то лёгкое и интересное по кибербезопасности из библиотеки. Посоветуй 2-3 книги, которые приятно читать без напряжения, и кратко объясни почему.');
     return;
   }
   if (action === 'exam') {
-    assistantSend(surface, `Мне скоро сдавать экзамен/аттестацию по информационной безопасности. Составь из моей библиотеки план интенсивной подготовки: какие книги читать в первую очередь и на что обратить внимание.`);
+    assistantSend(surface, `Мне скоро сдавать экзамен/аттестацию по информационной безопасности. Составь по книгам из библиотеки план интенсивной подготовки: какие книги читать в первую очередь и на что обратить внимание.`);
     return;
   }
   if (action === 'summary') {
@@ -463,6 +463,46 @@ function assistantOfferQuiz(surface, book) {
     _bookId: book.id,
   });
   assistantRender(surface);
+}
+
+// Кнопки «открыть книгу» под ответом: ищем в тексте названия книг каталога
+// (ассистента просят писать их точно и в «ёлочках»).
+function _assistantNorm(text) {
+  return String(text || '').toLowerCase().replace(/ё/g, 'е').replace(/[«»"“”„'`]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function assistantMentionedBooks(text) {
+  const haystack = _assistantNorm(text);
+  if (!haystack) return [];
+  const found = [];
+  (state.books || []).forEach(book => {
+    const title = _assistantNorm(book.title);
+    if (title.length < 4) return;
+    const at = haystack.indexOf(title);
+    if (at >= 0) found.push({ book, at, len: title.length });
+  });
+  // Короткое название внутри длинного («Сети» внутри «Компьютерные сети») не считаем.
+  return found
+    .filter(item => !found.some(other => other !== item && other.len > item.len
+      && other.at <= item.at && other.at + other.len >= item.at + item.len))
+    .sort((a, b) => a.at - b.at)
+    .slice(0, 8)
+    .map(item => item.book);
+}
+
+function assistantBookLinks(text) {
+  const books = assistantMentionedBooks(text);
+  if (!books.length) return '';
+  return `<div class="ai-book-links">` + books.map(book =>
+    `<button class="ai-book-link" data-onclick="assistantOpenBook(${Number(book.id)})">` +
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>` +
+    `<span>${eh(book.title)}</span></button>`
+  ).join('') + `</div>`;
+}
+
+function assistantOpenBook(bookId) {
+  if (typeof closeAIPanel === 'function') closeAIPanel();
+  openBookDetail(bookId);
 }
 
 function assistantGotoQuiz(bookId) {

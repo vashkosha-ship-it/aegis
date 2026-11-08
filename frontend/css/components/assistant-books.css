@@ -1,0 +1,23 @@
+/* ---------- Ассистент: кнопки перехода к книгам из ответа ---------- */
+.ai-book-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ai-book-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid rgba(var(--accent-rgb), .45);
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), .08);
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.ai-book-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-book-link svg { flex: none; }
+.ai-book-link:hover,
+.ai-book-link:focus-visible { background: rgba(var(--accent-rgb), .18); }
