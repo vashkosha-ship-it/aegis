@@ -425,11 +425,14 @@ async function submitVerifyCode() {
       resume_hidden: Array.isArray(user.resume_hidden) ? user.resume_hidden : null,
     };
     await loadBooksFromApi();
-    await loadMyListFromApi();
-    await loadProgressFromApi();
-    await loadCompletedQuizzesFromApi();
-    await loadGamificationFromApi();
-    await loadOfflineBookIds();
+    // Независимые запросы — параллельно: заставка при запуске короче.
+    await Promise.all([
+      loadMyListFromApi(),
+      loadProgressFromApi(),
+      loadCompletedQuizzesFromApi(),
+      loadGamificationFromApi(),
+      loadOfflineBookIds(),
+    ]);
     // Аккаунт — источник истины для блока «Продолжить» и доступности ИИ.
     if (typeof syncResumeHiddenFromAccount === 'function') syncResumeHiddenFromAccount();
     if (typeof refreshAssistantAvailability === 'function') refreshAssistantAvailability(true);
