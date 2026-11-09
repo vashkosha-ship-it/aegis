@@ -29,6 +29,8 @@ tryAutoLogin().then(ok => {
   }
 }).finally(() => {
   api.setAuthBootstrapPending(false);
+  // Экран уже выбран (главная или вход) — убираем заставку.
+  if (typeof hideSessionSplash === 'function') hideSessionSplash();
 });
 
 
