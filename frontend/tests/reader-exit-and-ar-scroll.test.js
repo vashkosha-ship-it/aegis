@@ -17,8 +17,12 @@ assert.ok(
   lifecycle.indexOf('stopPdfRendering()') < lifecycle.indexOf('setReaderFocusMode(false)'),
   'отрисовка должна останавливаться первым делом',
 );
-// После медленной страницы соседние не готовим заранее.
-assert.match(core, /performance\.now\(\) - renderStartedAt < 1500/);
+// После медленной страницы готовим только следующую (не предыдущую);
+// тёмная версия собирается вне экрана, без вспышки светлой страницы.
+assert.match(core, /performance\.now\(\) - renderStartedAt >= 1500\)/);
+assert.match(core, /PDF_WEAK_DEVICE \|\| onlyNext \? \[pn \+ 1\] : \[pn \+ 1, pn - 1\]/);
+assert.match(core, /async function renderPdfPageReady\(/);
+assert.doesNotMatch(core, /ctx\.drawImage\(rendered, 0, 0\);\s*\/\/ Тёмная тема: светлый фон/);
 
 // Панель этапа на схемах: появляется только при выборе этапа, раскладку
 // задаёт CSS (не скрипт) — поворот экрана её не ломает; закрывается ✕,
