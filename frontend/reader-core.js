@@ -605,8 +605,8 @@ function showPdfPageLoading(visible) {
 
 // ========== ТЁМНАЯ ТЕМА PDF БЕЗ ИНВЕРСИИ КАРТИНОК ==========
 // Раньше вся страница инвертировалась CSS-фильтром — вместе с фотографиями
-// и схемами (негатив). Теперь инвертируем страницу, а прямоугольники, где
-// pdf.js рисовал картинки, возвращаем из исходной отрисовки.
+// и схемами (негатив). Теперь инвертируем страницу, а иллюстрации внутри
+// картинок, которые рисовал pdf.js, возвращаем из исходной отрисовки.
 function _pdfMul(m, n) {
   return [
     m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
@@ -659,27 +659,144 @@ function _invertLightness(ctx, width, height) {
   ctx.putImageData(image, 0, 0);
 }
 
-// Картинка «как бумага»: светлый бесцветный фон с тёмными штрихами — скан
-// страницы, схема или таблица на белом. Её, как и текст, перекрашиваем; цветные
-// иллюстрации и фотографии оставляем как есть. Без этого скан целиком считался
-// картинкой и в тёмной теме оставался белым.
-function _looksLikePaper(source, r) {
-  const side = 48;
-  const probe = document.createElement('canvas');
-  probe.width = side;
-  probe.height = side;
-  const pctx = probe.getContext('2d', { willReadFrequently: true });
-  pctx.drawImage(source, r.x, r.y, r.w, r.h, 0, 0, side, side);
-  const d = pctx.getImageData(0, 0, side, side).data;
-  let light = 0, colorful = 0;
-  const total = side * side;
-  for (let i = 0; i < d.length; i += 4) {
-    const max = Math.max(d[i], d[i + 1], d[i + 2]);
-    const min = Math.min(d[i], d[i + 1], d[i + 2]);
-    if (max > 200 && max - min < 40) light++;
-    if (max - min > 60) colorful++;
+// Где внутри картинки настоящие иллюстрации. Картинкой в PDF бывает и
+// отдельная фотография, и вся страница целиком (сканы: текст, фон и рисунки —
+// одно изображение). Поэтому решаем не «вся картинка да/нет», а по клеткам:
+// клетка с текстом — светлый бесцветный фон и тёмные штрихи; клетка
+// иллюстрации — цвет или полутона. Связные группы клеток иллюстраций
+// возвращаем в исходных цветах, всё остальное (текст, фон, чёрно-белые схемы)
+// перекрашивается вместе со страницей.
+const DARK_TILES_PER_PAGE = 48;
+const DARK_TILE_PICTURE_SHARE = 0.35;
+
+function _looksLikeText(paperShare, inkShare) {
+  return paperShare > 0.25 && inkShare > 0.04;
+}
+
+// Цвет бумаги этой страницы: самый частый светлый бесцветный цвет. Сравниваем
+// с ним, а не просто «светлое = бумага»: иначе бледное небо или светлый фон
+// на фотографии принимались за бумагу и темнели.
+function _paperColor(d) {
+  const bins = new Map();
+  for (let i = 0; i < d.length; i += 16) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const max = Math.max(r, g, b);
+    if (max < 190 || max - Math.min(r, g, b) >= 45) continue;
+    const key = (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3);
+    const bin = bins.get(key);
+    if (bin) { bin.n++; bin.r += r; bin.g += g; bin.b += b; } else bins.set(key, { n: 1, r, g, b });
   }
-  return light / total > 0.55 && colorful / total < 0.08;
+  let best = null;
+  bins.forEach(bin => { if (!best || bin.n > best.n) best = bin; });
+  return best ? [best.r / best.n, best.g / best.n, best.b / best.n] : [255, 255, 255];
+}
+
+const DARK_PAPER_TOLERANCE = 20;
+
+function _pixelKind(r, g, b, paper) {
+  if (Math.abs(r - paper[0]) <= DARK_PAPER_TOLERANCE
+    && Math.abs(g - paper[1]) <= DARK_PAPER_TOLERANCE
+    && Math.abs(b - paper[2]) <= DARK_PAPER_TOLERANCE) return 0; // бумага
+  if (Math.max(r, g, b) <= 110 && Math.max(r, g, b) - Math.min(r, g, b) < 45) return 1; // чернила
+  return 2; // цвет или полутон — признак иллюстрации
+}
+
+function _pictureRegions(source, r, pageWidth) {
+  const tile = Math.max(8, Math.round(pageWidth / DARK_TILES_PER_PAGE));
+  const cols = Math.ceil(r.w / tile);
+  const rows = Math.ceil(r.h / tile);
+  const d = source.getContext('2d').getImageData(r.x, r.y, r.w, r.h).data;
+  const paperColor = _paperColor(d);
+  const total = new Uint32Array(cols * rows);
+  const picture = new Uint32Array(cols * rows);
+  const paper = new Uint32Array(cols * rows);
+  const ink = new Uint32Array(cols * rows);
+  // Каждый второй пиксель по обеим осям — в 4 раза быстрее, точности хватает.
+  for (let y = 0; y < r.h; y += 2) {
+    const rowBase = Math.floor(y / tile) * cols;
+    for (let x = 0; x < r.w; x += 2) {
+      const i = (y * r.w + x) * 4;
+      const t = rowBase + Math.floor(x / tile);
+      total[t]++;
+      const kind = _pixelKind(d[i], d[i + 1], d[i + 2], paperColor);
+      if (kind === 2) picture[t]++;
+      else if (kind === 0) paper[t]++;
+      else ink[t]++;
+    }
+  }
+  const isPicture = new Uint8Array(cols * rows);
+  for (let t = 0; t < isPicture.length; t++) {
+    // Вокруг текста на сканах тоже есть полутона (сглаживание, шум JPEG), но
+    // текст — это всегда бумага и чернила вместе; в иллюстрации такой пары нет.
+    isPicture[t] = total[t]
+      && picture[t] / total[t] > DARK_TILE_PICTURE_SHARE
+      && !_looksLikeText(paper[t] / total[t], ink[t] / total[t]) ? 1 : 0;
+  }
+  // Группы клеток (разрыв в одну клетку не делит иллюстрацию на части).
+  const seen = new Uint8Array(cols * rows);
+  const regions = [];
+  for (let start = 0; start < isPicture.length; start++) {
+    if (!isPicture[start] || seen[start]) continue;
+    const queue = [start];
+    seen[start] = 1;
+    let minC = cols, maxC = -1, minR = rows, maxR = -1, count = 0;
+    while (queue.length) {
+      const t = queue.pop();
+      const c = t % cols, row = (t - c) / cols;
+      count++;
+      if (c < minC) minC = c; if (c > maxC) maxC = c;
+      if (row < minR) minR = row; if (row > maxR) maxR = row;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nc = c + dx, nr = row + dy;
+          if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+          const n = nr * cols + nc;
+          if (isPicture[n] && !seen[n]) { seen[n] = 1; queue.push(n); }
+        }
+      }
+    }
+    const spanC = maxC - minC + 1, spanR = maxR - minR + 1;
+    // Цветной заголовок или выделенное слово — узкая полоса, не иллюстрация.
+    if (spanC < 4 || spanR < 3 || count / (spanC * spanR) < 0.4) continue;
+    regions.push(_refineRegion(d, r, paperColor, {
+      x: minC * tile, y: minR * tile,
+      w: Math.min(r.w, (maxC + 1) * tile) - minC * tile,
+      h: Math.min(r.h, (maxR + 1) * tile) - minR * tile,
+    }, tile));
+  }
+  return regions.map(g => ({ x: r.x + g.x, y: r.y + g.y, w: g.w, h: g.h }));
+}
+
+// Подгоняем края к самой иллюстрации: клетки грубые, без этого вокруг
+// рисунка остаётся белая рамка или срезается его край.
+function _refineRegion(d, r, paperColor, g, tile) {
+  // Похожа ли строка или столбец пикселей на продолжение рисунка.
+  const isPictureLine = (x0, y0, x1, y1) => {
+    let pic = 0, pap = 0, inkCount = 0, n = 0;
+    for (let y = Math.max(0, y0); y < Math.min(r.h, y1); y++) {
+      for (let x = Math.max(0, x0); x < Math.min(r.w, x1); x++) {
+        const i = (y * r.w + x) * 4;
+        const kind = _pixelKind(d[i], d[i + 1], d[i + 2], paperColor);
+        n++;
+        if (kind === 2) pic++; else if (kind === 0) pap++; else inkCount++;
+      }
+    }
+    if (!n) return false;
+    return pic / n > 0.3 && pap / n < 0.9 && !_looksLikeText(pap / n, inkCount / n);
+  };
+  let { x, y, w, h } = g;
+  const limit = tile;
+  // Наружу — пока за краем продолжается рисунок.
+  for (let k = 0; k < limit && y > 0 && isPictureLine(x, y - 1, x + w, y); k++) { y--; h++; }
+  for (let k = 0; k < limit && y + h < r.h && isPictureLine(x, y + h, x + w, y + h + 1); k++) h++;
+  for (let k = 0; k < limit && x > 0 && isPictureLine(x - 1, y, x, y + h); k++) { x--; w++; }
+  for (let k = 0; k < limit && x + w < r.w && isPictureLine(x + w, y, x + w + 1, y + h); k++) w++;
+  // Внутрь — пока край не рисунок (поля, подпись под ним).
+  for (let k = 0; k < limit && h > 2 && !isPictureLine(x, y, x + w, y + 1); k++) { y++; h--; }
+  for (let k = 0; k < limit && h > 2 && !isPictureLine(x, y + h - 1, x + w, y + h); k++) h--;
+  for (let k = 0; k < limit && w > 2 && !isPictureLine(x, y, x + 1, y + h); k++) { x++; w--; }
+  for (let k = 0; k < limit && w > 2 && !isPictureLine(x + w - 1, y, x + w, y + h); k++) w--;
+  return { x, y, w, h };
 }
 
 // Работает ли фильтр холста на самом деле. Safari принимает ctx.filter, но
@@ -726,10 +843,13 @@ function paintPdfDark(ctx, rendered, rects) {
     const w = Math.min(width - x, r.w - (x - r.x));
     const h = Math.min(height - y, r.h - (y - r.y));
     if (w <= 0 || h <= 0) return;
+    let regions;
     try {
-      if (_looksLikePaper(rendered, { x, y, w, h })) return;
-    } catch (_) { /* не смогли оценить — оставляем картинку как есть */ }
-    ctx.drawImage(rendered, x, y, w, h, x, y, w, h);
+      regions = _pictureRegions(rendered, { x, y, w, h }, width);
+    } catch (_) {
+      regions = [{ x, y, w, h }]; // не смогли разобрать — картинку не трогаем
+    }
+    regions.forEach(g => ctx.drawImage(rendered, g.x, g.y, g.w, g.h, g.x, g.y, g.w, g.h));
   });
   ctx.restore();
 }
