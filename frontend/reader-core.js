@@ -485,9 +485,42 @@ function _pdfCacheFor(doc) {
   return _pdfPageCache.items;
 }
 
-async function getRenderedPdfPage(pn, page, viewport, dpr, targetWidth) {
+// Ключ кэша отрисованной страницы: тёмная и светлая версии хранятся отдельно.
+function _pdfCacheKey(pn, targetWidth, dpr, dark) {
+  return pn + '@' + targetWidth + 'x' + dpr + (dark ? ':dark' : '');
+}
+
+// Тёмная тема — у этой страницы? Первая страница (обложка) не перекрашивается.
+function pdfPageIsDark(pn) {
+  return pn !== 1 && typeof getReaderTheme === 'function' && getReaderTheme() === 'dark';
+}
+
+// Страница целиком, уже в нужной теме. Тёмная версия собирается вне экрана —
+// раньше на экране сперва появлялась светлая страница и лишь потом темнела.
+async function renderPdfPageReady(page, viewport, dpr, cancellable, dark) {
+  if (!dark) return renderPdfPageOffscreen(page, viewport, dpr, cancellable);
+  // Где на странице картинки — считаем параллельно с отрисовкой.
+  const rectsWork = pdfImageRects(page, viewport, dpr).catch(() => []);
+  const rendered = await renderPdfPageOffscreen(page, viewport, dpr, cancellable);
+  const rects = await rectsWork;
+  const out = document.createElement('canvas');
+  out.width = rendered.width;
+  out.height = rendered.height;
+  try {
+    paintPdfDark(out.getContext('2d'), rendered, rects);
+  } catch (err) {
+    console.warn('Тёмная тема страницы не применилась:', err);
+    return rendered;
+  }
+  // Исходная светлая отрисовка больше не нужна — освобождаем память.
+  rendered.width = 0;
+  rendered.height = 0;
+  return out;
+}
+
+async function getRenderedPdfPage(pn, page, viewport, dpr, targetWidth, dark = false) {
   const cache = _pdfCacheFor(pdfDoc);
-  const key = pn + '@' + targetWidth + 'x' + dpr;
+  const key = _pdfCacheKey(pn, targetWidth, dpr, dark);
   const cached = cache.get(key);
   if (cached) {
     try {
@@ -500,7 +533,7 @@ async function getRenderedPdfPage(pn, page, viewport, dpr, targetWidth) {
       cache.delete(key);
     }
   }
-  const work = renderPdfPageOffscreen(page, viewport, dpr, true);
+  const work = renderPdfPageReady(page, viewport, dpr, true, dark);
   cache.set(key, work);
   try {
     return await work;
@@ -561,20 +594,23 @@ function stopPdfRendering() {
   }
 }
 
-function schedulePdfNeighbourPrerender(pn, dpr, targetWidth, token) {
+function schedulePdfNeighbourPrerender(pn, dpr, targetWidth, token, onlyNext = false) {
   const doc = pdfDoc;
   const run = async () => {
-    // На слабом устройстве готовим только следующую страницу.
-    for (const next of PDF_WEAK_DEVICE ? [pn + 1] : [pn + 1, pn - 1]) {
+    // Следующую страницу готовим всегда: читают вперёд, и именно на слабом
+    // телефоне без этого каждое листание ждёт отрисовки. Предыдущую — только
+    // если устройство и страница лёгкие.
+    for (const next of PDF_WEAK_DEVICE || onlyNext ? [pn + 1] : [pn + 1, pn - 1]) {
       if (token !== _pdfRenderToken || doc !== pdfDoc) return;
       if (next < 1 || next > pdfTotalPages) continue;
       const cache = _pdfCacheFor(doc);
-      const key = next + '@' + targetWidth + 'x' + dpr;
+      const dark = pdfPageIsDark(next);
+      const key = _pdfCacheKey(next, targetWidth, dpr, dark);
       if (cache.has(key)) continue;
       try {
         const page = await doc.getPage(next);
         const viewport = page.getViewport({ scale: targetWidth / page.getViewport({ scale: 1 }).width });
-        const work = renderPdfPageOffscreen(page, viewport, dpr, false);
+        const work = renderPdfPageReady(page, viewport, dpr, false, dark);
         cache.set(key, work);
         await work;
         while (cache.size > PDF_PAGE_CACHE_LIMIT) cache.delete(cache.keys().next().value);
@@ -764,7 +800,7 @@ function _pictureRegions(source, r, pageWidth) {
       h: Math.min(r.h, (maxR + 1) * tile) - minR * tile,
     }, tile));
   }
-  return regions.map(g => ({ x: r.x + g.x, y: r.y + g.y, w: g.w, h: g.h }));
+  return regions.map(g => ({ x: r.x + g.x, y: r.y + g.y, w: g.w, h: g.h, paper: paperColor }));
 }
 
 // Подгоняем края к самой иллюстрации: клетки грубые, без этого вокруг
@@ -822,6 +858,30 @@ function canvasFilterWorks() {
   return _canvasFilterOk;
 }
 
+// Возвращаем иллюстрации в исходных цветах. Логотип или рисунок на белом
+// фоне раньше возвращался вместе с фоном — белые прямоугольники на тёмной
+// странице. Теперь пиксели цвета бумаги внутри иллюстрации остаются тёмными.
+const DARK_LOGO_PAPER_TOLERANCE = 32;
+
+function _restorePicture(ctx, rendered, g) {
+  if (!g.paper) {
+    ctx.drawImage(rendered, g.x, g.y, g.w, g.h, g.x, g.y, g.w, g.h);
+    return;
+  }
+  const original = rendered.getContext('2d').getImageData(g.x, g.y, g.w, g.h);
+  const painted = ctx.getImageData(g.x, g.y, g.w, g.h);
+  const o = original.data, out = painted.data;
+  const [pr, pg, pb] = g.paper;
+  const tol = DARK_LOGO_PAPER_TOLERANCE;
+  for (let i = 0; i < o.length; i += 4) {
+    if (Math.abs(o[i] - pr) <= tol && Math.abs(o[i + 1] - pg) <= tol && Math.abs(o[i + 2] - pb) <= tol) continue;
+    out[i] = o[i];
+    out[i + 1] = o[i + 1];
+    out[i + 2] = o[i + 2];
+  }
+  ctx.putImageData(painted, g.x, g.y);
+}
+
 function paintPdfDark(ctx, rendered, rects) {
   const width = rendered.width;
   const height = rendered.height;
@@ -849,7 +909,7 @@ function paintPdfDark(ctx, rendered, rects) {
     } catch (_) {
       regions = [{ x, y, w, h }]; // не смогли разобрать — картинку не трогаем
     }
-    regions.forEach(g => ctx.drawImage(rendered, g.x, g.y, g.w, g.h, g.x, g.y, g.w, g.h));
+    regions.forEach(g => _restorePicture(ctx, rendered, g));
   });
   ctx.restore();
 }
@@ -937,7 +997,7 @@ async function renderPdfPage(pn) {
   let rendered;
   const renderStartedAt = performance.now();
   try {
-    rendered = await getRenderedPdfPage(pn, page, viewport, dpr, targetWidth);
+    rendered = await getRenderedPdfPage(pn, page, viewport, dpr, targetWidth, pdfPageIsDark(pn));
   } catch (err) {
     clearTimeout(loadingTimer);
     showPdfPageLoading(false);
@@ -957,26 +1017,13 @@ async function renderPdfPage(pn) {
   canvas.style.margin = pdfZoom > 1 ? '0' : '0 auto';
   const ctx = canvas.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // В тёмной теме страница уже перекрашена (renderPdfPageReady).
   ctx.drawImage(rendered, 0, 0);
-  // Тёмная тема: светлый фон и тёмный текст меняются местами, а картинки
-  // остаются как есть. Первая страница (обложка) не меняется вовсе.
-  if (pn !== 1 && typeof getReaderTheme === 'function' && getReaderTheme() === 'dark') {
-    try {
-      const rects = await pdfImageRects(page, viewport, dpr);
-      if (myToken !== _pdfRenderToken) return;
-      paintPdfDark(ctx, rendered, rects);
-    } catch (err) {
-      console.warn('Тёмная тема страницы не применилась:', err);
-    }
-  }
 
   // Соседние страницы готовим заранее — листание становится мгновенным.
-  // Если страница рисовалась дольше полутора секунд (тяжёлая картинка или
-  // слабый телефон), фоновую подготовку пропускаем: она отнимает память
-  // и процессор у того, что человек видит сейчас.
-  if (performance.now() - renderStartedAt < 1500) {
-    schedulePdfNeighbourPrerender(pn, dpr, targetWidth, myToken);
-  }
+  // Тяжёлая страница (дольше полутора секунд) — готовим только следующую.
+  schedulePdfNeighbourPrerender(pn, dpr, targetWidth, myToken,
+    performance.now() - renderStartedAt >= 1500);
 
   // Text layer для выделения (правильный API для PDF.js 3.x)
   const textLayerDiv = document.getElementById('pdfTextLayer');
