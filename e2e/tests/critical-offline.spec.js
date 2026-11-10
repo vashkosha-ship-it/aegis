@@ -54,6 +54,10 @@ test('@critical logout удаляет офлайн-данные только з�
   await expect(page.locator('#confirmModal')).toBeVisible();
   await page.locator('#confirmOkBtn').click();
   await expect(page.locator('#authScreen')).toHaveClass(/\bactive\b/);
+  // Экран входа в этом тесте виден и до выхода (вход — через API), поэтому
+  // ждём именно завершения выхода: подтверждение «Вы вышли из аккаунта».
+  // На медленной машине CI проверка иначе успевала раньше самого выхода.
+  await expect(page.locator('.toast').filter({ hasText: 'Вы вышли из аккаунта' }).first()).toBeVisible();
   await page.waitForFunction(async (userId) => {
     const ids = await offlineStorage.listIds(userId);
     return ids.length === 0;
