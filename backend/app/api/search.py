@@ -15,6 +15,9 @@ from app.schemas.search import SearchHit, SearchHitPage, SearchResponse
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/search", tags=["search"])
 
+# Сколько совпавших страниц ранжируем при поиске по тексту книг.
+CONTENT_CANDIDATES = 2000
+
 
 @router.get("", response_model=SearchResponse)
 async def search_books(
@@ -64,17 +67,30 @@ async def search_books(
         )
 
     # --- 2. Поиск по содержимому страниц ---
+    # Частое слово («ИИ», «данные») встречается на десятках тысяч страниц, и
+    # ранжировать каждую — секунды на запрос при поиске по мере набора.
+    # Поэтому сначала по GIN-индексу берём ограниченный набор кандидатов, затем
+    # ранжируем только их, а фрагмент с подсветкой строим лишь для итоговых
+    # страниц. На выдаче (до 20 книг по 3 страницы) это не сказывается.
     content_sql = text(
-        "SELECT bp.book_id, bp.page, "
-        "ts_rank(bp.search_vector, websearch_to_tsquery('russian', :q)) AS rank, "
-        "ts_headline('russian', bp.content, websearch_to_tsquery('russian', :q), "
+        "WITH q AS (SELECT websearch_to_tsquery('russian', :q) AS tsq), "
+        "cand AS ("
+        "  SELECT bp.id, bp.search_vector FROM book_pages bp, q "
+        "  WHERE bp.search_vector @@ q.tsq LIMIT :cap"
+        "), "
+        "ranked AS ("
+        "  SELECT cand.id, ts_rank(cand.search_vector, q.tsq) AS rank FROM cand, q "
+        "  ORDER BY rank DESC LIMIT :lim"
+        ") "
+        "SELECT bp.book_id, bp.page, r.rank, "
+        "ts_headline('russian', bp.content, q.tsq, "
         "  'MaxWords=18, MinWords=6, ShortWord=2, MaxFragments=1, StartSel=<b>, StopSel=</b>') AS snippet "
-        "FROM book_pages bp "
-        "WHERE bp.search_vector @@ websearch_to_tsquery('russian', :q) "
-        "ORDER BY rank DESC "
-        "LIMIT :lim"
+        "FROM ranked r JOIN book_pages bp ON bp.id = r.id, q "
+        "ORDER BY r.rank DESC"
     )
-    content_rows = (await db.execute(content_sql, {"q": query, "lim": limit * 3})).mappings().all()
+    content_rows = (await db.execute(
+        content_sql, {"q": query, "lim": limit * 3, "cap": CONTENT_CANDIDATES},
+    )).mappings().all()
 
     # книги, найденные только по содержимому — подтянуть их title/author
     content_book_ids = {r["book_id"] for r in content_rows}
