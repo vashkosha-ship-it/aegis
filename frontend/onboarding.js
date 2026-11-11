@@ -441,8 +441,8 @@ function renderCyberLevelDetail(result) {
   container.replaceChildren(content);
 }
 
-function restartOnboarding() {
-  if (!confirm('Пройти тест заново? Текущий результат будет заменён новым после прохождения.')) return;
+async function restartOnboarding() {
+  if (!(await appConfirm('Текущий результат будет заменён новым после прохождения.', { title: 'Пройти тест заново?', confirmText: 'Пройти' }))) return;
   // Сбрасываем UI и стартуем тест заново
   document.getElementById('onboardingResult').classList.add('hidden');
   document.getElementById('onboardingWelcome').classList.add('hidden');

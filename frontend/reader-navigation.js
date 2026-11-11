@@ -28,7 +28,7 @@ function goToPage(pn) {
   updatePageIndicator();
   renderAnnotations();
   if (!isEpubMode && pdfDoc) renderPdfPage(target);
-  else if (!isEpubMode) generateDemoPdf(state.currentBook);
+  else if (!isEpubMode && !(typeof pdfOpenErrorShown !== 'undefined' && pdfOpenErrorShown)) generateDemoPdf(state.currentBook);
 }
 
 function updateSlider() {

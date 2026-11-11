@@ -261,7 +261,7 @@ async function saveBookOffline(bookId, silent) {
 }
 
 async function removeBookOffline(bookId) {
-  if (!confirm('Удалить книгу из офлайн-хранилища? Файл будет удалён с устройства.')) return;
+  if (!(await appConfirm('Файл будет удалён с этого устройства. Читать книгу можно будет только с интернетом.', { title: 'Удалить из офлайна?', confirmText: 'Удалить', danger: true }))) return;
   const userId = currentOfflineUserId();
   if (!userId) { showToast('Войдите в аккаунт'); return; }
   try {

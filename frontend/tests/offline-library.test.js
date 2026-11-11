@@ -87,7 +87,7 @@ const context = {
   renderHome: () => {},
   renderBookInfo: () => {},
   renderProfile: () => {},
-  confirm: () => true,
+  appConfirm: async () => true,
   currentBookId: 3,
   SYNC_QUEUE_KEY: 'sync',
   PAGE_BOOKMARKS_KEY: 'bookmarks',

@@ -77,4 +77,27 @@ assert.ok(
 assert.match(swSource, /const CACHE_NAME = 'aegis-cache-v\d+'/);
 assert.match(swSource, /'\/dialogs\.js'/);
 
-console.log('Dialogs tests passed');
+// appConfirm: «Да» → true, «Отмена», Escape и клик по фону → false.
+(async () => {
+  const doc = dom.window.document;
+  let answer = vm.runInContext("appConfirm('Удалить?', { title: 'Удалить книгу?', confirmText: 'Удалить', danger: true })", context);
+  assert.equal(doc.querySelector('#confirmModal .app-dialog-title').textContent, 'Удалить книгу?');
+  assert.ok(doc.getElementById('confirmOkBtn').classList.contains('is-danger'));
+  doc.getElementById('confirmOkBtn').click();
+  assert.equal(await answer, true);
+  assert.equal(doc.getElementById('confirmModal'), null);
+
+  answer = vm.runInContext("appConfirm('Удалить?')", context);
+  doc.getElementById('confirmCancelBtn').click();
+  assert.equal(await answer, false);
+
+  answer = vm.runInContext("appConfirm('Удалить?')", context);
+  doc.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape' }));
+  assert.equal(await answer, false);
+
+  answer = vm.runInContext("appConfirm('Удалить?')", context);
+  const overlay = doc.getElementById('confirmModal');
+  overlay.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+  assert.equal(await answer, false);
+  console.log('Dialogs tests passed');
+})().catch(err => { console.error(err); process.exit(1); });

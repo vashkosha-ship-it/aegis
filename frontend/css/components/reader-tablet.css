@@ -43,3 +43,7 @@ body.reader-active #readerScreen.active {
   padding-top: 12px;
   padding-bottom: 12px;
 }
+
+/* Книга не открылась: заголовок, объяснение и кнопка «Закрыть». */
+.reader-open-error-title { margin: 12px 0 6px; font-weight: 600; color: var(--text-primary); }
+.reader-open-error-text { max-width: 420px; margin: 0 auto 16px; line-height: 1.5; }

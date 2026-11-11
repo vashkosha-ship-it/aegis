@@ -123,10 +123,10 @@ function renderTrainingScreen() {
   });
 }
 
-function restartOnboardingFromTraining() {
+async function restartOnboardingFromTraining() {
   // Если юзер уже проходил — спрашиваем подтверждение
   if (state.currentUser && state.currentUser.cyber_level) {
-    if (!confirm('Пройти тест заново? Текущий результат будет заменён новым.')) return;
+    if (!(await appConfirm('Текущий результат будет заменён новым.', { title: 'Пройти тест заново?', confirmText: 'Пройти' }))) return;
   }
   renderLevelChoices();
   navigateTo('onboarding');
@@ -137,10 +137,10 @@ function restartOnboardingFromTraining() {
 
 // Тест уровня из раздела «Тестирование»: сразу к вопросам, без экрана
 // выбора «знаю свой уровень / хочу тест».
-function startCyberLevelTest() {
+async function startCyberLevelTest() {
   if (testsBlockedOffline()) return;
   if (state.currentUser && state.currentUser.cyber_level) {
-    if (!confirm('Пройти тест заново? Текущий результат будет заменён новым.')) return;
+    if (!(await appConfirm('Текущий результат будет заменён новым.', { title: 'Пройти тест заново?', confirmText: 'Пройти' }))) return;
   }
   navigateTo('onboarding');
   document.getElementById('onboardingResult').classList.add('hidden');

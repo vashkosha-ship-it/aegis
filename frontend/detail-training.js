@@ -39,7 +39,7 @@ function renderDetailTraining() {
 }
 
 async function regenerateBookQuiz(bookId) {
-  if (!confirm('Пересоздать тест через ИИ? Старые вопросы будут заменены.')) return;
+  if (!(await appConfirm('Старые вопросы будут заменены новыми.', { title: 'Пересоздать тест через ИИ?', confirmText: 'Пересоздать' }))) return;
   const btn = document.getElementById('regenQuizBtn');
   if (btn) { btn.disabled = true; btn.querySelector('span').textContent = 'Генерация…'; }
   try {

@@ -42,7 +42,7 @@ async function renderAssistantSetting(container) {
   }
   button.addEventListener('click', async () => {
     const next = !enabled;
-    if (!next && !confirm('Выключить ИИ-ассистента для всех читателей?')) return;
+    if (!next && !(await appConfirm('Чат и «Объяснить» в читалке перестанут работать у всех читателей.', { title: 'Выключить ИИ-ассистента?', confirmText: 'Выключить', danger: true }))) return;
     button.disabled = true;
     try {
       enabled = (await api.updateSettings({ assistant_enabled: next })).assistant_enabled === true;
@@ -128,7 +128,7 @@ async function renderAiProviderSetting(container) {
         meta.textContent = option.configured ? option.model : 'не подключён';
         button.append(optionName, meta);
         button.addEventListener('click', async () => {
-          if (!confirm(`«${task.label}» — переключить на ${option.label}?`)) return;
+          if (!(await appConfirm(`«${task.label}» будет выполнять ${option.label}.`, { title: 'Переключить ИИ-сервис?', confirmText: 'Переключить' }))) return;
           rows.querySelectorAll('button').forEach(item => { item.disabled = true; });
           try {
             await api.updateSettings({ [AI_TASK_FIELDS[task.task]]: option.id });

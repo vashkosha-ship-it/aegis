@@ -266,7 +266,7 @@ async function approvePendingUser(userId, btn) {
 }
 
 async function rejectPendingUser(userId, btn) {
-  if (!confirm('Отклонить заявку? Аккаунт будет удалён.')) return;
+  if (!(await appConfirm('Аккаунт будет удалён.', { title: 'Отклонить заявку?', confirmText: 'Отклонить', danger: true }))) return;
   btn.disabled = true; btn.textContent = '…';
   try {
     await api.library.adminRejectUser(userId);

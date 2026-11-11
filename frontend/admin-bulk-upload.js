@@ -223,9 +223,9 @@ function openBulkUploadModal() {
   }
 }
 
-function closeBulkUploadModal() {
+async function closeBulkUploadModal() {
   if (bulkUploadInProgress) {
-    if (!confirm('Загрузка ещё идёт. Точно закрыть? Незавершённые книги останутся в БД.')) return;
+    if (!(await appConfirm('Загрузка ещё идёт. Незавершённые книги останутся в каталоге без файла.', { title: 'Закрыть загрузку?', confirmText: 'Закрыть', danger: true }))) return;
   }
   document.getElementById('bulkUploadModal').classList.add('hidden');
   bulkUploadQueue = [];

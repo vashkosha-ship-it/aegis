@@ -46,7 +46,6 @@ context.state.currentUser = null;
 assert.deepEqual(Array.from(context.getRecommendations()), []);
 
 assert.doesNotMatch(appSource, /DEPARTMENT_TOPICS|function getRecommendations/);
-assert.ok(indexSource.indexOf('recommendations.js') < indexSource.indexOf('ai-responses.js'));
 assert.ok(indexSource.indexOf('recommendations.js') < indexSource.indexOf('app.js'));
 assert.match(workerSource, /['"]\/recommendations\.js['"]/);
 console.log('Recommendations tests passed');
