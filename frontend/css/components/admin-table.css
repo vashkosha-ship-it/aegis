@@ -1,0 +1,18 @@
+/* Сортировка таблицы книг в админке: заголовок — кнопка со стрелкой. */
+.admin-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.admin-sort-btn:hover,
+.admin-sort-btn.active { color: var(--text-primary); }
+.admin-sort-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.admin-sort-arrow { min-width: 0.8em; font-size: 0.8em; }

@@ -72,6 +72,11 @@ async function loadEpub(b) {
     }
     const book = ePub(epubData);
     epubBook = book;
+    // Встроенные стили книги — в разрешённом CSP виде (иначе их блокировали).
+    if (typeof attachEpubCspStyles === 'function') {
+      if (typeof epubCspCleanup === 'function') epubCspCleanup();
+      epubCspCleanup = attachEpubCspStyles(book);
+    }
     if (typeof refreshTocAvailability === 'function') refreshTocAvailability();
     epubLocationsReady = false;
     // Убираем спиннер до renderTo: очистка после renderTo удаляет созданный
@@ -84,6 +89,7 @@ async function loadEpub(b) {
       allowScriptedContent: false,
     });
     const rendition = epubRendition;
+    if (typeof attachEpubMovedStylesApply === 'function') attachEpubMovedStylesApply(rendition);
     // Применяем тему после создания rendition
     setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
 
