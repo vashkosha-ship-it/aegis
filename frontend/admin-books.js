@@ -153,6 +153,14 @@ async function showBookIndexError(bookId, title) {
   });
 }
 
+// «Удалить» неактивно, если удалять нечего: нет файла или нет обложки.
+function setAdminDeleteAvailability({ file, cover } = {}) {
+  const fileBtn = document.getElementById('adminDeleteFileBtn');
+  const coverBtn = document.getElementById('adminDeleteCoverBtn');
+  if (fileBtn && file !== undefined) fileBtn.disabled = !file;
+  if (coverBtn && cover !== undefined) coverBtn.disabled = !cover;
+}
+
 function renderBookIndexStatus(data, hasFile = true) {
   const output = document.getElementById('adminIndexStatus');
   const retry = document.getElementById('adminReindexBookBtn');
@@ -180,6 +188,8 @@ async function openAdminBookModal(bookId) {
   } catch (err) {
     return showToast('Не удалось загрузить книгу');
   }
+  // Пока карточка грузилась, могли открыть другую книгу.
+  if (adminBookModalCurrentId !== bookId) return;
 
   document.getElementById('adminEditTitle').value = book.title || '';
   document.getElementById('adminEditAuthor').value = book.author || '';
@@ -198,6 +208,7 @@ initCategoryTags('adminCategoriesContainer', book.categories || []);
     : '— Обложка ещё не загружена';
   const hasFile = Boolean(book.has_pdf || book.has_epub);
   renderBookIndexStatus(book, hasFile);
+  setAdminDeleteAvailability({ file: hasFile, cover: Boolean(book.has_cover) });
 
   document.getElementById('adminBookFileInput').value = '';
   document.getElementById('adminCoverFile').value = '';
@@ -594,6 +605,7 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
         : null,
     }, true);
     document.getElementById('adminBookFileInput').value = '';
+    setAdminDeleteAvailability({ file: true });
     showToast('Файл загружен');
     await loadBooksFromApi();
     if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {
@@ -640,6 +652,7 @@ document.getElementById('adminDeleteFileBtn').addEventListener('click', async ()
     }
     document.getElementById('adminFileStatus').textContent = '— Файл ещё не загружен';
     renderBookIndexStatus({ status: 'not_indexed' }, false);
+    setAdminDeleteAvailability({ file: false });
     showToast('Файл удалён');
     await loadBooksFromApi();
     if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {
@@ -664,6 +677,7 @@ document.getElementById('adminUploadCoverBtn').addEventListener('click', async (
     const result = await api.books.uploadCover(adminBookModalCurrentId, file);
     document.getElementById('adminCoverStatus').textContent = 'Обложка загружена';
     document.getElementById('adminCoverFile').value = '';
+    setAdminDeleteAvailability({ cover: true });
     showToast(result.replaced ? 'Обложка заменена' : 'Обложка загружена');
     await loadBooksFromApi();
     if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {
@@ -690,6 +704,7 @@ document.getElementById('adminLookupCoverBtn')?.addEventListener('click', async 
       return;
     }
     document.getElementById('adminCoverStatus').textContent = `Обложка найдена (${result.source})`;
+    setAdminDeleteAvailability({ cover: true });
     showToast(`Обложка найдена: ${result.source}`);
     await loadBooksFromApi();
     if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {
@@ -710,6 +725,7 @@ document.getElementById('adminDeleteCoverBtn').addEventListener('click', async (
   try {
     await api.books.deleteCover(adminBookModalCurrentId);
     document.getElementById('adminCoverStatus').textContent = '— Обложка ещё не загружена';
+    setAdminDeleteAvailability({ cover: false });
     showToast('Обложка удалена');
     await loadBooksFromApi();
     if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {

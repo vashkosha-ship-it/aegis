@@ -492,6 +492,10 @@ async function loadAndRenderAdminReviews() {
       bookId: r.book_id,
       bookTitle: r.book_title,
     }));
+    if (!allReviews.length) {
+      replaceWithStaticText(container, 'Отзывов пока нет', 'a449');
+      return;
+    }
     renderAdminReviewsTable(container, allReviews);
   } catch (err) {
     replaceWithStaticText(container, 'Не удалось загрузить отзывы', 'a150');

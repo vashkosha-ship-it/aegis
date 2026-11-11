@@ -46,19 +46,29 @@ function renderAdminDashboardStats(container, stats) {
   container.replaceChildren(cards);
 }
 
+// Дашборд могут открыть повторно, пока он ещё грузится (переход в админку
+// и сразу нажатие на вкладку). Каждый запуск получает номер; устаревший
+// запуск ничего не дорисовывает — иначе блоки настроек появлялись дважды.
+let dashboardRenderSeq = 0;
+
 async function renderDashboard() {
   const container = document.getElementById('adDashboard');
+  const seq = ++dashboardRenderSeq;
+  const stale = () => seq !== dashboardRenderSeq;
   replaceWithStaticText(container, 'Загрузка...', 'a449');
 
   try {
     const stats = await api.library.adminDashboard();
+    if (stale()) return;
     renderAdminDashboardStats(container, stats);
   } catch (err) {
+    if (stale()) return;
     console.error('Ошибка загрузки дашборда:', err);
     replaceWithStaticText(container, 'Не удалось загрузить статистику', 'a150');
     return;
   }
   await renderAssistantSetting(container);
+  if (stale()) return;
   await renderAiProviderSetting(container);
 }
 
