@@ -471,10 +471,17 @@ class TestNoInlineStylesInStaticMarkup:
                 offenders.append(path.name)
         assert not offenders, f"inline CSS в HTML: {offenders}"
 
+    # epub-csp-styles.js ищет и убирает встроенные стили из текста EPUB-книг
+    # (переводит их в разрешённый CSP вид), сам inline CSS не создаёт.
+    INLINE_STYLE_REMOVERS = {"epub-csp-styles.js"}
+
     def test_javascript_does_not_create_inline_stylesheets(self):
         offenders = []
         for path in INDEX_HTML.parent.glob("*.js"):
             source = path.read_text(encoding="utf-8")
+            if path.name in self.INLINE_STYLE_REMOVERS:
+                assert not re.search(r"createElement\(\s*['\"]style['\"]\s*\)", source)
+                continue
             if re.search(r"createElement\(\s*['\"]style['\"]\s*\)", source):
                 offenders.append(path.name)
             if re.search(r"<style\b|<[a-z][^>]*\sstyle\s*=", source, re.IGNORECASE):
