@@ -23,3 +23,13 @@ body.reader-active #readerScreen.active {
 @media (pointer: coarse) {
   .reader-arrow { width: 48px; height: 48px; z-index: calc(var(--z-sticky) + 1); }
 }
+
+/* Список в информационном окне (предупреждение об отсканированной книге). */
+.app-dialog-list {
+  margin: -8px 0 14px;
+  padding-left: 20px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.app-dialog-footnote { margin-bottom: 18px; }

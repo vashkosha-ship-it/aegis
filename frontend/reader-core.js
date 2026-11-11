@@ -436,6 +436,15 @@ async function loadPdf(b) {
       await renderPdfPage(pdfCurrentPage);
     }, 100);
 
+    // Скан без текста — один раз предупреждаем, что не будет работать.
+    // Проверяем после первой страницы, чтобы не задерживать её показ.
+    if (typeof checkScannedBookNotice === 'function') {
+      setTimeout(() => checkScannedBookNotice(
+        b.id, loadedDoc,
+        () => myToken === _pdfLoadToken && state.currentScreen === 'reader',
+      ), 1500);
+    }
+
     // Читалка тянет PDF кусками и целого файла не держит. Чтобы следующее
     // открытие шло с устройства, докачиваем файл в кэш фоном — с паузой,
     // чтобы не мешать первым страницам.

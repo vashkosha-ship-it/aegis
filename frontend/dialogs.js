@@ -150,3 +150,50 @@ function showPromptModal({
   document.addEventListener('keydown', keyHandler);
   setTimeout(() => input.focus(), 50);
 }
+
+// Информационное окно с одной кнопкой: текст, необязательный список и
+// подпись под ним.
+function showInfoModal({ id = 'infoModal', title, message, items = [], footnote = '', okText = 'Понятно' }) {
+  const { overlay, panel } = createDialogShell(id, title);
+
+  const description = document.createElement('p');
+  description.className = 'app-dialog-message';
+  description.textContent = String(message ?? '');
+  panel.appendChild(description);
+
+  if (items.length) {
+    const list = document.createElement('ul');
+    list.className = 'app-dialog-list';
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = String(item);
+      list.appendChild(li);
+    });
+    panel.appendChild(list);
+  }
+  if (footnote) {
+    const note = document.createElement('p');
+    note.className = 'app-dialog-message app-dialog-footnote';
+    note.textContent = String(footnote);
+    panel.appendChild(note);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'app-dialog-actions';
+  const okButton = createDialogButton(`${id}Ok`, okText, 'app-dialog-button app-dialog-button--confirm');
+  actions.appendChild(okButton);
+  panel.appendChild(actions);
+
+  let escapeHandler;
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', escapeHandler);
+  };
+  escapeHandler = event => {
+    if (event.key === 'Escape') close();
+  };
+  okButton.addEventListener('click', close);
+  bindDialogClose(overlay, close);
+  document.addEventListener('keydown', escapeHandler);
+  okButton.focus();
+}
