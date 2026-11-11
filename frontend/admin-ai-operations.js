@@ -17,9 +17,10 @@ async function aiMatchArBooksUI() {
   if (!topics.length) { showToast('Не удалось собрать темы AR-схем'); return; }
   if (!confirm(`ИИ проанализирует книги и подберёт подходящие к ${topics.length} темам AR-схем. Это может занять пару минут. Продолжить?`)) return;
   showToast('ИИ подбирает книги для AR-тем, подождите…');
+  if (typeof requestAdminNotifyPermission === 'function') requestAdminNotifyPermission();
   try {
     const res = await api.library.aiMatchArTopics(topics);
-    showToast(`Готово: обновлено книг ${res.updated} из ${res.total}`);
+    notifyAdminTaskDone(null, 'Книги для схем', `обновлено книг ${res.updated} из ${res.total}`);
     // обновим книги в состоянии, чтобы рекомендации в AR появились
     try { await loadBooksFromApi(); } catch (_) {}
   } catch (e) {
@@ -48,6 +49,7 @@ async function generateMissingCoversUI() {
         return;
       }
       showToast('Создание обложек запущено…');
+      requestAdminNotifyPermission();
       for (const b of candidates) {
         try {
           const isEpub = (b.file_format || b.format) === 'epub';
@@ -69,7 +71,7 @@ async function generateMissingCoversUI() {
           console.warn('Обложка не создана для книги', b.id, e);
         }
       }
-      showToast(`Обложки созданы: ${done}`
+      notifyAdminTaskDone(null, 'Обложки', `создано: ${done}`
         + (locked ? ` · PDF под паролем: ${locked} (обложку загрузите вручную)` : '')
         + (failed ? ` · не удалось: ${failed}` : ''));
       await loadBooksFromApi();
@@ -112,10 +114,9 @@ async function refreshDescriptionGenerationStatus() {
       descriptionStatusTimer = setTimeout(refreshDescriptionGenerationStatus, 3000);
     } else if (descriptionJobSeenActive && job) {
       descriptionJobSeenActive = false;
-      showToast(
-        `ИИ-описания готовы: ${job.succeeded_books}`
-        + (job.failed_books ? ` · ошибок: ${job.failed_books}` : '')
-      );
+      notifyAdminTaskDone('descriptions', 'ИИ-описания',
+        `создано описаний: ${job.succeeded_books}`
+        + (job.failed_books ? ` · ошибок: ${job.failed_books}` : ''));
       await loadBooksFromApi();
       renderAdminBooksTable();
     }
@@ -141,6 +142,7 @@ async function generateMissingDescriptionsUI() {
     onConfirm: async () => {
       try {
         const result = await api.library.startDescriptionGeneration();
+        watchAdminTask('descriptions');
         if (result.reason === 'no_missing') {
           showToast('У всех книг уже есть описание');
           return;
@@ -217,6 +219,7 @@ async function reindexAllBooksUI() {
     onConfirm: async () => {
       try {
         const res = await api.library.reindexAllBooks();
+        watchAdminTask('reindex');
         if (res.started === false && res.reason === 'already_running') {
           showToast('Индексация уже идёт');
         } else {
@@ -287,6 +290,8 @@ function startReindexPolling() {
       if (s.finished) {
         stopReindexPolling();
         renderReindexResult(body, s);
+        notifyAdminTaskDone('reindex', 'Индексация поиска',
+          `готово: ${s.done} книг, ${s.indexed_pages} страниц` + (s.errors ? `, ошибок: ${s.errors}` : ''));
         document.getElementById('reindexStopBtn')?.remove();
       } else if (s.active > 0) {
         // Сервер отдаёт active (книг в очереди и в работе), поля running нет —

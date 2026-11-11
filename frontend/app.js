@@ -31,6 +31,8 @@ tryAutoLogin().then(ok => {
   api.setAuthBootstrapPending(false);
   // Экран уже выбран (главная или вход) — убираем заставку.
   if (typeof hideSessionSplash === 'function') hideSessionSplash();
+  // Администратор: не завершились ли без него запущенные долгие операции.
+  if (typeof scheduleAdminTaskCheck === 'function') scheduleAdminTaskCheck(3000);
 });
 
 

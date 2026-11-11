@@ -566,6 +566,7 @@ async function finishAuthenticatedLogin(password, username) {
 
   if (state.currentUser.is_approved === false) showPendingApprovalScreen();
   else if (!restoreUiState()) navigateTo('home');
+  if (typeof scheduleAdminTaskCheck === 'function') scheduleAdminTaskCheck(3000);
 }
 
 document.getElementById('authForm').addEventListener('submit', async e => {
