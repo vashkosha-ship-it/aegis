@@ -54,6 +54,19 @@ assert.equal(placeholder.querySelector('img'), null);
 assert.equal(placeholder.querySelectorAll('p').length, 2);
 assert.doesNotMatch(readerSource, /\.innerHTML\s*=\s*loadingSpinnerHTML/);
 
+// Книга не открылась — понятная причина вместо заглушки «Стр.1/10».
+assert.match(readerContext.pdfOpenErrorText({ name: 'InvalidPDFException', message: 'Invalid PDF structure.' }), /повреждён/);
+assert.match(readerContext.pdfOpenErrorText({ name: 'PasswordException' }), /паролем/);
+assert.match(readerContext.pdfOpenErrorText({ name: 'MissingPDFException' }), /не найден/);
+assert.match(readerContext.pdfOpenErrorText({ name: 'NoFile' }), /ещё не загружен/);
+readerContext.closeReader = () => { readerContext.closed = true; };
+readerContext.showPdfOpenError({ title: 'Матанализ' }, { name: 'InvalidPDFException' });
+assert.match(placeholder.textContent, /Не удалось открыть «Матанализ»/);
+assert.match(placeholder.textContent, /повреждён/);
+assert.doesNotMatch(placeholder.textContent, /Стр\./);
+placeholder.querySelector('button').click();
+assert.equal(readerContext.closed, true);
+
 (async () => {
   const userDom = new JSDOM('<div id="detailTabNotes"></div>');
   const exports = [];

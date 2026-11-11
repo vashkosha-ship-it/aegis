@@ -308,6 +308,7 @@ async function loadPdf(b) {
   // книга падает с «Worker was terminated» и висит на спиннере навсегда.
   const myToken = ++_pdfLoadToken;
   isEpubMode = false;
+  pdfOpenErrorShown = false;
   document.getElementById('epubViewport').classList.add('hidden');
   document.getElementById('pdfViewport').classList.remove('hidden');
 
@@ -375,9 +376,8 @@ async function loadPdf(b) {
       loadingTask = pdfjsLib.getDocument({ data: bytes });
     } else {
       if (!b.has_file) {
-        pl.classList.remove('hidden');
         c.classList.add('hidden');
-        generateDemoPdf(b);
+        showPdfOpenError(b, { name: 'NoFile' });
         return;
       }
       const cfg = api.books.pdfStreamConfig(b.id);
@@ -470,10 +470,57 @@ async function loadPdf(b) {
     if (fromOffline) showToast('Читаем из оффлайн-хранилища');
   } catch (err) {
     if (fromCache) dropBookFromCache(b);
+    if (myToken !== _pdfLoadToken) return;
     console.error('Ошибка рендеринга PDF:', err);
-    showToast('Ошибка: ' + err.message);
-    generateDemoPdf(b);
+    showPdfOpenError(b, err);
   }
+}
+
+// Книга не открылась: объясняем почему вместо пустой заглушки «Стр.1/10».
+let pdfOpenErrorShown = false;
+
+function pdfOpenErrorText(err) {
+  const name = String(err?.name || '');
+  const message = String(err?.message || '');
+  if (name === 'NoFile') return 'Файл этой книги ещё не загружен. Сообщите администратору.';
+  if (name === 'PasswordException') return 'Файл книги защищён паролем и не открывается. Сообщите администратору.';
+  if (name === 'MissingPDFException' || /\b404\b/.test(message)) return 'Файл книги не найден на сервере. Сообщите администратору.';
+  if (name === 'InvalidPDFException' || /Invalid PDF|startxref|XRef|bad XRef/i.test(message)) {
+    return 'Файл книги повреждён или загружен не полностью. Сообщите администратору — книгу нужно загрузить заново.';
+  }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'Нет связи с интернетом. Чтобы читать без сети, сохраните книгу офлайн заранее.';
+  }
+  return 'Не удалось открыть книгу. Попробуйте ещё раз чуть позже.';
+}
+
+function showPdfOpenError(b, err) {
+  if (window._bookLoadHintTimer) { clearTimeout(window._bookLoadHintTimer); window._bookLoadHintTimer = null; }
+  pdfOpenErrorShown = true;
+  pdfDoc = null;
+  pdfTotalPages = 1;
+  pdfCurrentPage = 1;
+  updatePageIndicator();
+  const placeholder = document.getElementById('pdfPlaceholder');
+  placeholder.classList.remove('hidden');
+  const box = document.createElement('div');
+  box.setAttribute('data-static-style', 'a507');
+  const icon = document.createElement('div');
+  icon.setAttribute('data-static-style', 'a239');
+  appendTrustedIcon(icon, ICONS.bookCover);
+  const title = document.createElement('p');
+  title.className = 'reader-open-error-title';
+  title.textContent = `Не удалось открыть «${String(b?.title || 'книгу')}»`;
+  const text = document.createElement('p');
+  text.className = 'reader-open-error-text';
+  text.textContent = pdfOpenErrorText(err);
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'btn-sm reader-open-error-close';
+  close.textContent = 'Закрыть';
+  close.addEventListener('click', () => closeReader());
+  box.append(icon, title, text, close);
+  placeholder.replaceChildren(box);
 }
 
 function generateDemoPdf(b) {
