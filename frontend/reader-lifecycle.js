@@ -118,6 +118,7 @@ function closeReader() {
   epubRendition = null;
   epubBook = null;
   epubLocationsReady = false;
+  if (typeof epubCspCleanup === 'function') { epubCspCleanup(); epubCspCleanup = null; }
 
   const zone = document.getElementById('readerGestureZone');
   if (zone) {

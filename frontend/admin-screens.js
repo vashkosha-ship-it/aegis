@@ -175,7 +175,7 @@ function renderAdminBooks() {
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Книга</th><th>Автор</th><th>Категория</th><th>Формат</th><th>Индекс</th><th>Рейтинг</th><th>Действия</th></tr></thead>
+        <thead><tr id="adminBooksHead"><th data-sort="title">Книга</th><th data-sort="author">Автор</th><th data-sort="category">Категория</th><th data-sort="format">Формат</th><th data-sort="index">Индекс</th><th data-sort="rating">Рейтинг</th><th>Действия</th></tr></thead>
         <tbody id="adminBooksTableBody"></tbody>
       </table>
     </div>
@@ -216,6 +216,7 @@ function renderAdminBooks() {
     adminBooksVisible += ADMIN_BOOKS_PAGE_SIZE * 2;
     renderAdminBooksTable();
   });
+  initAdminBooksSort();
   renderAdminBooksTable();
   refreshDescriptionGenerationStatus();
   refreshMetadataReviewStatus();
@@ -228,6 +229,85 @@ let adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
 let adminBooksQuery = '';
 // Карточки без файла — обычно остатки неудачных загрузок.
 let adminBooksOnlyEmpty = false;
+
+// Сортировка таблицы по столбцам: нажатие на заголовок, повторное — обратный
+// порядок. По умолчанию — как пришло с сервера.
+let adminBooksSort = { key: null, dir: 1 };
+
+// Индекс: сначала то, что требует внимания.
+const ADMIN_INDEX_SORT_ORDER = { failed: 0, running: 1, queued: 2, not_indexed: 3, succeeded: 4 };
+
+const ADMIN_BOOKS_SORTERS = {
+  title: book => String(book.title || ''),
+  author: book => String(book.author || ''),
+  // Без категории — пусто, то есть в конце списка.
+  category: book => (book.categories || []).join(', '),
+  format: book => String(book.file_format || 'pdf'),
+  index: book => ADMIN_INDEX_SORT_ORDER[book.indexing_status || 'not_indexed'] ?? 3,
+  rating: book => (hasRating(book) ? Number(book.rating) : null),
+};
+
+function sortAdminBooks(books) {
+  const { key, dir } = adminBooksSort;
+  const getter = ADMIN_BOOKS_SORTERS[key];
+  if (!getter) return books;
+  const collator = new Intl.Collator('ru', { sensitivity: 'base', numeric: true });
+  return books
+    .map((book, i) => ({ book, i, value: getter(book) }))
+    .sort((a, b) => {
+      // Пустые значения (нет рейтинга, нет категории) — всегда в конце.
+      const emptyA = a.value === null || a.value === '';
+      const emptyB = b.value === null || b.value === '';
+      if (emptyA !== emptyB) return emptyA ? 1 : -1;
+      let cmp = 0;
+      if (!emptyA) {
+        cmp = typeof a.value === 'number' && typeof b.value === 'number'
+          ? a.value - b.value
+          : collator.compare(String(a.value), String(b.value));
+      }
+      return cmp * dir || a.i - b.i;
+    })
+    .map(item => item.book);
+}
+
+function initAdminBooksSort() {
+  const head = document.getElementById('adminBooksHead');
+  if (!head) return;
+  head.querySelectorAll('th[data-sort]').forEach(th => {
+    const label = th.textContent;
+    th.textContent = '';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'admin-sort-btn';
+    button.dataset.sort = th.dataset.sort;
+    const text = document.createElement('span');
+    text.textContent = label;
+    const arrow = document.createElement('span');
+    arrow.className = 'admin-sort-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    button.append(text, arrow);
+    button.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      adminBooksSort = adminBooksSort.key === key
+        ? { key, dir: -adminBooksSort.dir }
+        // Рейтинг логичнее сразу от высокого к низкому.
+        : { key, dir: key === 'rating' ? -1 : 1 };
+      adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
+      renderAdminBooksTable();
+    });
+    th.appendChild(button);
+  });
+}
+
+function updateAdminBooksSortHeader() {
+  document.querySelectorAll('#adminBooksHead th[data-sort]').forEach(th => {
+    const active = th.dataset.sort === adminBooksSort.key;
+    th.setAttribute('aria-sort', active ? (adminBooksSort.dir > 0 ? 'ascending' : 'descending') : 'none');
+    const arrow = th.querySelector('.admin-sort-arrow');
+    if (arrow) arrow.textContent = active ? (adminBooksSort.dir > 0 ? '▲' : '▼') : '';
+    th.querySelector('.admin-sort-btn')?.classList.toggle('active', active);
+  });
+}
 
 function booksWithoutFile() {
   return (state.books || []).filter(book => !book.has_file);
@@ -261,10 +341,11 @@ function renderAdminBooksTable() {
   if (!tbody) return;
   const query = adminBooksQuery.trim().toLowerCase();
   const source = adminBooksOnlyEmpty ? booksWithoutFile() : (state.books || []);
-  const books = query
+  const books = sortAdminBooks(query
     ? source.filter(book =>
       `${book.title || ''} ${book.author || ''}`.toLowerCase().includes(query))
-    : source;
+    : source);
+  updateAdminBooksSortHeader();
   const emptyCount = booksWithoutFile().length;
   const noFileBtn = document.getElementById('adminBooksNoFileBtn');
   if (noFileBtn) {

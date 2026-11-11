@@ -88,9 +88,8 @@ function duplicateMessage(found) {
 async function generateCoverFromEpub(file) {
   try { await ensureEpubLoaded(); } catch (e) { console.warn('epub.js не загружен:', e); return null; }
   if (typeof ePub === 'undefined') return null;
-  let book = null;
   try {
-    book = ePub(await file.arrayBuffer());
+    const book = ePub(await file.arrayBuffer());
     await book.ready;
     const url = await book.coverUrl();
     if (!url) return null;
@@ -113,9 +112,10 @@ async function generateCoverFromEpub(file) {
   } catch (e) {
     console.warn('generateCoverFromEpub error:', e);
     return null;
-  } finally {
-    try { book?.destroy(); } catch (_) { /* не критично */ }
   }
+  // book.destroy() не вызываем: epub.js после открытия ещё готовит ресурсы
+  // книги, и закрытие посреди этого падало с «Cannot read properties of
+  // undefined (reading 'replaceCss')». Объект освободит сборщик мусора.
 }
 
 // Обложка из файла книги любого формата.
