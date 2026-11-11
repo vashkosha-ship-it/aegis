@@ -636,6 +636,32 @@ document.getElementById('adminUploadCoverBtn').addEventListener('click', async (
   }
 });
 
+document.getElementById('adminLookupCoverBtn')?.addEventListener('click', async () => {
+  if (!adminBookModalCurrentId) return;
+  const btn = document.getElementById('adminLookupCoverBtn');
+  btn.disabled = true;
+  btn.textContent = 'Ищу…';
+  try {
+    const result = await api.books.lookupCover(adminBookModalCurrentId);
+    if (!result.found) {
+      showToast('Обложка не найдена — загрузите её вручную');
+      return;
+    }
+    document.getElementById('adminCoverStatus').textContent = `Обложка найдена (${result.source})`;
+    showToast(`Обложка найдена: ${result.source}`);
+    await loadBooksFromApi();
+    if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {
+      state.currentBook = state.books.find(b => b.id === adminBookModalCurrentId) || state.currentBook;
+      renderBookInfo();
+    }
+  } catch (err) {
+    showToast('Ошибка поиска обложки: ' + (err.detail || err.message));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Найти в интернете';
+  }
+});
+
 document.getElementById('adminDeleteCoverBtn').addEventListener('click', async () => {
   if (!adminBookModalCurrentId) return;
   if (!confirm('Удалить обложку у этой книги?')) return;

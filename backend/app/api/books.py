@@ -58,6 +58,7 @@ from app.schemas.book import (
     DuplicateMergeResult,
 )
 from app.services import books as books_service
+from app.services import cover_lookup
 from app.services.admin_audit import log_admin_action
 from app.services.books import BookNotFound, InvalidStorageKey
 from app.services.deepseek_client import DeepSeekError
@@ -1318,34 +1319,21 @@ async def delete_book_epub(
 # ============================================================================
 
 
-@router.post(
-    "/{book_id}/cover",
-    response_model=BookFileUploadResult,
-    status_code=status.HTTP_200_OK,
-)
-async def upload_book_cover(
+async def _store_cover_image(
+    db: AsyncSession,
+    storage: StorageBackend,
+    admin: User,
     request: Request,
-    book_id: int,
-    file: UploadFile = File(..., description="Cover image (JPEG, PNG, WEBP)"),
-    db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_current_admin),
-    storage: StorageBackend = Depends(get_storage),
+    book: Book,
+    raw: bytes,
+    ext: str,
+    *,
+    action: str,
+    detail_prefix: str,
 ) -> BookFileUploadResult:
-    """Admin only: загрузить обложку книги. Изображение сжимается (макс. 800px, JPEG)."""
-    book = await _get_book_or_404(db, book_id)
-
-    head = await file.read(_MAGIC_HEAD_BYTES)
-    try:
-        ext = detect_cover_ext(head, declared_mime=file.content_type)
-    except FileValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from None
-
-    # читаем весь файл (обложки небольшие; лимит MAX_COVER_SIZE_BYTES)
-    rest = await file.read(settings.MAX_COVER_SIZE_BYTES + 1)
-    raw = head + rest
-    if len(raw) > settings.MAX_COVER_SIZE_BYTES:
-        raise HTTPException(status_code=413, detail="Обложка слишком большая")
-
+    """Сохранить картинку как обложку книги: сжать до 800px (JPEG), записать в
+    хранилище, заменить прежнюю. Общая для ручной загрузки и поиска обложки."""
+    book_id = book.id
     # сжимаем через Pillow: ресайз до 800px по большей стороне, JPEG q=85
     try:
         from io import BytesIO
@@ -1385,8 +1373,8 @@ async def upload_book_cover(
 
     book.cover_storage_key = new_key
     await log_admin_action(
-        db, admin, "cover_upload", request=request, target=f"book:{book.id}",
-        detail=f"Загружена обложка, {size} байт",
+        db, admin, action, request=request, target=f"book:{book.id}",
+        detail=f"{detail_prefix}, {size} байт",
     )
     await commit_with_storage_cleanup(db, storage, new_key)
 
@@ -1404,6 +1392,69 @@ async def upload_book_cover(
     return BookFileUploadResult(
         book_id=book_id, kind="cover", size_bytes=size, replaced=replaced
     )
+
+
+@router.post(
+    "/{book_id}/cover",
+    response_model=BookFileUploadResult,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_book_cover(
+    request: Request,
+    book_id: int,
+    file: UploadFile = File(..., description="Cover image (JPEG, PNG, WEBP)"),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> BookFileUploadResult:
+    """Admin only: загрузить обложку книги. Изображение сжимается (макс. 800px, JPEG)."""
+    book = await _get_book_or_404(db, book_id)
+
+    head = await file.read(_MAGIC_HEAD_BYTES)
+    try:
+        ext = detect_cover_ext(head, declared_mime=file.content_type)
+    except FileValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+    # читаем весь файл (обложки небольшие; лимит MAX_COVER_SIZE_BYTES)
+    rest = await file.read(settings.MAX_COVER_SIZE_BYTES + 1)
+    raw = head + rest
+    if len(raw) > settings.MAX_COVER_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail="Обложка слишком большая")
+
+    return await _store_cover_image(
+        db, storage, admin, request, book, raw, ext,
+        action="cover_upload", detail_prefix="Загружена обложка",
+    )
+
+
+class CoverLookupResult(_BaseModel):
+    found: bool
+    source: str | None = None
+
+
+@router.post("/{book_id}/cover/lookup", response_model=CoverLookupResult)
+async def lookup_book_cover(
+    request: Request,
+    book_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    storage: StorageBackend = Depends(get_storage),
+) -> CoverLookupResult:
+    """Admin only: найти обложку по названию и автору в открытых каталогах
+    (Open Library, Google Books) и сохранить её. Для книг, у которых обложку
+    не взять из файла: PDF под паролем или повреждённый, EPUB без обложки."""
+    book = await _get_book_or_404(db, book_id)
+    if not settings.COVER_LOOKUP_ENABLED:
+        return CoverLookupResult(found=False)
+    found = await cover_lookup.lookup_cover(book.title, book.author)
+    if not found:
+        return CoverLookupResult(found=False)
+    await _store_cover_image(
+        db, storage, admin, request, book, found.image, ".jpg",
+        action="cover_lookup", detail_prefix=f"Обложка найдена ({found.source})",
+    )
+    return CoverLookupResult(found=True, source=found.source)
 
 
 @router.get("/{book_id}/cover")

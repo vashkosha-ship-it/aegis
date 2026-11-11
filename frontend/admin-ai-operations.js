@@ -37,11 +37,12 @@ async function generateMissingCoversUI() {
   }
   showConfirmModal({
     title: 'Создать обложки?',
-    message: `Книг без обложки: ${candidates.length}. Для каждой будет скачан файл книги: у PDF обложкой станет первая страница, у EPUB — его собственная обложка. Это может занять время.`,
+    message: `Книг без обложки: ${candidates.length}. У PDF обложкой станет первая страница, у EPUB — его собственная обложка. Если из файла не получится (PDF под паролем или повреждён, EPUB без обложки) — обложку поищем по названию в Open Library и Google Books. Это может занять время.`,
     confirmText: 'Создать',
     cancelText: 'Отмена',
     onConfirm: async () => {
-      let done = 0, failed = 0, locked = 0, broken = 0, noCover = 0;
+      let done = 0, failed = 0, online = 0;
+      const notFound = { password: 0, broken: 0, 'no-cover': 0, other: 0 };
       try {
         await ensurePdfLoaded();
       } catch (e) {
@@ -51,6 +52,7 @@ async function generateMissingCoversUI() {
       showToast('Создание обложек запущено…');
       requestAdminNotifyPermission();
       for (const b of candidates) {
+        let reason = 'other';
         try {
           const isEpub = (b.file_format || b.format) === 'epub';
           const bytes = isEpub ? await api.books.fetchEpubBytes(b.id) : await api.books.fetchPdfBytes(b.id);
@@ -61,26 +63,34 @@ async function generateMissingCoversUI() {
             const f = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
             await api.books.uploadCover(b.id, f);
             done++;
-          } else if (lastCoverFailure === 'password') {
-            locked++;
-          } else if (lastCoverFailure === 'broken') {
-            broken++;
-          } else if (lastCoverFailure === 'no-cover') {
-            noCover++;
-          } else {
-            failed++;
+            continue;
+          }
+          reason = lastCoverFailure || 'other';
+        } catch (e) {
+          console.warn('Обложка из файла не создана для книги', b.id, e);
+        }
+        // Из файла не вышло — ищем обложку по названию в каталогах.
+        try {
+          const found = await api.books.lookupCover(b.id);
+          if (found && found.found) {
+            done++;
+            online++;
+            continue;
           }
         } catch (e) {
-          failed++;
-          console.warn('Обложка не создана для книги', b.id, e);
+          console.warn('Поиск обложки не удался для книги', b.id, e);
         }
+        notFound[reason in notFound ? reason : 'other']++;
+        failed++;
       }
+      const parts = [];
+      if (notFound.password) parts.push(`PDF под паролем: ${notFound.password}`);
+      if (notFound.broken) parts.push(`повреждённых файлов: ${notFound.broken}`);
+      if (notFound['no-cover']) parts.push(`EPUB без обложки: ${notFound['no-cover']}`);
+      if (notFound.other) parts.push(`прочих: ${notFound.other}`);
       notifyAdminTaskDone(null, 'Обложки', `создано: ${done}`
-        + (locked ? ` · PDF под паролем: ${locked}` : '')
-        + (broken ? ` · повреждённых файлов: ${broken}` : '')
-        + (noCover ? ` · EPUB без обложки: ${noCover}` : '')
-        + (locked || broken || noCover ? ' (обложку загрузите вручную)' : '')
-        + (failed ? ` · не удалось: ${failed}` : ''));
+        + (online ? ` (из них найдено в интернете: ${online})` : '')
+        + (failed ? ` · не нашлось: ${failed} — ${parts.join(', ')} (загрузите вручную)` : ''));
       await loadBooksFromApi();
       if (typeof renderAdminPanel === 'function') renderAdminPanel();
     },

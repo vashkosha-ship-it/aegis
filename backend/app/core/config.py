@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     MAX_PDF_SIZE_MB: int = 500
     MAX_EPUB_SIZE_MB: int = 500
     MAX_COVER_SIZE_MB: int = 5
+    # Поиск обложек по названию в Open Library / Google Books (кнопка «Обложки»).
+    COVER_LOOKUP_ENABLED: bool = True
 
     # S3 / MinIO. S3_ENDPOINT_URL можно оставить пустым для AWS S3; для
     # совместимых провайдеров указывается полный https URL API.

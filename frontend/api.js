@@ -448,6 +448,8 @@
       deletePdf(id) { return request('/books/' + id + '/pdf', { method: 'DELETE' }); },
       deleteEpub(id) { return request('/books/' + id + '/epub', { method: 'DELETE' }); },
       deleteCover(id) { return request('/books/' + id + '/cover', { method: 'DELETE' }); },
+      // Найти обложку по названию и автору (Open Library, Google Books).
+      lookupCover(id) { return request('/books/' + id + '/cover/lookup', { method: 'POST' }); },
       indexStatus(id) { return request('/books/' + id + '/index-status'); },
       markSavedOffline(id) { return request('/books/' + id + '/offline-saved', { method: 'POST' }); },
 

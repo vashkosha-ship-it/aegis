@@ -97,6 +97,9 @@ async function generateCoverFromEpub(file) {
   try {
     const book = ePub(await file.arrayBuffer());
     if (typeof hardenEpubBook === 'function') hardenEpubBook(book);
+    // Оглавление и страница обложки — тоже XHTML со встроенными стилями;
+    // без этого CSP сыпал в консоль «Applying inline style violates…».
+    if (typeof attachEpubCspStyles === 'function') attachEpubCspStyles(book);
     if (typeof waitEpubUsable === 'function') await waitEpubUsable(book);
     else await book.ready;
     const url = await book.coverUrl();
