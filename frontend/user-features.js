@@ -522,7 +522,7 @@ async function submitCertExam() {
   const ex = _certExam;
   if (!ex) return;
   const unanswered = ex.answers.filter(a => a < 0).length;
-  if (unanswered > 0 && !confirm(`Без ответа: ${unanswered}. Они будут засчитаны как неверные. Завершить?`)) return;
+  if (unanswered > 0 && !(await appConfirm(`Без ответа: ${unanswered}. Они будут засчитаны как неверные.`, { title: 'Завершить аттестацию?', confirmText: 'Завершить' }))) return;
   certModalShell('<div data-static-style="a152">Проверяем ответы…</div>');
   try {
     const res = await api.library.certSubmitExam(ex.token, ex.answers);

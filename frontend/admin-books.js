@@ -643,7 +643,7 @@ document.getElementById('adminReindexBookBtn').addEventListener('click', async (
 
 document.getElementById('adminDeleteFileBtn').addEventListener('click', async () => {
   if (!adminBookModalCurrentId) return;
-  if (!confirm('Удалить файл книги? Файл будет удалён с сервера.')) return;
+  if (!(await appConfirm('Файл будет удалён с сервера, книгу нельзя будет читать.', { title: 'Удалить файл книги?', confirmText: 'Удалить', danger: true }))) return;
   try {
     if (adminBookModalCurrentFormat === 'epub') {
       await api.books.deleteEpub(adminBookModalCurrentId);
@@ -721,7 +721,7 @@ document.getElementById('adminLookupCoverBtn')?.addEventListener('click', async 
 
 document.getElementById('adminDeleteCoverBtn').addEventListener('click', async () => {
   if (!adminBookModalCurrentId) return;
-  if (!confirm('Удалить обложку у этой книги?')) return;
+  if (!(await appConfirm('Вместо обложки будет показана иконка.', { title: 'Удалить обложку?', confirmText: 'Удалить', danger: true }))) return;
   try {
     await api.books.deleteCover(adminBookModalCurrentId);
     document.getElementById('adminCoverStatus').textContent = '— Обложка ещё не загружена';
@@ -741,7 +741,7 @@ document.getElementById('adminDeleteBookBtn').addEventListener('click', async ()
   if (!adminBookModalCurrentId) return;
   const book = state.books.find(b => b.id === adminBookModalCurrentId);
   const title = book ? book.title : `книгу #${adminBookModalCurrentId}`;
-  if (!confirm(`Удалить «${title}» полностью? Это действие необратимо.`)) return;
+  if (!(await appConfirm(`«${title}» будет удалена вместе с файлом и обложкой. Это действие необратимо.`, { title: 'Удалить книгу полностью?', confirmText: 'Удалить', danger: true }))) return;
 
   try {
     await api.books.delete(adminBookModalCurrentId);

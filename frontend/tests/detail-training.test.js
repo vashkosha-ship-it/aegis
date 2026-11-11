@@ -41,7 +41,7 @@ const context = {
   sensitiveNonce: () => 'nonce',
   startQuiz: id => quizStarts.push(id),
   showToast: message => toasts.push(message),
-  confirm: () => confirmValue,
+  appConfirm: async () => confirmValue,
 };
 vm.createContext(context);
 vm.runInContext(source, context);

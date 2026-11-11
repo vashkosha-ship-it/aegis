@@ -336,7 +336,7 @@ function booksWithoutFile() {
 async function deleteBooksWithoutFile() {
   const empty = booksWithoutFile();
   if (!empty.length) return;
-  if (!confirm(`Удалить карточки без файла (${empty.length})? Это книги, к которым не загружен PDF или EPUB. Действие необратимо.`)) return;
+  if (!(await appConfirm(`Это книги, к которым не загружен PDF или EPUB (${empty.length}). Действие необратимо.`, { title: 'Удалить карточки без файла?', confirmText: 'Удалить', danger: true }))) return;
   const button = document.getElementById('adminBooksDeleteEmptyBtn');
   if (button) button.disabled = true;
   let deleted = 0;
@@ -432,7 +432,7 @@ async function auditStorageUI() {
 async function deleteBook(id, { afterDelete } = {}) {
   const book = state.books.find(b => b.id === id);
   const title = book ? book.title : `книгу #${id}`;
-  if (!confirm(`Удалить «${title}»? Это действие необратимо.`)) return;
+  if (!(await appConfirm(`«${title}» будет удалена вместе с файлом и обложкой. Это действие необратимо.`, { title: 'Удалить книгу?', confirmText: 'Удалить', danger: true }))) return;
 
   try {
     await api.books.delete(id);
@@ -844,7 +844,7 @@ function openAdminResetPasswordModal(user, { onDone = null } = {}) {
 }
 
 async function deleteAdminUser(userId, username) {
-  if (!confirm(`Удалить пользователя «${username}»? Это действие необратимо.`)) return;
+  if (!(await appConfirm(`Пользователь «${username}» и его данные будут удалены. Это действие необратимо.`, { title: 'Удалить пользователя?', confirmText: 'Удалить', danger: true }))) return;
   try {
     await api.library.adminDeleteUser(userId);
     showToast('Пользователь удалён');

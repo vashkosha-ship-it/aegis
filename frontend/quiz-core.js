@@ -116,10 +116,6 @@ function renderQuizPreparing(bookId) {
   c.replaceChildren(panel);
 }
 
-function startCombinedQuiz(bookIds) {
-  showToast('Комбо-тест будет доступен после миграции AI-чата (Этап 3)');
-}
-
 // Пройти тест заново: сбрасываем кэш и заново запрашиваем тест.
 // Бэк отдаёт случайную выборку вопросов, поэтому каждый повтор — новый набор.
 async function retakeQuiz(bookId) {

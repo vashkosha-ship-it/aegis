@@ -49,6 +49,7 @@ function showConfirmModal({
   cancelText = 'Отмена',
   danger = false,
   onConfirm,
+  onCancel,
 }) {
   const { overlay, panel } = createDialogShell('confirmModal', title);
 
@@ -74,22 +75,42 @@ function showConfirmModal({
   panel.append(description, actions);
 
   let escapeHandler;
+  let closed = false;
   const close = () => {
+    if (closed) return;
+    closed = true;
     overlay.remove();
     document.removeEventListener('keydown', escapeHandler);
   };
+  const cancel = () => {
+    if (closed) return;
+    close();
+    if (typeof onCancel === 'function') onCancel();
+  };
   escapeHandler = event => {
-    if (event.key === 'Escape') close();
+    if (event.key === 'Escape') cancel();
   };
 
-  cancelButton.addEventListener('click', close);
+  cancelButton.addEventListener('click', cancel);
   confirmButton.addEventListener('click', () => {
     close();
     if (typeof onConfirm === 'function') onConfirm();
   });
-  bindDialogClose(overlay, close);
+  bindDialogClose(overlay, cancel);
   document.addEventListener('keydown', escapeHandler);
   confirmButton.focus();
+}
+
+// Подтверждение в стиле приложения вместо системного confirm():
+// await appConfirm('Удалить?', { danger: true }) → true / false.
+function appConfirm(message, { title = 'Подтвердите действие', confirmText = 'Да', cancelText = 'Отмена', danger = false } = {}) {
+  return new Promise(resolve => {
+    showConfirmModal({
+      title, message, confirmText, cancelText, danger,
+      onConfirm: () => resolve(true),
+      onCancel: () => resolve(false),
+    });
+  });
 }
 
 function showPromptModal({

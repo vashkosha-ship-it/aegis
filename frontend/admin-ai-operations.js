@@ -15,7 +15,7 @@ function collectArTopics() {
 async function aiMatchArBooksUI() {
   const topics = collectArTopics();
   if (!topics.length) { showToast('Не удалось собрать темы AR-схем'); return; }
-  if (!confirm(`ИИ проанализирует книги и подберёт подходящие к ${topics.length} темам AR-схем. Это может занять пару минут. Продолжить?`)) return;
+  if (!(await appConfirm(`ИИ проанализирует книги и подберёт подходящие к ${topics.length} темам схем. Это может занять пару минут.`, { title: 'Подобрать книги для схем?', confirmText: 'Запустить' }))) return;
   showToast('ИИ подбирает книги для AR-тем, подождите…');
   if (typeof requestAdminNotifyPermission === 'function') requestAdminNotifyPermission();
   try {

@@ -51,7 +51,7 @@ const context = {
   navigateTo: screen => calls.push(['navigate', screen]),
   openBookDetail: id => calls.push(['book', id]),
   setTimeout: fn => { fn(); return 1; },
-  confirm: () => confirmResult,
+  appConfirm: async () => confirmResult,
 };
 vm.createContext(context);
 vm.runInContext(source, context);
@@ -93,15 +93,17 @@ assert.deepEqual(calls.slice(-2), [['navigate', 'onboarding'], ['quiz']]);
 context.startQuizFromTraining(2);
 assert.deepEqual(calls.at(-1), ['book', 2]);
  
+(async () => {
 confirmResult = false;
 context.state.currentUser.cyber_level = 'scout';
-context.restartOnboardingFromTraining();
+await context.restartOnboardingFromTraining();
 assert.notDeepEqual(calls.at(-1), ['navigate', 'onboarding']);
 confirmResult = true;
-context.restartOnboardingFromTraining();
+await context.restartOnboardingFromTraining();
 assert.deepEqual(calls.slice(-2), [['levels'], ['navigate', 'onboarding']]);
 assert.ok(dom.window.document.getElementById('onboardingResult').classList.contains('hidden'));
 assert.ok(!dom.window.document.getElementById('onboardingWelcome').classList.contains('hidden'));
+})().catch(err => { console.error(err); process.exit(1); });
 
 assert.doesNotMatch(appSource, /function renderTrainingScreen|function startQuizFromTraining/);
 assert.ok(indexSource.indexOf('training-screen.js') < indexSource.indexOf('app.js'));
