@@ -2553,7 +2553,7 @@ select[multiple] option:hover {
   .reader-toolbar-actions .header-icon-btn svg { width: 14px !important; height: 14px !important; }
   .reader-toolbar .book-name { font-size: 10px !important; }
   /* PDF: занимает почти всю доступную ширину, центрирован */
-  .pdf-viewport { display: flex !important; justify-content: center !important; align-items: flex-start !important; padding: 14px 0 !important; }
+  .pdf-viewport:not(.hidden) { display: flex !important; justify-content: center !important; align-items: flex-start !important; padding: 14px 0 !important; }
   .pdf-viewport canvas { margin: 0 auto !important; display: block !important; max-width: none !important; box-shadow: 0 8px 28px rgba(0,0,0,0.55) !important; border-radius: 2px !important; }
   .page-indicator-overlay { font-size: 10px !important; padding: 6px 11px !important; }
   /* Кнопки перелистывания (стрелки по бокам) */

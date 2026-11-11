@@ -754,17 +754,17 @@ document.getElementById('saveBookBtn').addEventListener('click', async () => {
       } catch (err) {
         showToast('Не удалось загрузить обложку: ' + (err.detail || err.message));
       }
-    } else if (bookFile && format !== 'epub') {
-      // Обложка не задана вручную — генерируем из первой страницы PDF
+    } else if (bookFile) {
+      // Обложка не задана вручную — первая страница PDF или обложка EPUB.
       btn.textContent = 'Создание обложки...';
       try {
-        const coverBlob = await generateCoverFromPdf(bookFile);
+        const coverBlob = await generateCoverFromBookFile(bookFile, format);
         if (coverBlob) {
           const coverGenFile = new File([coverBlob], 'cover.jpg', { type: 'image/jpeg' });
           await api.books.uploadCover(newId, coverGenFile);
         }
       } catch (err) {
-        console.warn('Не удалось создать обложку из PDF:', err);
+        console.warn('Не удалось создать обложку из файла книги:', err);
       }
     }
 

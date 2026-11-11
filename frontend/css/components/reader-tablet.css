@@ -33,3 +33,13 @@ body.reader-active #readerScreen.active {
   line-height: 1.6;
 }
 .app-dialog-footnote { margin-bottom: 18px; }
+
+/* EPUB: контейнер книги — на всю высоту области чтения. epub.js рисует
+   страницы на 100% высоты контейнера; без явной высоты она была нулевой, и
+   книга не показывалась вовсе (виден был только фон). */
+#epubViewport #epubContainer {
+  height: 100%;
+  box-sizing: border-box;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}

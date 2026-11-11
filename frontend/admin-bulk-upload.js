@@ -83,6 +83,46 @@ function duplicateMessage(found) {
   return `Уже есть (${reason}): «${found.book.title}»`;
 }
 
+// Обложка EPUB — картинка, которую книга сама отмечает как обложку
+// (метаданные OPF). Перекодируем её в JPEG до 800px по ширине.
+async function generateCoverFromEpub(file) {
+  try { await ensureEpubLoaded(); } catch (e) { console.warn('epub.js не загружен:', e); return null; }
+  if (typeof ePub === 'undefined') return null;
+  let book = null;
+  try {
+    book = ePub(await file.arrayBuffer());
+    await book.ready;
+    const url = await book.coverUrl();
+    if (!url) return null;
+    const img = new Image();
+    img.decoding = 'async';
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+    const scale = Math.min(1, 800 / (img.naturalWidth || 800));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  } catch (e) {
+    console.warn('generateCoverFromEpub error:', e);
+    return null;
+  } finally {
+    try { book?.destroy(); } catch (_) { /* не критично */ }
+  }
+}
+
+// Обложка из файла книги любого формата.
+function generateCoverFromBookFile(file, format) {
+  return format === 'epub' ? generateCoverFromEpub(file) : generateCoverFromPdf(file);
+}
+
 // Рендер первой страницы PDF в JPEG-обложку (клиентская генерация)
 async function generateCoverFromPdf(file) {
   try { await ensurePdfLoaded(); } catch (e) { console.warn('pdf.js не загружен:', e); return null; }
@@ -326,12 +366,12 @@ async function startBulkUpload() {
         try { await api.books.delete(created.id); } catch (_) { /* не критично */ }
         throw uploadErr;
       }
-      if (format !== 'epub') {
-        // Автообложка из первой страницы PDF
+      {
+        // Автообложка: первая страница PDF или обложка из метаданных EPUB.
         item.message = 'Создание обложки...';
         renderBulkUploadList();
         try {
-          const coverBlob = await generateCoverFromPdf(item.file);
+          const coverBlob = await generateCoverFromBookFile(item.file, format);
           if (coverBlob) {
             const coverGenFile = new File([coverBlob], 'cover.jpg', { type: 'image/jpeg' });
             await api.books.uploadCover(created.id, coverGenFile);
