@@ -344,7 +344,14 @@ jobs:
         working-directory: e2e
         run: |
           npm install
-          npx playwright install --with-deps chromium
+          for attempt in 1 2 3 4; do
+            # Зеркала Ubuntu на машинах GitHub временами не отвечают —
+            # повторяем, чтобы сетевой сбой не останавливал развёртывание.
+            npx playwright install --with-deps chromium && break
+            [ "$attempt" = 4 ] && exit 1
+            echo "Повтор установки браузера через $((attempt * 30)) с"
+            sleep $((attempt * 30))
+          done
 
       - name: Критические E2E
         working-directory: e2e
@@ -417,7 +424,15 @@ jobs:
         run: npm ci || npm install
 
       - name: Установить браузер
-        run: npx playwright install --with-deps chromium
+        run: |
+          for attempt in 1 2 3 4; do
+            # Зеркала Ubuntu на машинах GitHub временами не отвечают —
+            # повторяем, чтобы сетевой сбой не останавливал развёртывание.
+            npx playwright install --with-deps chromium && break
+            [ "$attempt" = 4 ] && exit 1
+            echo "Повтор установки браузера через $((attempt * 30)) с"
+            sleep $((attempt * 30))
+          done
 
       - name: Браузерные проверки
         env:
