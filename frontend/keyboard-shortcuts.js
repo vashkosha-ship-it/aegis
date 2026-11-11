@@ -64,6 +64,7 @@ document.addEventListener('keydown', e => {
     closeAIPanel();
     closeCatalogPanel();
     closeShortcutsModal();
+    if (typeof closeFavCatsPicker === 'function') closeFavCatsPicker();
     // Схему по Esc закрывает её собственный обработчик (сначала панель этапа).
     const selectionToolbar = document.getElementById('selectionToolbar');
     if (selectionToolbar) selectionToolbar.style.display = 'none';

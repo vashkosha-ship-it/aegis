@@ -3496,11 +3496,20 @@ select[multiple] option:hover {
 }
 
 .fav-categories-close {
+  /* Палец должен попадать: раньше кнопка была шириной в один символ. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px 0;
   border: 0;
+  border-radius: 50%;
   background: transparent;
   color: var(--text-muted);
   font: inherit;
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
 }
 
