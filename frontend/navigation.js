@@ -407,6 +407,7 @@ const BACK_CLOSABLE_OVERLAYS = [
   '.app-dialog-overlay',
   '.modal-overlay:not(.hidden)',
   '.install-modal',
+  '#favCatsPickerModal',
   '#finishReviewModal',
   '#forgotPasswordModal',
   '#tourOverlay',
