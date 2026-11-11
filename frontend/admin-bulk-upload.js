@@ -294,6 +294,7 @@ async function startBulkUpload() {
   if (pending.length === 0) { showToast('Нет файлов для загрузки'); return; }
 
   bulkUploadInProgress = true;
+  if (typeof requestAdminNotifyPermission === 'function') requestAdminNotifyPermission();
   document.getElementById('bulkUploadStartBtn').disabled = true;
   document.getElementById('bulkUploadStartBtn').textContent = 'Загрузка...';
 
@@ -412,9 +413,9 @@ async function startBulkUpload() {
   const done = bulkUploadQueue.filter(i => i.status === 'done').length;
   const errors = bulkUploadQueue.filter(i => i.status === 'error').length;
   const skipped = bulkUploadQueue.filter(i => i.status === 'skipped').length;
-  showToast(`Создано книг: ${done}`
-    + (skipped ? ` · Дубликатов пропущено: ${skipped}` : '')
-    + (errors ? ` · Ошибок: ${errors}` : ''));
+  notifyAdminTaskDone(null, 'Массовая загрузка', `создано книг: ${done}`
+    + (skipped ? ` · дубликатов пропущено: ${skipped}` : '')
+    + (errors ? ` · ошибок: ${errors}` : ''));
 
   // Обновляем каталог
   await loadBooksFromApi();

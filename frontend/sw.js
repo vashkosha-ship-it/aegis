@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v379';
+const CACHE_NAME = 'aegis-cache-v380';
 // Обложки книг — отдельный кэш, не сбрасывается при обновлении приложения:
 // раз увиденная обложка показывается и без интернета.
 const COVERS_CACHE = 'aegis-covers-v1';
@@ -158,6 +158,7 @@ const PRECACHE_URLS = [
   '/reader-search.js',
   '/reader-scan-notice.js',
   '/epub-csp-styles.js',
+  '/admin-task-watch.js',
   '/epub-annotations.js',
   '/reader-selection-ai.js',
   '/reader-lifecycle.js',
@@ -240,6 +241,18 @@ self.addEventListener('install', (event) => {
   // Применяем новый SW сразу — иначе обновления app.js/стилей «зависают»
   // до полного закрытия всех вкладок. Баннер «Обновить» остаётся как доп. сигнал.
   self.skipWaiting();
+});
+
+// Нажатие на системное уведомление (о завершении операции админки) —
+// открыть приложение: переключиться на открытую вкладку или открыть новую.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const client = all.find(c => new URL(c.url).origin === self.location.origin);
+    if (client) return client.focus();
+    return self.clients.openWindow('/');
+  })());
 });
 
 // Сообщение от страницы: применить обновление сейчас

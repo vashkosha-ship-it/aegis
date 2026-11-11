@@ -41,11 +41,10 @@ async function refreshMetadataReviewStatus() {
       metadataStatusTimer = setTimeout(refreshMetadataReviewStatus, 5000);
     } else if (metadataJobSeenActive && job) {
       metadataJobSeenActive = false;
-      showToast(
-        `Карточки проверены: исправлено ${job.changed_books}`
+      notifyAdminTaskDone('metadata', 'Названия и теги',
+        `исправлено карточек: ${job.changed_books}`
         + (job.skipped_books ? ` · ждут индексации: ${job.skipped_books}` : '')
-        + (job.failed_books ? ` · ошибок: ${job.failed_books}` : ''),
-      );
+        + (job.failed_books ? ` · ошибок: ${job.failed_books}` : ''));
       await loadBooksFromApi();
       if (typeof renderAdminBooksTable === 'function') renderAdminBooksTable();
     }
@@ -57,6 +56,7 @@ async function refreshMetadataReviewStatus() {
 async function requeueMetadataReview() {
   try {
     const result = await api.library.startMetadataReview();
+    watchAdminTask('metadata');
     showToast(result.reason === 'requeued'
       ? 'Проверка поставлена в начало очереди и скоро начнётся'
       : 'Проверка карточек уже идёт');
@@ -88,6 +88,7 @@ async function startMetadataReviewUI() {
     onConfirm: async () => {
       try {
         const result = await api.library.startMetadataReview();
+        watchAdminTask('metadata');
         if (result.reason === 'already_running') showToast('Проверка карточек уже идёт');
         else if (result.reason === 'no_books') showToast('В каталоге нет книг');
         else showToast(`Проверка ${result.job.total_books} карточек запущена в фоне`);
