@@ -344,14 +344,11 @@ jobs:
         working-directory: e2e
         run: |
           npm install
-          for attempt in 1 2 3 4; do
-            # Зеркала Ubuntu на машинах GitHub временами не отвечают —
-            # повторяем, чтобы сетевой сбой не останавливал развёртывание.
-            npx playwright install --with-deps chromium && break
-            [ "$attempt" = 4 ] && exit 1
-            echo "Повтор установки браузера через $((attempt * 30)) с"
-            sleep $((attempt * 30))
-          done
+          # Зеркала Ubuntu на машинах GitHub временами не отвечают. Системные
+          # пакеты (в основном шрифты) на образе GitHub уже почти все есть,
+          # поэтому при сбое ставим сам браузер без них, а не падаем.
+          timeout 300 npx playwright install --with-deps chromium \
+            || { echo "Системные пакеты не установились — ставлю браузер без них"; npx playwright install chromium; }
 
       - name: Критические E2E
         working-directory: e2e
@@ -425,14 +422,11 @@ jobs:
 
       - name: Установить браузер
         run: |
-          for attempt in 1 2 3 4; do
-            # Зеркала Ubuntu на машинах GitHub временами не отвечают —
-            # повторяем, чтобы сетевой сбой не останавливал развёртывание.
-            npx playwright install --with-deps chromium && break
-            [ "$attempt" = 4 ] && exit 1
-            echo "Повтор установки браузера через $((attempt * 30)) с"
-            sleep $((attempt * 30))
-          done
+          # Зеркала Ubuntu на машинах GitHub временами не отвечают. Системные
+          # пакеты (в основном шрифты) на образе GitHub уже почти все есть,
+          # поэтому при сбое ставим сам браузер без них, а не падаем.
+          timeout 300 npx playwright install --with-deps chromium \
+            || { echo "Системные пакеты не установились — ставлю браузер без них"; npx playwright install chromium; }
 
       - name: Браузерные проверки
         env:
