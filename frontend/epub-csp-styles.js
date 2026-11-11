@@ -91,6 +91,47 @@ function attachEpubCspStyles(book) {
   return () => urls.splice(0).forEach(url => { try { URL.revokeObjectURL(url); } catch (_) { /* уже */ } });
 }
 
+// Книга с битым оглавлением: файл оглавления указан в описании EPUB, но его
+// нет в архиве. epub.js тогда не сообщает об ошибке, а навсегда оставляет
+// «оглавление загружается» — book.ready не наступает, книга не открывается,
+// в консоли «Uncaught (in promise) File not found in the epub». Если
+// оглавление не загрузилось, просим epub.js построить пустое — так он сам
+// поступает с книгами без оглавления. Вызывать сразу после ePub(...).
+function hardenEpubBook(book) {
+  if (!book || typeof book.loadNavigation !== 'function' || book._aegisNavHardened) return;
+  const loadNavigation = book.loadNavigation.bind(book);
+  book.loadNavigation = packaging => loadNavigation(packaging).catch(error => {
+    console.info('Оглавление EPUB не найдено — книга откроется без него:', error && error.message ? error.message : error);
+    const withoutToc = Object.assign(Object.create(Object.getPrototypeOf(packaging)), packaging,
+      { navPath: undefined, ncxPath: undefined, toc: undefined });
+    return loadNavigation(withoutToc);
+  });
+  book._aegisNavHardened = true;
+}
+
+// Книга готова к показу. book.ready ждёт все части EPUB, включая оглавление
+// и обложку, и падает, если хоть одной нет в архиве («File not found in the
+// epub: /OEBPS/toc01.xhtml») — такая книга не открывалась вовсе. Для чтения
+// нужны только содержимое (spine) и метаданные; без оглавления и обложки
+// книга откроется, просто без них.
+async function waitEpubUsable(book) {
+  const optional = (promise, what) => Promise.resolve(promise).catch(error => {
+    console.info(`В EPUB нет части «${what}» — открываем без неё:`, error && error.message ? error.message : error);
+    return null;
+  });
+  // Сами по себе эти обещания epub.js не обрабатывает — без catch ошибка
+  // всплывала в консоль как «Uncaught (in promise)».
+  Promise.resolve(book.ready).catch(() => {});
+  await book.opened;
+  await Promise.all([
+    book.loaded.spine,
+    book.loaded.metadata,
+    optional(book.loaded.navigation, 'оглавление'),
+    optional(book.loaded.cover, 'обложка'),
+    optional(book.loaded.resources, 'ресурсы'),
+  ]);
+}
+
 // Применить перенесённые атрибуты style в показанной главе.
 function attachEpubMovedStylesApply(rendition) {
   rendition.hooks.content.register(contents => epubApplyMovedStyles(contents.document));

@@ -31,3 +31,27 @@ const core = fs.readFileSync(path.join(__dirname, '..', 'reader-core.js'), 'utf8
 assert.match(core, /epubCspCleanup = attachEpubCspStyles\(book\)/);
 assert.match(core, /attachEpubMovedStylesApply\(rendition\)/);
 console.log('epub-csp-styles: ok');
+
+// Битое оглавление: если файла оглавления нет, epub.js строит пустое.
+(async () => {
+  const calls = [];
+  const proto = { kind: 'packaging' };
+  const packaging = Object.assign(Object.create(proto), { navPath: 'toc01.xhtml', ncxPath: undefined, toc: undefined, manifest: {} });
+  const book = {
+    loadNavigation(p) {
+      calls.push(p.navPath || 'none');
+      return p.navPath ? Promise.reject(new Error('File not found in the epub: /OEBPS/toc01.xhtml')) : Promise.resolve('empty-nav');
+    },
+  };
+  const ctx = { console: { info() {} } };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'epub-csp-styles.js'), 'utf8') + '\nthis.harden = hardenEpubBook;', ctx);
+  ctx.harden(book);
+  const nav = await book.loadNavigation(packaging);
+  assert.equal(nav, 'empty-nav');
+  assert.deepEqual(calls, ['toc01.xhtml', 'none']);
+  assert.equal(packaging.navPath, 'toc01.xhtml'); // исходное описание не трогаем
+  const core = fs.readFileSync(path.join(__dirname, '..', 'reader-core.js'), 'utf8');
+  assert.match(core, /hardenEpubBook\(book\)/);
+  console.log('epub broken toc: ok');
+})().catch(e => { console.error(e); process.exit(1); });
