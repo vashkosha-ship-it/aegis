@@ -182,7 +182,8 @@
 
   /* Убираем дубль заголовка — оставляем только действия */
   .top-header {
-    padding: 13px 0 11px;
+    /* + системная строка iPad: в режиме планшета/ПК шапка уходила под неё. */
+    padding: calc(13px + var(--safe-area-inset-top)) 0 11px;
     gap: 8px;
   }
 
@@ -346,7 +347,7 @@
 
   /* Заголовок «О книге» крупнее */
   #detailScreen .detail-header {
-    padding: 16px 0 13px;
+    padding: calc(16px + var(--safe-area-inset-top)) 0 13px;
   }
 
   #detailScreen .detail-header .btn-back {
@@ -1329,7 +1330,7 @@
   .mylist-tab { font-size: 12px !important; padding: 9px 20px !important; }
 
   /* Сайдбар */
-  .sidebar-nav { width: 187px !important; padding: 19px 11px !important; }
+  .sidebar-nav { width: 187px !important; padding: calc(19px + var(--safe-area-inset-top)) 11px 19px !important; }
   .sidebar-item { font-size: 13px !important; padding: 11px 13px !important; gap: 11px !important; }
   .sidebar-item svg { width: 19px !important; height: 19px !important; }
   .sidebar-logo-icon { width: 35px !important; height: 35px !important; }

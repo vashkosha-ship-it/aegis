@@ -142,6 +142,7 @@ button.ar-stage-control:active { transform:translateY(0) scale(.985) !important;
   #arSchemeRoot { --ar-details-width: min(420px, 42vw); }
   #arSchemeRoot #arStageDetails {
     top: 0;
+    padding-top: var(--safe-area-inset-top);
     left: auto;
     width: var(--ar-details-width);
     max-height: none;
