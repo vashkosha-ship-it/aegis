@@ -71,6 +71,7 @@ async function loadEpub(b) {
       return;
     }
     const book = ePub(epubData);
+    if (typeof hardenEpubBook === 'function') hardenEpubBook(book);
     epubBook = book;
     // Встроенные стили книги — в разрешённом CSP виде (иначе их блокировали).
     if (typeof attachEpubCspStyles === 'function') {
@@ -95,7 +96,8 @@ async function loadEpub(b) {
 
     // До book.ready spine ещё может быть пустым: locations.generate() тогда
     // молча создаёт ноль CFI и восстановить сохранённую позицию невозможно.
-    await book.ready;
+    if (typeof waitEpubUsable === 'function') await waitEpubUsable(book);
+    else await book.ready;
     if (book !== epubBook) return;   // пока готовились, читалку закрыли или открыли другую книгу
 
     // Нумерация страниц (locations) у epub.js считается по всему тексту книги:

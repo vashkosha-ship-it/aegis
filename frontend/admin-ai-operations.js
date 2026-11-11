@@ -41,7 +41,7 @@ async function generateMissingCoversUI() {
     confirmText: 'Создать',
     cancelText: 'Отмена',
     onConfirm: async () => {
-      let done = 0, failed = 0, locked = 0;
+      let done = 0, failed = 0, locked = 0, broken = 0, noCover = 0;
       try {
         await ensurePdfLoaded();
       } catch (e) {
@@ -63,6 +63,10 @@ async function generateMissingCoversUI() {
             done++;
           } else if (lastCoverFailure === 'password') {
             locked++;
+          } else if (lastCoverFailure === 'broken') {
+            broken++;
+          } else if (lastCoverFailure === 'no-cover') {
+            noCover++;
           } else {
             failed++;
           }
@@ -72,7 +76,10 @@ async function generateMissingCoversUI() {
         }
       }
       notifyAdminTaskDone(null, 'Обложки', `создано: ${done}`
-        + (locked ? ` · PDF под паролем: ${locked} (обложку загрузите вручную)` : '')
+        + (locked ? ` · PDF под паролем: ${locked}` : '')
+        + (broken ? ` · повреждённых файлов: ${broken}` : '')
+        + (noCover ? ` · EPUB без обложки: ${noCover}` : '')
+        + (locked || broken || noCover ? ' (обложку загрузите вручную)' : '')
         + (failed ? ` · не удалось: ${failed}` : ''));
       await loadBooksFromApi();
       if (typeof renderAdminPanel === 'function') renderAdminPanel();
