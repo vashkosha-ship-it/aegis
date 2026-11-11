@@ -83,9 +83,14 @@ function duplicateMessage(found) {
   return `Уже есть (${reason}): «${found.book.title}»`;
 }
 
+// Почему последняя обложка не создалась: 'password' — PDF под паролем
+// (pdf.js не может открыть файл, первую страницу не нарисовать).
+let lastCoverFailure = null;
+
 // Обложка EPUB — картинка, которую книга сама отмечает как обложку
 // (метаданные OPF). Перекодируем её в JPEG до 800px по ширине.
 async function generateCoverFromEpub(file) {
+  lastCoverFailure = null;
   try { await ensureEpubLoaded(); } catch (e) { console.warn('epub.js не загружен:', e); return null; }
   if (typeof ePub === 'undefined') return null;
   try {
@@ -125,6 +130,7 @@ function generateCoverFromBookFile(file, format) {
 
 // Рендер первой страницы PDF в JPEG-обложку (клиентская генерация)
 async function generateCoverFromPdf(file) {
+  lastCoverFailure = null;
   try { await ensurePdfLoaded(); } catch (e) { console.warn('pdf.js не загружен:', e); return null; }
   if (typeof pdfjsLib === 'undefined') { console.warn('pdfjsLib недоступен после ensurePdfLoaded'); return null; }
   try {
@@ -148,6 +154,11 @@ async function generateCoverFromPdf(file) {
     try { pdf.destroy(); } catch (_) {}
     return blob;
   } catch (e) {
+    if (e && e.name === 'PasswordException') {
+      lastCoverFailure = 'password';
+      console.info('PDF защищён паролем — обложку из первой страницы не создать.');
+      return null;
+    }
     console.warn('generateCoverFromPdf error:', e);
     return null;
   }
