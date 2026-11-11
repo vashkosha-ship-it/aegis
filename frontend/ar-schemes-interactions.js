@@ -18,23 +18,46 @@ function initARPan() {
     }
     // во всех остальных случаях — нативный скролл (работает на тачпаде сам)
   };
-  // Drag-to-pan мышью (для обычной мыши без колеса-горизонтали)
-  let dragging = false, sx = 0, sy = 0, sl = 0, st = 0, moved = false;
+  // Drag-to-pan мышью (для обычной мыши без колеса-горизонтали).
+  // Состояние общее для всех схем: initARPan вызывается при каждой отрисовке,
+  // а слушатели на window вешаются один раз — раньше они копились.
+  const pan = initARPan.state || (initARPan.state = { dragging: false, moved: false });
+  pan.sc = sc;
   sc.onmousedown = (e) => {
-    if (e.target.closest('button')) return;
-    dragging = true; moved = false;
-    sx = e.clientX; sy = e.clientY;
-    sl = sc.scrollLeft; st = sc.scrollTop;
+    if (e.button !== 0 || e.target.closest('button')) return;
+    Object.assign(pan, {
+      dragging: true, moved: false,
+      sx: e.clientX, sy: e.clientY, sl: sc.scrollLeft, st: sc.scrollTop,
+    });
     sc.style.cursor = 'grabbing';
   };
+  // Схему тащили и отпустили над этапом — это не нажатие на этап.
+  if (!sc.dataset.panClickGuard) {
+    sc.dataset.panClickGuard = '1';
+    sc.addEventListener('click', (e) => {
+      if (!pan.moved) return;
+      pan.moved = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+  }
+  if (initARPan.listening) return;
+  initARPan.listening = true;
   window.addEventListener('mousemove', (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
-    sc.scrollLeft = sl - dx;
-    sc.scrollTop = st - dy;
+    if (!pan.dragging || !pan.sc) return;
+    const dx = e.clientX - pan.sx, dy = e.clientY - pan.sy;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) pan.moved = true;
+    pan.sc.scrollLeft = pan.sl - dx;
+    pan.sc.scrollTop = pan.st - dy;
   });
-  window.addEventListener('mouseup', () => { dragging = false; sc.style.cursor = ''; });
+  window.addEventListener('mouseup', () => {
+    if (!pan.dragging) return;
+    pan.dragging = false;
+    if (pan.sc) pan.sc.style.cursor = '';
+    // Если click после перетаскивания не придёт (отпустили вне схемы),
+    // флаг не должен съесть следующее настоящее нажатие.
+    setTimeout(() => { pan.moved = false; }, 0);
+  });
 }
 
 // Панель с информацией об этапе. Раньше это была шторка с «язычком»: в
