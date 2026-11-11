@@ -29,14 +29,14 @@ async function aiMatchArBooksUI() {
 }
 
 async function generateMissingCoversUI() {
-  const candidates = (state.books || []).filter(b => !b.has_cover && (b.has_pdf || b.format !== 'epub'));
+  const candidates = (state.books || []).filter(b => !b.has_cover && b.has_file);
   if (!candidates.length) {
     showToast('Все книги уже с обложками');
     return;
   }
   showConfirmModal({
     title: 'Создать обложки?',
-    message: `Книг без обложки: ${candidates.length}. Для каждой будет скачан PDF и создана обложка из первой страницы. Это может занять время.`,
+    message: `Книг без обложки: ${candidates.length}. Для каждой будет скачан файл книги: у PDF обложкой станет первая страница, у EPUB — его собственная обложка. Это может занять время.`,
     confirmText: 'Создать',
     cancelText: 'Отмена',
     onConfirm: async () => {
@@ -50,8 +50,11 @@ async function generateMissingCoversUI() {
       showToast('Создание обложек запущено…');
       for (const b of candidates) {
         try {
-          const bytes = await api.books.fetchPdfBytes(b.id);
-          const blob = await generateCoverFromPdf(new Blob([bytes], { type: 'application/pdf' }));
+          const isEpub = (b.file_format || b.format) === 'epub';
+          const bytes = isEpub ? await api.books.fetchEpubBytes(b.id) : await api.books.fetchPdfBytes(b.id);
+          const blob = isEpub
+            ? await generateCoverFromEpub(new Blob([bytes], { type: 'application/epub+zip' }))
+            : await generateCoverFromPdf(new Blob([bytes], { type: 'application/pdf' }));
           if (blob) {
             const f = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
             await api.books.uploadCover(b.id, f);
