@@ -104,11 +104,53 @@ function bookIndexStatusText(data) {
     const date = new Date(finished);
     if (!Number.isNaN(date.getTime())) parts.push(date.toLocaleString('ru-RU'));
   }
-  if (data.error) {
-    const error = String(data.error);
-    parts.push(error.length > 240 ? `${error.slice(0, 237)}…` : error);
-  }
+  if (data.error) parts.push(explainIndexError(data.error));
   return parts.join(' · ');
+}
+
+// Понятное объяснение технической ошибки индексации. Исходный текст ошибки
+// показываем отдельно — он нужен, если причина не распознана.
+const INDEX_ERROR_EXPLANATIONS = [
+  [/FileNotDecrypted|not been decrypted|password|encrypt/i,
+    'PDF защищён паролем — текст из него не прочитать. Нужен файл без пароля.'],
+  [/отсутствует в хранилище|нет активного файла/i,
+    'Файла книги нет на сервере. Загрузите файл заново.'],
+  [/EOF marker|startxref|trailer|xref|PdfReadError|PdfStreamError|Stream has ended|EmptyFileError|PdfiumError|Failed to load document|BadZipFile|не найден OPF/i,
+    'Файл повреждён или загружен не полностью. Загрузите целый файл заново.'],
+  [/ни одной секции/i,
+    'В файле нет текста — скорее всего, это скан страниц. Читать книгу можно, искать по тексту — нет.'],
+  [/ExtractionTimeout|заняло больше/i,
+    'Книга разбиралась слишком долго и была остановлена. Попробуйте ещё раз, когда сервер не загружен.'],
+  [/PdfTooLarge|больше допустимых/i,
+    'Файл слишком большой для индексации.'],
+  [/памят|memory/i,
+    'Серверу не хватило памяти на эту книгу. Попробуйте ещё раз, когда сервер не загружен.'],
+  [/[Оо]черед/i,
+    'Не удалось поставить книгу в очередь. Нажмите «Повторить» ещё раз.'],
+];
+
+function explainIndexError(error) {
+  const text = String(error || '');
+  const match = INDEX_ERROR_EXPLANATIONS.find(([pattern]) => pattern.test(text));
+  if (match) return match[1];
+  return text.length > 240 ? `${text.slice(0, 237)}…` : text;
+}
+
+async function showBookIndexError(bookId, title) {
+  let data;
+  try {
+    data = await api.books.indexStatus(bookId);
+  } catch (err) {
+    return showToast('Не удалось узнать причину ошибки');
+  }
+  const raw = String(data.error || '');
+  const explained = raw ? explainIndexError(raw) : 'Причина не сохранилась. Попробуйте проиндексировать книгу ещё раз.';
+  showInfoModal({
+    id: 'indexErrorModal',
+    title: title ? `Ошибка индексации: ${title}` : 'Ошибка индексации',
+    message: explained,
+    footnote: raw && explained !== raw ? `Техническая причина: ${raw.slice(0, 500)}` : '',
+  });
 }
 
 function renderBookIndexStatus(data, hasFile = true) {

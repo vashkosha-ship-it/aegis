@@ -70,6 +70,18 @@ assert.match(indexStatus.textContent, /<img src=x/);
 assert.equal(indexStatus.querySelector('img'), null);
 assert.equal(dom.window.document.getElementById('adminReindexBookBtn').disabled, false);
 
+// Известные ошибки объясняются по-человечески, исходный текст — в подсказке.
+context.renderBookIndexStatus({
+  status: 'failed',
+  error: 'PdfReadError: EOF marker not found',
+}, true);
+assert.match(indexStatus.textContent, /повреждён или загружен не полностью/);
+assert.match(indexStatus.title, /EOF marker not found/);
+assert.match(context.explainIndexError('IndexingError: Книга 5: из файла не извлечено ни одной секции'), /скан/);
+assert.match(context.explainIndexError('IndexingError: Файл книги отсутствует в хранилище'), /нет на сервере/);
+assert.match(context.explainIndexError('FileNotDecryptedError: File has not been decrypted'), /паролем/);
+assert.equal(context.explainIndexError('Что-то новое'), 'Что-то новое');
+
 // Ручной запуск доступен и для «в очереди»/«индексируется»: после массовой
 // индексации книга может ждать часами, а статус running — зависнуть.
 context.renderBookIndexStatus({ status: 'running' }, true);

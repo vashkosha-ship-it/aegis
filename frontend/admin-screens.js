@@ -87,6 +87,16 @@ function appendAdminIndexStatusCell(row, book) {
   const status = document.createElement('span');
   status.textContent = bookIndexStatusText(book);
   cell.appendChild(status);
+  if (book.indexing_status === 'failed') {
+    const why = document.createElement('button');
+    why.type = 'button';
+    why.className = 'btn-sm';
+    why.title = 'Почему не проиндексировалась';
+    why.textContent = 'Почему?';
+    why.addEventListener('click', () => showBookIndexError(book.id, book.title));
+    cell.appendChild(document.createTextNode(' '));
+    cell.appendChild(why);
+  }
   const retryable = (book.has_pdf || book.has_epub)
     && (book.indexing_status || 'not_indexed') !== 'succeeded';
   if (retryable) {
