@@ -40,7 +40,7 @@ async function generateMissingCoversUI() {
     confirmText: 'Создать',
     cancelText: 'Отмена',
     onConfirm: async () => {
-      let done = 0, failed = 0;
+      let done = 0, failed = 0, locked = 0;
       try {
         await ensurePdfLoaded();
       } catch (e) {
@@ -59,6 +59,8 @@ async function generateMissingCoversUI() {
             const f = new File([blob], 'cover.jpg', { type: 'image/jpeg' });
             await api.books.uploadCover(b.id, f);
             done++;
+          } else if (lastCoverFailure === 'password') {
+            locked++;
           } else {
             failed++;
           }
@@ -67,7 +69,9 @@ async function generateMissingCoversUI() {
           console.warn('Обложка не создана для книги', b.id, e);
         }
       }
-      showToast(`Обложки созданы: ${done}` + (failed ? ` · не удалось: ${failed}` : ''));
+      showToast(`Обложки созданы: ${done}`
+        + (locked ? ` · PDF под паролем: ${locked} (обложку загрузите вручную)` : '')
+        + (failed ? ` · не удалось: ${failed}` : ''));
       await loadBooksFromApi();
       if (typeof renderAdminPanel === 'function') renderAdminPanel();
     },
