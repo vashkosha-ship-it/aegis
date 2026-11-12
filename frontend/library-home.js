@@ -44,6 +44,10 @@ function adaptBookFromApi(b) {
     indexed_sections: b.indexed_sections || 0,
     indexing_finished_at: b.indexing_finished_at || null,
     indexed_at: b.indexed_at || null,
+    // Файл не открывается — книга скрыта от читателей. Приходит только
+    // админу: читателям такие книги сервер не отдаёт.
+    file_problem: b.file_problem || null,
+    file_problem_detail: b.file_problem_detail || null,
   };
 }
 

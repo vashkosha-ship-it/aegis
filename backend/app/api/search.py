@@ -11,6 +11,7 @@ from app.db.session import get_db
 from app.models.book import Book
 from app.models.user import User
 from app.schemas.search import SearchHit, SearchHitPage, SearchResponse
+from app.services import books as books_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/search", tags=["search"])
@@ -24,7 +25,7 @@ async def search_books(
     q: str = Query(..., min_length=2, max_length=200, description="Поисковый запрос"),
     limit: int = Query(20, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ) -> SearchResponse:
     """Полнотекстовый поиск по названию/автору/описанию и содержимому книг.
 
@@ -121,5 +122,10 @@ async def search_books(
             hit.pages.append(SearchHitPage(page=r["page"], snippet=r["snippet"] or ""))
         hit.rank = max(hit.rank, float(r["rank"] or 0))
 
+    if not books_service.is_admin(current):
+        # Книги, которые нельзя открыть, читателю не показываем и в поиске.
+        hidden = await books_service.hidden_book_ids(db)
+        for book_id in hidden & hits.keys():
+            del hits[book_id]
     result = sorted(hits.values(), key=lambda h: h.rank, reverse=True)[:limit]
     return SearchResponse(query=query, total=len(result), hits=result)

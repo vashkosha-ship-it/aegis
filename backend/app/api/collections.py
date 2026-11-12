@@ -17,18 +17,21 @@ from app.schemas.collections import (
     CollectionPublic,
     CollectionUpdate,
 )
+from app.services import books as books_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/me/collections", tags=["collections"])
 
 
-def _to_public(c: Collection) -> CollectionPublic:
+def _to_public(c: Collection, user: User | None = None) -> CollectionPublic:
+    # Книги, которые нельзя открыть, читателю в подборке не показываем.
+    books = [b for b in c.books if user is None or books_service.can_see_book(user, b)]
     return CollectionPublic(
         id=c.id,
         name=c.name,
         icon=c.icon,
-        book_ids=[b.id for b in c.books],
-        books=[CollectionBookBrief(id=b.id, title=b.title, author=b.author) for b in c.books],
+        book_ids=[b.id for b in books],
+        books=[CollectionBookBrief(id=b.id, title=b.title, author=b.author) for b in books],
     )
 
 
@@ -59,7 +62,7 @@ async def list_collections(
             .order_by(Collection.created_at)
         )
     ).all()
-    return [_to_public(c) for c in rows]
+    return [_to_public(c, current) for c in rows]
 
 
 @router.post("", response_model=CollectionPublic, status_code=status.HTTP_201_CREATED)
@@ -81,7 +84,7 @@ async def create_collection(
     db.add(c)
     await db.commit()
     await db.refresh(c, ["books"])
-    return _to_public(c)
+    return _to_public(c, current)
 
 
 @router.patch("/{collection_id}", response_model=CollectionPublic)
@@ -98,7 +101,7 @@ async def update_collection(
         c.icon = payload.icon
     await db.commit()
     await db.refresh(c, ["books"])
-    return _to_public(c)
+    return _to_public(c, current)
 
 
 @router.delete("/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -127,7 +130,7 @@ async def add_book(
         c.books.append(book)
         await db.commit()
         await db.refresh(c, ["books"])
-    return _to_public(c)
+    return _to_public(c, current)
 
 
 @router.delete("/{collection_id}/books/{book_id}", response_model=CollectionPublic)
@@ -141,4 +144,4 @@ async def remove_book(
     c.books = [b for b in c.books if b.id != book_id]
     await db.commit()
     await db.refresh(c, ["books"])
-    return _to_public(c)
+    return _to_public(c, current)

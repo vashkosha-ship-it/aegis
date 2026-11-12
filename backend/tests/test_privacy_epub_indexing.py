@@ -333,8 +333,18 @@ async def test_worker_selects_epub_indexer(monkeypatch):
     monkeypatch.setattr(worker, "spool_to_tempfile", spool)
     monkeypatch.setattr(worker, "index_epub_from_path", index_epub)
     monkeypatch.setattr(worker.os, "unlink", lambda _path: None)
+    checked = []
+
+    async def check_file(path, file_format):
+        checked.append((path, file_format))
+        return worker.FileCheck(None)
+
+    monkeypatch.setattr(worker, "check_book_file", check_file)
 
     assert await worker._index_one(73) == 2
+    assert checked == [("/tmp/aegis-worker-test.epub", "epub")]
+    assert book.file_problem is None
+    assert book.file_checked_at is not None
     assert book.indexing_status == "succeeded"
     assert book.indexing_error is None
     assert book.indexed_sections == 2

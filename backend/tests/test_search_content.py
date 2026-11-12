@@ -30,8 +30,8 @@ async def _add_search_columns(db) -> None:
 async def test_content_search_finds_pages_and_snippets(client, db, monkeypatch):
     await _add_search_columns(db)
     user = await make_user(db, username="search_reader")
-    book = Book(title="Сети и протоколы", author="Автор", file_format="pdf")
-    other = Book(title="Другая книга", author="Автор", file_format="pdf")
+    book = Book(title="Сети и протоколы", author="Автор", file_format="pdf", pdf_storage_key="books/pdf/net.pdf")
+    other = Book(title="Другая книга", author="Автор", file_format="pdf", pdf_storage_key="books/pdf/other.pdf")
     db.add_all([book, other])
     await db.flush()
     db.add_all([

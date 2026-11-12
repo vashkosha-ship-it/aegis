@@ -106,6 +106,10 @@ class BookPublic(BookBase):
     indexing_finished_at: datetime | None = None
     indexed_at: datetime | None = None
     indexed_sections: int = 0
+    # Файл не открывается у читателей — книга от них скрыта. Видно только
+    # админу: читателям такие книги не отдаются вовсе.
+    file_problem: str | None = None
+    file_problem_detail: str | None = None
     date_published: date | None
     created_at: datetime
 

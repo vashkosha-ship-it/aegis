@@ -13,8 +13,8 @@ import posixpath
 from collections.abc import AsyncIterator
 from urllib.parse import quote
 
+from sqlalchemy import and_, not_, or_, select
 from sqlalchemy import func as sqlfunc
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import cover_thumb_key
@@ -139,6 +139,49 @@ async def read_storage_bytes(storage, key: str) -> bytes:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Видимость для читателей
+# ---------------------------------------------------------------------------
+# Книга, которую нельзя открыть (нет файла, файл повреждён, под паролем),
+# читателю не показывается нигде: ни в каталоге, ни в поиске, ни по прямой
+# ссылке. Админ видит все книги — чтобы заменить файл или удалить карточку.
+
+
+def is_admin(user) -> bool:
+    role = getattr(user, "role", None)
+    return getattr(role, "value", role) == "admin"
+
+
+def reader_visible_clause():
+    """SQL-условие «книгу можно открыть»."""
+    return and_(
+        Book.file_problem.is_(None),
+        or_(Book.pdf_storage_key.is_not(None), Book.epub_storage_key.is_not(None)),
+    )
+
+
+def is_reader_visible(book: Book) -> bool:
+    return not book.file_problem and bool(book.pdf_storage_key or book.epub_storage_key)
+
+
+def can_see_book(user, book: Book) -> bool:
+    return is_admin(user) or is_reader_visible(book)
+
+
+async def hidden_book_ids(db: AsyncSession) -> set[int]:
+    """id книг, скрытых от читателей (их обычно единицы)."""
+    rows = await db.scalars(select(Book.id).where(not_(reader_visible_clause())))
+    return set(rows.all())
+
+
+async def get_visible_book_or_raise(db: AsyncSession, book_id: int, user) -> Book:
+    """Как get_book_or_raise, но скрытая книга для читателя «не существует»."""
+    book = await get_book_or_raise(db, book_id)
+    if not can_see_book(user, book):
+        raise BookNotFound(book_id)
+    return book
+
+
 async def get_book_or_raise(db: AsyncSession, book_id: int) -> Book:
     """Найти книгу или бросить BookNotFound."""
     book = await db.get(Book, book_id)
@@ -216,6 +259,8 @@ def to_public(book: Book) -> BookPublic:
         indexing_finished_at=book.indexing_finished_at,
         indexed_at=book.indexed_at,
         indexed_sections=book.indexed_sections,
+        file_problem=book.file_problem,
+        file_problem_detail=book.file_problem_detail,
         date_published=book.date_published,
         created_at=book.created_at,
     )

@@ -79,6 +79,24 @@ async def _get_book_or_404(db: AsyncSession, book_id: int) -> Book:
         raise HTTPException(status_code=404, detail="Book not found") from None
 
 
+async def _get_visible_book_or_404(db: AsyncSession, book_id: int, user: User) -> Book:
+    """Книга, которую нельзя открыть, для читателя «не существует»."""
+    try:
+        return await books_service.get_visible_book_or_raise(db, book_id, user)
+    except BookNotFound:
+        raise HTTPException(status_code=404, detail="Book not found") from None
+
+
+async def _mark_file_missing(db: AsyncSession, book: Book) -> None:
+    """Файла нет в хранилище — скрыть книгу от читателей до замены файла."""
+    if book.file_problem == "missing":
+        return
+    book.file_problem = "missing"
+    book.file_problem_detail = "Файл книги не найден в хранилище"
+    book.file_checked_at = datetime.now(UTC)
+    await db.commit()
+
+
 # Размер «головы» файла, который читаем для magic-bytes проверки.
 # 16 байт хватает на любой формат, что мы поддерживаем.
 _MAGIC_HEAD_BYTES = 16
@@ -98,6 +116,10 @@ async def _clear_book_index(db: AsyncSession, book: Book) -> None:
     book.indexing_started_at = None
     book.indexing_finished_at = None
     book.indexed_at = None
+    # Новый файл проверяется заново при индексации.
+    book.file_problem = None
+    book.file_problem_detail = None
+    book.file_checked_at = None
     book.indexed_sections = 0
 
 
@@ -154,7 +176,7 @@ async def _enqueue_book_index(
 @router.get("", response_model=BookListResponse)
 async def list_books(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
     q: str | None = Query(None, description="Search by title/author"),
      category: str | None = Query(None, description="Фильтр по имени категории"),
     sort: Literal["default", "rating", "title", "date_added", "date_published"] = "default",
@@ -164,6 +186,10 @@ async def list_books(
     """Каталог книг. Доступен только одобренным авторизованным пользователям."""
     stmt = select(Book).options(selectinload(Book.categories))
     count_stmt = select(func.count(Book.id))
+    if not books_service.is_admin(current):
+        visible = books_service.reader_visible_clause()
+        stmt = stmt.where(visible)
+        count_stmt = count_stmt.where(visible)
 
     if q:
         like = f"%{q}%"
@@ -206,7 +232,7 @@ async def get_book(
     current: User = Depends(get_current_user),
 ) -> BookPublic:
     """Карточка книги. Доступна только одобренным пользователям."""
-    book = await _get_book_or_404(db, book_id)
+    book = await _get_visible_book_or_404(db, book_id, current)
     if current.role.value != "admin":
         book.views += 1
         await db.commit()
@@ -219,7 +245,7 @@ async def also_read(
     book_id: int,
     limit: int = 8,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current: User = Depends(get_current_user),
 ) -> list[BookPublic]:
     """Collaborative filtering: «люди, читающие эту книгу, также читают…».
 
@@ -257,6 +283,7 @@ async def also_read(
             select(Book).options(selectinload(Book.categories)).where(Book.id.in_(book_ids))
         )
     ).all()
+    books = [b for b in books if books_service.can_see_book(current, b)]
     # сохраняем порядок по частоте
     order = {bid: i for i, bid in enumerate(book_ids)}
     books_sorted = sorted(books, key=lambda b: order.get(b.id, 999))
@@ -1098,7 +1125,7 @@ async def download_book_pdf(
 ):
     """Любой авторизованный: скачать/прочитать PDF книги. Поддерживает HTTP Range
     (частичная загрузка) — pdf.js грузит файл по кускам, большие книги открываются быстро."""
-    book = await _get_book_or_404(db, book_id)
+    book = await _get_visible_book_or_404(db, book_id, current)
     if not book.pdf_storage_key:
         raise HTTPException(status_code=404, detail="Book has no PDF attached")
 
@@ -1109,6 +1136,7 @@ async def download_book_pdf(
             "Storage object missing for book %s (key=%s)",
             book_id, book.pdf_storage_key,
         )
+        await _mark_file_missing(db, book)
         raise HTTPException(status_code=404, detail="PDF file is missing") from None
 
     # Имя файла для Content-Disposition (безопасное ASCII).
@@ -1221,7 +1249,7 @@ async def download_book_epub(
     storage: StorageBackend = Depends(get_storage),
 ):
     """Отдать EPUB только одобренному пользователю."""
-    book = await _get_book_or_404(db, book_id)
+    book = await _get_visible_book_or_404(db, book_id, current)
     key = book.epub_storage_key
     if not key:
         raise HTTPException(status_code=404, detail="Book has no EPUB attached")
@@ -1230,6 +1258,7 @@ async def download_book_epub(
         size = await storage.size(key)
     except StorageNotFound:
         logger.error("EPUB missing for book %s (key=%s)", book_id, key)
+        await _mark_file_missing(db, book)
         raise HTTPException(status_code=404, detail="EPUB file is missing") from None
 
     safe_title = "".join(
@@ -1277,7 +1306,7 @@ async def mark_book_saved_offline(
     админке всегда был ноль. Теперь клиент сообщает о сохранении явно.
     Администраторов не считаем, как и в просмотрах.
     """
-    await _get_book_or_404(db, book_id)
+    await _get_visible_book_or_404(db, book_id, current)
     if current.role.value != "admin":
         await db.execute(
             sa_update(Book).where(Book.id == book_id).values(downloads=Book.downloads + 1)

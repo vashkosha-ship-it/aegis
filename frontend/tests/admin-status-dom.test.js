@@ -81,6 +81,25 @@ assert.match(context.explainIndexError('IndexingError: Книга 5: из фай
 assert.match(context.explainIndexError('IndexingError: Файл книги отсутствует в хранилище'), /нет на сервере/);
 assert.match(context.explainIndexError('FileNotDecryptedError: File has not been decrypted'), /паролем/);
 assert.equal(context.explainIndexError('Что-то новое'), 'Что-то новое');
+assert.match(context.explainIndexError('IndexingError: PDF защищён паролем'), /паролем/);
+assert.match(context.explainIndexError('IndexingError: EPUB защищён DRM'), /паролем/);
+assert.match(context.explainIndexError('IndexingError: PDF повреждён или загружен не полностью (x)'), /повреждён/);
+
+// Скрытые от читателей книги: причина видна админу.
+assert.equal(context.bookHiddenReason({ has_file: true }), null);
+assert.equal(context.bookHiddenReason({ has_file: true, file_problem: 'damaged' }), 'файл повреждён');
+assert.equal(context.bookHiddenReason({ has_file: true, file_problem: 'password' }), 'файл под паролем');
+assert.equal(context.bookHiddenReason({ has_file: false }), 'нет файла');
+const notice = dom.window.document.createElement('p');
+notice.id = 'adminBookHiddenNotice';
+notice.hidden = true;
+dom.window.document.body.appendChild(notice);
+context.renderAdminBookHiddenNotice({ has_file: true, file_problem: 'password', file_problem_detail: 'PDF защищён паролем' });
+assert.equal(notice.hidden, false);
+assert.match(notice.textContent, /Скрыта от читателей: файл под паролем\. Загрузите файл без пароля/);
+assert.equal(notice.title, 'PDF защищён паролем');
+context.renderAdminBookHiddenNotice({ has_file: true });
+assert.equal(notice.hidden, true);
 
 // Ручной запуск доступен и для «в очереди»/«индексируется»: после массовой
 // индексации книга может ждать часами, а статус running — зависнуть.

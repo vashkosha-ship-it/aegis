@@ -110,49 +110,6 @@ function bookIndexStatusText(data) {
 
 // Понятное объяснение технической ошибки индексации. Исходный текст ошибки
 // показываем отдельно — он нужен, если причина не распознана.
-const INDEX_ERROR_EXPLANATIONS = [
-  [/FileNotDecrypted|not been decrypted|password|encrypt/i,
-    'PDF защищён паролем — текст из него не прочитать. Нужен файл без пароля.'],
-  [/отсутствует в хранилище|нет активного файла/i,
-    'Файла книги нет на сервере. Загрузите файл заново.'],
-  [/EOF marker|startxref|trailer|xref|PdfReadError|PdfStreamError|Stream has ended|EmptyFileError|PdfiumError|Failed to load document|BadZipFile|не найден OPF/i,
-    'Файл повреждён или загружен не полностью. Загрузите целый файл заново.'],
-  [/ни одной секции/i,
-    'В файле нет текста — скорее всего, это скан страниц. Читать книгу можно, искать по тексту — нет.'],
-  [/ExtractionTimeout|заняло больше/i,
-    'Книга разбиралась слишком долго и была остановлена. Попробуйте ещё раз, когда сервер не загружен.'],
-  [/PdfTooLarge|больше допустимых/i,
-    'Файл слишком большой для индексации.'],
-  [/памят|memory/i,
-    'Серверу не хватило памяти на эту книгу. Попробуйте ещё раз, когда сервер не загружен.'],
-  [/[Оо]черед/i,
-    'Не удалось поставить книгу в очередь. Нажмите «Повторить» ещё раз.'],
-];
-
-function explainIndexError(error) {
-  const text = String(error || '');
-  const match = INDEX_ERROR_EXPLANATIONS.find(([pattern]) => pattern.test(text));
-  if (match) return match[1];
-  return text.length > 240 ? `${text.slice(0, 237)}…` : text;
-}
-
-async function showBookIndexError(bookId, title) {
-  let data;
-  try {
-    data = await api.books.indexStatus(bookId);
-  } catch (err) {
-    return showToast('Не удалось узнать причину ошибки');
-  }
-  const raw = String(data.error || '');
-  const explained = raw ? explainIndexError(raw) : 'Причина не сохранилась. Попробуйте проиндексировать книгу ещё раз.';
-  showInfoModal({
-    id: 'indexErrorModal',
-    title: title ? `Ошибка индексации: ${title}` : 'Ошибка индексации',
-    message: explained,
-    footnote: raw && explained !== raw ? `Техническая причина: ${raw.slice(0, 500)}` : '',
-  });
-}
-
 // «Удалить» неактивно, если удалять нечего: нет файла или нет обложки.
 function setAdminDeleteAvailability({ file, cover } = {}) {
   const fileBtn = document.getElementById('adminDeleteFileBtn');
@@ -209,6 +166,7 @@ initCategoryTags('adminCategoriesContainer', book.categories || []);
   const hasFile = Boolean(book.has_pdf || book.has_epub);
   renderBookIndexStatus(book, hasFile);
   setAdminDeleteAvailability({ file: hasFile, cover: Boolean(book.has_cover) });
+  renderAdminBookHiddenNotice(book);
 
   document.getElementById('adminBookFileInput').value = '';
   document.getElementById('adminCoverFile').value = '';
@@ -606,6 +564,8 @@ document.getElementById('adminUploadFileBtn').addEventListener('click', async ()
     }, true);
     document.getElementById('adminBookFileInput').value = '';
     setAdminDeleteAvailability({ file: true });
+    // Новый файл проверяется при индексации; до её итога пометку снимаем.
+    renderAdminBookHiddenNotice({ has_file: true });
     showToast('Файл загружен');
     await loadBooksFromApi();
     if (state.currentScreen === 'detail' && currentBookId === adminBookModalCurrentId) {
