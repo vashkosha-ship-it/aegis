@@ -13,7 +13,7 @@ from tests.conftest import auth_headers
 async def test_completion_timestamp_survives_later_status_changes(
     client, db, approved_user
 ):
-    book = Book(title="История", author="Автор", description="")
+    book = Book(title="История", author="Автор", description="", pdf_storage_key="books/pdf/h.pdf")
     db.add(book)
     await db.commit()
     await db.refresh(book)
@@ -52,7 +52,7 @@ def test_export_end_date_includes_entire_day():
 @pytest.mark.parametrize("removed", ["dropped", "liked"])
 async def test_removed_statuses_are_gone(client, db, approved_user, removed):
     """«Брошено» и «Избранное» убраны: сервер такие статусы больше не принимает."""
-    book = Book(title="Без «Брошено»", author="Автор", description="")
+    book = Book(title="Без «Брошено»", author="Автор", description="", pdf_storage_key="books/pdf/d.pdf")
     db.add(book)
     await db.commit()
     await db.refresh(book)

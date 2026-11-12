@@ -94,4 +94,9 @@ assert.equal(searches.length, 1);
 assert.equal(dom.window.document.querySelector('#scrollAll img'), null);
 
 assert.equal((source.match(/\.innerHTML\s*=/g) || []).length, 0);
+// Пометка «файл не открывается» доходит до админской таблицы.
+const adapted = context.adaptBookFromApi({ id: 9, title: 'T', author: 'A', rating: 0, pdf_storage_key: 'x', has_pdf: true, has_file: true, file_problem: 'damaged', file_problem_detail: 'PDF повреждён' });
+assert.equal(adapted.file_problem, 'damaged');
+assert.equal(adapted.file_problem_detail, 'PDF повреждён');
+assert.equal(context.adaptBookFromApi({ id: 10, title: 'T', author: 'A', rating: 0 }).file_problem, null);
 console.log('Library home DOM tests passed');

@@ -36,6 +36,7 @@ from app.services.book_descriptions import (
     generate_book_description,
     load_book_content_excerpt,
 )
+from app.services.book_file_check import PROBLEM_MISSING, FileCheck, check_book_file
 from app.services.search_index import (
     IndexingError,
     index_book_from_path,
@@ -107,6 +108,19 @@ def _sha256_of_file(path: str) -> str | None:
     return digest.hexdigest()
 
 
+async def _record_file_check(db, book_id: int, check: FileCheck) -> None:
+    """Запомнить итог проверки файла; книга с проблемой скрыта от читателей."""
+    book = await db.get(Book, book_id)
+    if not book:
+        return
+    if check.problem and check.problem != book.file_problem:
+        logger.warning("Книга %s скрыта от читателей: %s", book_id, check.detail)
+    book.file_problem = check.problem
+    book.file_problem_detail = check.detail or None
+    book.file_checked_at = datetime.now(UTC)
+    await db.commit()
+
+
 async def _index_one(book_id: int) -> int:
     """Скачать активный файл книги и построить полнотекстовый индекс."""
     storage = get_storage()
@@ -138,10 +152,20 @@ async def _index_one(book_id: int) -> int:
             try:
                 chunks = await storage.open_stream(storage_key)
             except StorageNotFound as exc:
+                await _record_file_check(
+                    db, book_id, FileCheck(PROBLEM_MISSING, "Файл книги не найден в хранилище")
+                )
                 raise IndexingError("Файл книги отсутствует в хранилище") from exc
 
             path = await spool_to_tempfile(chunks, suffix=suffix)
             try:
+                # Сначала — откроется ли файл у читателя. Если нет, книга
+                # скрывается от читателей, а индексировать её нет смысла.
+                check = await check_book_file(path, book.file_format)
+                if check is not None:
+                    await _record_file_check(db, book_id, check)
+                    if not check.ok:
+                        raise IndexingError(check.detail)
                 # Книги, загруженные до появления проверки дубликатов, получают
                 # хеш при первой же индексации — так их находит «Дубликаты».
                 file_sha256 = await asyncio.to_thread(_sha256_of_file, path)

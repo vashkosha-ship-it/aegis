@@ -103,6 +103,14 @@ class Book(Base):
         Integer, default=0, server_default="0", nullable=False
     )
 
+    # Файл книги не открывается у читателей: «damaged» — повреждён или
+    # загружен не полностью, «password» — защищён паролем/DRM, «missing» —
+    # нет в хранилище. Такие книги скрыты от читателей, админ видит их с
+    # пометкой. None — файл проверен и открывается (или ещё не проверялся).
+    file_problem: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
+    file_problem_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     # Метрики (бывшие state.bookViews / bookDownloads)
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     downloads: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

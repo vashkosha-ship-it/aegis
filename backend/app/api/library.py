@@ -35,6 +35,7 @@ from app.schemas.library import (
     ReviewCreate,
     ReviewPublic,
 )
+from app.services import books as books_service
 from app.services import reading_progress as reading_service
 from app.services.gamification import (
     add_xp,
@@ -82,7 +83,10 @@ async def list_my_progress(
     rows = await db.scalars(
         select(ReadingProgress).where(ReadingProgress.user_id == current.id)
     )
-    return [ReadingProgressPublic.model_validate(r) for r in rows.all()]
+    hidden = set() if books_service.is_admin(current) else await books_service.hidden_book_ids(db)
+    return [
+        ReadingProgressPublic.model_validate(r) for r in rows.all() if r.book_id not in hidden
+    ]
 
 
 # ---------- MyList ----------
@@ -101,7 +105,7 @@ async def set_mylist_status(
         # только ради старых данных в БД.
         raise HTTPException(status_code=422, detail="Такого статуса больше нет")
     book = await db.get(Book, book_id)
-    if not book:
+    if not book or not books_service.can_see_book(current, book):
         raise HTTPException(status_code=404, detail="Book not found")
 
     entry = await db.scalar(
@@ -148,7 +152,10 @@ async def get_my_mylist(
 ) -> list[MyListEntryPublic]:
     """All MyList entries for the current user."""
     rows = await db.scalars(select(MyListEntry).where(MyListEntry.user_id == current.id))
-    return [MyListEntryPublic.model_validate(r) for r in rows.all()]
+    # Книга, файл которой перестал открываться, пропадает из списка, пока
+    # админ не заменит файл; сама запись остаётся.
+    hidden = set() if books_service.is_admin(current) else await books_service.hidden_book_ids(db)
+    return [MyListEntryPublic.model_validate(r) for r in rows.all() if r.book_id not in hidden]
 
 
 # ---------- Reviews ----------

@@ -7,7 +7,7 @@ from tests.conftest import auth_headers
 
 async def test_pages_cover_every_book_once(client, db, approved_user):
     db.add_all([
-        Book(title=f"Книга {i}", author="Автор", description="", popularity=0)
+        Book(title=f"Книга {i}", author="Автор", description="", popularity=0, pdf_storage_key=f"books/pdf/{i}.pdf")
         for i in range(25)
     ])
     await db.commit()

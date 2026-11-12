@@ -126,7 +126,15 @@ function renderAdminBookRows(tbody, books) {
   const fragment = document.createDocumentFragment();
   books.forEach(book => {
     const row = document.createElement('tr');
-    appendAdminCell(row, book.title);
+    const titleCell = appendAdminCell(row, book.title);
+    const hiddenReason = bookHiddenReason(book);
+    if (hiddenReason) {
+      const badge = document.createElement('span');
+      badge.className = 'admin-hidden-badge';
+      badge.textContent = `Скрыта: ${hiddenReason}`;
+      badge.title = book.file_problem_detail || 'Читатели эту книгу не видят';
+      titleCell.append(document.createElement('br'), badge);
+    }
     appendAdminCell(row, book.author);
     appendAdminCell(row, bookCategoriesText(book));
     appendAdminCell(row, String(book.file_format || 'pdf').toUpperCase());
@@ -190,6 +198,7 @@ function renderAdminBooks() {
     </div>
     <div class="admin-books-filters">
       <input id="adminBooksSearch" class="admin-books-search" type="search" placeholder="Найти книгу по названию или автору" aria-label="Поиск книги" autocomplete="off">
+      <button id="adminBooksHiddenBtn" class="admin-tool admin-tool--quiet" type="button" hidden title="Книги, которые не открываются: повреждённый файл, пароль, файла нет"></button>
       <button id="adminBooksNoFileBtn" class="admin-tool admin-tool--quiet" type="button" hidden></button>
       <button id="adminBooksDeleteEmptyBtn" class="admin-tool admin-tool--danger" type="button" hidden>Удалить все без файла</button>
     </div>
@@ -226,8 +235,15 @@ function renderAdminBooks() {
       renderAdminBooksTable();
     }, 200);
   });
+  document.getElementById('adminBooksHiddenBtn').addEventListener('click', () => {
+    adminBooksOnlyHidden = !adminBooksOnlyHidden;
+    adminBooksOnlyEmpty = false;
+    adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
+    renderAdminBooksTable();
+  });
   document.getElementById('adminBooksNoFileBtn').addEventListener('click', () => {
     adminBooksOnlyEmpty = !adminBooksOnlyEmpty;
+    adminBooksOnlyHidden = false;
     adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
     renderAdminBooksTable();
   });
@@ -249,6 +265,12 @@ let adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
 let adminBooksQuery = '';
 // Карточки без файла — обычно остатки неудачных загрузок.
 let adminBooksOnlyEmpty = false;
+// Книги, скрытые от читателей: файл повреждён, под паролем или пропал.
+let adminBooksOnlyHidden = false;
+
+function booksWithFileProblem() {
+  return (state.books || []).filter(book => book.has_file && book.file_problem);
+}
 
 // Сортировка таблицы по столбцам: нажатие на заголовок, повторное — обратный
 // порядок. По умолчанию — как пришло с сервера.
@@ -360,13 +382,22 @@ function renderAdminBooksTable() {
   const tbody = document.getElementById('adminBooksTableBody');
   if (!tbody) return;
   const query = adminBooksQuery.trim().toLowerCase();
-  const source = adminBooksOnlyEmpty ? booksWithoutFile() : (state.books || []);
+  const source = adminBooksOnlyEmpty
+    ? booksWithoutFile()
+    : (adminBooksOnlyHidden ? booksWithFileProblem() : (state.books || []));
   const books = sortAdminBooks(query
     ? source.filter(book =>
       `${book.title || ''} ${book.author || ''}`.toLowerCase().includes(query))
     : source);
   updateAdminBooksSortHeader();
   const emptyCount = booksWithoutFile().length;
+  const hiddenCount = booksWithFileProblem().length;
+  const hiddenBtn = document.getElementById('adminBooksHiddenBtn');
+  if (hiddenBtn) {
+    hiddenBtn.hidden = hiddenCount === 0 && !adminBooksOnlyHidden;
+    hiddenBtn.textContent = adminBooksOnlyHidden ? 'Показать все книги' : `Скрыты от читателей: ${hiddenCount}`;
+    hiddenBtn.classList.toggle('active', adminBooksOnlyHidden);
+  }
   const noFileBtn = document.getElementById('adminBooksNoFileBtn');
   if (noFileBtn) {
     noFileBtn.hidden = emptyCount === 0 && !adminBooksOnlyEmpty;

@@ -35,3 +35,30 @@
   cursor: pointer;
 }
 #adminBookModal input[type="file"]::file-selector-button:hover { border-color: var(--accent); }
+
+/* Книга скрыта от читателей (файл не открывается). */
+.admin-hidden-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--danger, #ef4444) 14%, transparent);
+  color: var(--danger, #ef4444);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.admin-hidden-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 45%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger, #ef4444) 10%, transparent);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.admin-hidden-notice[hidden] { display: none; }
+
+/* .admin-tool задаёт display: inline-flex и этим перебивал атрибут hidden:
+   «Показать ещё (0)», «Удалить все без файла (0)» были видны всегда. */
+.admin-tool[hidden] { display: none; }
