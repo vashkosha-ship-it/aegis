@@ -523,25 +523,32 @@ async def get_public_profile(
 
 
 # ============================================================================
-# POST /api/me/usage — обезличенная статистика использования интерфейса
+# POST /api/me/usage — статистика использования и журнал действий
 # ============================================================================
 
 
 @router.post("/me/usage", status_code=status.HTTP_204_NO_CONTENT)
 async def report_usage(
     payload: UsageReport,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> None:
-    """Принять пачку счётчиков из браузера.
+    """Принять пачку статистики из браузера.
 
-    В базе остаются только суммы за день по имени экрана или действия —
-    без пользователя. Тема и цвет сохраняются в профиль: по ним в админке
-    строится распределение «сколько людей выбрали синий».
+    Счётчики экранов и кнопок складываются в суммы за день без
+    пользователя (вкладка «Использование»). Журнал действий — с
+    пользователем и временем (вкладка «Активность»). Тема и цвет
+    сохраняются в профиль: по ним строится распределение.
     """
     from app.services.usage import record_usage
+    from app.services.user_activity import record_activity
 
     await record_usage(db, payload.events)
+    await record_activity(
+        db, current, payload.session_id, payload.activity,
+        user_agent=request.headers.get("user-agent", ""), display=payload.display,
+    )
     if payload.prefs is not None:
         if payload.prefs.theme is not None:
             current.ui_theme = payload.prefs.theme

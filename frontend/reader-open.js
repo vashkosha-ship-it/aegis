@@ -2,6 +2,7 @@
 function openReader(id) {
   const b = state.books.find(x => x.id === id);
   if (!b) return;
+  if (typeof trackBook === 'function') trackBook('read', id);
   // Открыли заново — значит книга снова актуальна, возвращаем её
   // в блок «Продолжить», даже если раньше её оттуда убрали.
   unhideFromResume(id);

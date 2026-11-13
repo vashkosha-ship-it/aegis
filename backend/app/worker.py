@@ -583,6 +583,17 @@ async def review_book_metadata_bulk(ctx: dict, job_id: str, book_ids: list[int])
             raise
 
 
+async def purge_user_activity(_ctx: dict) -> int:
+    """Удалить записи журнала действий старше срока хранения."""
+    from app.services.user_activity import purge_old_activity
+
+    async with AsyncSessionLocal() as db:
+        removed = await purge_old_activity(db)
+    if removed:
+        logger.info("Журнал действий: удалено старых записей %d", removed)
+    return removed
+
+
 async def on_worker_startup(ctx: dict) -> None:
     """Действия при старте воркера (то есть после каждой выкладки)."""
     await recover_interrupted_indexing(ctx)
@@ -816,6 +827,7 @@ class WorkerSettings:
     # AI-тесты каждые десять минут, по несколько книг за раз.
     cron_jobs = [
         cron(cleanup_expired_sessions, hour=4, minute=17),
+        cron(purge_user_activity, hour=4, minute=41),
         cron(generate_missing_quizzes, minute={3, 13, 23, 33, 43, 53}),
     ]
     redis_settings = redis_settings()

@@ -18,6 +18,7 @@ function renderAdminPanel() {
   if (at === 'reviews') loadAndRenderAdminReviews();
   if (at === 'analytics') renderAnalytics();
   if (at === 'usage') renderUsageStats();
+  if (at === 'activity') renderAdminActivity();
   if (at === 'leaderboard') loadAndRenderLeaderboard();
 }
 

@@ -679,6 +679,8 @@ function logout() {
     onConfirm: async () => {
       const userId = currentOfflineUserId();
       let logoutError = null;
+      // Последнюю пачку статистики — пока ещё есть вход.
+      if (typeof flushUsage === 'function') await flushUsage(true);
       try {
         await api.logout();
       } catch (err) {

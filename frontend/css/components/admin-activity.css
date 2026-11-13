@@ -1,0 +1,58 @@
+/* Админка → «Активность»: пользователи и хронология их сеансов. */
+.activity-status { margin: 12px 0; color: var(--text-secondary); font-size: 14px; line-height: 1.45; }
+.activity-table { width: 100%; }
+.activity-user-row { cursor: pointer; }
+.activity-user-row:hover td,
+.activity-user-row:focus-visible td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.activity-username { font-weight: 600; color: var(--text-primary); }
+
+.activity-detail-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.activity-detail-title { margin: 0; font-size: 18px; color: var(--text-primary); }
+
+.activity-sessions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.activity-session {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 0 14px;
+}
+.activity-session summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 12px 0;
+  cursor: pointer;
+  list-style-position: inside;
+}
+.activity-session-when { font-weight: 600; color: var(--text-primary); }
+.activity-session-meta { color: var(--text-secondary); font-size: 13px; }
+
+.activity-timeline { list-style: none; margin: 0; padding: 0 0 12px; border-top: 1px solid var(--border); }
+.activity-event {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.activity-event:last-child { border-bottom: 0; }
+.activity-event time { color: var(--text-secondary); font-variant-numeric: tabular-nums; font-size: 12px; }
+.activity-event--screen span { color: var(--text-secondary); }
+.activity-event--book span { font-weight: 600; }
+.activity-book-link {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+@media (max-width: 599.98px) {
+  .activity-event { grid-template-columns: 60px 1fr; }
+  .activity-book-link { grid-column: 2; justify-self: start; }
+}

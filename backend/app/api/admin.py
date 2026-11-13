@@ -42,7 +42,7 @@ from app.schemas.admin import (
     StorageAuditView,
     StorageCleanupView,
 )
-from app.schemas.usage import UsageStats
+from app.schemas.usage import ActivityUserDetail, ActivityUserSummary, UsageStats
 from app.services import excel_export
 from app.services.admin_audit import log_admin_action
 from app.services.storage_integrity import audit_storage, delete_orphaned_storage
@@ -565,6 +565,34 @@ async def usage(
     from app.services.usage import usage_stats
 
     return UsageStats(**(await usage_stats(db, days)))
+
+
+@router.get("/activity", response_model=list[ActivityUserSummary])
+async def activity_users(
+    days: int = Query(30, ge=1, le=90),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> list[ActivityUserSummary]:
+    """Кто и когда заходил: сеансы, действия, открытые книги за период."""
+    from app.services.user_activity import activity_summary
+
+    return [ActivityUserSummary(**row) for row in await activity_summary(db, days)]
+
+
+@router.get("/activity/{user_id}", response_model=ActivityUserDetail)
+async def activity_user_detail(
+    user_id: int,
+    days: int = Query(30, ge=1, le=90),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_admin),
+) -> ActivityUserDetail:
+    """Сеансы одного пользователя: когда, с какого устройства и что делал."""
+    from app.services.user_activity import activity_detail
+
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return ActivityUserDetail(**(await activity_detail(db, user, days)))
 
 
 @router.get("/users", response_model=list[AdminUserView])
