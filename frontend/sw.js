@@ -1,5 +1,5 @@
 // Aegis Service Worker v2.0
-const CACHE_NAME = 'aegis-cache-v390';
+const CACHE_NAME = 'aegis-cache-v392';
 // Обложки книг — отдельный кэш, не сбрасывается при обновлении приложения:
 // раз увиденная обложка показывается и без интернета.
 const COVERS_CACHE = 'aegis-covers-v1';
@@ -134,6 +134,7 @@ const PRECACHE_URLS = [
   '/avatars/a14.svg',
   '/avatars/a15.svg',
   '/analytics.js',
+  '/admin-activity.js',
   '/profile-insights.js',
   '/profile-screen.js',
   '/recommendations.js',
@@ -168,6 +169,7 @@ const PRECACHE_URLS = [
   '/session-splash.js',
   '/css/components/session-splash.css',
   '/css/components/admin-table.css',
+  '/css/components/admin-activity.css',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

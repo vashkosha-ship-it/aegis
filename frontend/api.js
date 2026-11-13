@@ -610,6 +610,14 @@
         return request('/admin/usage?days=' + encodeURIComponent(days));
       },
 
+      adminActivity(days = 30) {
+        return request('/admin/activity?days=' + encodeURIComponent(days));
+      },
+
+      adminActivityUser(userId, days = 30) {
+        return request('/admin/activity/' + encodeURIComponent(userId) + '?days=' + encodeURIComponent(days));
+      },
+
       reportUsage(payload, { keepalive = false } = {}) {
         return request('/me/usage', { method: 'POST', body: payload, keepalive });
       },

@@ -238,6 +238,7 @@ document.getElementById('detailTabs')?.addEventListener('keydown', event => {
 function openBookDetail(bookId) {
   const b = state.books.find(x => x.id === bookId);
   if (!b) return;
+  if (typeof trackBook === 'function') trackBook('detail', bookId);
   state.currentBook = b;
   currentBookId = bookId;
   // Куда вернуться по «назад»: поиск, «Мой список», тестирование и т. д.

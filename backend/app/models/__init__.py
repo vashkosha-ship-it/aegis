@@ -26,6 +26,7 @@ from app.models.quiz_session import QuizSession
 from app.models.refresh_token import RefreshToken
 from app.models.usage import UsageCounter
 from app.models.user import User, UserRole
+from app.models.user_activity import UserActivityEvent
 
 __all__ = [
     "Achievement",
@@ -57,5 +58,6 @@ __all__ = [
     "UsageCounter",
     "User",
     "UserAchievement",
+    "UserActivityEvent",
     "UserRole",
 ]

@@ -42,15 +42,32 @@ function setup({ loggedIn = true, dnt = null } = {}) {
   w.trackUsage('action', 'navigateTo');           // учтён как экран
   w.trackUsage('action', 'Иван Иванов');          // не идентификатор — отбрасываем
   w.trackUsage('click', 'home');                  // неизвестный тип
+  w.trackUsage('action', 'openBookDetail');      // в журнале — как книга
+  w.trackBook('detail', 42);
+  w.trackBook('read', 42);
+  w.trackBook('delete', 42);                      // неизвестное — отбрасываем
   await w.flushUsage(false);
   assert.equal(sent.length, 1);
-  assert.deepEqual(JSON.parse(JSON.stringify(sent[0].payload)), {
-    events: [
-      { kind: 'screen', name: 'home', count: 2 },
-      { kind: 'action', name: 'openTOC', count: 1 },
-    ],
-    prefs: { theme: 'dark', accent: 'blue' },
-  });
+  const first = JSON.parse(JSON.stringify(sent[0].payload));
+  assert.deepEqual(first.events, [
+    { kind: 'screen', name: 'home', count: 2 },
+    { kind: 'action', name: 'openTOC', count: 1 },
+    { kind: 'action', name: 'openBookDetail', count: 1 },
+  ]);
+  assert.deepEqual(first.prefs, { theme: 'dark', accent: 'blue' });
+  // Журнал: начало сеанса, экраны и нажатия по порядку, книги с id.
+  assert.match(first.session_id, /^[0-9a-f]{24}$/);
+  assert.equal(first.display, 'browser');
+  assert.deepEqual(first.activity.map(e => [e.kind, e.name, e.book_id]), [
+    ['session', 'start', undefined],
+    ['screen', 'home', undefined],
+    ['screen', 'home', undefined],
+    ['action', 'openTOC', undefined],
+    ['book', 'detail', 42],
+    ['book', 'read', 42],
+  ]);
+  assert.ok(first.activity.every(e => Number.isInteger(e.at)));
+  const firstSession = first.session_id;
 
   // Повторно без изменений ничего не уходит; тема и цвет — только после смены.
   await w.flushUsage(false);
@@ -58,6 +75,9 @@ function setup({ loggedIn = true, dnt = null } = {}) {
   w.markUiPrefsChanged();
   await w.flushUsage(false);
   assert.ok(sent[1].payload.prefs);
+  // Тот же сеанс — без повторного «начала».
+  assert.equal(sent[1].payload.session_id, firstSession);
+  assert.deepEqual(JSON.parse(JSON.stringify(sent[1].payload.activity)), []);
 
   // При уходе со страницы пачка отправляется с keepalive.
   w.trackUsage('screen', 'profile');
@@ -65,6 +85,18 @@ function setup({ loggedIn = true, dnt = null } = {}) {
   listeners.visibilitychange();
   await Promise.resolve();
   assert.equal(sent.at(-1).options.keepalive, true);
+
+  // Вернулись через час — новый сеанс со своим «началом».
+  const realNow = Date.now;
+  context.Date = { now: () => realNow() + 60 * 60 * 1000 };
+  vm.runInContext('Date.now = this.Date.now', context);
+  context.document.visibilityState = 'visible';
+  listeners.visibilitychange();
+  w.trackUsage('screen', 'mylist');
+  await w.flushUsage(false);
+  const later = sent.at(-1).payload;
+  assert.notEqual(later.session_id, firstSession);
+  assert.deepEqual(JSON.parse(JSON.stringify(later.activity.map(e => e.kind + ':' + e.name))), ['session:start', 'screen:mylist']);
 
   // До входа и при «Не отслеживать» ничего не отправляется.
   for (const options of [{ loggedIn: false }, { dnt: '1' }]) {
