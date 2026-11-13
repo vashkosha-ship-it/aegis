@@ -252,3 +252,100 @@ async def test_worker_skips_duplicate_copy_of_job(db, engine, monkeypatch):
 
     assert result == {"job_id": "job-done", "skipped": "completed"}
     called.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_review_marks_book_as_reviewed(db, monkeypatch):
+    book_id = await _book(db, title="DevSecOps", author="Автор", categories=[Category(name="DevOps")])
+    _model(monkeypatch, {"title": "DevSecOps", "author": "Автор"})
+
+    assert await book_autofill.review_and_fix_book(db, book_id, job_id=None) == "unchanged"
+    assert (await _load(db, book_id)).metadata_reviewed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_worker_restart_closes_running_metadata_job(db, engine, monkeypatch):
+    """Перезапуск воркера (выкладка) больше не оставляет проверку «в работе»."""
+    from app import worker
+
+    db.add(BookMetadataJob(
+        id="job-run", status="running", total_books=10, processed_books=4,
+        changed_books=0, skipped_books=0, failed_books=0, created_by_username="admin",
+    ))
+    await db.commit()
+    maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    monkeypatch.setattr(worker, "AsyncSessionLocal", maker)
+
+    await worker.recover_interrupted_indexing({})
+
+    db.expire_all()
+    job = await db.get(BookMetadataJob, "job-run")
+    assert job.status == "failed"
+    assert job.last_error == worker.METADATA_INTERRUPTED
+    assert job.processed_books == 4
+
+
+@pytest.mark.asyncio
+async def test_cancelled_job_is_marked_interrupted(db, engine, monkeypatch):
+    import asyncio
+
+    from app import worker
+
+    db.add(BookMetadataJob(
+        id="job-cancel", status="queued", total_books=1, processed_books=0,
+        changed_books=0, skipped_books=0, failed_books=0, created_by_username="admin",
+    ))
+    await db.commit()
+
+    async def cancelled(*_args, **_kwargs):
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(worker, "review_and_fix_book", cancelled)
+    maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    monkeypatch.setattr(worker, "AsyncSessionLocal", maker)
+
+    with pytest.raises(asyncio.CancelledError):
+        await worker.review_book_metadata_bulk({}, "job-cancel", [1])
+    db.expire_all()
+    job = await db.get(BookMetadataJob, "job-cancel")
+    assert (job.status, job.last_error) == ("failed", worker.METADATA_INTERRUPTED)
+
+
+@pytest.mark.asyncio
+async def test_restart_after_interruption_resumes(client, db, admin_user, monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    started = datetime.now(UTC) - timedelta(hours=2)
+    done = await _book(db, title="Проверена", author="А", categories=[])
+    left = await _book(db, title="Не успела", author="А", categories=[])
+    old = await _book(db, title="Проверена давно", author="А", categories=[])
+    for book_id, reviewed in ((done, started + timedelta(minutes=5)), (old, started - timedelta(days=3))):
+        book = await db.get(Book, book_id)
+        book.metadata_reviewed_at = reviewed
+    db.add(BookMetadataJob(
+        id="job-cut", status="failed", total_books=3, processed_books=1,
+        changed_books=0, skipped_books=0, failed_books=0, created_by_username="admin",
+        started_at=started, last_error="Проверка прервана перезапуском воркера",
+    ))
+    await db.commit()
+    enqueued = []
+
+    class Job:
+        job_id = "arq-2"
+
+    class Queue:
+        async def enqueue_job(self, name, *args, **kwargs):
+            enqueued.append(args)
+            return Job()
+
+    async def get_queue():
+        return Queue()
+
+    monkeypatch.setattr("app.core.queue.get_queue", get_queue)
+
+    response = await client.post("/admin/book-metadata/jobs", headers=auth_headers(admin_user))
+    body = response.json()
+    assert response.status_code == 202, response.text
+    assert body["reason"] == "resumed"
+    assert sorted(enqueued[0][1]) == sorted([left, old])
+    assert body["job"]["total_books"] == 2

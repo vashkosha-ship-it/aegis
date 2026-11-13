@@ -9,10 +9,17 @@
 let metadataStatusTimer = null;
 let metadataJobSeenActive = false;
 
+// Проверка прервалась (обычно — перезапуск сервера при обновлении):
+// повторный запуск продолжит с места остановки.
+function metadataJobInterrupted(job) {
+  return Boolean(job && job.status === 'failed' && job.processed_books < job.total_books);
+}
+
 function metadataJobSummary(job) {
   if (!job) return 'Названия и теги';
   if (job.status === 'queued') return `Названия и теги · в очереди (${job.total_books})`;
   if (job.status === 'running') return `Названия и теги · ${job.processed_books}/${job.total_books}`;
+  if (metadataJobInterrupted(job)) return `Названия и теги · продолжить (${job.processed_books}/${job.total_books})`;
   return 'Названия и теги';
 }
 
@@ -34,7 +41,9 @@ async function refreshMetadataReviewStatus() {
     if (job) {
       button.title = active
         ? `Проверено ${job.processed_books} из ${job.total_books}, исправлено ${job.changed_books}`
-        : `Последний запуск: исправлено ${job.changed_books}, ошибок ${job.failed_books}`;
+        : metadataJobInterrupted(job)
+          ? `Проверка прервалась на ${job.processed_books} из ${job.total_books}. Нажмите, чтобы продолжить`
+          : `Последний запуск: исправлено ${job.changed_books}, ошибок ${job.failed_books}`;
     }
     if (active) {
       metadataJobSeenActive = true;
@@ -80,25 +89,39 @@ async function startMetadataReviewUI() {
     });
     return;
   }
+  if (metadataJobInterrupted(current)) {
+    const left = Math.max(current.total_books - current.processed_books, 0);
+    showConfirmModal({
+      title: 'Продолжить проверку?',
+      message: `Прошлая проверка прервалась на ${current.processed_books} из ${current.total_books} книг — скорее всего, из-за обновления сервера. Уже проверенные книги пропустим, осталось около ${left}.`,
+      confirmText: 'Продолжить',
+      cancelText: 'Отмена',
+      onConfirm: () => launchMetadataReview(),
+    });
+    return;
+  }
   showConfirmModal({
     title: 'Проверить названия, авторов и теги?',
     message: `ИИ прочитает начало каждой из ${(state.books || []).length} книг и исправит название и автора, если они взяты из имени файла, написаны транслитом или указаны как «Admin». Книгам без тегов подберёт темы из существующих категорий. Теги, которые уже стоят, не меняются. Все правки сохраняются со старыми значениями. Займёт около часа, работает в фоне.`,
     confirmText: 'Запустить',
     cancelText: 'Отмена',
-    onConfirm: async () => {
-      try {
-        const result = await api.library.startMetadataReview();
-        watchAdminTask('metadata');
-        if (result.reason === 'already_running') showToast('Проверка карточек уже идёт');
-        else if (result.reason === 'no_books') showToast('В каталоге нет книг');
-        else showToast(`Проверка ${result.job.total_books} карточек запущена в фоне`);
-        metadataJobSeenActive = true;
-        await refreshMetadataReviewStatus();
-      } catch (error) {
-        showToast('Не удалось запустить проверку: ' + (error.detail || error.message));
-      }
-    },
+    onConfirm: () => launchMetadataReview(),
   });
+}
+
+async function launchMetadataReview() {
+  try {
+    const result = await api.library.startMetadataReview();
+    watchAdminTask('metadata');
+    if (result.reason === 'already_running') showToast('Проверка карточек уже идёт');
+    else if (result.reason === 'no_books') showToast('Все карточки уже проверены');
+    else if (result.reason === 'resumed') showToast(`Проверка продолжена: осталось ${result.job.total_books} книг`);
+    else showToast(`Проверка ${result.job.total_books} карточек запущена в фоне`);
+    metadataJobSeenActive = true;
+    await refreshMetadataReviewStatus();
+  } catch (error) {
+    showToast('Не удалось запустить проверку: ' + (error.detail || error.message));
+  }
 }
 
 function _metadataCell(row, text, className) {
