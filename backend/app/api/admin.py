@@ -324,7 +324,24 @@ async def start_book_metadata_job(
             job=BookMetadataJobView.model_validate(active),
         )
 
-    book_ids = list((await db.scalars(select(Book.id).order_by(Book.id))).all())
+    # Прошлая проверка прервалась (перезапуск сервера) — продолжаем с места
+    # остановки: только книги, которые она не успела проверить.
+    previous = await db.scalar(
+        select(BookMetadataJob).order_by(BookMetadataJob.created_at.desc()).limit(1)
+    )
+    resume = bool(
+        previous
+        and previous.status == "failed"
+        and previous.started_at
+        and previous.processed_books < previous.total_books
+    )
+    query = select(Book.id).order_by(Book.id)
+    if resume:
+        query = query.where(
+            (Book.metadata_reviewed_at.is_(None))
+            | (Book.metadata_reviewed_at < previous.started_at)
+        )
+    book_ids = list((await db.scalars(query)).all())
     if not book_ids:
         return BookMetadataJobStart(started=False, reason="no_books")
 
@@ -364,11 +381,17 @@ async def start_book_metadata_job(
     await log_admin_action(
         db, admin, "book_metadata_review", request=request,
         target=f"metadata-job:{job.id}",
-        detail=f"Запущена проверка названий, авторов и тегов для {len(book_ids)} книг",
+        detail=(
+            f"Продолжена прерванная проверка: осталось {len(book_ids)} книг"
+            if resume else f"Запущена проверка названий, авторов и тегов для {len(book_ids)} книг"
+        ),
     )
     await db.commit()
     await db.refresh(job)
-    return BookMetadataJobStart(started=True, job=BookMetadataJobView.model_validate(job))
+    return BookMetadataJobStart(
+        started=True, reason="resumed" if resume else None,
+        job=BookMetadataJobView.model_validate(job),
+    )
 
 
 # ============================================================================

@@ -110,6 +110,9 @@ class Book(Base):
     file_problem: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     file_problem_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Когда ИИ последний раз проверил название, автора и теги («Названия и
+    # теги»). По нему прерванная проверка продолжается с места остановки.
+    metadata_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Метрики (бывшие state.bookViews / bookDownloads)
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

@@ -500,6 +500,7 @@ async def generate_missing_book_descriptions(
 # Сколько книг проверять одновременно: запросы к модели идут параллельно,
 # а БД и воркер при этом почти не нагружены.
 METADATA_REVIEW_CONCURRENCY = 4
+METADATA_INTERRUPTED = "Проверка прервана перезапуском воркера"
 
 
 async def _bump_metadata_job(job_id: str, outcome: str, error: str | None = None) -> None:
@@ -566,12 +567,17 @@ async def review_book_metadata_bulk(ctx: dict, job_id: str, book_ids: list[int])
                     )
             logger.info("Проверка карточек завершена: %s", result)
             return result
-        except Exception as exc:
+        except BaseException as exc:
+            # BaseException: таймаут задачи и остановка воркера приходят как
+            # CancelledError — раньше задача после них оставалась «в работе».
+            interrupted = isinstance(exc, asyncio.CancelledError)
             async with AsyncSessionLocal() as db:
                 job = await db.get(BookMetadataJob, job_id)
-                if job:
+                if job and job.status in ("queued", "running"):
                     job.status = "failed"
-                    job.last_error = f"{type(exc).__name__}: {exc}"[:2000]
+                    job.last_error = (
+                        METADATA_INTERRUPTED if interrupted else f"{type(exc).__name__}: {exc}"
+                    )[:2000]
                     job.finished_at = datetime.now(UTC)
                     await db.commit()
             raise
@@ -642,6 +648,33 @@ async def recover_interrupted_indexing(_ctx: dict) -> None:
                 "После перезапуска отмечено прерванных задач описаний: %d",
                 descriptions.rowcount,
             )
+        # «Названия и теги»: прерванная проверка иначе навсегда «в работе», и
+        # кнопка запуска заблокирована. Повторный запуск продолжит с места
+        # остановки (books.metadata_reviewed_at).
+        metadata = await db.execute(
+            update(BookMetadataJob)
+            .where(BookMetadataJob.status == "running")
+            .values(
+                status="failed",
+                last_error=METADATA_INTERRUPTED,
+                finished_at=datetime.now(UTC),
+            )
+        )
+        await db.execute(
+            update(BookMetadataJob)
+            .where(
+                BookMetadataJob.status == "queued",
+                BookMetadataJob.created_at < datetime.now(UTC) - timedelta(hours=6),
+            )
+            .values(
+                status="failed",
+                last_error="Задача не была запущена воркером за 6 часов",
+                finished_at=datetime.now(UTC),
+            )
+        )
+        await db.commit()
+        if metadata.rowcount:
+            logger.warning("После перезапуска отмечено прерванных проверок карточек: %d", metadata.rowcount)
         stale_queued = await db.execute(
             update(DescriptionGenerationJob)
             .where(

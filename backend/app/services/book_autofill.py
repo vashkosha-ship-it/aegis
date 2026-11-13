@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -356,7 +357,9 @@ async def review_and_fix_book(db: AsyncSession, book_id: int, *, job_id: str | N
         book.categories = await get_or_create_categories(db, meta["categories"])
     new_categories = [c.name for c in book.categories]
 
+    book.metadata_reviewed_at = datetime.now(UTC)
     if (book.title, book.author, new_categories) == (old_title, old_author, old_categories):
+        await db.commit()
         return "unchanged"
     db.add(BookMetadataChange(
         job_id=job_id,
