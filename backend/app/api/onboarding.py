@@ -21,6 +21,7 @@ from app.schemas.onboarding import (
     SelfAssessResponse,
     TopicScore,
 )
+from app.services.gamification import check_and_award_achievements
 
 router = APIRouter(prefix="/me/onboarding", tags=["onboarding"])
 
@@ -118,6 +119,7 @@ async def submit_onboarding(
     current.cyber_level = level_code
     current.topic_scores = topic_scores_dict
     current.level_assessed_at = now
+    await check_and_award_achievements(db, current, trigger="level_assessed")
     await db.commit()
     await db.refresh(current)
 
@@ -239,6 +241,8 @@ async def submit_self_assessment(
     current.cyber_level = payload.level
     current.topic_scores = None  # самооценка — без разбивки по темам
     current.level_assessed_at = now
+    # Достижение так и называется — «Самооценка»: уровень определён.
+    await check_and_award_achievements(db, current, trigger="level_assessed")
     await db.commit()
     await db.refresh(current)
 
