@@ -18,9 +18,14 @@ from __future__ import annotations
 
 import logging
 import posixpath
+import re
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+# Книга открывается, но текст испорчен конвертацией — предупреждение для
+# админа (книга не скрывается).
+WARNING_PDF_CONVERSION = "pdf_conversion"
 
 PROBLEM_DAMAGED = "damaged"
 PROBLEM_PASSWORD = "password"
@@ -164,3 +169,37 @@ async def check_book_file(path: str, file_format: str) -> FileCheck | None:
         logger.exception("Проверка файла %s упала", path)
         return None
     return FileCheck(problem, detail[:500])
+
+
+# ---------------------------------------------------------------------------
+# EPUB, перегнанный из PDF программой pdftohtml (часто через calibre)
+# ---------------------------------------------------------------------------
+# Такая конвертация портит сам текст: на месте бывших переносов — пробелы
+# («Ев ропол сооб щил»), каждая строка колонки — отдельный абзац. Читалка
+# показывает это как есть, поэтому админу нужна подсказка заменить файл.
+_PDFTOHTML_GENERATOR = re.compile(rb'<meta[^>]+name=["\']generator["\'][^>]+pdftohtml', re.I)
+CONVERSION_SAMPLE_CHAPTERS = 6
+
+
+def epub_conversion_warning(archive) -> str | None:
+    """Есть ли в первых главах EPUB подпись pdftohtml. archive — zipfile.ZipFile."""
+    chapters = [
+        info for info in archive.infolist()
+        if info.filename.lower().endswith((".html", ".htm", ".xhtml"))
+    ]
+    for info in chapters[:CONVERSION_SAMPLE_CHAPTERS]:
+        with archive.open(info) as member:
+            head = member.read(4096)
+        if _PDFTOHTML_GENERATOR.search(head):
+            return WARNING_PDF_CONVERSION
+    return None
+
+
+def epub_conversion_warning_for_file(path: str) -> str | None:
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(path) as archive:
+            return epub_conversion_warning(archive)
+    except (zipfile.BadZipFile, OSError, KeyError, EOFError):
+        return None

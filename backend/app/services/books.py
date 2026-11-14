@@ -261,6 +261,7 @@ def to_public(book: Book) -> BookPublic:
         indexed_sections=book.indexed_sections,
         file_problem=book.file_problem,
         file_problem_detail=book.file_problem_detail,
+        file_warning=book.file_warning,
         date_published=book.date_published,
         created_at=book.created_at,
     )

@@ -117,6 +117,7 @@ async def _clear_book_index(db: AsyncSession, book: Book) -> None:
     book.indexing_finished_at = None
     book.indexed_at = None
     # Новый файл проверяется заново при индексации.
+    book.file_warning = None
     book.file_problem = None
     book.file_problem_detail = None
     book.file_checked_at = None
