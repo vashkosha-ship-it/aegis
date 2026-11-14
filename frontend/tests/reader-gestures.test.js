@@ -47,14 +47,14 @@ dom.window.document.getElementById('readerArrowLeft').click();
 assert.deepEqual(pages, [3, 1]);
 
 pages.length = 0;
-context.handleTouchStart({ changedTouches: [{ screenX: 200, screenY: 100 }] });
-context.handleTouchMove({ changedTouches: [{ screenX: 100, screenY: 110 }] });
+context.handleTouchStart({ changedTouches: [{ clientX: 200, clientY: 100 }] });
+context.handleTouchMove({ changedTouches: [{ clientX: 100, clientY: 110 }] });
 context.handleTouchEnd();
 assert.deepEqual(pages, [3]);
 
 selectedText = 'выделено';
-context.handleTouchStart({ changedTouches: [{ screenX: 100, screenY: 100 }] });
-context.handleTouchMove({ changedTouches: [{ screenX: 200, screenY: 100 }] });
+context.handleTouchStart({ changedTouches: [{ clientX: 100, clientY: 100 }] });
+context.handleTouchMove({ changedTouches: [{ clientX: 200, clientY: 100 }] });
 context.handleTouchEnd();
 assert.deepEqual(pages, [3]);
 
@@ -75,6 +75,49 @@ assert.deepEqual(pages, []);
 context.pdfCurrentPage = 1;
 context.goToPrevPage();
 assert.deepEqual(pages, []);
+
+selectedText = '';
+
+// Простое касание без движения не листает (раньше конец касания брался от
+// прошлого свайпа).
+pages.length = 0;
+context.handleTouchStart({ changedTouches: [{ clientX: 300, clientY: 100 }] });
+context.handleTouchMove({ changedTouches: [{ clientX: 100, clientY: 100 }] });
+context.handleTouchEnd({ changedTouches: [{ clientX: 100, clientY: 100 }] });
+context.handleTouchStart({ changedTouches: [{ clientX: 150, clientY: 100 }] });
+context.handleTouchEnd({ changedTouches: [{ clientX: 150, clientY: 100 }] });
+const nextPage = context.pdfCurrentPage + 1;
+assert.deepEqual(pages, [nextPage]);
+
+// EPUB: касания приходят из окна книги через epub.js.
+const handlers = {};
+const rendition = { on: (name, fn) => { handlers[name] = fn; } };
+let focusToggles = 0;
+context.readerTapInCenter = x => x > 120 && x < 280;
+context.toggleReaderFocusMode = () => { focusToggles += 1; };
+context.attachEpubReaderGestures(rendition);
+assert.deepEqual(Object.keys(handlers).sort(), ['click', 'touchend', 'touchmove', 'touchstart']);
+pages.length = 0;
+handlers.touchstart({ changedTouches: [{ clientX: 2034, clientY: 450 }] });
+handlers.touchmove({ changedTouches: [{ clientX: 1914, clientY: 452 }] });
+handlers.touchend({ changedTouches: [{ clientX: 1914, clientY: 452 }], view: { getSelection: () => ({ toString: () => '' }) } });
+assert.deepEqual(pages, [nextPage]);
+// Выделение внутри окна книги — не листаем.
+handlers.touchstart({ changedTouches: [{ clientX: 300, clientY: 450 }] });
+handlers.touchend({ changedTouches: [{ clientX: 100, clientY: 450 }], view: { getSelection: () => ({ toString: () => 'слово' }) } });
+assert.deepEqual(pages, [nextPage]);
+
+// Нажатие по середине окна книги (с учётом сдвига окна) — режим чтения.
+const frameView = left => ({
+  getSelection: () => ({ toString: () => '' }),
+  frameElement: { getBoundingClientRect: () => ({ left }) },
+});
+handlers.click({ clientX: 1800, view: frameView(-1600), target: { closest: () => null } });
+assert.equal(focusToggles, 1);
+handlers.click({ clientX: 1950, view: frameView(-1600), target: { closest: () => null } });
+assert.equal(focusToggles, 1, 'край страницы не переключает режим');
+handlers.click({ clientX: 1800, view: frameView(-1600), target: { closest: () => ({}) } });
+assert.equal(focusToggles, 1, 'ссылка в книге не переключает режим');
 
 assert.doesNotMatch(appSource, /function initReaderGestures|function handleTouchEnd|function updatePageIndicator/);
 assert.ok(indexSource.indexOf('reader-gestures.js') < indexSource.indexOf('reader-open.js'));

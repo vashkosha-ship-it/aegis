@@ -55,7 +55,12 @@ async function loadEpub(b) {
       }
       try {
         const resp = await api.request('/books/' + b.id + '/epub', { raw: true });
-        epubData = await resp.arrayBuffer();
+        // Большой EPUB (журнал — до сотни мегабайт) качается целиком: без
+        // процента экран просто «висел» на «Загрузка книги…».
+        const label = container.querySelector('[data-static-style="a003"]');
+        epubData = await readResponseWithProgress(resp, pct => {
+          if (label && state.currentBook && state.currentBook.id === b.id) label.textContent = `Загрузка книги… ${pct}%`;
+        });
         writeBookToCache(b, 'epub', epubData.slice(0));
       } catch (err) {
         showToast('Нет связи. Сохраните книгу оффлайн заранее.');
@@ -91,6 +96,7 @@ async function loadEpub(b) {
     });
     const rendition = epubRendition;
     if (typeof attachEpubMovedStylesApply === 'function') attachEpubMovedStylesApply(rendition);
+    if (typeof attachEpubReaderGestures === 'function') attachEpubReaderGestures(rendition);
     // Применяем тему после создания rendition
     setTimeout(() => applyReaderTheme(getReaderTheme()), 100);
 
@@ -189,6 +195,38 @@ async function loadEpub(b) {
     showToast('Не удалось загрузить EPUB');
     closeReader();
   }
+}
+
+// Прочитать ответ целиком, сообщая процент загрузки (если сервер назвал размер).
+async function readResponseWithProgress(resp, onProgress) {
+  const total = Number(resp.headers && resp.headers.get && resp.headers.get('content-length')) || 0;
+  if (!total || !resp.body || typeof resp.body.getReader !== 'function') return resp.arrayBuffer();
+  const reader = resp.body.getReader();
+  const buffer = new Uint8Array(total);
+  let filled = 0;          // байт в buffer
+  const overflow = [];     // всё, что не влезло в заявленный размер
+  let loaded = 0;
+  let lastPct = -1;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!overflow.length && filled + value.length <= total) {
+      buffer.set(value, filled);
+      filled += value.length;
+    } else {
+      overflow.push(value);
+    }
+    loaded += value.length;
+    const pct = Math.min(99, Math.floor((loaded / total) * 100));
+    if (pct !== lastPct) { lastPct = pct; onProgress(pct); }
+  }
+  if (!overflow.length) return filled === total ? buffer.buffer : buffer.slice(0, filled).buffer;
+  // Сервер ошибся с размером — собираем всё как есть.
+  const out = new Uint8Array(loaded);
+  out.set(buffer.subarray(0, filled));
+  let offset = filled;
+  overflow.forEach(chunk => { out.set(chunk, offset); offset += chunk.length; });
+  return out.buffer;
 }
 
 // ---------- Нумерация страниц EPUB ----------

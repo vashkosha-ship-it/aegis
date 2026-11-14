@@ -30,24 +30,33 @@ function initReaderGestures() {
   if (arrowRight) arrowRight.onclick = () => goToNextPage();
 }
 
+// Координаты касания — относительно окна, в котором оно произошло (у EPUB
+// это окно книги). Для свайпа важна только разница, а screenX некоторые
+// браузеры внутри iframe отдают нулём.
 function handleTouchStart(e) {
-  touchStartX = e.changedTouches[0].screenX;
-  touchStartY = e.changedTouches[0].screenY;
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+  // Касание без движения — не свайп. Раньше конец касания брался от
+  // прошлого жеста и простое нажатие могло перелистнуть страницу.
+  touchEndX = touchStartX;
+  touchEndY = touchStartY;
 }
 
 function handleTouchMove(e) {
-  touchEndX = e.changedTouches[0].screenX;
-  touchEndY = e.changedTouches[0].screenY;
+  touchEndX = e.changedTouches[0].clientX;
+  touchEndY = e.changedTouches[0].clientY;
 }
 
-function handleTouchEnd() {
+function handleTouchEnd(e) {
   // Страница увеличена или только что был щипок — палец двигает страницу,
   // а не листает её.
   if (!isEpubMode && (pdfZoom > 1 || pdfPinch.recent)) return;
-  // Если пользователь выделяет текст — не листаем (иначе выделение срывается)
-  const sel = window.getSelection();
-  if (sel && sel.toString().trim().length > 0) {
-    return;
+  // Если пользователь выделяет текст — не листаем (иначе выделение срывается).
+  // У EPUB текст внутри окна книги — выделение ищем и там.
+  if (readerHasSelection(e && e.view)) return;
+  if (e && e.changedTouches && e.changedTouches[0]) {
+    touchEndX = e.changedTouches[0].clientX;
+    touchEndY = e.changedTouches[0].clientY;
   }
   const diffX = touchStartX - touchEndX;
   const diffY = Math.abs(touchStartY - touchEndY);
@@ -59,6 +68,35 @@ function handleTouchEnd() {
       goToPrevPage();
     }
   }
+}
+
+function readerHasSelection(view) {
+  return [window, view].some(win => {
+    try {
+      const sel = win && win.getSelection && win.getSelection();
+      return Boolean(sel && sel.toString().trim().length > 0);
+    } catch (_) {
+      return false;
+    }
+  });
+}
+
+// EPUB показывается в отдельном окне (iframe): касания внутри него не
+// доходят до зоны жестов читалки. Поэтому свайпы и нажатие по середине
+// (спрятать/показать кнопки) получаем от epub.js.
+function attachEpubReaderGestures(rendition) {
+  if (!rendition || typeof rendition.on !== 'function') return;
+  rendition.on('touchstart', handleTouchStart);
+  rendition.on('touchmove', handleTouchMove);
+  rendition.on('touchend', handleTouchEnd);
+  rendition.on('click', event => {
+    if (!event || readerHasSelection(event.view)) return;
+    if (event.target && event.target.closest && event.target.closest('a')) return;
+    const frame = event.view && event.view.frameElement;
+    const left = frame ? frame.getBoundingClientRect().left : 0;
+    const x = left + event.clientX;
+    if (typeof readerTapInCenter === 'function' && readerTapInCenter(x)) toggleReaderFocusMode();
+  });
 }
 
 function goToNextPage() {

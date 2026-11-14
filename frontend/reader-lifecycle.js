@@ -12,15 +12,26 @@ function setReaderFocusMode(hidden) {
   zone?.setAttribute('aria-label', hidden ? 'Режим чтения. Нажмите по центру, чтобы показать панель.' : 'Область чтения. Нажмите по центру, чтобы скрыть панель.');
 }
 
+// Нажатие по середине страницы прячет кнопки листания и панель (режим
+// чтения), повторное — возвращает. Края по-прежнему листают.
+function readerTapInCenter(clientX) {
+  const zone = document.getElementById('readerGestureZone');
+  if (!zone) return false;
+  const rect = zone.getBoundingClientRect();
+  const x = clientX - rect.left;
+  return x >= rect.width * .28 && x <= rect.width * .72;
+}
+
+function toggleReaderFocusMode() {
+  setReaderFocusMode(!document.body.classList.contains('reader-focus-mode'));
+}
+
 function initReaderFocusMode() {
   const zone = document.getElementById('readerGestureZone');
   if (!zone) return;
   zone.addEventListener('click', event => {
     if (event.target.closest('button, input, select, a, .tap-zone, .selection-toolbar')) return;
-    const rect = zone.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    if (x < rect.width * .28 || x > rect.width * .72) return;
-    setReaderFocusMode(!document.body.classList.contains('reader-focus-mode'));
+    if (readerTapInCenter(event.clientX)) toggleReaderFocusMode();
   });
 }
 
