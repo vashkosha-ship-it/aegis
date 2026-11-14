@@ -321,6 +321,7 @@ async def create_annotation(
     )
     db.add(ann)
     await add_xp(db, current, 5 if payload.type.value == "note" else 2)
+    await check_and_award_achievements(db, current, trigger="annotation_added")
     await db.commit()
     await db.refresh(ann)
     return AnnotationPublic.model_validate(ann)
