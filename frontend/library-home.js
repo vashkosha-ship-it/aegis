@@ -48,6 +48,7 @@ function adaptBookFromApi(b) {
     // админу: читателям такие книги сервер не отдаёт.
     file_problem: b.file_problem || null,
     file_problem_detail: b.file_problem_detail || null,
+    file_warning: b.file_warning || null,
   };
 }
 

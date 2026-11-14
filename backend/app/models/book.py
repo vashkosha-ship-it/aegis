@@ -113,6 +113,10 @@ class Book(Base):
     # Когда ИИ последний раз проверил название, автора и теги («Названия и
     # теги»). По нему прерванная проверка продолжается с места остановки.
     metadata_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Книга открывается, но с файлом что-то не так — подсказка админу, книга
+    # не скрывается. «pdf_conversion» — EPUB перегнан из PDF (pdftohtml):
+    # слова с пробелами вместо переносов, строки — отдельными абзацами.
+    file_warning: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     # Метрики (бывшие state.bookViews / bookDownloads)
     views: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

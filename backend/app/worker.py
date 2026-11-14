@@ -36,7 +36,12 @@ from app.services.book_descriptions import (
     generate_book_description,
     load_book_content_excerpt,
 )
-from app.services.book_file_check import PROBLEM_MISSING, FileCheck, check_book_file
+from app.services.book_file_check import (
+    PROBLEM_MISSING,
+    FileCheck,
+    check_book_file,
+    epub_conversion_warning_for_file,
+)
 from app.services.search_index import (
     IndexingError,
     index_book_from_path,
@@ -166,6 +171,14 @@ async def _index_one(book_id: int) -> int:
                     await _record_file_check(db, book_id, check)
                     if not check.ok:
                         raise IndexingError(check.detail)
+                # EPUB, перегнанный из PDF, читается, но текст в нём с
+                # разрывами — помечаем для админа.
+                if book.file_format == "epub":
+                    warning = await asyncio.to_thread(epub_conversion_warning_for_file, path)
+                    fresh = await db.get(Book, book_id)
+                    if fresh and fresh.file_warning != warning:
+                        fresh.file_warning = warning
+                        await db.commit()
                 # Книги, загруженные до появления проверки дубликатов, получают
                 # хеш при первой же индексации — так их находит «Дубликаты».
                 file_sha256 = await asyncio.to_thread(_sha256_of_file, path)

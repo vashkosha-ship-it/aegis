@@ -101,6 +101,18 @@ assert.equal(notice.title, 'PDF защищён паролем');
 context.renderAdminBookHiddenNotice({ has_file: true });
 assert.equal(notice.hidden, true);
 
+// EPUB, перегнанный из PDF: книга видна читателям, админу — жёлтая подсказка.
+assert.equal(context.bookFileWarningLabel({ has_file: true, file_warning: 'pdf_conversion' }), 'Перегнана из PDF');
+assert.equal(context.bookFileWarningLabel({ has_file: true }), null);
+assert.equal(context.bookHiddenReason({ has_file: true, file_warning: 'pdf_conversion' }), null);
+context.renderAdminBookHiddenNotice({ has_file: true, file_warning: 'pdf_conversion' });
+assert.equal(notice.hidden, false);
+assert.ok(notice.classList.contains('admin-hidden-notice--warning'));
+assert.match(notice.textContent, /перегнан из PDF.*Ев ропол/);
+context.renderAdminBookHiddenNotice({ has_file: true, file_problem: 'damaged', file_warning: 'pdf_conversion' });
+assert.ok(!notice.classList.contains('admin-hidden-notice--warning'));
+assert.match(notice.textContent, /Скрыта от читателей/);
+
 // Ручной запуск доступен и для «в очереди»/«индексируется»: после массовой
 // индексации книга может ждать часами, а статус running — зависнуть.
 context.renderBookIndexStatus({ status: 'running' }, true);

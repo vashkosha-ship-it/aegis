@@ -128,14 +128,7 @@ function renderAdminBookRows(tbody, books) {
   books.forEach(book => {
     const row = document.createElement('tr');
     const titleCell = appendAdminCell(row, book.title);
-    const hiddenReason = bookHiddenReason(book);
-    if (hiddenReason) {
-      const badge = document.createElement('span');
-      badge.className = 'admin-hidden-badge';
-      badge.textContent = `Скрыта: ${hiddenReason}`;
-      badge.title = book.file_problem_detail || 'Читатели эту книгу не видят';
-      titleCell.append(document.createElement('br'), badge);
-    }
+    appendAdminBookStatusBadge(titleCell, book);
     appendAdminCell(row, book.author);
     appendAdminCell(row, bookCategoriesText(book));
     appendAdminCell(row, String(book.file_format || 'pdf').toUpperCase());
@@ -200,6 +193,7 @@ function renderAdminBooks() {
     <div class="admin-books-filters">
       <input id="adminBooksSearch" class="admin-books-search" type="search" placeholder="Найти книгу по названию или автору" aria-label="Поиск книги" autocomplete="off">
       <button id="adminBooksHiddenBtn" class="admin-tool admin-tool--quiet" type="button" hidden title="Книги, которые не открываются: повреждённый файл, пароль, файла нет"></button>
+      <button id="adminBooksWarningBtn" class="admin-tool admin-tool--quiet" type="button" hidden title="EPUB, перегнанные из PDF: текст с разрывами слов — лучше заменить файл"></button>
       <button id="adminBooksNoFileBtn" class="admin-tool admin-tool--quiet" type="button" hidden></button>
       <button id="adminBooksDeleteEmptyBtn" class="admin-tool admin-tool--danger" type="button" hidden>Удалить все без файла</button>
     </div>
@@ -236,8 +230,16 @@ function renderAdminBooks() {
       renderAdminBooksTable();
     }, 200);
   });
+  document.getElementById('adminBooksWarningBtn').addEventListener('click', () => {
+    adminBooksOnlyWarning = !adminBooksOnlyWarning;
+    adminBooksOnlyHidden = false;
+    adminBooksOnlyEmpty = false;
+    adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
+    renderAdminBooksTable();
+  });
   document.getElementById('adminBooksHiddenBtn').addEventListener('click', () => {
     adminBooksOnlyHidden = !adminBooksOnlyHidden;
+    adminBooksOnlyWarning = false;
     adminBooksOnlyEmpty = false;
     adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
     renderAdminBooksTable();
@@ -245,6 +247,7 @@ function renderAdminBooks() {
   document.getElementById('adminBooksNoFileBtn').addEventListener('click', () => {
     adminBooksOnlyEmpty = !adminBooksOnlyEmpty;
     adminBooksOnlyHidden = false;
+    adminBooksOnlyWarning = false;
     adminBooksVisible = ADMIN_BOOKS_PAGE_SIZE;
     renderAdminBooksTable();
   });
@@ -269,9 +272,8 @@ let adminBooksOnlyEmpty = false;
 // Книги, скрытые от читателей: файл повреждён, под паролем или пропал.
 let adminBooksOnlyHidden = false;
 
-function booksWithFileProblem() {
-  return (state.books || []).filter(book => book.has_file && book.file_problem);
-}
+// EPUB, перегнанные из PDF: читаются, но текст с разрывами слов.
+let adminBooksOnlyWarning = false;
 
 // Сортировка таблицы по столбцам: нажатие на заголовок, повторное — обратный
 // порядок. По умолчанию — как пришло с сервера.
@@ -385,20 +387,17 @@ function renderAdminBooksTable() {
   const query = adminBooksQuery.trim().toLowerCase();
   const source = adminBooksOnlyEmpty
     ? booksWithoutFile()
-    : (adminBooksOnlyHidden ? booksWithFileProblem() : (state.books || []));
+    : adminBooksOnlyHidden
+      ? booksWithFileProblem()
+      : (adminBooksOnlyWarning ? booksWithFileWarning() : (state.books || []));
   const books = sortAdminBooks(query
     ? source.filter(book =>
       `${book.title || ''} ${book.author || ''}`.toLowerCase().includes(query))
     : source);
   updateAdminBooksSortHeader();
   const emptyCount = booksWithoutFile().length;
-  const hiddenCount = booksWithFileProblem().length;
-  const hiddenBtn = document.getElementById('adminBooksHiddenBtn');
-  if (hiddenBtn) {
-    hiddenBtn.hidden = hiddenCount === 0 && !adminBooksOnlyHidden;
-    hiddenBtn.textContent = adminBooksOnlyHidden ? 'Показать все книги' : `Скрыты от читателей: ${hiddenCount}`;
-    hiddenBtn.classList.toggle('active', adminBooksOnlyHidden);
-  }
+  updateAdminBookFilterButton('adminBooksWarningBtn', booksWithFileWarning().length, adminBooksOnlyWarning, 'Перегнаны из PDF');
+  updateAdminBookFilterButton('adminBooksHiddenBtn', booksWithFileProblem().length, adminBooksOnlyHidden, 'Скрыты от читателей');
   const noFileBtn = document.getElementById('adminBooksNoFileBtn');
   if (noFileBtn) {
     noFileBtn.hidden = emptyCount === 0 && !adminBooksOnlyEmpty;

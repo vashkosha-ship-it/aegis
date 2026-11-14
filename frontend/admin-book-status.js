@@ -15,12 +15,31 @@ function bookHiddenReason(book) {
   return null;
 }
 
+// Книга открывается, но файл плохой — подсказка админу (книга не скрыта).
+const FILE_WARNING_LABELS = {
+  pdf_conversion: 'Перегнана из PDF',
+};
+const FILE_WARNING_HINTS = {
+  pdf_conversion: 'EPUB перегнан из PDF: в тексте пробелы вместо переносов («Ев ропол сооб щил»), каждая строка — отдельный абзац. Читать можно, но лучше загрузить оригинальный PDF или нормальный EPUB.',
+};
+
+function bookFileWarningLabel(book) {
+  return (book && book.file_warning && FILE_WARNING_LABELS[book.file_warning]) || null;
+}
+
 function renderAdminBookHiddenNotice(book) {
   const notice = document.getElementById('adminBookHiddenNotice');
   if (!notice) return;
   const reason = bookHiddenReason(book);
-  notice.hidden = !reason;
-  if (!reason) return;
+  notice.hidden = !reason && !bookFileWarningLabel(book);
+  notice.classList.toggle('admin-hidden-notice--warning', !reason && Boolean(bookFileWarningLabel(book)));
+  if (!reason) {
+    if (bookFileWarningLabel(book)) {
+      notice.textContent = FILE_WARNING_HINTS[book.file_warning];
+      notice.title = '';
+    }
+    return;
+  }
   const fix = book.file_problem === 'password'
     ? 'Загрузите файл без пароля — книга снова появится у читателей.'
     : 'Загрузите целый файл — книга снова появится у читателей.';
@@ -69,4 +88,35 @@ async function showBookIndexError(bookId, title) {
     message: explained,
     footnote: raw && explained !== raw ? `Техническая причина: ${raw.slice(0, 500)}` : '',
   });
+}
+
+function booksWithFileWarning() {
+  return (state.books || []).filter(book => book.file_warning);
+}
+
+function booksWithFileProblem() {
+  return (state.books || []).filter(book => book.has_file && book.file_problem);
+}
+
+// Пометка под названием книги в таблице админки.
+function appendAdminBookStatusBadge(cell, book) {
+  const hiddenReason = bookHiddenReason(book);
+  const warning = bookFileWarningLabel(book);
+  if (!hiddenReason && !warning) return;
+  const badge = document.createElement('span');
+  badge.className = hiddenReason ? 'admin-hidden-badge' : 'admin-hidden-badge admin-hidden-badge--warning';
+  badge.textContent = hiddenReason ? `Скрыта: ${hiddenReason}` : warning;
+  badge.title = hiddenReason
+    ? (book.file_problem_detail || 'Читатели эту книгу не видят')
+    : (FILE_WARNING_HINTS[book.file_warning] || '');
+  cell.append(document.createElement('br'), badge);
+}
+
+// Кнопка-фильтр над таблицей: «Скрыты от читателей: 2» / «Показать все книги».
+function updateAdminBookFilterButton(id, count, active, label) {
+  const button = document.getElementById(id);
+  if (!button) return;
+  button.hidden = count === 0 && !active;
+  button.textContent = active ? 'Показать все книги' : `${label}: ${count}`;
+  button.classList.toggle('active', active);
 }

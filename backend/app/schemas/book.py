@@ -110,6 +110,7 @@ class BookPublic(BookBase):
     # админу: читателям такие книги не отдаются вовсе.
     file_problem: str | None = None
     file_problem_detail: str | None = None
+    file_warning: str | None = None
     date_published: date | None
     created_at: datetime
 
